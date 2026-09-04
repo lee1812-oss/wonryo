@@ -76,6 +76,9 @@ h3{font-size:14px;font-weight:700;color:var(--ink2);margin-bottom:6px}
 .stat{background:var(--line2);border-radius:8px;padding:10px 12px}
 .stat b{display:block;font-size:20px;font-weight:700;letter-spacing:-.3px}
 .stat span{font-size:12px;color:var(--ink2)}
+.stat.pick{cursor:pointer;border:2px solid transparent}.stat.pick.on{border-color:var(--brand);background:#fff}
+.stat.red{background:var(--minus-bg)}.stat.amber{background:var(--warn-bg)}.stat.blue{background:var(--plus-bg)}
+.dday{font-weight:700;white-space:nowrap}.dday.over{color:var(--minus)}.dday.m1{color:var(--minus)}.dday.m3{color:var(--warn)}.dday.m6{color:var(--plus)}
 .tablewrap{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:8px;background:#fff}
 table.t{border-collapse:collapse;width:100%;font-size:13.5px}
 table.t th,table.t td{padding:8px 10px;border-bottom:1px solid var(--line2);white-space:nowrap;vertical-align:middle}
@@ -189,6 +192,25 @@ table.t th.sticky{z-index:3;background:#F4F6F8}
 
 <main>
   <div class="pwa noprint" id="pwa"><b id="pwaTitle"></b><span id="pwaText"></span><div class="row"><button class="btn sm primary" id="pwaInstall" style="display:none">지금 홈 화면에 추가</button><button class="btn sm" id="pwaClose">닫기</button></div></div>
+  <!-- ═══ 대시보드 ═══ -->
+  <section class="view" data-view="dash">
+    <div class="card">
+      <div class="row between" style="margin-bottom:8px"><h2 style="margin:0" id="dashTitle">대시보드</h2><span class="muted" id="dashProg"></span></div>
+      <div class="progress"><i id="dashBar" style="width:0"></i></div>
+    </div>
+    <div class="card">
+      <h2>소비기한</h2>
+      <div class="stats dash-exp" id="expStats"></div>
+      <div class="tablewrap" id="expTable" style="margin-top:10px"></div>
+      <div class="muted" style="margin-top:6px">실물입력에서 품목별 소비기한을 넣으면 여기에 집계됩니다. 카드를 누르면 해당 구간만 표시됩니다.</div>
+    </div>
+    <div class="card">
+      <div class="row between" style="margin-bottom:8px"><h2 style="margin:0">전산 · 실물 오차 품목</h2><span class="muted" id="diffSub"></span></div>
+      <div class="stats" id="diffStats"></div>
+      <div class="tablewrap" id="diffTable" style="margin-top:10px"></div>
+    </div>
+  </section>
+
   <!-- ═══ 전산재고 ═══ -->
   <section class="view" data-view="stock">
     <div class="card noprint">
@@ -352,10 +374,11 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    원료수불부 — 이카운트 전산재고 × 휴대폰 실물재고 비교 플랫폼
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
-const APP_VER  = '002';
+const APP_VER  = '003';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
+  ['dash','대시보드','<svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="11" width="8" height="10" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/></svg>'],
   ['stock','전산재고','<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 9h16M4 15h16M10 4v16"/></svg>'],
   ['phys','실물입력','<svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>'],
   ['cmp','비교분석','<svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>'],
@@ -367,10 +390,10 @@ const TABS = [
 const defaultState = () => ({
   ver: 1, savedAt: '', snapshots: {}, physical: {}, itemMeta: {}, memos: {},
   settings: { company: '빵을그리다(주)', reporter: '', tolG: 0, tolPct: 0, netWeight: false },
-  ui: { week: '', tab: 'phys' }
+  ui: { week: '', tab: 'dash' }
 });
 let S = load();
-let ui = { piSort: 'name', piOnlyEmpty: false, piSearch: '', stockSearch: '', cmpFilter: 'all', trendMode: 'qty' };
+let ui = { expFilter: '', piSort: 'name', piOnlyEmpty: false, piSearch: '', stockSearch: '', cmpFilter: 'all', trendMode: 'qty' };
 
 function load() {
   let ls = null, emb = null;
@@ -445,6 +468,15 @@ function physQty(it, p) {
   return Math.round(q * 10) / 10;
 }
 function hidden(code) { return !!(S.itemMeta[code] && S.itemMeta[code].hidden); }
+function expiryOf(code, week, p) {
+  p = p || (S.physical[week] || {})[code];
+  if (p && p.expiry) return p.expiry;
+  const m = S.itemMeta[code]; if (m && m.expiry) return m.expiry;
+  const it = itemsFor(week).find(i => i.code === code); if (it && /^\d{4}[-./]\d{2}[-./]\d{2}/.test(it.expiry || '')) return it.expiry.slice(0, 10).replace(/[./]/g, '-');
+  return '';
+}
+function ddays(e) { if (!e) return null; const t = new Date(today() + 'T00:00:00'), d = new Date(e + 'T00:00:00'); if (isNaN(d)) return null; return Math.round((d - t) / 86400000); }
+function expBucket(n) { return n == null ? 'none' : n < 0 ? 'over' : n <= 30 ? 'm1' : n <= 90 ? 'm3' : n <= 180 ? 'm6' : 'ok'; }
 function needAdj(diff, qty) {
   if (diff === 0) return false;
   const g = Number(S.settings.tolG) || 0, p = Number(S.settings.tolPct) || 0;
@@ -552,6 +584,30 @@ function renderHeader() {
   };
 }
 
+/* ── render: 대시보드 ── */
+function renderDash() {
+  const cw = curWeek(); const rows = compareRows(cw);
+  $('#dashTitle').textContent = `대시보드 · ${cw || ''}`;
+  if (!rows.length) { $('#dashProg').textContent = ''; $('#expStats').innerHTML = ''; $('#expTable').innerHTML = '<div class="empty">전산재고를 먼저 업로드하세요.</div>'; $('#diffStats').innerHTML = ''; $('#diffTable').innerHTML = ''; return; }
+  const entered = rows.filter(r => r.phys != null);
+  $('#dashProg').textContent = `실물 입력 ${entered.length} / ${rows.length}`; $('#dashBar').style.width = (entered.length / rows.length * 100) + '%';
+  const ex = rows.map(r => { const e = expiryOf(r.code, cw); const n = ddays(e); return Object.assign({ exp: e, dd: n, bk: expBucket(n) }, r); });
+  const cnt = k => ex.filter(r => r.bk === k).length;
+  const c1 = cnt('over') + cnt('m1'), c3 = cnt('m3'), c6 = cnt('m6'), cn = cnt('none');
+  const F = ui.expFilter;
+  $('#expStats').innerHTML = `<div class="stat pick red ${F === 'm1' ? 'on' : ''}" data-x="m1"><b class="minus">${c1}</b><span>1개월 미만${cnt('over') ? ` (경과 ${cnt('over')})` : ''}</span></div><div class="stat pick amber ${F === 'm3' ? 'on' : ''}" data-x="m3"><b style="${c3 ? 'color:var(--warn)' : ''}">${c3}</b><span>1~3개월</span></div><div class="stat pick blue ${F === 'm6' ? 'on' : ''}" data-x="m6"><b class="plus">${c6}</b><span>3~6개월</span></div><div class="stat pick ${F === 'none' ? 'on' : ''}" data-x="none"><b class="zero">${cn}</b><span>미입력</span></div>`;
+  $$('#expStats .stat').forEach(el => el.onclick = () => { ui.expFilter = ui.expFilter === el.dataset.x ? '' : el.dataset.x; renderDash(); });
+  let list = ex.filter(r => F ? (F === 'm1' ? (r.bk === 'over' || r.bk === 'm1') : r.bk === F) : r.bk !== 'none' && r.bk !== 'ok');
+  list.sort((a, b) => (a.dd ?? 1e9) - (b.dd ?? 1e9));
+  const lbl = { over: '경과', m1: '1개월↓', m3: '3개월↓', m6: '6개월↓', ok: '양호', none: '미입력' };
+  $('#expTable').innerHTML = list.length ? `<table class="t"><thead><tr><th class="sticky">품목</th><th>소비기한</th><th class="num">D-day</th><th class="num">전산(g)</th><th class="num mh">실물(g)</th><th class="mh">메모</th></tr></thead><tbody>${list.map(r => `<tr><td class="sticky">${esc(shortName(r.name))}<div class="muted mh">${esc(r.vendor)}</div></td><td>${r.exp || '—'}</td><td class="num"><span class="dday ${r.bk}">${r.dd == null ? '—' : r.dd < 0 ? 'D+' + (-r.dd) : 'D-' + r.dd}</span><div class="muted">${lbl[r.bk]}</div></td><td class="num">${fmt(r.ecount)}</td><td class="num mh">${fmt(r.phys)}</td><td class="small mh">${esc(r.note)}</td></tr>`).join('')}</tbody></table>` : `<div class="empty">${F ? '해당 구간 품목 없음' : '6개월 이내 소비기한 품목이 없습니다'}</div>`;
+  const diffs = rows.filter(r => r.diff != null && r.diff !== 0).sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+  const adj = diffs.filter(r => r.adj), short = diffs.filter(r => r.diff < 0), over = diffs.filter(r => r.diff > 0);
+  $('#diffSub').textContent = `미입력 ${rows.length - entered.length}`;
+  $('#diffStats').innerHTML = `<div class="stat"><b class="${adj.length ? 'minus' : 'plus'}">${adj.length}</b><span>조정대상 (오차 ${diffs.length}건)</span></div><div class="stat"><b class="minus">${fmt(short.reduce((a, r) => a + r.diff, 0))}</b><span>부족 ${short.length}건 g</span></div><div class="stat"><b class="plus">${fmtS(over.reduce((a, r) => a + r.diff, 0))}</b><span>초과 ${over.length}건 g</span></div><div class="stat"><b class="plus">${rows.filter(r => r.diff === 0).length}</b><span>일치</span></div>`;
+  $('#diffTable').innerHTML = diffs.length ? `<table class="t"><thead><tr><th class="sticky">품목</th><th class="num">전산(g)</th><th class="num">실물(g)</th><th class="num">차이(g)</th><th class="mh">상태</th></tr></thead><tbody>${diffs.map(r => `<tr><td class="sticky">${esc(shortName(r.name))}${r.note ? `<div class="muted">${esc(r.note)}</div>` : ''}</td><td class="num">${fmt(r.ecount)}</td><td class="num"><b>${fmt(r.phys)}</b></td><td class="num ${cls(r.diff)}"><b>${fmtS(r.diff)}</b></td><td class="mh"><span class="pill ${r.adj ? cls(r.diff) : 'warn'}">${r.adj ? (r.diff < 0 ? '부족·조정' : '초과·조정') : '오차내'}</span></td></tr>`).join('')}</tbody></table>` : `<div class="empty">${entered.length ? '전산과 실물이 모두 일치합니다' : '실물재고를 입력하면 오차 품목이 표시됩니다'}</div>`;
+}
+
 /* ── render: 전산재고 ── */
 function renderStock() {
   const ws = weeks(), cw = curWeek();
@@ -597,12 +653,12 @@ function renderPhys() {
                     <div class="inp"><span>잔량 ${S.settings.netWeight ? '순중량' : '총중량(용기포함)'} g</span><input type="number" inputmode="decimal" data-f="gross" value="${p.gross ?? ''}" placeholder="0"></div>`}
         <div class="result"><b class="${pq == null ? 'zero' : ''}">${pq == null ? '—' : fmt(pq)}</b><i>전산 ${fmt(eq)}</i></div>
       </div>
-      <div class="bar"><input data-f="note" value="${esc(p.note || '')}" placeholder="메모" style="border:0;border-bottom:1px solid var(--line2);flex:1;padding:3px 0;font-size:12px;background:transparent"><span class="${cls(d)}" style="margin-left:10px;font-weight:600">${d == null ? '' : '차이 ' + fmtS(d)}</span></div>
+      <div class="bar"><input type="date" data-f="expiry" value="${esc(expiryOf(i.code, cw, p))}" title="소비기한" style="border:1px solid var(--line);border-radius:6px;padding:3px 5px;font-size:12px;background:${p.expiry ? '#fff' : '#FBFCFD'};color:${expiryOf(i.code, cw, p) ? 'var(--ink)' : 'var(--ink3)'};max-width:135px"><input data-f="note" value="${esc(p.note || '')}" placeholder="메모" style="border:0;border-bottom:1px solid var(--line2);flex:1;min-width:60px;padding:3px 0;font-size:12px;background:transparent;margin-left:8px"><span class="${cls(d)}" style="margin-left:8px;font-weight:600;white-space:nowrap">${d == null ? '' : '차이 ' + fmtS(d)}</span></div>
     </div>`;
   }).join('') || '<div class="empty">해당 품목이 없습니다.</div>';
   $$('#piList .pi-item').forEach(el => {
     const code = el.dataset.code; const it = items.find(i => i.code === code);
-    const upd = () => { const p = ph[code] || (ph[code] = {}); el.querySelectorAll('input[data-f]').forEach(inp => p[inp.dataset.f] = inp.value); p.ts = new Date().toISOString(); save();
+    const upd = () => { const p = ph[code] || (ph[code] = {}); el.querySelectorAll('input[data-f]').forEach(inp => p[inp.dataset.f] = inp.value); p.ts = new Date().toISOString(); if (p.expiry) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); m.expiry = p.expiry; m.expiryWeek = cw; } save();
       const pq = physQty(it, p); const eq = it.qty == null ? null : Number(it.qty); const d = pq != null && eq != null ? pq - eq : null;
       el.classList.toggle('done', pq != null); el.querySelector('.result b').textContent = pq == null ? '—' : fmt(pq); el.querySelector('.result b').className = pq == null ? 'zero' : '';
       const sp = el.querySelector('.bar span'); sp.textContent = d == null ? '' : '차이 ' + fmtS(d); sp.className = cls(d); renderProg(); };
@@ -613,7 +669,7 @@ function renderPhys() {
 }
 function nextInput(inp, enter) {
   const all = $$('#piList input[type=number]'); const i = all.indexOf(inp);
-  if (inp.dataset.f === 'note') return;
+  if (inp.dataset.f === 'note' || inp.dataset.f === 'expiry') return;
   // Enter: 포수 → 잔량 → 다음 품목 포수 (메모는 건너뜀)
   const nx = all[i + 1]; if (nx) { nx.focus(); nx.scrollIntoView({ block: 'center', behavior: 'smooth' }); } else { inp.blur(); toast('마지막 품목입니다'); }
 }
@@ -635,6 +691,8 @@ function reportText(week) {
   const miss = rows.filter(r => r.phys == null);
   if (miss.length) { L.push(''); L.push(`■ 미입력 ${miss.length}: ` + miss.map(r => shortName(r.name)).join(', ')); }
   const noted = entered.filter(r => r.note && !r.adj); if (noted.length) { L.push(''); noted.forEach(r => L.push(`* ${shortName(r.name)}: ${r.note}`)); }
+  const soon = rows.map(r => ({ r, e: expiryOf(r.code, week) })).map(x => ({ ...x, d: ddays(x.e) })).filter(x => x.d != null && x.d <= 30).sort((a, b) => a.d - b.d);
+  if (soon.length) { L.push(''); L.push('■ 소비기한 1개월 미만'); soon.forEach(x => L.push(`- ${shortName(x.r.name)}: ${x.e} (${x.d < 0 ? 'D+' + (-x.d) + ' 경과' : 'D-' + x.d})`)); }
   if (S.memos[week]) { L.push(''); L.push('비고: ' + S.memos[week]); }
   return L.join('\n');
 }
@@ -658,9 +716,9 @@ function renderCmp() {
     const pct = r.diff != null && r.ecount ? (r.diff / Math.abs(r.ecount) * 100) : null;
     const w = r.diff ? Math.max(4, Math.round(Math.abs(r.diff) / maxAbs * 60)) : 0;
     const st = r.phys == null ? '<span class="pill gray">미입력</span>' : r.diff === 0 ? '<span class="pill ok">일치</span>' : r.adj ? `<span class="pill ${cls(r.diff)}">${r.diff < 0 ? '부족·조정' : '초과·조정'}</span>` : '<span class="pill warn">오차내</span>';
-    return `<tr><td class="sticky">${esc(shortName(r.name))}<div class="muted mh code">${esc(r.code)}</div></td><td class="num">${fmt(r.ecount)}</td><td class="num"><b>${fmt(r.phys)}</b></td><td class="num ${cls(r.diff)}"><b>${r.diff == null ? '—' : fmtS(r.diff)}</b>${w ? ` <span class="diffbar" style="width:${w}px;background:${r.diff < 0 ? 'var(--minus)' : 'var(--plus)'}"></span>` : ''}</td><td class="num mh ${cls(r.diff)}">${pct == null ? '—' : fmtS(Math.round(pct * 10) / 10) + '%'}</td><td>${st}</td><td class="num mh ${r.adj ? cls(r.diff) : 'zero'}">${r.adj ? fmtS(r.diff) : ''}</td><td class="small mh">${esc(r.note)}</td></tr>`;
+    return `<tr><td class="sticky">${esc(shortName(r.name))}<div class="muted mh code">${esc(r.code)}</div></td><td class="num">${fmt(r.ecount)}</td><td class="num"><b>${fmt(r.phys)}</b></td><td class="num ${cls(r.diff)}"><b>${r.diff == null ? '—' : fmtS(r.diff)}</b>${w ? ` <span class="diffbar" style="width:${w}px;background:${r.diff < 0 ? 'var(--minus)' : 'var(--plus)'}"></span>` : ''}</td><td class="num mh ${cls(r.diff)}">${pct == null ? '—' : fmtS(Math.round(pct * 10) / 10) + '%'}</td><td>${st}</td><td class="num mh ${r.adj ? cls(r.diff) : 'zero'}">${r.adj ? fmtS(r.diff) : ''}</td><td class="mh small"><span class="dday ${expBucket(ddays(expiryOf(r.code, cw)))}">${expiryOf(r.code, cw) || ''}</span></td><td class="small mh">${esc(r.note)}</td></tr>`;
   }).join('');
-  $('#cmpTable').innerHTML = `<table class="t"><thead><tr><th class="sticky">품목</th><th class="num">전산(g)</th><th class="num">실물(g)</th><th class="num">차이(g)</th><th class="num mh">차이율</th><th>상태</th><th class="num mh">조정수량</th><th class="mh">메모</th></tr></thead><tbody>${body || '<tr><td colspan="8" class="empty">해당 품목 없음</td></tr>'}</tbody><tfoot><tr><td class="sticky">합계 ${list.length}품목</td><td class="num">${fmt(te)}</td><td class="num">${fmt(tp)}</td><td class="num ${cls(tp - tee)}">${fmtS(Math.round((tp - tee) * 10) / 10)}</td><td class="mh"></td><td></td><td class="num mh">${fmtS(adj.reduce((a, r) => a + r.diff, 0))}</td><td class="mh"></td></tr></tfoot></table>`;
+  $('#cmpTable').innerHTML = `<table class="t"><thead><tr><th class="sticky">품목</th><th class="num">전산(g)</th><th class="num">실물(g)</th><th class="num">차이(g)</th><th class="num mh">차이율</th><th>상태</th><th class="num mh">조정수량</th><th class="mh">소비기한</th><th class="mh">메모</th></tr></thead><tbody>${body || '<tr><td colspan="9" class="empty">해당 품목 없음</td></tr>'}</tbody><tfoot><tr><td class="sticky">합계 ${list.length}품목</td><td class="num">${fmt(te)}</td><td class="num">${fmt(tp)}</td><td class="num ${cls(tp - tee)}">${fmtS(Math.round((tp - tee) * 10) / 10)}</td><td class="mh"></td><td></td><td class="num mh">${fmtS(adj.reduce((a, r) => a + r.diff, 0))}</td><td class="mh"></td><td class="mh"></td></tr></tfoot></table>`;
 }
 
 /* ── render: 추이 ── */
@@ -719,11 +777,11 @@ function aoaXlsx(sheets, name) {
 }
 function exportCmp() {
   const cw = curWeek(); const rows = sortItems(compareRows(cw));
-  const aoa = [[`${S.settings.company} 원료 전산·실물 비교분석 ${cw}`], [], ['품목코드', '품목명', '매입처', '규격(g)', '전산재고(g)', '실물재고(g)', '차이(g)', '차이율(%)', '상태', '조정수량(g)', '메모']];
-  rows.forEach(r => aoa.push([r.code, r.name, r.vendor, r.spec, r.ecount, r.phys, r.diff, r.diff != null && r.ecount ? Math.round(r.diff / Math.abs(r.ecount) * 1000) / 10 : null, r.phys == null ? '미입력' : r.diff === 0 ? '일치' : r.adj ? '조정' : '오차내', r.adj ? r.diff : null, r.note]));
+  const aoa = [[`${S.settings.company} 원료 전산·실물 비교분석 ${cw}`], [], ['품목코드', '품목명', '매입처', '규격(g)', '전산재고(g)', '실물재고(g)', '차이(g)', '차이율(%)', '상태', '조정수량(g)', '소비기한', '메모']];
+  rows.forEach(r => aoa.push([r.code, r.name, r.vendor, r.spec, r.ecount, r.phys, r.diff, r.diff != null && r.ecount ? Math.round(r.diff / Math.abs(r.ecount) * 1000) / 10 : null, r.phys == null ? '미입력' : r.diff === 0 ? '일치' : r.adj ? '조정' : '오차내', r.adj ? r.diff : null, expiryOf(r.code, cw), r.note]));
   const adj = rows.filter(r => r.adj);
   const adjA = [['품목코드', '품목명', '전산재고(g)', '실물재고(g)', '조정수량(g)', '메모'], ...adj.map(r => [r.code, r.name, r.ecount, r.phys, r.diff, r.note])];
-  aoaXlsx([['비교분석', aoa, [12, 28, 14, 10, 12, 12, 12, 10, 8, 12, 20]], ['재고조정', adjA, [12, 28, 12, 12, 12, 20]]], `${fileStem()}_비교분석_${ymd(cw)}.xlsx`);
+  aoaXlsx([['비교분석', aoa, [12, 28, 14, 10, 12, 12, 12, 10, 8, 12, 12, 20]], ['재고조정', adjA, [12, 28, 12, 12, 12, 20]]], `${fileStem()}_비교분석_${ymd(cw)}.xlsx`);
 }
 function exportStock() { const cw = curWeek(); const s = S.snapshots[cw]; if (!s) return toast('스냅샷 없음'); aoaXlsx([['재고현황', [['품목코드', '매입처', '품목명', '빈 용기', '제품규격', '재고량', '소비기한'], ...s.items.map(i => [i.code, i.vendor, i.name, i.tare, i.spec, i.qty, i.expiry])], [12, 14, 28, 10, 10, 12, 12]]], `${fileStem()}_전산재고_${ymd(cw)}.xlsx`); }
 function exportTrend() {
@@ -750,8 +808,9 @@ const PHYS_TAG = '#원료수불부실물';
 function physText(week) {
   const ph = S.physical[week] || {}; const items = itemsFor(week);
   const L = [`${PHYS_TAG} ${week}`];
-  items.forEach(it => { const p = ph[it.code]; if (!p) return; const pq = physQty(it, p); if (pq == null && !p.note) return;
-    L.push(p.mode === 'direct' ? `${it.code}|d|${p.direct ?? ''}||${(p.note || '').replace(/[|\n]/g, ' ')}` : `${it.code}|p|${p.packs ?? ''}|${p.gross ?? ''}|${(p.note || '').replace(/[|\n]/g, ' ')}`); });
+  items.forEach(it => { const p = ph[it.code]; if (!p) return; const pq = physQty(it, p); if (pq == null && !p.note && !p.expiry) return;
+    const nt = (p.note || '').replace(/[|\n]/g, ' '), ex = p.expiry || '';
+    L.push(p.mode === 'direct' ? `${it.code}|d|${p.direct ?? ''}||${nt}|${ex}` : `${it.code}|p|${p.packs ?? ''}|${p.gross ?? ''}|${nt}|${ex}`); });
   if (S.memos[week]) L.push(`@memo|${S.memos[week].replace(/\n/g, ' ')}`);
   L.push(`@end ${L.length - 1}`);
   return L.join('\n');
@@ -765,8 +824,9 @@ function importPhysText(txt) {
     const l = lines[i]; if (!l) continue; if (l.startsWith('@end')) break;
     if (l.startsWith('@memo|')) { S.memos[week] = l.slice(6); continue; }
     const f = l.split('|'); if (f.length < 4) continue;
-    const [code, mode, a, b, note] = f;
-    ph[code] = mode === 'd' ? { mode: 'direct', direct: a, note: note || '', ts } : { mode: 'packs', packs: a, gross: b, note: note || '', ts };
+    const [code, mode, a, b, note, ex] = f;
+    ph[code] = mode === 'd' ? { mode: 'direct', direct: a, note: note || '', expiry: ex || '', ts } : { mode: 'packs', packs: a, gross: b, note: note || '', expiry: ex || '', ts };
+    if (ex) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); m.expiry = ex; m.expiryWeek = week; }
     n++;
   }
   S.ui.week = week; save(true); return { week, n };
@@ -830,7 +890,7 @@ window.addEventListener('beforeunload', () => save(true));
 function renderAll() {
   renderTabs(); renderHeader();
   const t = S.ui.tab;
-  if (t === 'stock') renderStock(); else if (t === 'phys') renderPhys(); else if (t === 'cmp') renderCmp(); else if (t === 'trend') renderTrend(); else renderSet();
+  if (t === 'dash') renderDash(); else if (t === 'stock') renderStock(); else if (t === 'phys') renderPhys(); else if (t === 'cmp') renderCmp(); else if (t === 'trend') renderTrend(); else renderSet();
 }
 function measureHead() { document.documentElement.style.setProperty('--head-h', document.querySelector('header.top').offsetHeight + 'px'); }
 window.addEventListener('resize', measureHead);
