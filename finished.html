@@ -261,7 +261,12 @@ body.briefing{overflow:hidden}
 @media (max-width:640px){.bfhead h1{font-size:18px;white-space:normal}.bfhead>div:first-child{flex-basis:100%;display:block}.bfhead .bfdate{margin-left:0}.bfcols{grid-template-columns:1fr!important}.bfkpi{grid-template-columns:1fr!important}}
 .bfhead h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
 .bfhead .d{font-size:13px;color:var(--ink2)}
-.bfdate{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:4px 6px;font-size:13px}.bfdate .nav{font-weight:700;min-width:64px}.bfdate input{min-width:0}
+.bfdate{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:4px 6px;font-size:13px}.bfdate .nav{font-weight:700;min-width:64px}
+.btn.kakao{background:#FEE500;border-color:#F2D400;color:#191919;font-weight:800}.btn.kakao:hover{background:#F7DD00}
+.kgrp{position:relative;display:inline-flex}.kgrp .kakao{border-radius:var(--r) 0 0 var(--r)}.kgrp .kmore{border-radius:0 var(--r) var(--r) 0;border-left:1px solid #E6CF00;padding:0 9px;min-width:0}
+.kmenu{display:none;position:absolute;top:calc(100% + 4px);right:0;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:260px;z-index:60;padding:6px;text-align:left}.kmenu.on{display:block}
+.kmenu .kt{font-size:11px;color:var(--ink3);padding:4px 8px 2px}.kmenu button{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:7px;font-size:13px;background:none;border:0;cursor:pointer;color:var(--ink)}.kmenu button:hover{background:var(--panel2)}.kmenu button.def{font-weight:800}.kmenu button .x{float:right;color:var(--ink3);font-size:12px;padding:0 4px}.kmenu button .x:hover{color:var(--red)}.kmenu hr{border:0;border-top:1px solid var(--line2);margin:4px 0}
+@media (max-width:640px){.kgrp .kmore{display:none}.kgrp .kakao{border-radius:var(--r)}}.bfdate input{min-width:0}
 @media (max-width:640px){.bfdate{flex:1 1 100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:4px;padding:4px}.bfdate .nav{min-width:0;padding:6px 8px}.bfdate input{width:100%;font-size:13px;text-align:center}.bfhead{gap:8px}.bfhead .btn{flex:1 1 auto}}.bfdate span{color:var(--ink3)}.bfdate input{border:none;background:none;font-weight:700;font-size:14px;outline:none}
 .bfq{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.bfq .ph{color:var(--ink);font-weight:800}.bfq .ec{color:var(--blue);font-weight:700}.bfq .ec.none{color:var(--ink3);font-weight:500}.bfq small{color:var(--ink3);font-weight:500}
 .ic.row .v .ec{color:var(--blue);margin-left:8px}.ic.row .v .ec.none{color:var(--ink3)}
@@ -333,7 +338,11 @@ body.briefing{overflow:hidden}
 .bft tr.vals td small{display:block;font-size:11px;font-weight:600;color:var(--ink3);margin-top:2px}
 .bft tr.vals td .none{color:var(--ink3);font-weight:700;font-size:14px}
 .bft td.res{font-size:15px;font-weight:900;background:var(--panel2);padding:7px 6px}.bfcol.red .bft td.res{background:var(--red-bg)}.bfcol.ok .bft td.res{background:var(--acc-bg)}
-.bft td.res.red{color:var(--red)}.bft td.res.ok{color:var(--ok)}
+.bft td.res.red{color:var(--red)}.bft td.res.ok{color:var(--ok)}.bft td.res.gray{color:#7a5200}
+/* 신호등 색: 부족=빨강, 여유=초록, 적정/재고無=노랑 */
+.bfcol.red .bft th{background:var(--red)}.bfcol.red .bft tr.lb td{background:var(--red-bg);color:var(--red)}.bfcol.red .bft{border-color:#efc9c3}
+.bfcol.ok .bft th{background:var(--acc)}.bfcol.ok .bft tr.lb td{background:var(--acc-bg);color:var(--acc)}
+.bfcol.gray .bft th{background:#FFC800;color:#2b2300}.bfcol.gray .bft tr.lb td{background:#FFF1B3;color:#7a5200}.bfcol.gray .bft td.res{background:#FFF1B3}.bfcol.gray .bft{border-color:#f5d76a}.bfcol.gray .ic.tb.zero{opacity:.7}
 .bft td.res .dif{font-size:10.5px;font-weight:600;color:var(--blue);margin-top:1px}
 @media (max-width:640px){.thumb.xl{width:72px;height:72px}}
 .ic .sf{font-size:11.5px;font-weight:600;color:var(--ink3);white-space:nowrap}
@@ -547,6 +556,7 @@ html.embedded #tabs{display:none}html.embedded .appbar .brand{display:none}html.
   <div class="ph">설정 · 데이터</div>
   <div class="pb">
     <div class="setrow"><div><div class="h">회사명</div><div class="d">상단 표시·인쇄 제목</div></div><input class="f" id="stCompany"></div>
+    <div class="setrow"><div><div class="h">카톡 전송 대화방 (PC)</div><div class="d">PC에서 「카톡 전송」을 누르면 카톡 전송 도우미가 이 이름의 대화방 창에 보고서 이미지를 붙여넣어 전송합니다 · 카카오톡 대화방 이름과 똑같이 입력</div></div><input class="f" id="stKakaoRoom" placeholder="예: 빵을 그리다 입고/출고 팀 신규방"></div>
     <div class="setrow"><div><div class="h">소비기한 임박 기준</div><div class="d">D-day가 이 일수 이하이면 빨간색, 그 2배 이하이면 주황색</div></div><div class="row" style="display:flex;gap:6px;align-items:center"><input class="f" id="stNear" type="number" style="width:90px"> 일</div></div>
     <div class="setrow"><div><div class="h">엑셀 업로드</div><div class="d">「2026년_재고_현황_YYMMDD.xlsx」 형식 · 확인일별로 재고가 추가되고, 새 품목은 품목 목록에 자동 등록</div></div>
       <div><div class="drop" id="drop">여기에 엑셀을 끌어다 놓거나 <b>클릭해서 선택</b></div><input type="file" id="fileIn" accept=".xlsx" multiple="" class="hidden"><div class="log hidden" id="importLog"></div></div></div>
@@ -577,7 +587,7 @@ html.embedded #tabs{display:none}html.embedded .appbar .brand{display:none}html.
 <div id="brief"><div class="bf">
   <div class="bfhead"><div><h1 id="bfTitle"></h1><div class="d" id="bfSub"></div></div><span class="sp"></span>
     <label class="bfdate noprint"><button class="btn sm nav" id="bfPrev" type="button" title="전일 (←)">◀ 전일</button><input type="date" id="bfDate"><button class="btn sm nav" id="bfNext" type="button" title="익일 (→)">익일 ▶</button><button class="btn sm" id="bfToday" type="button">오늘</button></label>
-    <button class="btn noprint" id="bfPrint">인쇄</button><button class="btn pri noprint" id="bfClose">닫기 (Esc)</button></div>
+    <button class="btn kakao noprint" id="bfKakao" title="카카오톡 창을 띄우고 이미지를 준비합니다. 방을 연 뒤 Ctrl+V → Enter">💬 카톡 전송</button><button class="btn noprint" id="bfPrint">인쇄</button><button class="btn pri noprint" id="bfClose">닫기 (Esc)</button></div>
   <div class="bfkpi" id="bfKpi"></div>
   <div class="bfcols" id="bfCols"></div>
 </div></div>
@@ -599,7 +609,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 (function(){
 'use strict';
 const PLATFORM='완제품생지재고관리';
-const VERSION=47;
+const VERSION=58;
 const LS_KEY='wjsg_state_v1';
 const EMBED=(()=>{try{return window.parent!==window;}catch(e){return false;}})();if(EMBED)document.documentElement.classList.add('embedded');
 const TEMPLATE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
@@ -642,7 +652,7 @@ const pieces=(it,st)=>(nz(st.box)+nz(st.bag))*nz(it.unitQty)+nz(st.each);
 const shortage=(it,st)=>unitQty(it,st)-nz(it.safety);
 function commit(){dirty=true;S.meta.savedAt=new Date().toISOString();clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){}},250);setStatus('변경됨 · 브라우저에 자동저장 (HTML로 저장 필요)',true);}
 function setStatus(t,d){const e=$('#saveStatus');e.textContent=t;e.classList.toggle('dirty',!!d);}
-let toastT;function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),2200);}
+let toastT;function toast(t,ms){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),ms||2200);}
 
 /* ---------- expiry parsing ---------- */
 function parseExp(s){const m=String(s||'').match(/(\d{2})\.(\d{1,2})\.(\d{1,2})/g);if(!m)return null;
@@ -977,6 +987,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')$$('.modal.on').forE
    사무실 PC(ecount_sync.py)가 깃허브에 올린 data.json(품목코드·재고량)을 읽어, 품목코드가 매핑된 품목에 전산재고를 표시한다.
    원료수불부(index.html) 안에 iframe으로 열린 경우 부모가 postMessage로도 전달한다. 저장은 별도 키(HTML 저장 데이터와 분리). */
 const EC_KEY='wjsg_ecount_v1', ECP_KEY='wjsg_ecprod_v1';
+const KAKAO_ROOM_DEFAULT='빵을 그리다 입고/출고 팀 신규방';
 S_ECOUNT_INIT: { try{ window.__ec=JSON.parse(localStorage.getItem(EC_KEY)||'null'); }catch(e){ window.__ec=null; } }
 Object.defineProperty(window,'ECPROD',{get(){try{return JSON.parse(localStorage.getItem(ECP_KEY)||'[]');}catch(e){return [];}},set(v){try{localStorage.setItem(ECP_KEY,JSON.stringify(v));}catch(e){}}});
 function ecState(){ if(location.protocol==='file:')return null; if(S&&!S.ecount&&window.__ec)S.ecount=window.__ec; return S?S.ecount:null; }
@@ -1080,7 +1091,8 @@ $('#btnMapAuto').onclick=()=>{const prods=ECPROD;if(!prods.length){toast('먼저
   $$('#mapTable [data-map]').forEach(inp=>{inp.value=mapDraft[inp.dataset.map]||'';});toast(n?`${n}품목 자동 매칭 · 확인 후 저장`:'자동 매칭된 품목이 없습니다');};
 
 /* ---------- settings ---------- */
-$('#btnSettings').onclick=()=>{$('#stCompany').value=S.meta.company;$('#stNear').value=S.meta.nearDays;$('#stVer').textContent=`${PLATFORM} ${vstr}`;$('#stSaved').textContent=S.meta.savedAt?'마지막 변경 '+S.meta.savedAt.replace('T',' ').slice(0,19):'';$('#mSettings').classList.add('on');};
+$('#btnSettings').onclick=()=>{$('#stCompany').value=S.meta.company;$('#stKakaoRoom').value=S.meta.kakaoRoom||KAKAO_ROOM_DEFAULT;$('#stNear').value=S.meta.nearDays;$('#stVer').textContent=`${PLATFORM} ${vstr}`;$('#stSaved').textContent=S.meta.savedAt?'마지막 변경 '+S.meta.savedAt.replace('T',' ').slice(0,19):'';$('#mSettings').classList.add('on');};
+$('#stKakaoRoom').onchange=e=>{S.meta.kakaoRoom=e.target.value.trim();commit();};
 $('#stCompany').onchange=e=>{S.meta.company=e.target.value.trim()||'빵을그리다';commit();render();};
 $('#stNear').onchange=e=>{S.meta.nearDays=Math.max(1,nz(e.target.value)||30);commit();render();};
 $('#btnDelSnap').onclick=()=>{if(S.snapshots.length<=1){toast('확인일은 최소 1개 필요합니다');return;}if(!confirm(`${kdate(S.cur)} 확인일을 삭제할까요?`))return;S.snapshots=S.snapshots.filter(s=>s.date!==S.cur);S.cur=S.snapshots[S.snapshots.length-1].date;commit();render();$('#mSettings').classList.remove('on');};
@@ -1129,12 +1141,12 @@ function renderBrief(){
   const card=(x,cls)=>{const sf=nz(x.it.safety);const q=ecQty(x.it);
     const ecCellT=q==null?`<span class="none" title="${ecNone(x.it)?'이카운트 코드 '+esc(x.it.code)+'에 재고 기록이 없음(수량관리제외 등)':'품목코드 미매핑'}">${ecNone(x.it)?'미관리':'-'}</span>`:`<b>${fmtq(q)}</b>${x.it.ecEa?`<small title="낱개 ${fmtq(ecRaw(x.it))}EA ÷ ${ecDivOf(x.it)}">(${fmtq(ecRaw(x.it))}EA)</small>`:''}`;
     const diff=q==null?'':`<div class="dif">전산 대비 ${x.q-q>0?'+':''}${fmtq(Math.round((x.q-q)*10)/10)}</div>`;
-    return `<div class="ic tb"><div class="h"><div class="ht"><span class="n">${esc(x.it.name)}</span></div><span class="pill ${cls}">${cls==='red'?'부족':'여유'}</span></div>
-      <div class="tbody">${x.it.photo?thumb(x.it,'xl'):''}<table class="bft"><thead><tr><th colspan="2">안전재고 [ ${sf?fmtq(sf)+un(x.it):'　'} ]</th></tr></thead><tbody><tr class="lb"><td>실물</td><td>전산</td></tr><tr class="vals"><td><b>${fmtq(x.q)||0}</b>${x.each?`<small>+${fmtq(x.each)}낱개</small>`:''}</td><td>${ecCellT}</td></tr><tr><td colspan="2" class="res ${cls}">${cls==='red'?'− '+fmtq(-x.sh)+' 부족':'+ '+fmtq(x.sh)+' 여유'}${diff}</td></tr></tbody></table></div></div>`;};
+    return `<div class="ic tb"><div class="h"><div class="ht"><span class="n">${esc(x.it.name)}</span></div><span class="pill ${cls}">${cls==='red'?'부족':cls==='ok'?'여유':(x.q<=0&&!x.each?'재고無':'적정')}</span></div>
+      <div class="tbody">${x.it.photo?thumb(x.it,'xl'):''}<table class="bft"><thead><tr><th colspan="2">안전재고 [ ${sf?fmtq(sf)+un(x.it):'　'} ]</th></tr></thead><tbody><tr class="lb"><td>실물</td><td>전산</td></tr><tr class="vals"><td><b>${fmtq(x.q)||0}</b>${x.each?`<small>+${fmtq(x.each)}낱개</small>`:''}</td><td>${ecCellT}</td></tr><tr><td colspan="2" class="res ${cls}">${cls==='red'?'− '+fmtq(-x.sh)+' 부족':cls==='ok'?'+ '+fmtq(x.sh)+' 여유':(!sf?'안전재고 미설정':(x.q<=0&&!x.each?'재고 없음':'적정'))}${diff}</td></tr></tbody></table></div></div>`;};
   $('#bfCols').innerHTML=`
     <div class="bfcol red"><h3>↘ 부족 품목<span class="n">${shorts.length}</span></h3>${shorts.map(x=>card(x,'red')).join('')||'<div class="bfempty">부족 품목 없음</div>'}</div>
     <div class="bfcol ok"><h3>👍 과잉/여유 품목<span class="n">${over.length}</span></h3>${over.map(x=>card(x,'ok')).join('')||'<div class="bfempty">여유 품목 없음</div>'}</div>
-    <div class="bfcol gray"><h3>✔ 적정/재고無 품목<span class="n">${rest.length}</span></h3>${rest.map(x=>`<div class="ic row${x.q<=0&&!x.each?' zero':''}"><span class="nm">${thumb(x.it,'sm')}<span class="ht"><span class="n">${esc(x.it.name)}</span><span class="sf">[안전 ${nz(x.it.safety)?fmtq(x.it.safety)+un(x.it):'—'}]</span></span></span>${x.sh===0&&nz(x.it.safety)?'<span class="pill gray">적정</span>':''}<span class="v">실물 ${qs(x)}${(()=>{const q=ecQty(x.it);return q==null?`<span class="ec none">${ecLbl(x.it)}</span>`:`<span class="ec">전산 ${fmtq(q)}</span>`;})()}</span></div>`).join('')||'<div class="bfempty">없음</div>'}</div>`;
+    <div class="bfcol gray"><h3>✔ 적정/재고無 품목<span class="n">${rest.length}</span></h3>${rest.map(x=>card(x,'gray')).join('')||'<div class="bfempty">없음</div>'}</div>`;
 }
 function briefText(){const {sn,L,ls,items}=briefData();const td=bfDate();let t=`[${S.meta.company} 재고 일일 보고] ${short(td)} (${dow(td)})${sn.date!==td?' · 실물 확인일 '+short(sn.date):''}\n`;
   if(L&&ls)t+=`■ 데니쉬200 생지: ${fmtq(ls.cur)}봉 (안전재고 ${fmtq(ls.c.safety)}) · 오늘 입고 ${fmtq(ls.tin)} / 출고 ${fmtq(ls.sale+ls.prod+ls.adj)}\n`;
@@ -1162,6 +1174,74 @@ function bfFit(){const bf=$('#brief .bf');if(!bf||!$('#brief').classList.contain
   bf.dataset.fit=z<1?Math.round(z*100)+'%':'';}
 function bfUnfit(){const bf=$('#brief .bf');if(bf){bf.style.zoom='';bf.style.width='';bf.dataset.fit='';}const st=$('#bfprintcss');if(st)st.textContent='';}
 window.addEventListener('beforeprint',bfFit);window.addEventListener('afterprint',bfUnfit);
+
+/* ---------- 일일 보고 → 이미지(PNG) → 카톡 전송 (v051) ---------- */
+function bfImageData(){const {sn,L,ls,items}=briefData();const td=bfDate();
+  const groups=(()=>{const shorts=bfOrder(items.filter(x=>x.sh<0),(a,b)=>a.sh-b.sh),over=bfOrder(items.filter(x=>nz(x.it.safety)&&x.sh>0),(a,b)=>b.sh-a.sh),rest=bfOrder(items.filter(x=>!(x.sh<0)&&!(nz(x.it.safety)&&x.sh>0)),(a,b)=>(b.q+b.each)-(a.q+a.each));return [{key:'red',title:'부족 품목',list:shorts},{key:'ok',title:'과잉/여유 품목',list:over},{key:'gray',title:'적정/재고無 품목',list:rest}];})();
+  return {sn,L,ls,td,groups};}
+async function bfToCanvas(){
+  const {sn,L,ls,td,groups}=bfImageData();const un=it=>isBox(it)?'박스':'봉';
+  const W=1080,P=28,GAP=16,COLW=Math.floor((W-2*P-2*GAP)/3);
+  const C={red:{h:'#C23B2A',lb:'#FBE9E6',lt:'#C23B2A',bd:'#EFC9C3',bg:'#FDF2F0',res:'#C23B2A'},ok:{h:'#1D6B4C',lb:'#E4F1EA',lt:'#1D6B4C',bd:'#CFE3D8',bg:'#F1F8F4',res:'#1D6B4C'},gray:{h:'#FFC800',lb:'#FFF1B3',lt:'#7A5200',bd:'#F5D76A',bg:'#FFFBEA',res:'#7A5200'}};
+  const font=(w,s)=>`${w} ${s}px "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif`;
+  // 사진 미리 로드
+  const imgs={};await Promise.all(groups.flatMap(g=>g.list).filter(x=>x.it.photo).map(x=>new Promise(r=>{const im=new Image();im.onload=()=>{imgs[x.it.id]=im;r();};im.onerror=()=>r();im.src=x.it.photo;})));
+  // 레이아웃 계산
+  const mc=document.createElement('canvas').getContext('2d');
+  const wrap=(ctx,text,maxW,f)=>{ctx.font=f;const out=[];let line='';const push=w=>{const t=line?line+' '+w:w;if(ctx.measureText(t).width<=maxW||!line){if(ctx.measureText(t).width<=maxW){line=t;return;}for(const ch of w){const t2=line+ch;if(ctx.measureText(t2).width>maxW&&line){out.push(line);line=ch;}else line=t2;}return;}out.push(line);line='';push(w);};String(text).split(/\s+/).forEach(push);if(line)out.push(line);return out.slice(0,2);};
+  const cardH=x=>{const lines=wrap(mc,x.it.name,COLW-24-70,font('800',19));return 14+lines.length*24+8+(x.it.photo?130:118)+14;};
+  const colH=g=>44+g.list.reduce((a,x)=>a+cardH(x)+10,0)+(g.list.length?0:44)+14;
+  const kpiH=150,headH=88;
+  const H=P+headH+kpiH+18+Math.max(...groups.map(colH))+P;
+  const cv=document.createElement('canvas');cv.width=W*2;cv.height=H*2;const ctx=cv.getContext('2d');ctx.scale(2,2);
+  ctx.fillStyle='#F1F2EE';ctx.fillRect(0,0,W,H);
+  const rr=(x,y,w,h,r,fill,stroke)=>{ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke();}};
+  const txt=(s,x,y,f,color,align)=>{ctx.font=f;ctx.fillStyle=color;ctx.textAlign=align||'left';ctx.textBaseline='alphabetic';ctx.fillText(s,x,y);};
+  // 헤더
+  txt(`${S.meta.company} 자사(DB) · 200생지 재고 일일 보고`,P,P+30,font('800',26),'#1C2320');
+  const ecOn=!!ecState();
+  txt(`${short(td)} ${dow(td)} 기준 · 담당: ${S.meta.fieldBy||''}${sn.date!==td?' · 실물 확인일 '+short(sn.date):''}${ecOn?' · 전산 = 이카운트 '+hm(S.ecount.checkedAt)+' 확인':' · 전산: 이카운트 미연동'}`,P,P+58,font('500',15),'#56605A');
+  // KPI
+  let y=P+headH;rr(P,y,W-2*P,kpiH,12,'#FFFFFF','#DCE0DA');
+  if(L&&ls){const c=ls.c;const out=ls.sale+ls.prod+ls.adj;const it=L.itemId&&item(L.itemId);const q=it?ecQty(it):null;const st={normal:['정상','#1D6B4C'],caution:['주의','#B4761C'],low:['부족','#C23B2A']}[ls.status];
+    const k1=P+22;txt('🔥 데니쉬200 생지',k1,y+34,font('700',17),'#1C2320');ctx.font=font('700',17);const tw=ctx.measureText('🔥 데니쉬200 생지').width;rr(k1+tw+10,y+18,52,22,11,st[1]);txt(st[0],k1+tw+36,y+34,font('800',13),'#fff','center');
+    txt(fmtq(ls.cur),k1,y+96,font('900',52),st[1]);ctx.font=font('900',52);const nw=ctx.measureText(fmtq(ls.cur)).width;txt('봉',k1+nw+6,y+96,font('700',18),'#56605A');
+    txt(`안전재고 ${fmtq(c.safety)}봉${c.unitPerBox?' · '+fmtq(ls.cur*c.unitPerBox)+'EA':''}`,k1,y+120,font('500',14),'#8A938D');
+    txt(`실물(대장) ${fmtq(ls.cur)}봉 · 전산(이카운트) ${q==null?'—':fmtq(q)+'봉'}${q!=null?' · 차이 '+(ls.cur-q>0?'+':'')+fmtq(ls.cur-q):''}`,k1,y+140,font('600',14),'#2F63A8');
+    const k2=P+(W-2*P)*0.52,k3=P+(W-2*P)*0.77;ctx.strokeStyle='#EDF0EB';ctx.beginPath();ctx.moveTo(k2-16,y+14);ctx.lineTo(k2-16,y+kpiH-14);ctx.moveTo(k3-16,y+14);ctx.lineTo(k3-16,y+kpiH-14);ctx.stroke();
+    txt('오늘 입고',k2,y+34,font('700',15),'#56605A');txt(fmtq(ls.tin),k2,y+90,font('900',40),'#2F63A8');ctx.font=font('900',40);txt('봉',k2+ctx.measureText(fmtq(ls.tin)).width+6,y+90,font('700',15),'#56605A');txt((ls.rows.filter(r=>nz(r.in)).map(r=>r.memo+' '+fmtq(r.in)).join(', ')||'없음').slice(0,28),k2,y+118,font('500',13),'#8A938D');
+    txt('오늘 출고',k3,y+34,font('700',15),'#56605A');txt(fmtq(out),k3,y+90,font('900',40),'#C23B2A');ctx.font=font('900',40);txt('봉',k3+ctx.measureText(fmtq(out)).width+6,y+90,font('700',15),'#56605A');txt(`판매 ${fmtq(ls.sale)} · 생산 ${fmtq(ls.prod)}`,k3,y+118,font('500',13),'#8A938D');}
+  // 컬럼
+  y+=kpiH+18;
+  groups.forEach((g,gi)=>{const cx=P+gi*(COLW+GAP);const col=C[g.key];const ch=colH(g);rr(cx,y,COLW,ch,12,col.bg,col.bd);
+    txt((g.key==='red'?'↘ ':g.key==='ok'?'👍 ':'✔ ')+g.title,cx+14,y+29,font('800',16),col.lt);txt(String(g.list.length),cx+COLW-14,y+29,font('700',14),'#8A938D','right');
+    let cy=y+44;if(!g.list.length){txt('없음',cx+COLW/2,cy+26,font('500',14),'#8A938D','center');}
+    g.list.forEach(x=>{const h=cardH(x);rr(cx+10,cy,COLW-20,h,10,'#FFFFFF','#DCE0DA');
+      const lines=wrap(ctx,x.it.name,COLW-24-70,font('800',19));lines.forEach((ln,i)=>txt(ln,cx+22,cy+30+i*24,font('800',19),'#1C2320'));
+      const pill=g.key==='red'?'부족':g.key==='ok'?'여유':(x.q<=0&&!x.each?'재고無':'적정');ctx.font=font('700',12);const pw=ctx.measureText(pill).width+18;rr(cx+COLW-22-pw,cy+12,pw,22,11,col.lb,col.bd);txt(pill,cx+COLW-22-pw/2,cy+27,font('700',12),col.lt,'center');
+      let ty=cy+14+lines.length*24+8;const im=imgs[x.it.id];let tx=cx+22,tw=COLW-44;
+      if(im){const sz=96;ctx.save();rr(tx,ty+4,sz,sz,10,null,null);ctx.clip();ctx.drawImage(im,tx,ty+4,sz,sz);ctx.restore();rr(tx,ty+4,sz,sz,10,null,'#DCE0DA');tx+=sz+10;tw-=sz+10;}
+      const sf=nz(x.it.safety);rr(tx,ty,tw,118,8,'#FFFFFF',col.bd);
+      ctx.save();rr(tx,ty,tw,118,8,null,null);ctx.clip();ctx.fillStyle=col.h;ctx.fillRect(tx,ty,tw,28);ctx.fillStyle=col.lb;ctx.fillRect(tx,ty+28,tw,24);ctx.fillStyle=col.lb;ctx.fillRect(tx,ty+90,tw,28);ctx.restore();
+      txt(`안전재고 [ ${sf?fmtq(sf)+un(x.it):'　'} ]`,tx+tw/2,ty+19,font('800',13),g.key==='gray'?'#2b2300':'#fff','center');
+      txt('실물',tx+tw/4,ty+45,font('800',12),col.lt,'center');txt('전산',tx+tw*3/4,ty+45,font('800',12),col.lt,'center');ctx.strokeStyle='#EDF0EB';ctx.beginPath();ctx.moveTo(tx+tw/2,ty+28);ctx.lineTo(tx+tw/2,ty+90);ctx.stroke();
+      txt(String(fmtq(x.q)||0),tx+tw/4,ty+76,font('900',24),'#1C2320','center');if(x.each)txt(`+${fmtq(x.each)}낱개`,tx+tw/4,ty+87,font('600',10),'#8A938D','center');
+      const q=ecQty(x.it);txt(q==null?(ecNone(x.it)?'미관리':'-'):String(fmtq(q)),tx+tw*3/4,ty+76,font('900',q==null?14:24),q==null?'#8A938D':'#2F63A8','center');if(q!=null&&x.it.ecEa)txt(`(${fmtq(ecRaw(x.it))}EA)`,tx+tw*3/4,ty+87,font('600',10),'#8A938D','center');
+      const res=g.key==='red'?'− '+fmtq(-x.sh)+' 부족':g.key==='ok'?'+ '+fmtq(x.sh)+' 여유':(!sf?'안전재고 미설정':(x.q<=0&&!x.each?'재고 없음':'적정'));txt(res,tx+tw/2,ty+109,font('800',14),col.res,'center');
+      cy+=h+10;});});
+  return cv;}
+async function bfShareKakao(roomSel){const btn=$('#bfKakao');btn.disabled=true;const old=btn.textContent;btn.textContent='이미지 만드는 중…';
+  try{const cv=await bfToCanvas();const blob=await new Promise(r=>cv.toBlob(r,'image/png'));const name=`일일보고_${ymd(bfDate())}.png`;const file=new File([blob],name,{type:'image/png'});
+    const mobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent); // PC 윈도우 공유창에는 스토어 앱만 나와 카톡 PC가 안 보임 → PC는 복사·다운로드
+    if(mobile&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'재고 일일 보고 '+short(bfDate())});toast('공유 창에서 카카오톡을 선택하세요');}
+    else{let copied=false;try{if(navigator.clipboard&&window.ClipboardItem){await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);copied=true;}}catch(e){}
+      if(copied){const room=roomSel||S.meta.kakaoRoom||KAKAO_ROOM_DEFAULT;kRecent(room);toast(`카카오톡 창이 뜹니다 → 보낼 방을 여세요 → Ctrl+V(이미지 붙음) → Enter(전송)`,9000);setTimeout(()=>{location.href='wonryo-kakao://send?room='+encodeURIComponent(room)+'&t='+Date.now();},150);}
+      else{download(blob,name);toast('이미지를 다운로드했습니다 — 카카오톡 대화창에 파일을 끌어다 놓으세요',6000);}}}
+  catch(e){if(!/abort/i.test(String(e)))toast('이미지 생성 실패: '+(e.message||e));}
+  finally{btn.disabled=false;btn.textContent=old;}}
+$('#bfKakao').onclick=()=>bfShareKakao();
+function kRecent(room){}
+
 $('#bfPrint').onclick=()=>{let st=$('#pagestyle');if(!st){st=document.createElement('style');st.id='pagestyle';document.head.appendChild(st);}st.textContent='@page{size:A4 portrait;margin:10mm}';bfFit();window.print();};
 const _bfCopyUnused=()=>{const t=briefText();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('보고 내용을 복사했습니다 · 카톡에 붙여넣기'),()=>{prompt('복사할 내용',t);});};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#brief').classList.contains('on'))$('#bfClose').click();});
@@ -1234,7 +1314,7 @@ window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.return
 window.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();$('#btnSaveHtml').click();}});
 
 load();render();setStatus($('#saveStatus').textContent||('HTML 파일 데이터 · '+vstr));
-window.WJSG={get S(){return S;},ecFetch,ecApply,item,go,commit,render,renderStock,setStockState:v=>{stockState=v;},getMapDraft:()=>mapDraft,version:vstr};
+window.WJSG={get S(){return S;},ecFetch,ecApply,item,go,commit,render,renderStock,setStockState:v=>{stockState=v;},getMapDraft:()=>mapDraft,version:vstr,bfToCanvas};
 })();
 
 </script></body></html>
