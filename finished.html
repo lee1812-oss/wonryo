@@ -261,6 +261,8 @@ body.briefing{overflow:hidden}
 @media (max-width:640px){.bfhead h1{font-size:18px;white-space:normal}.bfhead>div:first-child{flex-basis:100%;display:block}.bfhead .bfdate{margin-left:0}.bfcols{grid-template-columns:1fr!important}.bfkpi{grid-template-columns:1fr!important}}
 .bfhead h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
 .bfhead .d{font-size:13px;color:var(--ink2)}
+.bfkpi .df{padding:12px 14px;border-left:1px solid var(--line2);background:var(--vio-bg)}.bfkpi .df .l{color:var(--vio);font-weight:800}.bfkpi .df .l small{font-weight:600;color:var(--ink2);margin-left:6px}.dfrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px dashed var(--line)}.dfrow:last-child{border-bottom:0}.dfrow .n{font-weight:700;font-size:13.5px}.dfrow .q{font-weight:900;font-size:16px;color:var(--vio);white-space:nowrap}
+@media (max-width:640px){.bfkpi .df{border-left:0;border-top:1px solid var(--line2)}}
 .bfdate{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:4px 6px;font-size:13px}.bfdate .nav{font-weight:700;min-width:64px}
 .btn.kakao{background:#FEE500;border-color:#F2D400;color:#191919;font-weight:800}.btn.kakao:hover{background:#F7DD00}
 .kgrp{position:relative;display:inline-flex}.kgrp .kakao{border-radius:var(--r) 0 0 var(--r)}.kgrp .kmore{border-radius:0 var(--r) var(--r) 0;border-left:1px solid #E6CF00;padding:0 9px;min-width:0}
@@ -271,7 +273,7 @@ body.briefing{overflow:hidden}
 .bfq{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.bfq .ph{color:var(--ink);font-weight:800}.bfq .ec{color:var(--blue);font-weight:700}.bfq .ec.none{color:var(--ink3);font-weight:500}.bfq small{color:var(--ink3);font-weight:500}
 .ic.row .v .ec{color:var(--blue);margin-left:8px}.ic.row .v .ec.none{color:var(--ink3)}
 .bfhead .sp{flex:1}
-.bfkpi{display:grid;grid-template-columns:1.6fr 1fr 1fr;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.bfkpi{display:grid;grid-template-columns:1.5fr 0.9fr 0.9fr 1.3fr;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px}
 .bfkpi>div{padding:16px 20px;border-right:1px solid var(--line2)}
 .bfkpi>div:last-child{border-right:none}
 .bfkpi .l{font-size:13px;color:var(--ink2);font-weight:700;display:flex;align-items:center;gap:8px}
@@ -286,7 +288,7 @@ body.briefing{overflow:hidden}
 .bft tr.zero td{color:var(--ink3)}.bft tr.zero td.n{font-weight:500}
 .bft tr.sh td{background:#FFF6F4}
 @media (max-width:760px){.bfkpi{grid-template-columns:1fr 1fr}.bfkpi>div{border-bottom:1px solid var(--line2)}}
-@media print{#brief.on{position:static;background:#fff;overflow:visible;height:auto}body.briefing{overflow:visible}.bfkpi{grid-template-columns:1.6fr 1fr 1fr!important}.bfkpi>div{border-bottom:none!important}body.briefing>*:not(#brief){display:none!important}.bf{max-width:none;padding:0}.bfkpi{border:1px solid #999;border-radius:0}.bfkpi .v{font-size:28px}.bfkpi .big .v{font-size:36px}.bft table.t{font-size:10.5px;line-height:1.25}.bft table.t td{padding:1px 6px}.bft table.t th{padding:2px 6px;font-size:10px}.bft td.n{font-size:11.5px}.bft .pill{padding:0 6px;line-height:15px;font-size:10px}.bfkpi>div{padding:6px 12px}.bfkpi .v{font-size:24px}.bfkpi .big .v{font-size:30px}.bfkpi .s{font-size:10.5px}.bfhead h1{font-size:17px}.bfhead{margin-bottom:8px}.bfkpi{margin-bottom:8px}.bft tr.sh td{background:#f3e9e7!important}}
+@media print{#brief.on{position:static;background:#fff;overflow:visible;height:auto}body.briefing{overflow:visible}.bfkpi{grid-template-columns:1.5fr 0.9fr 0.9fr 1.3fr!important}.bfkpi>div{border-bottom:none!important}body.briefing>*:not(#brief){display:none!important}.bf{max-width:none;padding:0}.bfkpi{border:1px solid #999;border-radius:0}.bfkpi .v{font-size:28px}.bfkpi .big .v{font-size:36px}.bft table.t{font-size:10.5px;line-height:1.25}.bft table.t td{padding:1px 6px}.bft table.t th{padding:2px 6px;font-size:10px}.bft td.n{font-size:11.5px}.bft .pill{padding:0 6px;line-height:15px;font-size:10px}.bfkpi>div{padding:6px 12px}.bfkpi .v{font-size:24px}.bfkpi .big .v{font-size:30px}.bfkpi .s{font-size:10.5px}.bfhead h1{font-size:17px}.bfhead{margin-bottom:8px}.bfkpi{margin-bottom:8px}.bft tr.sh td{background:#f3e9e7!important}}
 
 /* 일일 보고 카드형 */
 .bfkpi .rb{margin-top:8px}
@@ -609,7 +611,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 (function(){
 'use strict';
 const PLATFORM='완제품생지재고관리';
-const VERSION=60;
+const VERSION=61;
 const LS_KEY='wjsg_state_v1';
 const EMBED=(()=>{try{return window.parent!==window;}catch(e){return false;}})();if(EMBED)document.documentElement.classList.add('embedded');
 const TEMPLATE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
@@ -740,7 +742,9 @@ function filtItems(){
 }
 function renderStock(){
   $$('#stockKind button').forEach(b=>b.classList.toggle('on',b.dataset.k===stockKind));$$('#stockState button').forEach(b=>b.classList.toggle('on',b.dataset.s===stockState));
-  const sn=cur(),list=filtItems();let html=`<table class="t" id="stk"><thead><tr><th>품목명</th><th class="c">단위</th><th class="r mut">단위수량</th><th class="r">박스</th><th class="r">봉</th><th class="r">낱개</th><th class="r mut">낱개 환산</th><th class="r ec">전산재고</th><th class="r ec">차이</th><th class="r">재고금액</th><th class="r">안전재고</th><th class="r">부족·여유</th><th class="r mut">단가 박스</th><th class="r mut">단가 봉</th><th class="r mut">단가 낱개</th><th>비고</th></tr></thead><tbody>`;
+  const sn=cur(),list=filtItems();let html=`<table class="t" id="stk"><thead><tr><th>품목명</th><th class="c">단위</th><th class="r mut">단위수량</th><th class="r">박스</th><th class="r">봉</th><th class="r">낱개</th><th class="r mut">낱개 환산</th><th class="r ec">전산재고</th><th class="r ec">차이</th><th class="r">재고금액</th><th class="r">안전재고</th><th class="r">부족·여유</th><th class="r mut">단가 박스</th><th class="r mut">단가 봉</th><th class="r mut">단가 낱개</th><th>소비기한</th><th>비고</th></tr></thead><tbody>`;
+  const exIdx=(()=>{const m={};const ex=(sn&&sn.expiry)||{};(ex.near||[]).forEach(r=>{m[String(r.name).trim()]={t:r.exp,sec:'임박'};});(ex.expired||[]).forEach(r=>{m[String(r.name).trim()]={t:r.exp,sec:'경과'};});return m;})();
+  const exCell=it=>{const e=exIdx[String(it.name).trim()];if(!e)return '';const dd=dday(parseExp(e.t));const cls=e.sec==='경과'||(dd!=null&&dd<0)?'red':(dd!=null&&dd<=S.meta.nearDays)?'amb':'gray';return `<span class="pill ${cls}" title="${esc(e.t||'')}">${e.sec==='경과'?'경과':(dd!=null?'D-'+dd:'임박')}</span><small class="mut" style="margin-left:4px">${esc(e.t||'')}</small>`;};
   let tot=0,lastV=null,r=0,vt=0,vend=[];
   list.forEach((it,idx)=>{const st=stockOf(sn,it.id);const m=money(it,st);tot+=m;
     if(it.vendor!==lastV){if(lastV!==null)vend.push(vt);vt=0;lastV=it.vendor;html+=`<tr class="grp"><td colspan="16">${esc(it.vendor)}<span class="m" data-vt="${vend.length}"></span></td></tr>`;}
@@ -750,10 +754,10 @@ function renderStock(){
       <td class="r">${cell('box',st.box)}</td><td class="r">${cell('bag',st.bag)}</td><td class="r">${cell('each',st.each)}</td><td class="r mut">${pieces(it,st)?fmtq(pieces(it,st)):''}</td><td class="r ec">${ecCell(it)}</td><td class="r ec">${ecDiffCell(it,st)}</td><td class="r money">${m?fmt(m):''}</td>
       <td class="r"><input class="cell${nz(it.safety)?' has':''}" type="number" step="any" value="${it.safety||''}" data-id="${it.id}" data-f="safety" data-r="${r}" data-c="safety"></td>
       <td class="r">${nz(it.safety)||sh<0?`<span class="pill ${sh<0?'red':sh===0?'gray':'ok'}">${sh<0?'부족 '+fmtq(-sh):sh===0?'적정':'+'+fmtq(sh)}</span>`:(q>0?'<span class="pill gray">기준 없음</span>':'')}</td>
-      <td class="r mut">${it.pBox?fmt(it.pBox):''}</td><td class="r mut">${it.pBag?fmt(it.pBag):''}</td><td class="r mut">${it.pEach?fmtq(Math.round(it.pEach*10)/10):''}</td>
+      <td class="r mut">${it.pBox?fmt(it.pBox):''}</td><td class="r mut">${it.pBag?fmt(it.pBag):''}</td><td class="r mut">${it.pEach?fmtq(Math.round(it.pEach*10)/10):''}</td><td class="exp">${exCell(it)}</td>
       <td><input class="cell txt" value="${esc(it.note)}" data-id="${it.id}" data-f="note" data-r="${r}" data-c="note" placeholder=""></td></tr>`;r++;});
   if(lastV!==null)vend.push(vt);
-  html+=`</tbody><tfoot><tr><td colspan="9">합계 · ${list.length}품목</td><td class="r">${fmt(tot)}</td><td colspan="6"></td></tr></tfoot></table>`;
+  html+=`</tbody><tfoot><tr><td colspan="9">합계 · ${list.length}품목</td><td class="r">${fmt(tot)}</td><td colspan="7"></td></tr></tfoot></table>`;
   if(!list.length)html=`<div class="empty">조건에 맞는 품목이 없습니다</div>`;
   $('#stockTable').innerHTML=html;
   $$('#stockTable [data-vt]').forEach(e=>e.textContent=fmt(vend[+e.dataset.vt]));
@@ -1136,6 +1140,11 @@ function renderBrief(){
       <div><div class="l">오늘 출고</div><div class="v" style="color:var(--red)">${fmtq(out)}<small>봉</small></div><div class="s">판매 ${fmtq(ls.sale)} · 생산 ${fmtq(ls.prod)}</div>
         ${out?`<div class="sb">${ls.sale?`<i style="flex:${ls.sale};background:var(--acc)">판매 ${fmtq(ls.sale)}</i>`:''}${ls.prod?`<i style="flex:${ls.prod};background:var(--red)">생산 ${fmtq(ls.prod)}</i>`:''}${ls.adj?`<i style="flex:${ls.adj};background:var(--ink3)">조정 ${fmtq(ls.adj)}</i>`:''}</div>`:''}</div>`;}
   else k=`<div><div class="l">200생지 대장 없음</div></div>`;
+  // 비상품(몽블랑·빅몽블랑 등) — 확인일 엑셀 3번째 시트 「비상품 재고 현황」
+  {const ex=(sn&&sn.expiry)||{};const df=(ex.defect||[]).filter(r=>nz(r.box)||nz(r.bag)||nz(r.each));
+   const line=r=>`<div class="dfrow"><span class="n">${esc(String(r.name||'').replace(/^D\.|^DB\.|^Db\./,''))}</span><span class="q">${[nz(r.box)?fmtq(r.box)+'박스':'',nz(r.bag)?fmtq(r.bag)+'봉':'',nz(r.each)?fmtq(r.each)+'낱개':''].filter(Boolean).join(' ')}</span></div>`;
+   const tb=df.reduce((a,r)=>a+nz(r.box),0),te=df.reduce((a,r)=>a+nz(r.each),0);
+   k+=`<div class="df"><div class="l">비상품 <small>${df.length?df.length+'건 · '+fmtq(tb)+'박스'+(te?' '+fmtq(te)+'낱개':''):''}</small></div>${df.length?df.map(line).join(''):'<div class="s">없음</div>'}</div>`;}
   $('#bfKpi').innerHTML=k;
   const un=it=>it.unit==='봉'?'봉':'박스';const qs=x=>`${fmtq(x.q)||0}${un(x.it)}${x.each?' '+fmtq(x.each)+'낱개':''}`;
   const shorts=bfOrder(items.filter(x=>x.sh<0),(a,b)=>a.sh-b.sh),over=bfOrder(items.filter(x=>nz(x.it.safety)&&x.sh>0),(a,b)=>b.sh-a.sh),rest=bfOrder(items.filter(x=>!(x.sh<0)&&!(nz(x.it.safety)&&x.sh>0)),(a,b)=>(b.q+b.each)-(a.q+a.each));
@@ -1209,7 +1218,9 @@ async function bfToCanvas(){
     txt(fmtq(ls.cur),k1,y+96,font('900',52),st[1]);ctx.font=font('900',52);const nw=ctx.measureText(fmtq(ls.cur)).width;txt('봉',k1+nw+6,y+96,font('700',18),'#56605A');
     txt(`안전재고 ${fmtq(c.safety)}봉${c.unitPerBox?' · '+fmtq(ls.cur*c.unitPerBox)+'EA':''}`,k1,y+120,font('500',14),'#8A938D');
     txt(`실물(대장) ${fmtq(ls.cur)}봉 · 전산(이카운트) ${q==null?'—':fmtq(q)+'봉'}${q!=null?' · 차이 '+(ls.cur-q>0?'+':'')+fmtq(ls.cur-q):''}`,k1,y+140,font('600',14),'#2F63A8');
-    const k2=P+(W-2*P)*0.52,k3=P+(W-2*P)*0.77;ctx.strokeStyle='#EDF0EB';ctx.beginPath();ctx.moveTo(k2-16,y+14);ctx.lineTo(k2-16,y+kpiH-14);ctx.moveTo(k3-16,y+14);ctx.lineTo(k3-16,y+kpiH-14);ctx.stroke();
+    const k2=P+(W-2*P)*0.42,k3=P+(W-2*P)*0.57,k4=P+(W-2*P)*0.72;ctx.strokeStyle='#EDF0EB';ctx.beginPath();ctx.moveTo(k2-16,y+14);ctx.lineTo(k2-16,y+kpiH-14);ctx.moveTo(k3-16,y+14);ctx.lineTo(k3-16,y+kpiH-14);ctx.moveTo(k4-16,y+14);ctx.lineTo(k4-16,y+kpiH-14);ctx.stroke();
+    {const ex=(sn&&sn.expiry)||{};const df=(ex.defect||[]).filter(r=>nz(r.box)||nz(r.bag)||nz(r.each));rr(k4-8,y+8,W-P-(k4-8),kpiH-16,10,'#ECE8F6');txt('비상품',k4+6,y+34,font('800',15),'#6B5CA5');
+     if(!df.length)txt('없음',k4+6,y+62,font('500',14),'#8A938D');df.slice(0,4).forEach((r,i)=>{const yy=y+62+i*26;txt(String(r.name||'').replace(/^D\.|^DB\.|^Db\./,''),k4+6,yy,font('700',13),'#1C2320');txt([nz(r.box)?fmtq(r.box)+'박스':'',nz(r.bag)?fmtq(r.bag)+'봉':'',nz(r.each)?fmtq(r.each)+'낱개':''].filter(Boolean).join(' '),W-P-16,yy,font('900',15),'#6B5CA5','right');});}
     txt('오늘 입고',k2,y+34,font('700',15),'#56605A');txt(fmtq(ls.tin),k2,y+90,font('900',40),'#2F63A8');ctx.font=font('900',40);txt('봉',k2+ctx.measureText(fmtq(ls.tin)).width+6,y+90,font('700',15),'#56605A');txt((ls.rows.filter(r=>nz(r.in)).map(r=>r.memo+' '+fmtq(r.in)).join(', ')||'없음').slice(0,28),k2,y+118,font('500',13),'#8A938D');
     txt('오늘 출고',k3,y+34,font('700',15),'#56605A');txt(fmtq(out),k3,y+90,font('900',40),'#C23B2A');ctx.font=font('900',40);txt('봉',k3+ctx.measureText(fmtq(out)).width+6,y+90,font('700',15),'#56605A');txt(`판매 ${fmtq(ls.sale)} · 생산 ${fmtq(ls.prod)}`,k3,y+118,font('500',13),'#8A938D');}
   // 컬럼
