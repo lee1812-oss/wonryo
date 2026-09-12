@@ -257,10 +257,13 @@ table.t select.cell:hover{border-color:var(--line)}table.t select.cell:focus{bor
 #brief.on{display:block}
 body.briefing{overflow:hidden}
 .bf{max-width:1000px;margin:0 auto;padding:20px 24px 60px}
-.bfhead{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}.bfhead>div:first-child{min-width:0;flex:1 1 260px}.bfhead h1{word-break:keep-all}.bfhead .d{word-break:keep-all}
+.bfhead{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}.bfhead>div:first-child{min-width:0;flex:1 1 380px}.bfhead h1{word-break:keep-all}.bfhead .d{word-break:keep-all}
 @media (max-width:640px){.bfhead h1{font-size:18px}.bfhead .sp{display:none}.bfhead>div:first-child{flex-basis:100%}.bfcols{grid-template-columns:1fr!important}.bfkpi{grid-template-columns:1fr!important}}
 .bfhead h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
 .bfhead .d{font-size:13px;color:var(--ink2)}
+.bfdate{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:4px 6px 4px 10px;font-size:13px}.bfdate span{color:var(--ink3)}.bfdate input{border:none;background:none;font-weight:700;font-size:14px;outline:none}
+.bfq{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.bfq .ph{color:var(--ink);font-weight:800}.bfq .ec{color:var(--blue);font-weight:700}.bfq .ec.none{color:var(--ink3);font-weight:500}.bfq small{color:var(--ink3);font-weight:500}
+.ic.row .v .ec{color:var(--blue);margin-left:8px}.ic.row .v .ec.none{color:var(--ink3)}
 .bfhead .sp{flex:1}
 .bfkpi{display:grid;grid-template-columns:1.6fr 1fr 1fr;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px}
 .bfkpi>div{padding:16px 20px;border-right:1px solid var(--line2)}
@@ -540,6 +543,7 @@ html.embedded #tabs{display:none}html.embedded .appbar .brand{display:none}html.
 
 <div id="brief"><div class="bf">
   <div class="bfhead"><div><h1 id="bfTitle"></h1><div class="d" id="bfSub"></div></div><span class="sp"></span>
+    <label class="bfdate noprint"><span>보고 일자</span><input type="date" id="bfDate"><button class="btn sm" id="bfToday" type="button">오늘</button></label>
     <button class="btn noprint" id="bfCopy">텍스트 복사</button><button class="btn noprint" id="bfPrint">인쇄</button><button class="btn pri noprint" id="bfClose">닫기 (Esc)</button></div>
   <div class="bfkpi" id="bfKpi"></div>
   <div class="bfcols" id="bfCols"></div>
@@ -562,7 +566,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 (function(){
 'use strict';
 const PLATFORM='완제품생지재고관리';
-const VERSION=17;
+const VERSION=18;
 const LS_KEY='wjsg_state_v1';
 const EMBED=(()=>{try{return window.parent!==window;}catch(e){return false;}})();if(EMBED)document.documentElement.classList.add('embedded');
 const TEMPLATE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
@@ -1048,18 +1052,22 @@ function load2(){S.meta=S.meta||{};S.meta.company=S.meta.company||'빵을그리�
 /* 일일 보고 정렬: 빅몽블랑 → 몽블랑을 맨 위에 붙여서 표시, 나머지는 기존 순서 */
 const bfPri=it=>{const n=String(it.name||'').replace(/\s/g,'');return /^D\.빅몽블랑/.test(n)?0:/^D\.몽블랑/.test(n)?1:9;};
 const bfOrder=(arr,cmp)=>arr.slice().sort((a,b)=>bfPri(a.it)-bfPri(b.it)||cmp(a,b));
+let BF_DATE=null;
+function bfDate(){return BF_DATE||today();}
+function snapAsOf(d){const c=S.snapshots.filter(s=>s.date<=d);return c.length?c[c.length-1]:S.snapshots[0];}
 function briefData(){
-  const sn=latest();const L=S.ledgers.find(l=>/200/.test(l.name))||S.ledgers[0];let ls=null;if(L){ledgerTouch(L);ls=lstats(L,today(),today());}
+  const td=bfDate();const sn=snapAsOf(td);const L=S.ledgers.find(l=>/200/.test(l.name))||S.ledgers[0];let ls=null;if(L){ledgerTouch(L);ls=lstats(L,td,td);}
   const items=S.items.filter(it=>isOwn(it)&&it.vendor!=='DB생지').map(it=>{const st=stockOf(sn,it.id);return{it,st,q:unitQty(it,st),each:nz(st.each),sh:shortage(it,st)};});
   return{sn,L,ls,items};
 }
 function renderBrief(){
-  const {sn,L,ls,items}=briefData();const td=today();
+  const {sn,L,ls,items}=briefData();const td=bfDate();const ecOn=!!ecState();
+  $('#bfDate').value=td;
   $('#bfTitle').textContent=`${S.meta.company} 자사(DB) · 200생지 재고 일일 보고`;
-  $('#bfSub').textContent=`${short(td)} ${dow(td)} 기준 · 담당: ${S.meta.fieldBy||''}${sn.date!==td?' · 재고 확인일 '+short(sn.date):''}`;
+  $('#bfSub').textContent=`${short(td)} ${dow(td)} 기준 · 담당: ${S.meta.fieldBy||''}${sn.date!==td?' · 실물 확인일 '+short(sn.date):''}${ecOn?' · 전산 = 이카운트 현재('+hm(S.ecount.checkedAt)+' 확인)':' · 전산: 이카운트 미연동'}`;
   let k='';
   if(L&&ls){const c=ls.c;const SN={normal:['정상','ok'],caution:['주의','amb'],low:['부족','red']}[ls.status];const pct=c.safety?Math.min(100,Math.round(ls.cur/c.safety*100)):0;const out=ls.sale+ls.prod+ls.adj;
-    k=`<div class="big ${ls.status}"><div class="l">🔥 데니쉬200 생지 <span class="pill ${SN[1]}">${SN[0]}</span></div><div class="v">${fmtq(ls.cur)}<small>봉</small></div><div class="s">안전재고 ${fmtq(c.safety)}봉${c.unitPerBox?' · '+fmtq(ls.cur*c.unitPerBox)+'EA':''}${c.price?' · '+fmt(ls.cur*c.price)+'원':''}</div>
+    k=`<div class="big ${ls.status}"><div class="l">🔥 데니쉬200 생지 <span class="pill ${SN[1]}">${SN[0]}</span></div><div class="v">${fmtq(ls.cur)}<small>봉</small></div><div class="s">안전재고 ${fmtq(c.safety)}봉${c.unitPerBox?' · '+fmtq(ls.cur*c.unitPerBox)+'EA':''}${c.price?' · '+fmt(ls.cur*c.price)+'원':''}</div>${(()=>{const it=L.itemId&&item(L.itemId);const q=it?ecQty(it):null;return `<div class="s" style="margin-top:4px">실물(대장) <b>${fmtq(ls.cur)}봉</b> · 전산(이카운트) <b style="color:${q==null?'var(--ink3)':'var(--blue)'}">${q==null?'미연동':fmtq(q)+'봉'}</b>${q!=null?` · 차이 <b>${ls.cur-q>0?'+':''}${fmtq(ls.cur-q)}</b>`:''}</div>`;})()}
         ${c.safety?`<div class="rb"><div class="t"><span>안전재고 비율</span><span>${Math.round(ls.cur/c.safety*100)}%</span></div><div class="b"><i style="width:${pct}%;background:${ls.status==='low'?'var(--red)':ls.status==='caution'?'var(--amb)':'var(--acc)'}"></i></div></div>`:''}</div>
       <div><div class="l">오늘 입고</div><div class="v" style="color:var(--blue)">${fmtq(ls.tin)}<small>봉</small></div><div class="s">${ls.rows.filter(r=>nz(r.in)).map(r=>esc(r.memo)+' '+fmtq(r.in)).join(', ')||'없음'}</div></div>
       <div><div class="l">오늘 출고</div><div class="v" style="color:var(--red)">${fmtq(out)}<small>봉</small></div><div class="s">판매 ${fmtq(ls.sale)} · 생산 ${fmtq(ls.prod)}</div>
@@ -1069,20 +1077,22 @@ function renderBrief(){
   const un=it=>it.unit==='봉'?'봉':'박스';const qs=x=>`${fmtq(x.q)||0}${un(x.it)}${x.each?' '+fmtq(x.each)+'낱개':''}`;
   const shorts=bfOrder(items.filter(x=>x.sh<0),(a,b)=>a.sh-b.sh),over=bfOrder(items.filter(x=>nz(x.it.safety)&&x.sh>0),(a,b)=>b.sh-a.sh),rest=bfOrder(items.filter(x=>!(x.sh<0)&&!(nz(x.it.safety)&&x.sh>0)),(a,b)=>(b.q+b.each)-(a.q+a.each));
   const card=(x,cls)=>{const sf=nz(x.it.safety);const w=cls==='red'?Math.max(4,Math.round(x.q/sf*100)):Math.max(8,Math.round(sf/x.q*100));
-    return `<div class="ic"><div class="h">${cls==='red'?'📦':'🧾'} ${esc(x.it.name)}<span class="pill ${cls}">${cls==='red'?'부족':'여유'}</span></div><div class="bar"><i style="width:${Math.min(100,w)}%"></i></div><div class="q">${qs(x)}<small>(${cls==='red'?'−'+fmtq(-x.sh)+' 부족':'+'+fmtq(x.sh)+' 여유'})</small>${ecQty(x.it)!=null?`<small style="margin-left:6px;color:var(--blue)">전산 ${fmtq(ecQty(x.it))}${un(x.it)}</small>`:''}</div></div>`;};
+    return `<div class="ic"><div class="h">${cls==='red'?'📦':'🧾'} ${esc(x.it.name)}<span class="pill ${cls}">${cls==='red'?'부족':'여유'}</span></div><div class="bar"><i style="width:${Math.min(100,w)}%"></i></div><div class="q bfq"><span class="ph">실물 ${qs(x)}</span>${(()=>{const q=ecQty(x.it);return q==null?'<span class="ec none">전산 —</span>':`<span class="ec">전산 ${fmtq(q)}${un(x.it)}</span><small>차이 ${x.q-q>0?'+':''}${fmtq(x.q-q)}</small>`;})()}<small>(${cls==='red'?'−'+fmtq(-x.sh)+' 부족':'+'+fmtq(x.sh)+' 여유'})</small></div></div>`;};
   $('#bfCols').innerHTML=`
     <div class="bfcol red"><h3>↘ 부족 품목<span class="n">${shorts.length}</span></h3>${shorts.map(x=>card(x,'red')).join('')||'<div class="bfempty">부족 품목 없음</div>'}</div>
     <div class="bfcol ok"><h3>👍 과잉/여유 품목<span class="n">${over.length}</span></h3>${over.map(x=>card(x,'ok')).join('')||'<div class="bfempty">여유 품목 없음</div>'}</div>
-    <div class="bfcol gray"><h3>✔ 적정/재고無 품목<span class="n">${rest.length}</span></h3>${rest.map(x=>`<div class="ic row${x.q<=0&&!x.each?' zero':''}"><span class="nm">${esc(x.it.name)}</span>${x.sh===0&&nz(x.it.safety)?'<span class="pill gray">적정</span>':''}<span class="v">${qs(x)}${ecQty(x.it)!=null?`<small style="margin-left:6px;color:var(--blue)">전산 ${fmtq(ecQty(x.it))}</small>`:''}</span></div>`).join('')||'<div class="bfempty">없음</div>'}</div>`;
+    <div class="bfcol gray"><h3>✔ 적정/재고無 품목<span class="n">${rest.length}</span></h3>${rest.map(x=>`<div class="ic row${x.q<=0&&!x.each?' zero':''}"><span class="nm">${esc(x.it.name)}</span>${x.sh===0&&nz(x.it.safety)?'<span class="pill gray">적정</span>':''}<span class="v">실물 ${qs(x)}${(()=>{const q=ecQty(x.it);return q==null?'<span class="ec none">전산 —</span>':`<span class="ec">전산 ${fmtq(q)}</span>`;})()}</span></div>`).join('')||'<div class="bfempty">없음</div>'}</div>`;
 }
-function briefText(){const {sn,L,ls,items}=briefData();const td=today();let t=`[${S.meta.company} 재고 일일 보고] ${short(td)} (${dow(td)})\n`;
+function briefText(){const {sn,L,ls,items}=briefData();const td=bfDate();let t=`[${S.meta.company} 재고 일일 보고] ${short(td)} (${dow(td)})${sn.date!==td?' · 실물 확인일 '+short(sn.date):''}\n`;
   if(L&&ls)t+=`■ 데니쉬200 생지: ${fmtq(ls.cur)}봉 (안전재고 ${fmtq(ls.c.safety)}) · 오늘 입고 ${fmtq(ls.tin)} / 출고 ${fmtq(ls.sale+ls.prod+ls.adj)}\n`;
-  const un=it=>it.unit==='봉'?'봉':'박스';const line=x=>`- ${x.it.name}: ${fmtq(x.q)||0}${un(x.it)}${x.each?' '+fmtq(x.each)+'낱개':''}${ecQty(x.it)!=null?' (전산 '+fmtq(ecQty(x.it))+')':''}`;
+  const un=it=>it.unit==='봉'?'봉':'박스';const line=x=>`- ${x.it.name}: 실물 ${fmtq(x.q)||0}${un(x.it)}${x.each?' '+fmtq(x.each)+'낱개':''} / 전산 ${ecQty(x.it)!=null?fmtq(ecQty(x.it))+un(x.it):'—'}`;
   const sh=bfOrder(items.filter(x=>x.sh<0),(a,b)=>a.sh-b.sh),ov=bfOrder(items.filter(x=>nz(x.it.safety)&&x.sh>0),(a,b)=>b.sh-a.sh),rs=bfOrder(items.filter(x=>!(x.sh<0)&&!(nz(x.it.safety)&&x.sh>0)),(a,b)=>(b.q+b.each)-(a.q+a.each));
   t+=`■ 부족 품목 (${sh.length})\n`+(sh.map(x=>line(x)+` (−${fmtq(-x.sh)} 부족)`).join('\n')||'- 없음')+'\n';
   t+=`■ 여유 품목 (${ov.length})\n`+(ov.map(x=>line(x)+` (+${fmtq(x.sh)} 여유)`).join('\n')||'- 없음')+'\n';
   t+=`■ 적정/재고無 (${rs.length})\n`+(rs.map(line).join('\n')||'- 없음')+'\n';return t;}
 $('#btnBrief').onclick=()=>{renderBrief();$('#brief').classList.add('on');document.body.classList.add('briefing');};
+$('#bfDate').onchange=e=>{const v=e.target.value;if(/^\d{4}-\d{2}-\d{2}$/.test(v)){BF_DATE=v;renderBrief();}};
+$('#bfToday').onclick=()=>{BF_DATE=null;renderBrief();};
 $('#bfClose').onclick=()=>{$('#brief').classList.remove('on');document.body.classList.remove('briefing');};
 $('#bfPrint').onclick=()=>{let st=$('#pagestyle');if(!st){st=document.createElement('style');st.id='pagestyle';document.head.appendChild(st);}st.textContent='@page{size:A4 portrait;margin:10mm}';window.print();};
 $('#bfCopy').onclick=()=>{const t=briefText();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('보고 내용을 복사했습니다 · 카톡에 붙여넣기'),()=>{prompt('복사할 내용',t);});};
