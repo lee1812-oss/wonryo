@@ -261,7 +261,8 @@ body.briefing{overflow:hidden}
 @media (max-width:640px){.bfhead h1{font-size:18px}.bfhead .sp{display:none}.bfhead>div:first-child{flex-basis:100%}.bfcols{grid-template-columns:1fr!important}.bfkpi{grid-template-columns:1fr!important}}
 .bfhead h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
 .bfhead .d{font-size:13px;color:var(--ink2)}
-.bfdate{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:4px 6px;font-size:13px}.bfdate .nav{font-weight:700;min-width:64px}.bfdate span{color:var(--ink3)}.bfdate input{border:none;background:none;font-weight:700;font-size:14px;outline:none}
+.bfdate{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:4px 6px;font-size:13px}.bfdate .nav{font-weight:700;min-width:64px}.bfdate input{min-width:0}
+@media (max-width:640px){.bfdate{flex:1 1 100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:4px;padding:4px}.bfdate .nav{min-width:0;padding:6px 8px}.bfdate input{width:100%;font-size:13px;text-align:center}.bfhead{gap:8px}.bfhead .btn{flex:1 1 auto}}.bfdate span{color:var(--ink3)}.bfdate input{border:none;background:none;font-weight:700;font-size:14px;outline:none}
 .bfq{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.bfq .ph{color:var(--ink);font-weight:800}.bfq .ec{color:var(--blue);font-weight:700}.bfq .ec.none{color:var(--ink3);font-weight:500}.bfq small{color:var(--ink3);font-weight:500}
 .ic.row .v .ec{color:var(--blue);margin-left:8px}.ic.row .v .ec.none{color:var(--ink3)}
 .bfhead .sp{flex:1}
@@ -566,7 +567,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 (function(){
 'use strict';
 const PLATFORM='완제품생지재고관리';
-const VERSION=19;
+const VERSION=20;
 const LS_KEY='wjsg_state_v1';
 const EMBED=(()=>{try{return window.parent!==window;}catch(e){return false;}})();if(EMBED)document.documentElement.classList.add('embedded');
 const TEMPLATE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
