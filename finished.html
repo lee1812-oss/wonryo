@@ -562,7 +562,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 (function(){
 'use strict';
 const PLATFORM='완제품생지재고관리';
-const VERSION=16;
+const VERSION=17;
 const LS_KEY='wjsg_state_v1';
 const EMBED=(()=>{try{return window.parent!==window;}catch(e){return false;}})();if(EMBED)document.documentElement.classList.add('embedded');
 const TEMPLATE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
@@ -1045,6 +1045,9 @@ $('#jsonIn').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t
 function load2(){S.meta=S.meta||{};S.meta.company=S.meta.company||'빵을그리다';S.meta.nearDays=S.meta.nearDays||30;S.snapshots.sort((a,b)=>a.date<b.date?-1:1);if(!snap(S.cur))S.cur=S.snapshots[S.snapshots.length-1].date;ledgerId=S.ledgers[0]&&S.ledgers[0].id;S.field=S.field||[];linkLedgers();S.ledgers.forEach(ledgerTouch);}
 
 /* ---------- 일일 보고 (상무 보고 화면) ---------- */
+/* 일일 보고 정렬: 빅몽블랑 → 몽블랑을 맨 위에 붙여서 표시, 나머지는 기존 순서 */
+const bfPri=it=>{const n=String(it.name||'').replace(/\s/g,'');return /^D\.빅몽블랑/.test(n)?0:/^D\.몽블랑/.test(n)?1:9;};
+const bfOrder=(arr,cmp)=>arr.slice().sort((a,b)=>bfPri(a.it)-bfPri(b.it)||cmp(a,b));
 function briefData(){
   const sn=latest();const L=S.ledgers.find(l=>/200/.test(l.name))||S.ledgers[0];let ls=null;if(L){ledgerTouch(L);ls=lstats(L,today(),today());}
   const items=S.items.filter(it=>isOwn(it)&&it.vendor!=='DB생지').map(it=>{const st=stockOf(sn,it.id);return{it,st,q:unitQty(it,st),each:nz(st.each),sh:shortage(it,st)};});
@@ -1064,7 +1067,7 @@ function renderBrief(){
   else k=`<div><div class="l">200생지 대장 없음</div></div>`;
   $('#bfKpi').innerHTML=k;
   const un=it=>it.unit==='봉'?'봉':'박스';const qs=x=>`${fmtq(x.q)||0}${un(x.it)}${x.each?' '+fmtq(x.each)+'낱개':''}`;
-  const shorts=items.filter(x=>x.sh<0).sort((a,b)=>a.sh-b.sh),over=items.filter(x=>nz(x.it.safety)&&x.sh>0).sort((a,b)=>b.sh-a.sh),rest=items.filter(x=>!(x.sh<0)&&!(nz(x.it.safety)&&x.sh>0)).sort((a,b)=>(b.q+b.each)-(a.q+a.each));
+  const shorts=bfOrder(items.filter(x=>x.sh<0),(a,b)=>a.sh-b.sh),over=bfOrder(items.filter(x=>nz(x.it.safety)&&x.sh>0),(a,b)=>b.sh-a.sh),rest=bfOrder(items.filter(x=>!(x.sh<0)&&!(nz(x.it.safety)&&x.sh>0)),(a,b)=>(b.q+b.each)-(a.q+a.each));
   const card=(x,cls)=>{const sf=nz(x.it.safety);const w=cls==='red'?Math.max(4,Math.round(x.q/sf*100)):Math.max(8,Math.round(sf/x.q*100));
     return `<div class="ic"><div class="h">${cls==='red'?'📦':'🧾'} ${esc(x.it.name)}<span class="pill ${cls}">${cls==='red'?'부족':'여유'}</span></div><div class="bar"><i style="width:${Math.min(100,w)}%"></i></div><div class="q">${qs(x)}<small>(${cls==='red'?'−'+fmtq(-x.sh)+' 부족':'+'+fmtq(x.sh)+' 여유'})</small>${ecQty(x.it)!=null?`<small style="margin-left:6px;color:var(--blue)">전산 ${fmtq(ecQty(x.it))}${un(x.it)}</small>`:''}</div></div>`;};
   $('#bfCols').innerHTML=`
@@ -1075,7 +1078,7 @@ function renderBrief(){
 function briefText(){const {sn,L,ls,items}=briefData();const td=today();let t=`[${S.meta.company} 재고 일일 보고] ${short(td)} (${dow(td)})\n`;
   if(L&&ls)t+=`■ 데니쉬200 생지: ${fmtq(ls.cur)}봉 (안전재고 ${fmtq(ls.c.safety)}) · 오늘 입고 ${fmtq(ls.tin)} / 출고 ${fmtq(ls.sale+ls.prod+ls.adj)}\n`;
   const un=it=>it.unit==='봉'?'봉':'박스';const line=x=>`- ${x.it.name}: ${fmtq(x.q)||0}${un(x.it)}${x.each?' '+fmtq(x.each)+'낱개':''}${ecQty(x.it)!=null?' (전산 '+fmtq(ecQty(x.it))+')':''}`;
-  const sh=items.filter(x=>x.sh<0),ov=items.filter(x=>nz(x.it.safety)&&x.sh>0),rs=items.filter(x=>!(x.sh<0)&&!(nz(x.it.safety)&&x.sh>0));
+  const sh=bfOrder(items.filter(x=>x.sh<0),(a,b)=>a.sh-b.sh),ov=bfOrder(items.filter(x=>nz(x.it.safety)&&x.sh>0),(a,b)=>b.sh-a.sh),rs=bfOrder(items.filter(x=>!(x.sh<0)&&!(nz(x.it.safety)&&x.sh>0)),(a,b)=>(b.q+b.each)-(a.q+a.each));
   t+=`■ 부족 품목 (${sh.length})\n`+(sh.map(x=>line(x)+` (−${fmtq(-x.sh)} 부족)`).join('\n')||'- 없음')+'\n';
   t+=`■ 여유 품목 (${ov.length})\n`+(ov.map(x=>line(x)+` (+${fmtq(x.sh)} 여유)`).join('\n')||'- 없음')+'\n';
   t+=`■ 적정/재고無 (${rs.length})\n`+(rs.map(line).join('\n')||'- 없음')+'\n';return t;}
