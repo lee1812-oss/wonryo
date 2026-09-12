@@ -241,6 +241,13 @@ table.t th.sticky{z-index:3;background:#F4F6F8}
 .print-title .sig div{border:1px solid #999;width:26mm;text-align:center;font-size:10px}
 .print-title .sig div span{display:block;border-bottom:1px solid #999;background:#eee;padding:2px}
 .print-title .sig div i{display:block;height:14mm}
+.finwrap{position:relative;height:calc(100vh - 62px - var(--tab-h) - 12px);min-height:480px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#fff}
+.finwrap iframe{width:100%;height:100%;border:0;display:block}
+.finmsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:14px;background:var(--paper);pointer-events:none}
+.finmsg.off{display:none}
+body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
+@media (min-width:760px){body.fin-tab main{padding-bottom:8px}.finwrap{height:calc(100vh - 62px - 16px)}}
+@media print{body.fin-tab main{padding:0}.finwrap{height:auto;border:0}}
 </style>
 </head>
 <body>
@@ -438,6 +445,11 @@ table.t th.sticky{z-index:3;background:#F4F6F8}
   <!-- ═══ 재고조정 보고서 (인쇄 전용) ═══ -->
   <section class="view" data-view="adjrep"><div class="print-page" id="adjRep"></div></section>
 
+  <!-- ═══ 완제품·생지 (완제품생지재고관리 플랫폼 내장, v018) ═══ -->
+  <section class="view" data-view="fin">
+    <div class="finwrap"><iframe id="finFrame" title="완제품·생지 재고관리" src="about:blank" loading="lazy"></iframe>
+      <div class="finmsg" id="finMsg">완제품·생지 재고관리 플랫폼을 불러오는 중…</div></div>
+  </section>
   <!-- ═══ 설정 ═══ -->
   <section class="view" data-view="set">
     <div class="card">
@@ -503,7 +515,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    원료수불부 — 이카운트 전산재고 × 휴대폰 실물재고 비교 플랫폼
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
-const APP_VER  = '017';
+const APP_VER  = '018';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -513,6 +525,7 @@ const TABS = [
   ['cmp','비교분석','<svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>'],
   ['trend','추이','<svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/><path d="M3 21h18"/></svg>'],
   ['adj','재고조정','<svg viewBox="0 0 24 24"><path d="M12 3v18M4 7h16M6 7l-3 7a3.5 3.5 0 0 0 7 0L7 7M18 7l-3 7a3.5 3.5 0 0 0 7 0l-3-7"/></svg>'],
+  ['fin','완제품·생지','<svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M3 9v6l9 5 9-5V9"/><path d="M12 14v6"/></svg>'],
   ['set','설정','<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'],
 ];
 
@@ -725,7 +738,19 @@ function renderTabs() {
   $('#tabsTop').innerHTML = h; $('#tabsBottom').innerHTML = h;
   $$('[data-tab]').forEach(b => b.onclick = () => { S.ui.tab = b.dataset.tab; save(); renderAll(); window.scrollTo(0, 0); });
   $$('.view').forEach(v => v.classList.toggle('on', v.dataset.view === S.ui.tab));
+  document.body.classList.toggle('fin-tab', S.ui.tab === 'fin');
+  if (S.ui.tab === 'fin') finEnsure();
 }
+/* ── 완제품·생지 플랫폼(finished.html)을 iframe으로 내장 — 같은 폴더의 finished.html, 이카운트 자료는 postMessage로 전달 ── */
+let finLoaded = false, finLastData = null;
+function finEnsure() {
+  const f = $('#finFrame'); if (!f || finLoaded) return; finLoaded = true;
+  f.addEventListener('load', () => { $('#finMsg').classList.add('off'); if (finLastData) finPost(finLastData); });
+  f.addEventListener('error', () => { $('#finMsg').textContent = 'finished.html을 찾을 수 없습니다 — 같은 폴더(저장소)에 올려 주세요'; });
+  f.src = './finished.html?v=' + APP_VER;
+  setTimeout(() => { try { if (!f.contentDocument || f.contentDocument.body.childElementCount === 0) $('#finMsg').textContent = 'finished.html을 찾을 수 없습니다 — 같은 폴더(저장소)에 올려 주세요'; } catch (e) {} }, 6000);
+}
+function finPost(d) { const f = $('#finFrame'); if (!f || !f.contentWindow || !finLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-ecount', data: d }, '*'); } catch (e) {} }
 function renderHeader() {
   $('#hSub').textContent = S.settings.company || '';
   const ws = weeks(); const phOnly = Object.keys(S.physical).filter(w => !S.snapshots[w] && Object.keys(S.physical[w]).length);
@@ -1519,6 +1544,7 @@ async function syncFromEcount(manual) {
     const r = await fetch('./data.json?t=' + Date.now(), { cache: 'no-store' });
     if (!r.ok) throw new Error('data.json 없음 (' + r.status + ')');
     const d = await r.json(); if (!d || !Array.isArray(d.items)) throw new Error('data.json 형식 오류');
+    finLastData = d; finPost(d);
     const changedAt = d.changedAt || d.updatedAt, checkedAt = d.checkedAt || d.updatedAt;
     if (S.ecountSync && (S.ecountSync.changedAt || S.ecountSync.updatedAt) === changedAt && S.ecountSync.baseDate === (d.baseDate || today())) {
       // 재고는 그대로, 확인 시각만 갱신
