@@ -245,6 +245,7 @@ table.t th.sticky{z-index:3;background:#F4F6F8}
 .finwrap iframe{width:100%;height:100%;border:0;display:block}
 .finmsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:14px;background:var(--paper);pointer-events:none}
 .finmsg.off{display:none}
+nav.tabs.mobile button[data-tab=fin] span{font-size:0}nav.tabs.mobile button[data-tab=fin] span::after{content:'완제품';font-size:11px}
 body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
 @media (min-width:760px){body.fin-tab main{padding-bottom:8px}.finwrap{height:calc(100vh - 62px - 16px)}}
 @media print{body.fin-tab main{padding:0}.finwrap{height:auto;border:0}}
@@ -515,7 +516,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    원료수불부 — 이카운트 전산재고 × 휴대폰 실물재고 비교 플랫폼
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
-const APP_VER  = '018';
+const APP_VER  = '019';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [

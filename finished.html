@@ -258,7 +258,8 @@ table.t select.cell:hover{border-color:var(--line)}table.t select.cell:focus{bor
 #brief.on{display:block}
 body.briefing{overflow:hidden}
 .bf{max-width:1000px;margin:0 auto;padding:20px 24px 60px}
-.bfhead{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.bfhead{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}.bfhead>div:first-child{min-width:0;flex:1 1 260px}.bfhead h1{word-break:keep-all}.bfhead .d{word-break:keep-all}
+@media (max-width:640px){.bfhead h1{font-size:18px}.bfhead .sp{display:none}.bfhead>div:first-child{flex-basis:100%}.bfcols{grid-template-columns:1fr!important}.bfkpi{grid-template-columns:1fr!important}}
 .bfhead h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
 .bfhead .d{font-size:13px;color:var(--ink2)}
 .bfhead .sp{flex:1}
@@ -560,7 +561,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 (function(){
 'use strict';
 const PLATFORM='완제품생지재고관리';
-const VERSION=13;
+const VERSION=14;
 const LS_KEY='wjsg_state_v1';
 const TEMPLATE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
 const $=(s,r)=>(r||document).querySelector(s);
