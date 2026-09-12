@@ -257,7 +257,7 @@ table.t select.cell:hover{border-color:var(--line)}table.t select.cell:focus{bor
 #brief.on{display:block}
 body.briefing{overflow:hidden}
 .bf{max-width:1000px;margin:0 auto;padding:20px 24px 60px}
-.bfhead{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}.bfhead>div:first-child{min-width:0;flex:1 1 100%;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}.bfhead h1{white-space:nowrap;margin:0}.bfhead .d{word-break:keep-all;flex:1 1 auto}.bfhead .sp{display:none}.bfhead .bfdate{margin-left:auto}.bfhead .bfdate,.bfhead>.btn{flex:0 0 auto}
+.bfhead{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}.bfhead>div:first-child{min-width:0;flex:1 1 100%;display:flex;align-items:baseline;gap:14px;flex-wrap:nowrap}.bfhead h1{white-space:nowrap;margin:0;flex:0 0 auto}.bfhead .d{flex:1 1 0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}.bfhead .sp{display:none}.bfhead .bfdate{margin-left:auto}.bfhead .bfdate,.bfhead>.btn{flex:0 0 auto}
 @media (max-width:640px){.bfhead h1{font-size:18px;white-space:normal}.bfhead>div:first-child{flex-basis:100%;display:block}.bfhead .bfdate{margin-left:0}.bfcols{grid-template-columns:1fr!important}.bfkpi{grid-template-columns:1fr!important}}
 .bfhead h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
 .bfhead .d{font-size:13px;color:var(--ink2)}
@@ -609,7 +609,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 (function(){
 'use strict';
 const PLATFORM='완제품생지재고관리';
-const VERSION=59;
+const VERSION=60;
 const LS_KEY='wjsg_state_v1';
 const EMBED=(()=>{try{return window.parent!==window;}catch(e){return false;}})();if(EMBED)document.documentElement.classList.add('embedded');
 const TEMPLATE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
@@ -1126,7 +1126,8 @@ function renderBrief(){
   const {sn,L,ls,items}=briefData();const td=bfDate();const ecOn=!!ecState();
   $('#bfDate').value=td;
   $('#bfTitle').textContent=`${S.meta.company} 자사(DB) · 200생지 재고 일일 보고`;
-  $('#bfSub').textContent=`${short(td)} ${dow(td)} 기준 · 담당: ${S.meta.fieldBy||''}${sn.date!==td?' · 실물 확인일 '+short(sn.date):''}${ecOn?' · 전산 = 이카운트 현재('+hm(S.ecount.checkedAt)+' 확인)':' · 전산: 이카운트 미연동'}`;
+  const subT=`${short(td)} ${dow(td)} 기준 · 담당 ${S.meta.fieldBy||''}${sn.date!==td?' · 실물 확인일 '+short(sn.date):''}${ecOn?' · 이카운트 '+hm(S.ecount.checkedAt):' · 전산 미연동'}`;
+  $('#bfSub').textContent=subT;$('#bfSub').title=subT;
   let k='';
   if(L&&ls){const c=ls.c;const SN={normal:['정상','ok'],caution:['주의','amb'],low:['부족','red']}[ls.status];const pct=c.safety?Math.min(100,Math.round(ls.cur/c.safety*100)):0;const out=ls.sale+ls.prod+ls.adj;
     k=`<div class="big ${ls.status}"><div class="l">🔥 데니쉬200 생지 <span class="pill ${SN[1]}">${SN[0]}</span></div><div class="v">${fmtq(ls.cur)}<small>봉</small></div><div class="s">안전재고 ${fmtq(c.safety)}봉${c.unitPerBox?' · '+fmtq(ls.cur*c.unitPerBox)+'EA':''}${c.price?' · '+fmt(ls.cur*c.price)+'원':''}</div>${(()=>{const it=L.itemId&&item(L.itemId);const q=it?ecQty(it):null;return `<div class="s" style="margin-top:4px">실물(대장) <b>${fmtq(ls.cur)}봉</b> · 전산(이카운트) <b style="color:${q==null?'var(--ink3)':'var(--blue)'}">${q==null?(it&&it.code?'자료 없음 ('+esc(it.code)+')':'미연동'):fmtq(q)+'봉'}</b>${q!=null?` · 차이 <b>${ls.cur-q>0?'+':''}${fmtq(ls.cur-q)}</b>`:''}</div>`;})()}
