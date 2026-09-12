@@ -609,7 +609,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 (function(){
 'use strict';
 const PLATFORM='완제품생지재고관리';
-const VERSION=58;
+const VERSION=59;
 const LS_KEY='wjsg_state_v1';
 const EMBED=(()=>{try{return window.parent!==window;}catch(e){return false;}})();if(EMBED)document.documentElement.classList.add('embedded');
 const TEMPLATE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
@@ -990,7 +990,7 @@ const EC_KEY='wjsg_ecount_v1', ECP_KEY='wjsg_ecprod_v1';
 const KAKAO_ROOM_DEFAULT='빵을 그리다 입고/출고 팀 신규방';
 S_ECOUNT_INIT: { try{ window.__ec=JSON.parse(localStorage.getItem(EC_KEY)||'null'); }catch(e){ window.__ec=null; } }
 Object.defineProperty(window,'ECPROD',{get(){try{return JSON.parse(localStorage.getItem(ECP_KEY)||'[]');}catch(e){return [];}},set(v){try{localStorage.setItem(ECP_KEY,JSON.stringify(v));}catch(e){}}});
-function ecState(){ if(location.protocol==='file:')return null; if(S&&!S.ecount&&window.__ec)S.ecount=window.__ec; return S?S.ecount:null; }
+function ecState(){ if(S&&!S.ecount&&window.__ec)S.ecount=window.__ec; return S?S.ecount:null; }
 const hm=iso=>{if(!iso)return '—';const t=new Date(iso);return isNaN(t)?String(iso):`${t.getMonth()+1}/${t.getDate()} ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;};
 const ecRaw=it=>{const e=ecState();if(!e||!e.qty||!it||!it.code)return null;const v=e.qty[it.code];return v==null?null:Number(v);};
 /* 이카운트 코드가 낱개(EA) 단위면 단위수량으로 나눠 박스·봉 단위로 환산 */
@@ -1015,17 +1015,17 @@ function ecApply(d){
   render();return chg.length;
 }
 let ecBusy=false;
+const EC_RAW='https://raw.githubusercontent.com/lee1812-oss/wonryo/main/data.json';
+const ecUrl=()=>(location.protocol==='file:'||!/github\.io$/.test(location.hostname))?EC_RAW:'./data.json';
 async function ecFetch(manual){
-  if(location.protocol==='file:'){if(manual)toast('이카운트 연동은 배포 주소(lee1812-oss.github.io/wonryo)에서만 동작합니다');renderEcBadge();return;}
   if(ecBusy)return;ecBusy=true;
-  try{const r=await fetch('./data.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('data.json 없음 ('+r.status+')');const d=await r.json();
+  try{const r=await fetch(ecUrl()+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('data.json 없음 ('+r.status+')');const d=await r.json();
     const n=ecApply(d);if(manual)toast(n?`이카운트 변동 ${n}품목 반영`:`이카운트 확인 완료 · 변동 없음 (${hm(S.ecount.checkedAt)})`);}
   catch(e){if(manual)toast('이카운트 자료를 가져오지 못했습니다');renderEcBadge(e.message||String(e));}
   finally{ecBusy=false;}
 }
 function renderEcBadge(err){
   const b=$('#ecBadge');if(!b)return;const e=ecState();const mapped=S.items.filter(i=>i.code).length;
-  if(location.protocol==='file:'){b.className='ecbadge off';b.innerHTML='이카운트 연동 없음 · 파일로 열림 (배포 주소에서 열면 연동)';b.title='https://lee1812-oss.github.io/wonryo 에서 열어야 이카운트 재고가 표시됩니다';return;}
   if(!mapped){b.className='ecbadge off';b.innerHTML='이카운트 미연동 · 코드 매핑 필요';b.title='품목·설정 → 이카운트 품목코드 매핑';return;}
   if(!e){b.className='ecbadge off';b.innerHTML=`이카운트 자료 없음 · 매핑 ${mapped}품목${err?' · '+esc(err):''}`;return;}
   const stale=e.checkedAt&&(Date.now()-new Date(e.checkedAt).getTime())>40*60*1000;

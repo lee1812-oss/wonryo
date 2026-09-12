@@ -585,7 +585,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    원료수불부 — 이카운트 전산재고 × 휴대폰 실물재고 비교 플랫폼
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
-const APP_VER  = '022';
+const APP_VER  = '023';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1631,7 +1631,6 @@ function renderSyncPill() {
   const p = $('#syncPill'); if (!p) return; const s = S.ecountSync;
   const set = (id, v) => { const el = $('#' + id); if (el) el.textContent = v; };
   const hmT = d => (d.toDateString() === new Date().toDateString()) ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : hmOf(d);
-  if (location.protocol === 'file:') { p.className = 'syncpill'; set('spState', '연동 없음'); set('spChk', '—'); set('spAgo', '파일로 열림'); set('spChg', '—'); set('spChgN', ''); set('spMatch', '—'); return; }
   if (!s) { p.className = 'syncpill bad'; set('spState', '자료 없음'); set('spChk', '—'); set('spAgo', '사무실 PC 확인'); set('spChg', '—'); set('spChgN', ''); set('spMatch', '—'); p.title = '이카운트 자료를 받지 못했습니다 — 사무실 PC 동기화 프로그램을 확인하세요'; return; }
   const chk = new Date(s.checkedAt || s.updatedAt), chg = new Date(s.changedAt || s.updatedAt);
   const min = Math.max(0, Math.round((Date.now() - chk.getTime()) / 60000)); const stale = min > 40;
@@ -1649,9 +1648,10 @@ function syncStatusText() {
   return `이카운트 재고 변동 <b>${hmOf(s.changedAt || s.updatedAt)}</b> · 마지막 확인 <b>${hmOf(s.checkedAt || s.updatedAt)}</b>${stale ? ' <span style="color:var(--warn)">(40분 넘게 확인 없음 — 사무실 PC 동기화가 멈췄는지 확인)</span>' : ''} · 기준일 ${s.baseDate} · 매칭 ${s.matched}/${s.known}품목 (전체 ${s.count})${s.missing ? ` · 미수신 ${s.missing}` : ''}`;
 }
 async function syncFromEcount(manual) {
-  if (location.protocol === 'file:') { syncBadge('off', '이카운트 자동 연동은 깃허브 배포 주소(lee1812-oss.github.io/wonryo)에서만 동작합니다'); if (manual) toast('배포 주소에서만 동작합니다'); return; }
   try {
-    const r = await fetch('./data.json?t=' + Date.now(), { cache: 'no-store' });
+    // 배포 주소가 아니면(파일로 열거나 다른 호스트) 깃허브 raw에서 직접 읽는다
+    const src = (location.protocol === 'file:' || !/github\.io$/.test(location.hostname)) ? 'https://raw.githubusercontent.com/lee1812-oss/wonryo/main/data.json' : './data.json';
+    const r = await fetch(src + '?t=' + Date.now(), { cache: 'no-store' });
     if (!r.ok) throw new Error('data.json 없음 (' + r.status + ')');
     const d = await r.json(); if (!d || !Array.isArray(d.items)) throw new Error('data.json 형식 오류');
     finLastData = d; finPost(d);
