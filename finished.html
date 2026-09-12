@@ -316,8 +316,9 @@ body.briefing{overflow:hidden}
 .bfcol.red .ic .bar i{background:var(--red)}.bfcol.red .ic .q small{color:var(--red)}
 .bfcol.ok .ic .bar i{background:var(--acc)}.bfcol.ok .ic .q small{color:var(--acc)}
 .ic.row{display:flex;align-items:center;gap:8px;padding:7px 11px}
-.ic.row .nm{font-size:13.5px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ic.row .nm{font-size:13.5px;font-weight:700;flex:1;min-width:0;white-space:normal;word-break:keep-all;line-height:1.3}
 .ic.row .v{font-size:13.5px;font-weight:800;white-space:nowrap}
+.ic .sf{font-size:11.5px;font-weight:600;color:var(--ink3);margin-left:6px;white-space:nowrap}.ic.row .nm .sf{margin-left:6px}
 .ic.row.zero .nm,.ic.row.zero .v{color:var(--ink3);font-weight:600}
 .bfempty{font-size:12.5px;color:var(--ink3);text-align:center;padding:14px}
 @media (max-width:760px){.bfcols{grid-template-columns:1fr}}
@@ -576,7 +577,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 (function(){
 'use strict';
 const PLATFORM='완제품생지재고관리';
-const VERSION=24;
+const VERSION=25;
 const LS_KEY='wjsg_state_v1';
 const EMBED=(()=>{try{return window.parent!==window;}catch(e){return false;}})();if(EMBED)document.documentElement.classList.add('embedded');
 const TEMPLATE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
@@ -1094,15 +1095,15 @@ function renderBrief(){
   const un=it=>it.unit==='봉'?'봉':'박스';const qs=x=>`${fmtq(x.q)||0}${un(x.it)}${x.each?' '+fmtq(x.each)+'낱개':''}`;
   const shorts=bfOrder(items.filter(x=>x.sh<0),(a,b)=>a.sh-b.sh),over=bfOrder(items.filter(x=>nz(x.it.safety)&&x.sh>0),(a,b)=>b.sh-a.sh),rest=bfOrder(items.filter(x=>!(x.sh<0)&&!(nz(x.it.safety)&&x.sh>0)),(a,b)=>(b.q+b.each)-(a.q+a.each));
   const card=(x,cls)=>{const sf=nz(x.it.safety);const w=cls==='red'?Math.max(4,Math.round(x.q/sf*100)):Math.max(8,Math.round(sf/x.q*100));
-    return `<div class="ic"><div class="h">${cls==='red'?'📦':'🧾'} ${esc(x.it.name)}<span class="pill ${cls}">${cls==='red'?'부족':'여유'}</span></div><div class="bar"><i style="width:${Math.min(100,w)}%"></i></div><div class="q bfq"><span class="ph">실물 ${qs(x)}</span>${(()=>{const q=ecQty(x.it);return q==null?`<span class="ec none" title="${ecNone(x.it)?'이카운트 코드 '+esc(x.it.code)+'에 재고 기록이 없음(수량관리제외 등)':'품목코드 미매핑'}">${ecLbl(x.it)}</span>`:`<span class="ec">전산 ${fmtq(q)}${un(x.it)}${x.it.ecEa?' <small>('+fmtq(ecRaw(x.it))+'EA)</small>':''}</span><small>차이 ${x.q-q>0?'+':''}${fmtq(Math.round((x.q-q)*10)/10)}</small>`;})()}<small>(${cls==='red'?'−'+fmtq(-x.sh)+' 부족':'+'+fmtq(x.sh)+' 여유'})</small></div></div>`;};
+    return `<div class="ic"><div class="h">${cls==='red'?'📦':'🧾'} ${esc(x.it.name)}<span class="sf">[안전 ${fmtq(nz(x.it.safety))}${un(x.it)}]</span><span class="pill ${cls}">${cls==='red'?'부족':'여유'}</span></div><div class="bar"><i style="width:${Math.min(100,w)}%"></i></div><div class="q bfq"><span class="ph">실물 ${qs(x)}</span>${(()=>{const q=ecQty(x.it);return q==null?`<span class="ec none" title="${ecNone(x.it)?'이카운트 코드 '+esc(x.it.code)+'에 재고 기록이 없음(수량관리제외 등)':'품목코드 미매핑'}">${ecLbl(x.it)}</span>`:`<span class="ec">전산 ${fmtq(q)}${un(x.it)}${x.it.ecEa?' <small>('+fmtq(ecRaw(x.it))+'EA)</small>':''}</span><small>차이 ${x.q-q>0?'+':''}${fmtq(Math.round((x.q-q)*10)/10)}</small>`;})()}<small>(${cls==='red'?'−'+fmtq(-x.sh)+' 부족':'+'+fmtq(x.sh)+' 여유'})</small></div></div>`;};
   $('#bfCols').innerHTML=`
     <div class="bfcol red"><h3>↘ 부족 품목<span class="n">${shorts.length}</span></h3>${shorts.map(x=>card(x,'red')).join('')||'<div class="bfempty">부족 품목 없음</div>'}</div>
     <div class="bfcol ok"><h3>👍 과잉/여유 품목<span class="n">${over.length}</span></h3>${over.map(x=>card(x,'ok')).join('')||'<div class="bfempty">여유 품목 없음</div>'}</div>
-    <div class="bfcol gray"><h3>✔ 적정/재고無 품목<span class="n">${rest.length}</span></h3>${rest.map(x=>`<div class="ic row${x.q<=0&&!x.each?' zero':''}"><span class="nm">${esc(x.it.name)}</span>${x.sh===0&&nz(x.it.safety)?'<span class="pill gray">적정</span>':''}<span class="v">실물 ${qs(x)}${(()=>{const q=ecQty(x.it);return q==null?`<span class="ec none">${ecLbl(x.it)}</span>`:`<span class="ec">전산 ${fmtq(q)}</span>`;})()}</span></div>`).join('')||'<div class="bfempty">없음</div>'}</div>`;
+    <div class="bfcol gray"><h3>✔ 적정/재고無 품목<span class="n">${rest.length}</span></h3>${rest.map(x=>`<div class="ic row${x.q<=0&&!x.each?' zero':''}"><span class="nm">${esc(x.it.name)}<span class="sf">[안전 ${nz(x.it.safety)?fmtq(x.it.safety)+un(x.it):'—'}]</span></span>${x.sh===0&&nz(x.it.safety)?'<span class="pill gray">적정</span>':''}<span class="v">실물 ${qs(x)}${(()=>{const q=ecQty(x.it);return q==null?`<span class="ec none">${ecLbl(x.it)}</span>`:`<span class="ec">전산 ${fmtq(q)}</span>`;})()}</span></div>`).join('')||'<div class="bfempty">없음</div>'}</div>`;
 }
 function briefText(){const {sn,L,ls,items}=briefData();const td=bfDate();let t=`[${S.meta.company} 재고 일일 보고] ${short(td)} (${dow(td)})${sn.date!==td?' · 실물 확인일 '+short(sn.date):''}\n`;
   if(L&&ls)t+=`■ 데니쉬200 생지: ${fmtq(ls.cur)}봉 (안전재고 ${fmtq(ls.c.safety)}) · 오늘 입고 ${fmtq(ls.tin)} / 출고 ${fmtq(ls.sale+ls.prod+ls.adj)}\n`;
-  const un=it=>it.unit==='봉'?'봉':'박스';const line=x=>`- ${x.it.name}: 실물 ${fmtq(x.q)||0}${un(x.it)}${x.each?' '+fmtq(x.each)+'낱개':''} / 전산 ${ecQty(x.it)!=null?fmtq(ecQty(x.it))+un(x.it):(ecNone(x.it)?'미관리':'—')}`;
+  const un=it=>it.unit==='봉'?'봉':'박스';const line=x=>`- ${x.it.name} [안전 ${nz(x.it.safety)?fmtq(x.it.safety)+un(x.it):'—'}]: 실물 ${fmtq(x.q)||0}${un(x.it)}${x.each?' '+fmtq(x.each)+'낱개':''} / 전산 ${ecQty(x.it)!=null?fmtq(ecQty(x.it))+un(x.it):(ecNone(x.it)?'미관리':'—')}`;
   const sh=bfOrder(items.filter(x=>x.sh<0),(a,b)=>a.sh-b.sh),ov=bfOrder(items.filter(x=>nz(x.it.safety)&&x.sh>0),(a,b)=>b.sh-a.sh),rs=bfOrder(items.filter(x=>!(x.sh<0)&&!(nz(x.it.safety)&&x.sh>0)),(a,b)=>(b.q+b.each)-(a.q+a.each));
   t+=`■ 부족 품목 (${sh.length})\n`+(sh.map(x=>line(x)+` (−${fmtq(-x.sh)} 부족)`).join('\n')||'- 없음')+'\n';
   t+=`■ 여유 품목 (${ov.length})\n`+(ov.map(x=>line(x)+` (+${fmtq(x.sh)} 여유)`).join('\n')||'- 없음')+'\n';
