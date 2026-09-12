@@ -30,7 +30,44 @@ input[type=number]{-moz-appearance:textfield}
 
 /* ── frame ── */
 header.top{background:var(--brand);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20}
-header.top h1{font-size:17px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
+header.top h1{font-size:17px;font-weight:800;letter-spacing:-.2px;white-space:nowrap}
+header.top .brand{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+header.top .brand img{width:40px;height:40px;border-radius:10px;background:#fff;object-fit:cover;flex:0 0 auto}
+header.top .brand img:not([src]),header.top .brand img[src=""]{display:none}
+.topmenu{display:flex;gap:6px;margin-left:14px;flex:0 0 auto}
+.topmenu button{display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:10px;font-size:15px;font-weight:700;color:rgba(255,255,255,.72);border:1px solid transparent}
+.topmenu button svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.topmenu button.on{background:#fff;color:var(--brand);box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.topmenu button:not(.on):hover{background:rgba(255,255,255,.12);color:#fff}
+aside.side{display:none}
+@media (min-width:760px){
+  aside.side{display:block;position:fixed;left:0;top:var(--head-h,62px);bottom:0;width:var(--side-w,196px);background:var(--paper);border-right:1px solid var(--line);padding:12px 10px;z-index:15;overflow-y:auto}
+  aside.side .grp{font-size:11px;color:var(--ink3);font-weight:700;letter-spacing:.3px;padding:4px 10px 8px}
+  aside.side button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600;color:var(--ink2);text-align:left;margin-bottom:2px}
+  aside.side button svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+  aside.side button:hover{background:var(--bg)}
+  aside.side button.on{background:var(--brand);color:#fff}
+  aside.side button.on svg{stroke:#fff}
+  aside.side button.act{margin-top:10px;border:1px solid var(--line);color:var(--brand);font-weight:700}
+  body>main{margin-left:var(--side-w,196px);max-width:none;padding:14px 18px 24px}
+  body.fin-tab>main{padding:8px 10px 8px}
+  body.fin-tab .finwrap{height:calc(100vh - var(--head-h,62px) - 16px)}
+  body.fin-tab #weekSel{display:none}
+  main>section.view{max-width:1180px;margin:0 auto}
+  body.fin-tab main>section.view{max-width:none}
+}
+@media (max-width:759px){
+  header.top .brand img{width:34px;height:34px}
+  header.top h1{font-size:16px}
+  header.top .brand .sub{display:none}
+  .topmenu{margin-left:auto;gap:4px;background:rgba(255,255,255,.10);border-radius:10px;padding:3px}
+  .topmenu button{padding:6px 10px;font-size:13px;border-radius:8px}
+  .topmenu button svg{display:none}
+  header.top .grow{display:none}
+  #weekSel{order:8}
+  body.fin-tab #weekSel{display:none}
+}
+@media print{aside.side,.topmenu{display:none!important}body>main{margin-left:0}}
 header.top .sub{font-size:12px;opacity:.78;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 header.top .grow{flex:1;min-width:0}
 .syncpill{display:flex;align-items:stretch;gap:0;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.30);border-radius:12px;padding:0;color:#fff;text-align:left;cursor:pointer;flex:0 0 auto;overflow:hidden}
@@ -281,11 +318,8 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
 </head>
 <body>
 <header class="top">
-  <div>
-    <h1 id="hTitle">원료수불부</h1>
-    <div class="sub" id="hSub">빵을그리다(주)</div>
-  </div>
-  <nav class="tabs" id="tabsTop"></nav>
+  <div class="brand"><img id="brandLogo" alt="" src=""><div><h1 id="hSub">빵을그리다(주)</h1><div class="sub" id="hTitle">재고 통합 플랫폼</div></div></div>
+  <nav class="topmenu" id="topMenu"></nav>
   <div class="grow"></div>
   <select id="weekSel" title="기준 주차"></select>
   <button class="syncpill" id="syncPill" title="클릭하면 이카운트 자료를 바로 확인합니다">
@@ -296,6 +330,7 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
   </button>
 </header>
 
+<aside class="side" id="sideNav"></aside>
 <main>
   <div class="pwa noprint" id="pwa"><b id="pwaTitle"></b><span id="pwaText"></span><div class="row"><button class="btn sm primary" id="pwaInstall" style="display:none">지금 홈 화면에 추가</button><button class="btn sm" id="pwaClose">닫기</button></div></div>
   <!-- ═══ 대시보드 ═══ -->
@@ -550,7 +585,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    원료수불부 — 이카운트 전산재고 × 휴대폰 실물재고 비교 플랫폼
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
-const APP_VER  = '021';
+const APP_VER  = '022';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -560,9 +595,21 @@ const TABS = [
   ['cmp','비교분석','<svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>'],
   ['trend','추이','<svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/><path d="M3 21h18"/></svg>'],
   ['adj','재고조정','<svg viewBox="0 0 24 24"><path d="M12 3v18M4 7h16M6 7l-3 7a3.5 3.5 0 0 0 7 0L7 7M18 7l-3 7a3.5 3.5 0 0 0 7 0l-3-7"/></svg>'],
-  ['fin','완제품·생지','<svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M3 9v6l9 5 9-5V9"/><path d="M12 14v6"/></svg>'],
   ['set','설정','<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'],
 ];
+
+const ICO = {
+  raw:'<svg viewBox="0 0 24 24"><path d="M4 7h16v13H4z"/><path d="M4 7l2-4h12l2 4"/><path d="M10 12h4"/></svg>',
+  fin:'<svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M3 9v6l9 5 9-5V9"/><path d="M12 14v6"/></svg>',
+  expiry:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  ledger:'<svg viewBox="0 0 24 24"><path d="M5 3h14v18H5z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>',
+  items:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  brief:'<svg viewBox="0 0 24 24"><path d="M8 4h8l1 2h3v14H4V6h3z"/><path d="M8 11h8M8 15h5"/></svg>'
+};
+const FIN_TABS = [
+  ['dash','대시보드',TABS[0][2]], ['stock','재고현황',TABS[1][2]], ['expiry','소비기한',ICO.expiry], ['ledger','입출고대장',ICO.ledger], ['trend','추이',TABS[4][2]], ['items','품목·설정',ICO.items], ['brief','일일 보고',ICO.brief]
+];
+const MENUS = { raw: { name: '원료수불부', ico: ICO.raw, items: TABS }, fin: { name: '완제품·생지', ico: ICO.fin, items: FIN_TABS } };
 
 /* ── state ── */
 const defaultState = () => ({
@@ -769,25 +816,37 @@ function importPaste() {
 
 /* ── render: frame ── */
 function renderTabs() {
-  const h = TABS.map(([k, n, ic]) => `<button data-tab="${k}" class="${S.ui.tab === k ? 'on' : ''}">${ic}<span>${n}</span></button>`).join('');
-  $('#tabsTop').innerHTML = h; $('#tabsBottom').innerHTML = h;
-  $$('[data-tab]').forEach(b => b.onclick = () => { S.ui.tab = b.dataset.tab; save(); renderAll(); window.scrollTo(0, 0); });
-  $$('.view').forEach(v => v.classList.toggle('on', v.dataset.view === S.ui.tab));
-  document.body.classList.toggle('fin-tab', S.ui.tab === 'fin');
-  if (S.ui.tab === 'fin') finEnsure();
+  S.ui.menu = S.ui.menu === 'fin' ? 'fin' : 'raw'; S.ui.finTab = S.ui.finTab || 'dash';
+  const menu = S.ui.menu, M = MENUS[menu]; const cur = menu === 'fin' ? S.ui.finTab : S.ui.tab;
+  // 상단: 대메뉴 2개
+  $('#topMenu').innerHTML = Object.entries(MENUS).map(([k, m]) => `<button data-menu="${k}" class="${menu === k ? 'on' : ''}">${m.ico}<span>${m.name}</span></button>`).join('');
+  $$('#topMenu [data-menu]').forEach(b => b.onclick = () => { S.ui.menu = b.dataset.menu; save(); renderAll(); window.scrollTo(0, 0); });
+  // 좌측 사이드바(PC) + 하단 탭(휴대폰): 현재 대메뉴의 하위 메뉴
+  const items = M.items.map(([k, n, ic]) => `<button data-tab="${k}" class="${cur === k ? 'on' : ''}${k === 'brief' ? ' act' : ''}">${ic}<span>${n}</span></button>`).join('');
+  $('#sideNav').innerHTML = `<div class="grp">${M.name}</div>` + items; $('#tabsBottom').innerHTML = items;
+  $$('#sideNav [data-tab], #tabsBottom [data-tab]').forEach(b => b.onclick = () => {
+    const k = b.dataset.tab;
+    if (S.ui.menu === 'fin') { if (k !== 'brief') S.ui.finTab = k; finNav(k); save(); renderTabs(); return; }
+    S.ui.tab = k; save(); renderAll(); window.scrollTo(0, 0);
+  });
+  $$('.view').forEach(v => v.classList.toggle('on', menu === 'fin' ? v.dataset.view === 'fin' : v.dataset.view === S.ui.tab));
+  document.body.classList.toggle('fin-tab', menu === 'fin');
+  if (menu === 'fin') finEnsure();
 }
 /* ── 완제품·생지 플랫폼(finished.html)을 iframe으로 내장 — 같은 폴더의 finished.html, 이카운트 자료는 postMessage로 전달 ── */
 let finLoaded = false, finLastData = null;
 function finEnsure() {
   const f = $('#finFrame'); if (!f || finLoaded) return; finLoaded = true;
-  f.addEventListener('load', () => { $('#finMsg').classList.add('off'); if (finLastData) finPost(finLastData); });
+  f.addEventListener('load', () => { $('#finMsg').classList.add('off'); if (finLastData) finPost(finLastData); finNav(S.ui.finTab || 'dash'); });
   f.addEventListener('error', () => { $('#finMsg').textContent = 'finished.html을 찾을 수 없습니다 — 같은 폴더(저장소)에 올려 주세요'; });
   f.src = './finished.html?v=' + APP_VER;
   setTimeout(() => { try { if (!f.contentDocument || f.contentDocument.body.childElementCount === 0) $('#finMsg').textContent = 'finished.html을 찾을 수 없습니다 — 같은 폴더(저장소)에 올려 주세요'; } catch (e) {} }, 6000);
 }
+function finNav(tab) { const f = $('#finFrame'); if (!f || !f.contentWindow || !finLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-nav', tab }, '*'); } catch (e) {} }
+window.addEventListener('message', e => { const m = e.data; if (!m || typeof m !== 'object') return; if (m.type === 'fin-tab' && m.tab && S.ui.menu === 'fin' && S.ui.finTab !== m.tab) { S.ui.finTab = m.tab; save(); renderTabs(); } });
 function finPost(d) { const f = $('#finFrame'); if (!f || !f.contentWindow || !finLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-ecount', data: d }, '*'); } catch (e) {} }
 function renderHeader() {
-  $('#hSub').textContent = S.settings.company || '';
+  $('#hSub').textContent = S.settings.company || '빵을그리다(주)'; const lg = $('#brandLogo'); if (lg && !lg.getAttribute('src')) { lg.src = LOGO_DATA; }
   const ws = weeks(); const phOnly = Object.keys(S.physical).filter(w => !S.snapshots[w] && Object.keys(S.physical[w]).length);
   const all = [...new Set([...ws, ...phOnly])].sort();
   const cw = curWeek();

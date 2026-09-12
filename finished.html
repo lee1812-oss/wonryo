@@ -335,6 +335,8 @@ body.briefing{overflow:hidden}
 @media (max-width:1100px){.kpistrip.d3{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:640px){.kpistrip.d3{grid-template-columns:repeat(2,1fr)}.ecgrid{grid-template-columns:1fr!important}}
 @media print{.ecbadge{display:none}}
+/* 원료수불부 안에 내장된 경우: 탭·브랜드는 부모 사이드바가 담당 */
+html.embedded #tabs{display:none}html.embedded .appbar .brand{display:none}html.embedded .appbar .in{height:auto;min-height:48px;flex-wrap:wrap;padding:6px 14px}html.embedded main{padding-top:10px}
 </style>
 </head>
 <body>
@@ -561,8 +563,9 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 (function(){
 'use strict';
 const PLATFORM='완제품생지재고관리';
-const VERSION=14;
+const VERSION=15;
 const LS_KEY='wjsg_state_v1';
+const EMBED=(()=>{try{return window.parent!==window;}catch(e){return false;}})();if(EMBED)document.documentElement.classList.add('embedded');
 const TEMPLATE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
 const $=(s,r)=>(r||document).querySelector(s);
 const $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
@@ -612,7 +615,7 @@ function dcls(dd){if(dd==null)return 'gray';if(dd<0)return 'red';if(dd<=S.meta.n
 function dtxt(dd){if(dd==null)return '미입력';if(dd<0)return 'D+'+(-dd);if(dd===0)return 'D-Day';return 'D-'+dd;}
 
 /* ---------- navigation ---------- */
-function go(v){TAB=v;$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));$$('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));render();}
+function go(v){TAB=v;$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));$$('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));render();if(EMBED)try{parent.postMessage({type:'fin-tab',tab:v},'*');}catch(e){}}
 $('#tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)go(b.dataset.v);});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;if(b.dataset.filter){stockState=b.dataset.filter;stockKind='all';}go(b.dataset.go);});
 $('#snapSel').addEventListener('change',e=>{S.cur=e.target.value;commit();render();});
@@ -987,7 +990,8 @@ function renderEcPanel(sn){
   const rb=$('#ecRefresh');if(rb)rb.onclick=()=>ecFetch(true);
 }
 $('#ecBadge').onclick=()=>ecFetch(true);
-window.addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;if(m.type==='wonryo-ecount'&&m.data){try{ecApply(m.data);}catch(err){}}});
+window.addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;if(m.type==='wonryo-ecount'&&m.data){try{ecApply(m.data);}catch(err){}}
+  if(m.type==='wonryo-nav'&&m.tab){if(m.tab==='brief'){$('#btnBrief').click();}else{$$('.modal.on').forEach(x=>x.classList.remove('on'));if($('#brief').classList.contains('on'))$('#bfClose').click();go(m.tab);}}});
 setInterval(()=>{if(document.visibilityState==='visible')ecFetch(false);},60*1000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')ecFetch(false);});
 setTimeout(()=>ecFetch(false),800);
