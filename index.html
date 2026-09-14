@@ -675,7 +675,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    원료수불부 — 이카운트 전산재고 × 휴대폰 실물재고 비교 플랫폼
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
-const APP_VER  = '035';
+const APP_VER  = '036';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1267,6 +1267,9 @@ $('#wkPrint').onclick = () => { const ch = wk.rows.filter(r => r.changed); if (!
 
 
 /* ── v034: 공유 저장소(구글 시트 Apps Script) 동기화 — 실물·소비기한·메모 ── */
+/* v036: 기본 공유 저장소 URL 내장(2026-09-14 배포 v1, 시트 「원료수불부_공유」) — 설정에서 비우거나 바꿀 수 있음 */
+const DEFAULT_SHARE_URL = 'https://script.google.com/macros/s/AKfycbxM0LELDMSjzNn34ohd7twyfKRV6WqVA3ikvkKUaMjuPnjG-kmfVhpxKfnNiuhfqwXUKA/exec';
+if (S.settings.shareUrl == null || (S.settings.shareUrl === '' && !S.settings.shareUrlCleared)) S.settings.shareUrl = DEFAULT_SHARE_URL;
 function shareCfg() { if (!S.share || !Array.isArray(S.share.outbox)) S.share = { outbox: [], since: '', device: '', lastPull: '', lastPush: '', err: '' }; if (!S.share.device) S.share.device = (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? '휴대폰' : 'PC') + '-' + Math.random().toString(36).slice(2, 6); return S.share; }
 const shareOn = () => /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test((S.settings.shareUrl || '').trim());
 const shareKey = r => r.week + '|' + r.code + '|' + r.kind;
@@ -1310,7 +1313,7 @@ function renderShareStatus(msg) {
   ['#piShare', '#wkShare'].forEach(s => { const el = $(s); if (el) { el.textContent = txt; el.style.color = sh.err ? 'var(--warn)' : ''; } });
   const st = $('#shareStatus'); if (st) st.innerHTML = !on ? (S.settings.shareUrl ? '<span style="color:var(--warn)">URL 형식이 맞지 않습니다. https://script.google.com/macros/s/…/exec 형태여야 합니다.</span>' : '연결 안 됨 — URL을 입력하세요.') : `${msg ? msg + ' · ' : ''}마지막 받음 ${hm(sh.lastPull)} · 마지막 보냄 ${hm(sh.lastPush)} · 보낼 것 ${(sh.outbox || []).length}건 · 이 기기 ${esc(sh.device || '')} · 입력자 이름 ${esc(S.settings.reporter || '(미설정 — 설정 상단 보고자)')}${sh.err ? `<br><span style="color:var(--warn)">${esc(sh.err)}</span>` : ''}`;
 }
-$('#setShareUrl').addEventListener('change', e => { S.settings.shareUrl = e.target.value.trim(); e.target.value = S.settings.shareUrl; save(true); renderShareStatus(); if (shareOn()) { shareCfg(); sharePull(true); } });
+$('#setShareUrl').addEventListener('change', e => { S.settings.shareUrl = e.target.value.trim(); S.settings.shareUrlCleared = !S.settings.shareUrl; e.target.value = S.settings.shareUrl; save(true); renderShareStatus(); if (shareOn()) { shareCfg(); sharePull(true); } });
 $('#btnShareTest').onclick = async () => { if (!shareOn()) return toast('웹 앱 URL을 먼저 입력하세요'); renderShareStatus('연결 확인 중…'); try { const r = await fetch(S.settings.shareUrl.trim() + '?action=ping&t=' + Date.now(), { cache: 'no-store' }); const j = await r.json(); if (!j.ok) throw new Error(j.error || '응답 오류'); shareCfg().err = ''; toast(`연결됨 — 시트 「${j.sheet}」 기록 ${j.rows}건`); } catch (e) { shareCfg().err = '연결 실패: ' + (e.message || e); } save(); renderShareStatus(); };
 $('#btnShareSync').onclick = async () => { if (!shareOn()) return toast('웹 앱 URL을 먼저 입력하세요'); await sharePush(); await sharePull(false); toast('동기화 완료'); };
 $('#btnShareFull').onclick = async () => { if (!shareOn()) return toast('웹 앱 URL을 먼저 입력하세요'); shareCfg().since = ''; await sharePull(true); toast('전체 다시 받기 완료'); };
