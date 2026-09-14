@@ -170,12 +170,18 @@ table.t th.sticky{z-index:3;background:#F4F6F8}
 .chg{border:1.5px solid #F2C9A6;background:#FFF7F0;border-radius:8px;padding:8px 10px;margin:0 0 10px;font-size:12.5px}.chg h3{margin:0 0 4px;font-size:13px;color:#B5501F;display:flex;justify-content:space-between;align-items:center;gap:8px}.chg .ent{padding:4px 0;border-top:1px dashed #F2C9A6}.chg .ent:first-of-type{border-top:0}.chg .when{font-weight:700;color:#173F4B;font-size:12px}.chg .it{display:flex;justify-content:space-between;gap:8px;padding:1px 0}.chg .it b{font-weight:600}.chg .up{color:#0E6E8C;font-weight:700}.chg .dn{color:#B23A3A;font-weight:700}.chg .more{color:var(--ink3);font-size:11.5px}
 .sync{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 10px;margin-bottom:10px;border-radius:8px;background:var(--plus-bg);font-size:12.5px}.sync.off{background:var(--line2)}.sync.err{background:var(--warn-bg)}.sync b{color:var(--plus)}
 .pi-item.est{border-style:dashed;border-color:#C9D2DA}.pi-item.est .result b{color:var(--ink3)}
-.pi-item.carry{border-color:#BBD6E8;background:#F7FBFE}.pi-item .esttag.carry{background:#E5F2F7;color:#0E6E8C}
+.pi-item.carry{border-color:#BBD6E8;background:#F7FBFE}
+.pi-item .calc{display:flex;flex-wrap:wrap;gap:4px 14px;margin:6px 0 2px;padding:6px 10px;border-radius:8px;background:var(--line2);font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}.pi-item .calc b{color:var(--ink);font-weight:800}.pi-item .calc .tare{color:var(--minus,#B23A3A);text-decoration:line-through;text-decoration-color:rgba(178,58,58,.5)}.pi-item .calc .sum{margin-left:auto;font-weight:600}.pi-item .calc .sum b.plus{color:var(--plus)}.pi-item .calc .sum b.minus{color:var(--minus,#B23A3A)}.pi-item .calc em.warn{font-style:normal;color:var(--warn);font-size:11px}
+.pi-item .tarebtn{margin-left:4px;padding:0 6px;border-radius:99px;border:1px solid var(--line);background:#fff;color:var(--ink3);font-size:10px;font-weight:700;line-height:16px;vertical-align:middle;cursor:pointer}.pi-item .tarebtn.on{background:#FFF1E0;border-color:#E3B79B;color:#B5501F}.pi-item .inp.net.notare div{background:#FFF7F0;border-color:#E3B79B}
+.wkdate{border:1px solid var(--line);border-radius:8px;padding:5px 7px;font-size:13px;font-weight:700;background:#fff;color:var(--ink);font-family:inherit;max-width:150px}
+.wkstrip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:8px 0 2px;background:var(--line2);border-radius:8px;padding:6px 8px;font-size:12px}.wkstrip>div span{display:block;color:var(--ink3);font-size:11px}.wkstrip>div b{font-size:13.5px}.wkstrip .up{color:var(--plus)}.wkstrip .dn{color:var(--minus,#B23A3A)}
+.wksame{display:flex;flex-wrap:wrap;gap:6px}.wksame span{background:var(--line2);border-radius:99px;padding:3px 10px;font-size:12px}.pi-item .esttag.carry{background:#E5F2F7;color:#0E6E8C}
 .pi-item .esttag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:99px;background:var(--warn-bg);color:var(--warn);font-size:11px;font-weight:700;vertical-align:middle}
 .pi-item .okbtn{padding:5px 10px;border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:12px;font-weight:700;background:#fff}.pi-item .okbtn.on{background:var(--accent);color:#fff}
 .pi-item .name{font-weight:700;font-size:15px}
 .pi-item .meta{font-size:12px;color:var(--ink3);margin-top:1px}
-.pi-item .inputs{display:grid;grid-template-columns:1fr 1.3fr auto;gap:8px;margin-top:8px;align-items:end}
+.pi-item .inputs{display:grid;grid-template-columns:0.8fr 0.9fr 1.2fr auto;gap:8px;margin-top:8px;align-items:end}
+.pi-item .inp.net div{border:1.5px solid #BFE0D8;border-radius:8px;padding:9px 10px;font-size:19px;font-weight:800;text-align:right;background:var(--plus-bg);color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.3px}.pi-item .inp.net div.zero{color:var(--ink3);font-weight:600}.pi-item .inp.net div.warn{border-color:#E3B79B;background:var(--warn-bg)}.pi-item .inp.net span small{font-weight:500;color:var(--ink3)}
 .pi-item .inputs.direct{grid-template-columns:1fr auto}
 .pi-item .inp{display:flex;flex-direction:column;gap:3px}
 .pi-item .inp span{font-size:11px;color:var(--ink2);font-weight:600}
@@ -226,6 +232,7 @@ table.t th.sticky{z-index:3;background:#F4F6F8}
 }
 @media (max-width:759px){ header.top nav.tabs{display:none} nav.tabs.mobile{display:flex}
   table.t{font-size:12.5px} table.t th,table.t td{padding:6px 7px} .mh{display:none!important}
+  .pi-item .inputs:not(.direct){grid-template-columns:1fr 1fr} .pi-item .inputs:not(.direct) .result{grid-column:2;text-align:right} .pi-item .inp.net div{font-size:18px}
   .stats{grid-template-columns:1fr 1fr} .stat b{font-size:17px}
   .card{padding:10px} table.t td.sticky{max-width:150px;overflow:hidden;text-overflow:ellipsis} }
 @media (min-width:760px){ nav.tabs.mobile{display:none} }
@@ -414,6 +421,23 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
       </div>
       <div class="weeks" id="weekList"></div>
     </div>
+    <div class="card" id="ecAllCard">
+      <div class="row between" style="margin-bottom:8px;flex-wrap:wrap;gap:8px">
+        <h2 style="margin:0">이카운트 전체 재고 조회 <span class="muted" id="ecAllSub" style="font-weight:400;font-size:12.5px"></span></h2>
+        <div class="row noprint" style="gap:6px;flex-wrap:wrap">
+          <button class="btn sm" id="ecAllPrev" title="전일">◀</button>
+          <input type="date" id="ecAllDate" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;font-weight:700;background:#fff;color:var(--ink);font-family:inherit">
+          <button class="btn sm" id="ecAllNext" title="익일">▶</button>
+          <button class="btn sm primary" id="ecAllGo">조회</button>
+          <input class="search" id="ecAllSearch" placeholder="품목·코드·매입처 검색" style="width:170px;padding:6px 10px">
+          <div class="seg" id="ecAllFilter"><button data-f="all" class="on">전체</button><button data-f="nz">재고 있음</button><button data-f="raw">원료 관리품목</button><button data-f="chg">현재와 다름</button></div>
+          <button class="btn sm" id="ecAllXlsx">엑셀</button>
+          <label class="btn sm" title="이카운트 품목등록 엑셀(ESA009M)로 품목명을 채웁니다 — 완제품·생지의 코드 매핑 목록과 공유">품목명 목록<input type="file" id="ecAllNames" accept=".xlsx,.xls,.csv" hidden></label>
+        </div>
+      </div>
+      <div class="muted" id="ecAllMsg" style="margin-bottom:6px"></div>
+      <div class="tablewrap" id="ecAllTable"><div class="empty">날짜를 고르고 「조회」를 누르세요. 오늘은 현재 연동 자료, 지난 날짜는 그날 마지막으로 올라온 연동 자료(깃허브 이력)를 이카운트 전체 품목으로 보여줍니다.</div></div>
+    </div>
     <div class="card">
       <div class="row between" style="margin-bottom:8px">
         <h2 style="margin:0" id="stockTitle">전산재고</h2>
@@ -432,7 +456,7 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
       <div class="row between" style="margin-bottom:6px;flex-wrap:nowrap">
         <div style="min-width:0">
           <div class="row" style="gap:6px;flex-wrap:nowrap;align-items:center"><span style="font-weight:700;white-space:nowrap">실물재고</span><input type="date" id="piDate" title="입력할 날짜 — 바꾸면 그 날짜 실물재고를 열거나 새로 만듭니다" style="border:1px solid var(--line);border-radius:8px;padding:5px 7px;font-size:13px;font-weight:700;background:#fff;color:var(--ink);font-family:inherit;max-width:150px"></div>
-          <div class="muted" id="piProg"></div>
+          <div class="muted" id="piProg"></div><div class="muted" id="piShare" style="font-size:11.5px"></div>
         </div>
         <div class="row" style="flex-wrap:nowrap">
           <select id="piSort" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;background:#fff"><option value="name">품목명순</option><option value="vendor">매입처순</option><option value="code">코드순</option></select>
@@ -443,7 +467,7 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
       <div class="progress"><i id="piBar" style="width:0"></i></div>
       <input class="search" id="piSearch" placeholder="품목 검색" style="margin-top:8px;padding:7px 12px">
     </div>
-    <div class="pi-grid" id="piList"></div>
+    <div class="pi-grid" id="piList" data-pilist></div>
     <div class="card" style="margin-top:12px">
       <div class="field"><label>비고 (보고문에 포함)</label><textarea id="piMemo" rows="2" placeholder="예: 크림치즈 1박스 파손 폐기"></textarea></div>
       <div class="row" style="margin-top:10px;gap:8px">
@@ -456,6 +480,28 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
       <div class="muted" style="margin-top:8px">품목마다 전산재고량을 규격으로 나눠 미개봉 포수와 잔량(용기 포함)을 미리 채워 둡니다(점선 카드·「전산 추정」). 실제 무게로 고치거나 맞으면 「✓ 그대로」를 누르면 확인 완료로 바뀝니다. 「PDF 보고서」는 실물재고·소비기한 임박 순 보고서를 PDF로 만들어 휴대폰에 저장하거나 카카오톡으로 바로 보냅니다. 「PC로 보내기」는 입력한 실물 데이터를 문자로 복사합니다. 카톡 나와의 채팅으로 보낸 뒤 PC의 비교분석 → 「실물 가져오기」에 붙여넣으면 됩니다.</div>
     </div>
     <div class="physpr" id="physPrint"></div>
+  </section>
+
+  <!-- ═══ 주간 재고 현황 (v030) ═══ -->
+  <section class="view" data-view="weekly">
+    <div class="pi-head">
+      <div class="row between" style="margin-bottom:6px;flex-wrap:wrap;gap:6px">
+        <div style="min-width:0"><div style="font-weight:700;white-space:nowrap">주간 재고 현황 <span class="muted" id="wkSub" style="font-weight:400;font-size:12.5px"></span></div><div class="muted" id="wkProg"></div><div class="muted" id="wkShare" style="font-size:11.5px"></div><div class="muted" style="font-size:12px;margin-top:2px">조회 조건: <b id="wkCond"></b> <button class="btn xs" id="wkCondEdit" style="margin-left:4px">조건 편집</button></div></div>
+        <div class="row" style="flex-wrap:wrap;gap:6px;align-items:center">
+          <span class="muted" style="font-size:12.5px">기준일</span><input type="date" id="wkFrom" class="wkdate">
+          <span class="muted" style="font-size:12.5px">→ 현재</span><input type="date" id="wkTo" class="wkdate">
+          <button class="btn sm primary" id="wkGo">조회</button>
+          <button class="btn sm" id="wkOnlyEmpty">미입력</button>
+          <button class="btn sm" id="wkPrint" title="변동 품목 확인표 인쇄 (A4)">🖨<span class="mh"> 인쇄</span></button>
+        </div>
+      </div>
+      <div class="progress"><i id="wkBar" style="width:0"></i></div>
+    </div>
+    <div class="stats" id="wkStats" style="margin-bottom:10px"></div>
+    <div class="muted" id="wkMsg" style="margin:0 0 8px"></div>
+    <div class="pi-grid" id="wkList" data-pilist></div>
+    <div class="card" id="wkSame" style="margin-top:12px"></div>
+    <div class="muted" style="margin-top:8px">조회 조건(기본: 품목명에 「gg」 포함, 「조건 편집」에서 추가·변경·삭제)에 맞는 관리 품목 중, 기준일과 현재 사이에 이카운트 전산재고가 바뀐 품목만 골라 현재 날짜의 실물을 입력합니다. 입력값은 실물입력 화면과 같은 저장소(현재 날짜)에 저장되어 비교분석·보고서에 그대로 반영됩니다. 기준일 전산은 깃허브 연동 이력(2026-09-09 이후)에서, 그 이전은 주간 업로드 스냅샷에서 가져옵니다.</div>
   </section>
 
   <!-- ═══ 비교분석 ═══ -->
@@ -570,6 +616,13 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
       <div class="muted" style="margin-top:6px">|차이| 가 g 기준과 % 기준(전산재고 대비) 중 하나라도 넘으면 조정대상으로 표시합니다. 둘 다 0이면 차이가 있는 모든 품목이 조정대상입니다.</div>
       <div class="row" style="margin-top:10px"><label class="row" style="gap:6px;font-size:14px"><input type="checkbox" id="setNet"> 잔량은 용기 무게를 뺀 순중량으로 입력</label></div>
     </div>
+    <div class="card" id="shareCard">
+      <h2>공유 저장소 (구글 시트)</h2>
+      <div class="muted" style="margin-bottom:8px">실물재고·소비기한·메모 입력값을 구글 시트에 모아 담당자 휴대폰·사무실 PC·다른 열람자가 같은 값을 보게 합니다. 시트에 붙인 Apps Script 웹 앱 URL을 넣으면 입력 즉시 올라가고 1분마다 받아옵니다. 같은 품목·날짜는 나중에 입력한 값이 우선하며 입력자 이름이 함께 기록됩니다.</div>
+      <div class="field"><label>Apps Script 웹 앱 URL</label><input id="setShareUrl" placeholder="https://script.google.com/macros/s/…/exec" style="font-family:monospace;font-size:12.5px"></div>
+      <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn sm" id="btnShareTest">연결 확인</button><button class="btn sm primary" id="btnShareSync">지금 동기화</button><button class="btn sm" id="btnShareFull">전체 다시 받기</button><button class="btn sm" id="btnShareSendAll">이 기기 입력값 전부 올리기</button></div>
+      <div class="muted" id="shareStatus" style="margin-top:8px"></div>
+    </div>
     <div class="card">
       <div class="row between" style="margin-bottom:8px">
         <h2 style="margin:0">품목 마스터 · 규격 · g단가</h2>
@@ -622,13 +675,14 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    원료수불부 — 이카운트 전산재고 × 휴대폰 실물재고 비교 플랫폼
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
-const APP_VER  = '027';
+const APP_VER  = '035';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
   ['dash','대시보드','<svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="11" width="8" height="10" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/></svg>'],
   ['stock','전산재고','<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 9h16M4 15h16M10 4v16"/></svg>'],
   ['phys','실물입력','<svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>'],
+  ['weekly','주간재고','<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M7 14l3 3 6-6"/></svg>'],
   ['cmp','비교분석','<svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>'],
   ['trend','추이','<svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/><path d="M3 21h18"/></svg>'],
   ['adj','재고조정','<svg viewBox="0 0 24 24"><path d="M12 3v18M4 7h16M6 7l-3 7a3.5 3.5 0 0 0 7 0L7 7M18 7l-3 7a3.5 3.5 0 0 0 7 0l-3-7"/></svg>'],
@@ -655,7 +709,7 @@ const defaultState = () => ({
   ui: { week: '', tab: 'dash' }
 });
 let S = load();
-let ui = { expFilter: '', piSort: 'name', piOnlyEmpty: false, piSearch: '', stockSearch: '', cmpFilter: 'all', trendMode: 'qty', adjFilter: '', adjSort: 'abs', adjView: 'matrix', adjUnit: 'both', adjDate: '', adjDailyQ: '', expAll: false };
+let ui = { expFilter: '', piSort: 'name', piOnlyEmpty: false, piSearch: '', stockSearch: '', cmpFilter: 'all', trendMode: 'qty', adjFilter: '', adjSort: 'abs', adjView: 'matrix', adjUnit: 'both', adjDate: '', adjDailyQ: '', expAll: false, ecAllFilter: 'all' };
 
 function load() {
   let ls = null, emb = null;
@@ -732,7 +786,7 @@ function physQty(it, p) {
   const gross = p.gross == null || p.gross === '' ? null : Number(p.gross);
   if (packs == null && gross == null) return null;
   const mm0 = masterOf(it.code, it.name) || {}; let q = (packs || 0) * (Number(it.spec || mm0.spec) || 0);
-  if (gross != null) q += S.settings.netWeight ? gross : Math.max(0, gross - (Number(it.tare || mm0.tare) || 0));
+  if (gross != null) q += (S.settings.netWeight || p.noTare) ? gross : Math.max(0, gross - (Number(it.tare || mm0.tare) || 0));
   return Math.round(q * 10) / 10;
 }
 /* 전산재고량으로 포수·잔량 추정 → 실물입력 미리 채우기 (est:true = 아직 확인 안 함) */
@@ -753,7 +807,7 @@ function prefillPhys(week, items) {
   const ph = physFor(week); let n = 0;
   items.forEach(it => { const p = ph[it.code]; if (p && (physQty(it, p) != null || p.mode === 'direct')) return;
     const c = carryFrom(week, it.code);
-    if (c) { const q = c.p; ph[it.code] = Object.assign({}, p || {}, { mode: q.mode || 'packs', packs: q.packs ?? '', gross: q.gross ?? '', direct: q.direct ?? '', carry: c.from, ts: new Date().toISOString() }); delete ph[it.code].est; n++; return; }
+    if (c) { const q = c.p; ph[it.code] = Object.assign({}, p || {}, { mode: q.mode || 'packs', packs: q.packs ?? '', gross: q.gross ?? '', direct: q.direct ?? '', carry: c.from, ts: new Date().toISOString() }); if (q.noTare) ph[it.code].noTare = true; else delete ph[it.code].noTare; delete ph[it.code].est; n++; return; }
     const e = estimateFromEcount(it); if (!e) return; ph[it.code] = Object.assign({}, p || {}, e); n++; });
   if (n) save();
   return n;
@@ -824,7 +878,7 @@ function addSnapshot(p, fname) {
   // 이카운트 「실물재고」 열에 값이 있으면 실물입력(직접 g)으로 가져옴 (이미 입력된 품목은 유지)
   const ph = physFor(p.date); let got = 0;
   p.items.forEach(it => { if (it.phys != null && !(ph[it.code] && physQty(it, ph[it.code]) != null)) { ph[it.code] = Object.assign(ph[it.code] || {}, { mode: 'direct', direct: it.phys, ts: new Date().toISOString() }); got++; } });
-  if (got) setTimeout(() => toast(`엑셀 실물재고 ${got}품목을 실물입력에 반영`), 900);
+  if (got) { setTimeout(() => toast(`엑셀 실물재고 ${got}품목을 실물입력에 반영`), 900); shareMarkAll(p.date); }
   S.ui.week = p.date;
   return exist ? '갱신' : '추가';
 }
@@ -951,6 +1005,74 @@ function renderStock() {
   $('#stockTable').innerHTML = `<table class="t"><thead><tr><th class="sticky">품목</th><th class="num mh">규격(g)</th><th class="num mh">빈용기(g)</th><th class="num">재고량(g)</th><th class="num">전주 대비</th><th class="mh">소비기한</th></tr></thead><tbody>${body}</tbody><tfoot><tr><td class="sticky">합계 ${rows.length}품목</td><td class="mh"></td><td class="mh"></td><td class="num">${fmt(tq)}</td><td></td><td class="mh"></td></tr></tfoot></table>`;
 }
 
+/* ── v028: 이카운트 전체 재고 조회(날짜별) — 오늘=현재 data.json, 지난 날짜=깃허브 커밋 이력의 data.json ── */
+const ECALL_KEY = 'wonryo_ecall_v1', ECPROD_KEY = 'wjsg_ecprod_v1', FIN_STATE_KEY = 'wjsg_state_v1';
+let ecAll = { date: '', data: null, src: '' }, _ecProd = null;
+/* v029: 이카운트 품목명 내장(2026-09-14 재고현황 588 + 원료 품목등록 33 → 591코드, [품목명, 매입처]) — 「품목명 목록」 업로드가 있으면 그것이 우선 */
+const EC_NAMES = {"00014":["기타(부자재)",""],"00028":["돔형케익3종",""],"00031":["양파분말",""],"00034":["피자용S강력1등급",""],"00036":["빵을 그리다 K1 75g*45EA",""],"00038":["갈릭바게트볼",""],"00039":["냉동팩",""],"00040":["젤 아이스팩",""],"00043":["활자 년도",""],"00044":["책 한권이면 나도 사장",""],"00046":["CS_방수 필름지 80mm*100mm",""],"00047":["DL_광대역 조도계-SNDWAY",""],"00058":["[소분]베이크 크라프트콘 믹스 500.g",""],"00064":["대두 흑미골드 강력쌀가루 3kg",""],"00068":["강력쌀가루 1kg",""],"000_14":["치즈뚱카롱 1EA",""],"01DEL":["DEL.퍼프페스츄리판생지 BOX(1,050g*8EA)","8.델베"],"01SD":["K데니시트생지(몽블랑)700g, 6장/봉",""],"02SD":["k데니쉬스틱생지(몽블랑)개당200g, 20개/봉",""],"02_1SD":["k데니쉬스틱생지(몽블랑) 1EA(200g)",""],"03SD":["K페스트리시트생지500g, 10장/봉",""],"03_SD":["K페스트리시트생지500g, 1장",""],"04SD":["K크로스퀘어생지60g, 25개/봉",""],"06SD":["버터크로와상생지78g, 100개/박스",""],"06_1SD":["버터크로와상생지78 1EA(78g)",""],"07SD":["신미니크로와상생지25g, 100개/봉",""],"088-1":["JK_헤파필터_부품,상부식용",""],"088-14":["JK_센서뭉치 F_부품,상부식",""],"08SD":["데니쉬스틱생지110g, 30개/봉",""],"09SD":["고구마페스트리생지95g, 20개/봉",""],"109SD":["크림브레드완성품250g, 20개/박스",""],"10SD":["미니딸기페스트리생지28g, 70개/봉",""],"114SD":["써머바질바게뉴완성품155g, 30개/박스",""],"115SD":["마늘바게트150g, 36개/박스",""],"11SD":["미니통팥페스트리생지30g, 70개/봉",""],"120SD":["갈레트브루통60g, 20개/박스",""],"12SD":["나비파이생지90g, 100개/박스",""],"12_1SD":["나비파이생지 1EA(90g)",""],"132_1SD":["베이글어니언완성품 1EA(100g)",""],"139SD":["쿠앤쿠뚱카롱10개/박스",""],"13SD":["K파이시트생지350g, 10장/봉",""],"14SD":["애플페스트리생지(통사과파이)105g, 20개/봉",""],"14_1SD":["애플페스트리생지(통사과파이) 1EA(105g)",""],"153_1SD":["K데니쉬성형롤 1EA(200g)",""],"154SD":["플레인번",""],"155SD":["하드롤",""],"156SD":["밀크스틱 35g*60EA",""],"157SD":["두바이쫀득쿠키",""],"158SD":["두바이쫀득쿠키",""],"15SD":["스틱파이생지70g, 30개/봉",""],"15_1SD":["스틱파이생지 1EA(70g)",""],"160SD":["호두머핀",""],"167SD":["BaB.갈릭바게트 BOX(30EA)",""],"17SD":["롱소시지페스트리생지170g, 100개/박스",""],"18SD":["프랑스빵생지150g, 20개/봉",""],"19SD":["프랑스빵생지90g, 30개/봉",""],"19SD_F":["프랑스빵생지90g, 30개/봉_F",""],"1GT":["GT.감자빵 완제품 BOX(95g, 15*2PK)","7.굿베"],"20SD":["프랑스빵생지60g, 40개/봉",""],"21SD":["골든 통밀소금빵생지70g, 80개/박스",""],"21SD_1":["골든 통밀소금빵생지 1EA(70g)",""],"22SD":["쌀소금빵생지60g, 100개/박스",""],"22_1SD":["쌀소금빵생지 1EA(60g)",""],"23SD":["세사미생지40g, 60개/봉",""],"24SD":["치아바타생지140g, 20개/봉",""],"25SD":["우유식빵생지180g, 15개/봉",""],"26SD":["우유모닝빵생지30g, 80개/봉",""],"27SD":["쌀식빵생지200g, 16개/봉",""],"28SD":["옥수수빵생지180g, 14개/봉",""],"29GK":["G.롤케이크 Box(12cm*12EA)","6.금베"],"29SD":["곡물빵생지180g, 15개/봉",""],"2GT":["GT.고구마빵 완제품 BOX(95g, 15*2PK)","7.굿베"],"30SD":["과자빵생지60g, 40개/봉",""],"31SD":["브리오슈생지180g, 16개/봉",""],"32SD":["커피빵생지60g, 40개/봉",""],"33SD":["슈크림빵생지95g, 30개/봉",""],"34SD":["완두앙금빵생지95g, 30개/봉",""],"35SD":["통팥빵생지110g, 30개/봉",""],"36SD":["흰앙금빵생지95g, 30개/봉",""],"37SD":["소보로피생지2KG, 봉",""],"38SD":["모카피생지50g, 30개/봉",""],"39SD":["마카다미아쿠키생지40g, 60개/봉",""],"40SD":["초코쿠키생지40g, 60개/봉",""],"41SD":["피넛쿠키생지40g, 60개/봉",""],"42SD":["만쥬생지50g, 40개/봉",""],"43SD":["깨찰빵생지70g, 40개/봉",""],"44SD":["찹쌀도너츠생지70g, 30개/봉",""],"45SD":["S피자빵플레인생지200g, 10개/봉",""],"48SD":["쫄깃생지75g, 20개/봉",""],"51SD":["플레인르뱅쿠키100g, 25개/봉",""],"52SD":["다크코코아르뱅쿠키100g, 25개/봉",""],"53SD":["황치즈르뱅쿠키100g, 25개/봉",""],"54SD":["녹차르뱅쿠키100g, 25개/봉",""],"556SD":["S크로와상55 생지 55g*40EA","2.서도"],"55SD":["레드벨벳르뱅쿠키100g, 25개/봉",""],"59SD":["프렌치 뺑오쇼콜라80g, 70개/박스",""],"62SD":["미니라즈베리크라운42g, 120개/박스",""],"63SD":["미니애플크라운42g, 120개/박스",""],"63_1SD":["미니애플크라운 1EA(42g)",""],"64SD":["미니메이플피칸플레이트42g, 120개/박스",""],"66SD":["초코헤이즐넛 스콘100g, 48개/박스",""],"66_1SD":["초코헤이즐넛 스콘 1EA(100g)",""],"67_1SD":["얼그레이 스콘 1EA(100g)",""],"69SD":["촉촉한올리브빵생지150g, 15개/봉",""],"69_1SD":["촉촉한올리브빵생지 1EA(150g)",""],"74SD":["구운몽블랑완성품155g, 24개/박스",""],"82SD":["호두머핀완성품130g, 24개/박스",""],"84SD":["정통카스테라완성품160g, 18개/박스",""],"87SD":["뺑드세이글완성품170g, 30개/박스",""],"88SD":["호밀무화과완성품130g, 40개/박스",""],"92SD":["모카번완성품90g, 20개/박스",""],"93SD":["단팥빵완성품140g, 48개/박스",""],"AL-001":["계란 1판*30EA[15L]",""],"AL.01":["AL.투명 치즈 케이스 봉",""],"AL01_0":["g_특란","알누리"],"AN01":["AN.브리오슈소금식빵(350g) 1EA",""],"AN02":["AN.브리오슈소금식빵 Box(350g*36EA)",""],"BAM01":["BAM.무지 크라프트 쇼핑백(중, 10매)",""],"BAM02":["BAM.크라프트 종이봉투(중, 150*90/265mm) 10매",""],"BAM03":["BAM.쿠킹플러스 내열 안전장갑(L)",""],"BK_01":["게랑드 소금_gg23","(주)바이큰"],"BM03":["BM_바게트롤(35) 1EA(270g)","마.벗말"],"BM04":["반미바게트(30) 30EA","마.벗말"],"BM22":["바게트롤(하드롤) 100g*48EA","마.벗말"],"BP02":["B.크림치즈머핀 130g*24EA","3.브플"],"BP03":["B.호두머핀 130g*24EA","3.브플"],"BP05":["B.브라우니 130g*50EA","3.브플"],"BP15":["B.반미바게트 1(54EA)","3.브플"],"BP_04":["B.초코머핀 130g*24EA","3.브플"],"BT.01":["터키 소형 분할기",""],"BW01":["BW.커피를그리다_DCA_Basic(1kg)","블랙와인커피"],"BW01_1":["BW.커피를그리다_DCA_Basic(500g)","블랙와인커피"],"BW02":["BW.커피를그리다_DCB_Deep(1kg)","블랙와인커피"],"BW02_1":["BW.커피를그리다_DCB_Deep(500g)","블랙와인커피"],"BW03":["BW.커피를그리다_DCC_Prime(1kg)","블랙와인커피"],"BW03_1":["BW.커피를그리다_DCC_Prime((500g)","블랙와인커피"],"BW04":["BW.커피를그리다_DCD_Aroma(1kg)","블랙와인커피"],"BW04_1":["BW.커피를그리다_DCD_Aroma(500g)","블랙와인커피"],"BW05":["BW.커피를그리다_DCE_Zero(1kg)","블랙와인커피"],"BW05_1":["BW.커피를그리다_DCE_Zero(500g)","블랙와인커피"],"BaB.25":["BaB.서머바질바게트 30EA","가.바브"],"BaB.25_1":["BaB.서머바질바게트 1EA","가.바브"],"BaB.2601":["BaB.부추베이글 1EA","가.바브"],"BaB1":["BaB.치아바타 48EA","가.바브"],"BaB10":["BaB.먹물쌀빵 치즈블랙홀 15EA","가.바브"],"BaB10_1":["BaB.먹물쌀빵 치즈블랙홀 1EA","가.바브"],"BaB11":["BaB.밤식빵 10EA","가.바브"],"BaB11_1":["BaB.밤식빵 1EA","가.바브"],"BaB12":["BaB.우유식빵(소) 15EA","가.바브"],"BaB12_1":["BaB.우유식빵(소) 1EA","가.바브"],"BaB13":["BaB.블루베리식빵(소) 15EA","가.바브"],"BaB13_1":["BaB.블루베리식빵(소) 1EA","가.바브"],"BaB16":["BaB.단팥빵 48EA","가.바브"],"BaB18_1":["BaB.12곡물식빵 1EA","가.바브"],"BaB1_1":["BaB.치아바타 1EA","가.바브"],"BaB2":["BaB.호밀 무화과 발효빵 40EA","가.바브"],"BaB22":["BaB.카푸치노크림빵 40EA","가.바브"],"BaB22_1":["BaB.카푸치노크림빵 1EA","가.바브"],"BaB2_1":["BaB.호밀 무화과 발효빵 1EA","가.바브"],"BaB3":["BaB.크림치즈 뺑드세이글 30EA","가.바브"],"BaB35_1":["BaB.단호박 앙꼬빵 1EA(95g)","가.바브"],"BaB36_1":["BaB.밤 앙꼬빵 1EA(95g)","가.바브"],"BaB37_1":["BaB.흑임자 앙꼬빵 1EA(95g)","가.바브"],"BaB3_1":["BaB.크림치즈 뺑드세이글 1EA","가.바브"],"BaB4":["BaB.까망쫀득 30EA","가.바브"],"BaB4_1":["BaB.까망쫀득 1EA","가.바브"],"BaB5":["BaB.현미바게뉴 36EA","가.바브"],"BaB5_1":["BaB.현미바게뉴 1EA","가.바브"],"BaB6":["BaB.모카빵 30EA","가.바브"],"BaB6_1":["BaB.모카빵 1EA","가.바브"],"BaB7":["BaB.모카번 20EA","가.바브"],"BaB7_1":["BaB.모카번 1EA","가.바브"],"Bab35":["BaB.단호박 앙꼬빵 BOX(95g*48ea)","가.바브"],"Bab36":["BaB.밤 앙꼬빵 BOX(95g*48ea)","가.바브"],"Bab37":["BaB.흑임자 앙꼬빵 BOX(95g*48ea)","가.바브"],"BoM.01":["BoM.에그타르트 완제품 BOX(50g*24EA)",""],"BoM.01_1":["BoM.에그타르트 완제품 EA(50g)",""],"BoM.02":["BoM.메이플호두타르트 완제품 BOX(50g*24EA)",""],"BoM.03":["BoM.크림치즈타르트 완제품 BOX(45g*24EA)",""],"BoM.04":["BoM.마시멜로 크로와상 완제품 BOX(38g*24EA)",""],"BoM.04_1":["BoM.마시멜로 크로와상 완제품 EA(38g)",""],"CA.01":["카이막 크림치즈",""],"CA.02":["천연꿀 스틱",""],"CH.00015":["오뗄스모크햄 [1kg]","철은인터내셔날"],"CH.000_0":["마요네즈_gg10","철은인터내셔날"],"CH.01_0":["꽃소금_gg07","철은인터내셔날"],"CH.034":["베이커리슬라이스치즈상하 [1.8kg]","철은인터내셔날"],"CH.05_0":["다진마늘_gg08","철은인터내셔날"],"CH.07_0":["파인소프트T_gg35","철은인터내셔날"],"CH.08_0":["머스타드_gg11","철은인터내셔날"],"CH.09":["W_건조크랜베리 [1kg]","철은인터내셔날"],"CH.10":["W15_무화과(반건조,면세) [1kg]","철은인터내셔날"],"CH.11":["다이스밤[굿모닝서울] A급","철은인터내셔날"],"CH.12":["통팥앙금S35M[저당.대두]","철은인터내셔날"],"CH.1225_0":["미로와데코젤_gg31","철은인터내셔날"],"CH.123_0":["생크림(에버휩/비앙코)_gg13","철은인터내셔날"],"CH.13":["빙수팥(롯데)","철은인터내셔날"],"CH.138_0":["갈색설탕_gg27","철은인터내셔날"],"CH.1399":["볶음 검은참깨(하늘식품)","철은인터내셔날"],"CH.139_0":["식용유_gg16","철은인터내셔날"],"CH.14":["베이킹파우더[가림] [300*50ea]","철은인터내셔날"],"CH.15":["흑설탕[큐원] [1kg]","철은인터내셔날"],"CH.153":["마리네이티드토마토세그먼트 1kg","철은인터내셔날"],"CH.16":["호두분태","철은인터내셔날"],"CH.17":["해바라기씨","철은인터내셔날"],"CH.18":["호박씨","철은인터내셔날"],"CH.19":["땅콩분태[볶음]","철은인터내셔날"],"CH.20":["호두반태","철은인터내셔날"],"CH.202_0":["파인소프트-202_gg34","철은인터내셔날"],"CH.21":["황치즈분말","철은인터내셔날"],"CH.22":["쵸코칩","철은인터내셔날"],"CH.24":["아몬드슬라이드","철은인터내셔날"],"CH.247_0":["검정깨 1kg_gg33","철은인터내셔날"],"CH.25":["몰트엑기스(액상,선인) [1.25kg]_AA34","철은인터내셔날"],"CH.251":["엘로이크림치즈","철은인터내셔날"],"CH.25_1":["몰트엑기스(액상,선인) [1.25kg]_gg34","철은인터내셔날"],"CH.27_0":["파슬리_gg04","철은인터내셔날"],"CH.28":["W_아몬드분말[미국산] 1KG","철은인터내셔날"],"CH.30_0":["쇼트닝 4500_gg36","철은인터내셔날"],"CH.31":["W30_슈크림(크리미비트)_퓨라토스(커스터드 분말) [1kg]","철은인터내셔날"],"CH.95_0":["양조간장_gg37","철은인터내셔날"],"CH.A01_0":["프랑스밀가루T65_gg30","철은인터내셔날"],"CH.A06_0":["K블레소레이유_gg28","철은인터내셔날"],"CH.A10_0":["하얀설탕_gg12","철은인터내셔날"],"CH.A12_0":["강력밀가루(코끼리)_gg03","철은인터내셔날"],"CH.A13":["곰중력밀가루(면세)","철은인터내셔날"],"CH.B01_0":["우유(수입/건국)_gg19","로하스코리아"],"CH.B20":["탈지분유(서울) [1kg]_AA22","철은인터내셔날"],"CH.B21_0":["크리스탈 개량제_gg20","철은인터내셔날"],"CH.B22.1":["개량제[에스키모]","철은인터내셔날"],"CH.B23_0":["펄솔트_gg24","철은인터내셔날"],"CH.B2_01":["탈지분유(서울)_gg22","철은인터내셔날"],"CH.G02-1_0":["드라이이스트(골드)_gg14","철은인터내셔날"],"CL01":["CL.끌라시꼬 커피(1kg, 실온)",""],"D006":["마늘 빵박스(무인쇄) 550*400*200(1.2)","동진패키지"],"D006_1":["마늘 빵박스(인쇄) 550*400*200(1.2)","동진패키지"],"DAB4":["DB.구운크로와상78 1EA","1.빵그"],"DB.041":["DB.빵을 그리다 K1 75g*50EA","1.빵그"],"DB.201":["크림치즈 쫄깃빵",""],"DB.99":["샘플",""],"DB100":["DB.구운 밀소금빵 1EA (50g)","1.빵그"],"DB111_1":["DB.구운 쌀소금빵 1EA (50g)","1.빵그"],"DB114":["DB.구운 밀소금빵 BOX(60EA*50g)","1.빵그"],"DB13":["DB.식빵 생지 1EA","1.빵그"],"DB133":["DB.굴뚝빵 생지 115g*30EA","1.빵그"],"DB14":["DB.빵그리다 우유식빵 1EA","1.빵그"],"DB20-00":["현미찰생지 60g*30EA","1.빵그"],"DB2000":["DB.현미찰생지 65g*30EA","1.빵그"],"DB2_21":["D.곡물빵생지 140g*1EA","1.빵그"],"DB333":["DB.구운 소금빵 60EA","1.빵그"],"DB999":["DB.T피자 도우, 1EA(260g)","1.빵그"],"DBA1":["DB.육쪽마늘빵 1EA","1.빵그"],"DBA2":["DB.몽블랑빵 1EA","1.빵그"],"DBA25":["R.빵을그리다 버터크라상","나.디탑"],"DBA4":["DB.빅크로와상 1EA","1.빵그"],"DBAS24":["DB.미니 몽블랑빵 BOX(80G*60EA)","1.빵그"],"DBA_1":["DB.육쪽마늘빵_커피베이","1.빵그"],"DBA_12(1)":["Db.치즈듬뿍 마늘바게트 1EA","1.빵그"],"DBA_2":["DB.몽블랑_커피베이 6EA","1.빵그"],"DBA_22":["DB.빅몽블랑 1 EA","1.빵그"],"DBB32":["Db절단 소금빵 100EA","1.빵그"],"DBG1_1":["DB.구운 골든 통밀소금빵 1EA","바.골밀"],"DBS5":["D.굴뚝빵 생지 1PK(200g*24EA)","1.빵그"],"DB_002":["K데니쉬200 몽블랑 생지(Mont Blanc) 20EA",""],"DB_020":["Db.K데니쉬 180 롤생지(몽블랑)","1.빵그"],"DB_03_1":["Db.데니쉬200몽블랑생지(Mont Blanc) 1EA","1.빵그"],"DB_175":["DE.크로와상78생지 78g*20EA","8.델베"],"DB_175_1":["DE.크로와상78생지 1봉(78g*25EA)","8.델베"],"DB_21":["21.곡물빵생지_혜경궁 140g*15EA","1.빵그"],"DEL01":["DEL.퍼프페스츄리판생지 BOX(1,050g*8EA)","8.델베"],"DEL02":["DEL.사각 페이스트리(대) BOX(1,250g*6EA)","8.델베"],"DT.282":["통아몬드 쿠키","나.디탑"],"DT.283":["통아몬드 녹차 쿠키","나.디탑"],"DT.284":["통아몬드 초코 쿠키","나.디탑"],"DT.285":["비스켓슈 6EA","나.디탑"],"DT.286":["D. 에그타르트","나.디탑"],"DT.37":["호두파이","나.디탑"],"GFS07":["S-500","지엔에프에스"],"GFS09":["올리브유-포마스","지엔에프에스"],"GFS10":["골드강력쌀가루","지엔에프에스"],"GFS11":["홍국쌀가루","지엔에프에스"],"GFS14":["멀티그레인토핑","지엔에프에스"],"GFS15":["쑥가루","지엔에프에스"],"GFS16":["크리스탈","지엔에프에스"],"GFS19":["K-블레소레이유","지엔에프에스"],"GFS22":["펄솔트","지엔에프에스"],"GK.01":["건국우유연유",""],"GK.06":["G.빅단팥빵(생지) 180g*10EA","6.금베"],"GK.10":["G.프리미엄 롤케익","6.금베"],"GK100_1":["G.밀소금빵 생지 1EA(60g)","6.금베"],"GK191":["G.단호박카스테라 Box(250g*48EA)","6.금베"],"GK21":["G.맘모스 350g*12EA","6.금베"],"GK211":["G.맘모스 BOX(350g*24EA)","6.금베"],"GK22":["G.정통카스테라 Box(160g*18)","6.금베"],"GK22_1":["G.정통카스테라 1EA(160g)","6.금베"],"GK23":["G.호두타르트 1EA(105g)","6.금베"],"GK24":["G.쌀소금빵 생지 BOX (60g*100EA)","6.금베"],"GK24_1":["GK.쌀소금빵 생지 1EA (60g)","6.금베"],"GK26":["G.밀소금빵 생지 BOX (60g*100EA)","6.금베"],"GK26_1":["G.밀소금빵 생지 1EA (60g)","6.금베"],"GK28":["G.롤케이크 Box(24cm*6EA)","6.금베"],"GK_20":["G.촉촉한 올리브빵 24EA","6.금베"],"GK_200":["G.촉촉한 올리브빵 12EA","6.금베"],"GK_30":["G.고소한 호두치즈빵 24EA","6.금베"],"GK_300":["G.고소한 호두치즈빵 12EA","6.금베"],"GM-02":["GM.골든 통밀소금빵 생지 BOX(72g*80EA)","바.골밀"],"GM-03":["GM.골든 통밀소금빵 생지 PK(72g*40EA)","바.골밀"],"GM-030":["GM.골든 통밀소금빵 생지 1EA(72g)","바.골밀"],"GNFS101":["다진마늘","지엔에프에스"],"GNFS111":["흑설탕","지엔에프에스"],"GNFS24":["칼리바우트(다크)","지엔에프에스"],"GNFS30":["오렌지필","지엔에프에스"],"GNFS69":["잡화벌꿀","지엔에프에스"],"GNFS81":["이지멀티그레인","지엔에프에스"],"GT.01":["K베이글(플레인)생지 BOX","7.굿베"],"GT.01_2":["K베이글(플레인)생지 1EA","7.굿베"],"GT.01_22":["K베이글(플레인)완제품 1EA","7.굿베"],"GT.02":["K베이글(어니언)생지 BOX","7.굿베"],"GT.02_2":["K베이글(어니언)생지 1EA","7.굿베"],"GT.02_23":["K베이글(어니언)완제품 1EA","7.굿베"],"GT.04":["K베이글(올리브)생지 BOX","7.굿베"],"GT.04_2":["K베이글(올리브)생지 1EA","7.굿베"],"GT.04_22":["K베이글(올리브)완제품 1EA","7.굿베"],"GT.05":["K베이글(블루베리)생지 BOX","7.굿베"],"GT.05_2":["K베이글(블루베리)생지 1EA","7.굿베"],"GT.05_22":["K베이글(블루베리)완제품 1EA","7.굿베"],"GT.09":["K베이글(플레인)완제품 BOX(6ea*8pk)","7.굿베"],"GT.10":["K베이글(어니언)완제품 BOX(6ea*8pk)","7.굿베"],"GT.12":["K베이글(올리브)완제품 BOX(6ea*8pk)","7.굿베"],"GT.13":["K베이글(블루베리)완제품 BOX((6ea*8pk)","7.굿베"],"GT.14":["GT.모카번토핑(800g) 1EA","7.굿베"],"GT.15":["GT.감자빵 BOX(95g*15*2PK)","7.굿베"],"GT.15_1":["GT.감자빵 1EA(95g)","7.굿베"],"GT.16":["GT.고구마빵 BOX(95g*15*2PK)","7.굿베"],"GT.16_1":["GT.고구마빵 1EA((95g)","7.굿베"],"H.24":["H.플레인 스콘 100g*10ea","11.해누리"],"H.25":["H.초코 스콘 100g*10ea","11.해누리"],"H.25_1":["H.초코 스콘 1EA(100g)","11.해누리"],"HF01":["H.어니언 베이글 170g*15EA","4.한푸"],"HF10":["H.모카크림빵 25EA","4.한푸"],"HF11":["H.크림브래드 BOX(250g*20EA)","4.한푸"],"HF11_1":["H.크림브래드 BOX(250g*10EA)","4.한푸"],"HF13":["H.모카크림빵 BOX(130g*30EA)","4.한푸"],"HF20":["H.맘모스 350g*10EA","4.한푸"],"HF21":["H.맘모스 350g*20EA","4.한푸"],"HN.101":["H.플레인 휘낭시에 20EA*봉","라.해기"],"HN.101_1":["H.플레인 휘낭시에 1EA","라.해기"],"HN.102":["H.솔티드 카라멜 휘낭시에 20EA*봉","라.해기"],"HN.102_1":["H.솔티드 카라멜 휘낭시에 1EA","라.해기"],"HN.103":["H.초코피칸 휘낭시에 20EA*봉","라.해기"],"HN.103_1":["H.초코피칸 휘낭시에 1EA","라.해기"],"HN.104":["H.무화과 크림치즈 휘낭시에 20EA*봉","라.해기"],"HN.104_1":["H.무화과 크림치즈 휘낭시에 1EA","라.해기"],"HN.105_1":["H.갈레트브루통 1EA","라.해기"],"HN.20_1":["H.녹차 까눌레 1EA","라.해기"],"HN.21_1":["H.바닐라 까눌레 1EA","라.해기"],"HN.22_1":["H.모카 까눌레 1EA","라.해기"],"KL01":["KL.무염 라벨지(100*80, 500매)",""],"LH.126":["건국우유 [5L]","로하스코리아"],"LH.1_0":["크림치즈(엘로이/스미스/JHL)_gg21","로하스코리아"],"LH.2_0":["마가린_gg09","로하스코리아"],"LH.3":["W17_앵커버터 [454g]","로하스코리아"],"LH.5_0":["연유(건국)_gg18","로하스코리아"],"LH.85":["앵커버터",""],"LH25_1":["앵커버터(엔지그래스)_gg17","로하스코리아"],"MB03":["M.버터크라상 90g Box","9.마브"],"MB05":["M.초코버터크라상 68EA*Box","9.마브"],"MB08":["M.미니다크도넛 30g*80EA","9.마브"],"MB09":["M.미니핑크도넛 30g*60EA","9.마브"],"MB10":["M.미니화이트도넛 30g*60EA","9.마브"],"MB11":["M.다크코코아르뱅쿠키(봉)","9.마브"],"MB12":["M.황치즈르뱅쿠키(봉)","9.마브"],"MB13":["M.녹차르뱅쿠키(봉)","9.마브"],"MB14":["M.레드벨벳르뱅쿠키(봉)","9.마브"],"MB15":["M.플레인르뱅쿠키(봉)","9.마브"],"MB1501":["M.카스타드브리첼 40EA","9.마브"],"MB1502":["M.초코브리첼 40EA","9.마브"],"MB15_1":["M.카스타드브리첼","9.마브"],"MB15_2":["M.초코브리첼","9.마브"],"MB16":["M.딸기뚱카롱 Box","9.마브"],"MB16_1":["M.딸기뚱카롱 1EA","9.마브"],"MB17":["M.녹차뚱카롱 Box","9.마브"],"MB18":["M.복숭아뚱카롱 Box","9.마브"],"MB19":["M.레몬뚱카롱 Box","9.마브"],"MB20":["M.카카오펫뚱카롱(초코) Box","9.마브"],"MB20_1":["M.카카오펫뚱카롱(초코) 1EA","9.마브"],"MB21":["M.치즈뚱카롱 Box","9.마브"],"MB22":["M.쿠앤크뚱카롱 Box","9.마브"],"MB23":["M.인절미뚱카롱 Box","9.마브"],"MB24":["M.블루베리뚱카롱 BOX","9.마브"],"MB24_1":["M.블루베리뚱카롱 1EA","9.마브"],"MB25":["M.슈팅스타뚱카롱 Box","9.마브"],"MB25_1":["M.슈팅스타뚱카롱 1EA","9.마브"],"MB30":["M.혼합뚱카롱 Box","9.마브"],"MB32_1":["M.포르투칼 치즈브레드 500g","9.마브"],"MB33":["MB.육쪽마늘빵 1EA(150g)","9.마브"],"MD125":["모든다해 일반시편 6",""],"MS.200":["피망",""],"MS.248":["양파 소",""],"MS101":["MS-55.겨자소스","엠에스에프엔씨"],"MS23":["MS-23.바질페스토","엠에스에프엔씨"],"MS26":["MS-26.분당(꼬미다)","엠에스에프엔씨"],"MS27":["MS-27.블랙올리브","엠에스에프엔씨"],"MS42":["MS-42.아몬드분말","엠에스에프엔씨"],"MS73":["MS-73.코코아파우더(스페인)(선인)","엠에스에프엔씨"],"MS78":["MS-78.파마산치즈","엠에스에프엔씨"],"MS79":["MS-79.파인소프트202(대두)","엠에스에프엔씨"],"MS90":["슬라이스치즈","엠에스에프엔씨"],"MS95":["오뗄 슬라이스햄","엠에스에프엔씨"],"MS99":["황설탕","엠에스에프엔씨"],"NC01":["NC.큐원)강력밀가루 20kg","한국내츄럴치즈"],"NP_DB100":["[비상품] DB.구운 밀소금빵 1EA (50g)","1.빵그"],"NP_DBA2":["[비상품] DB.몽블랑빵 1EA","1.빵그"],"NP_DBA_22":["[비상품] DB.빅몽블랑 1EA","1.빵그"],"RC01":["RC.두바이쫀득쿠키 BOX(50g*20EA)",""],"ROI.01":["RO.나비파이 90g*100EA","5.로에"],"ROI.02":["RO.롱소시지페스츄리 생지 봉(170g*20ea)","5.로에"],"ROI.02_1":["RO.롱소시지페스츄리 생지 1EA","5.로에"],"ROI.03":["RO.나비파이 90g*1EA","5.로에"],"ROI.04":["RO.뺑 스위스 1EA","5.로에"],"ROI.05":["RO.뺑 스위스 100EA*BOX","5.로에"],"S128":["루꼴라(생)",""],"S129":["리코타치즈 1kg",""],"SA.01":["SA.파나레아 BOX(12pices)","12.이탈코(살데리소)"],"SA.01_1":["SA.파나레아 1EA","12.이탈코(살데리소)"],"SA.02":["SA. 티라미슈 리모네 BOX(15pices)","12.이탈코(살데리소)"],"SA.02_1":["SA. 티라미슈 리모네 1EA","12.이탈코(살데리소)"],"SA.03":["SA. 티라미슈 클라시코 BOX(15pices)","12.이탈코(살데리소)"],"SA.03_1":["SA. 티라미슈 클라시코 1EA","12.이탈코(살데리소)"],"SA.04":["SA. 푸르티디 BOX(12pices)","12.이탈코(살데리소)"],"SA.04_1":["SA. 푸르티디 1EA","12.이탈코(살데리소)"],"SA.05":["SA. 마스카포네 BOX(12pices)","12.이탈코(살데리소)"],"SA.05_1":["SA. 마스카포네 1EA","12.이탈코(살데리소)"],"SC02_0":["냉동전란(에그앤리치)_gg05","사우스코어"],"SCV01":["SC.고구마빵 BOX(90g*20*5PK)",""],"SCV02_1":["SC.감자빵 1EA(90g)",""],"SCV03":["SC.쿠키깨찰빵 BOX(65g*30*5PK)",""],"SD.25_2":["두바이 초콜릿 쿠키(A) 150g*10EA","바이네츄럴"],"SD01":["K데니시트-몽블랑_6시트*700g","2.서도"],"SD02":["K페스트리시트 500g*10EA","2.서도"],"SD02_1":["K페스트리시트 1EA(500g)","2.서도"],"SD03":["과자빵 생지 60g*40EA","2.서도"],"SD03_1":["과자빵 생지 60g*1EA","2.서도"],"SD03_2":["과자빵 생지 BOX(50g*50EA*4PK)_케이찹사라다 전용","2.서도"],"SD04":["브리오슈 생지 180g*16EA","2.서도"],"SD04_1":["브리오슈 생지 180g*1EA","2.서도"],"SD05":["고구마페스트리 생지 95g*20EA","2.서도"],"SD07":["먹물프랑스빵 생지 150g*20EA","2.서도"],"SD08":["프랑스빵 생지 150g*20EA","2.서도"],"SD09":["프랑스빵 생지 90g*30EA","2.서도"],"SD11-B":["HF.소금빵 생지 60g*150EA","4.한푸"],"SD14":["세사미 생지 40g*60EA","2.서도"],"SD15":["소보로피 생지 2kg","2.서도"],"SD16":["신미니크로와상 생지 20g*100EA","2.서도"],"SD162_1":["카레코로케생지 1EA(70g)",""],"SD20":["우유식빵 생지 180g*15EA","2.서도"],"SD20_1":["우유식빵 생지 180*1EA","2.서도"],"SD21":["곡물빵 생지 180g*15EA","2.서도"],"SD22":["깨찰빵 생지 70g*30EA","2.서도"],"SD22_1":["깨찰빵 생지 1EA(70g)","2.서도"],"SD23":["K 크로스퀘어 생지 60g*25EA","2.서도"],"SD25":["스틱파이 생지 70g*30EA","2.서도"],"SD26":["쫄깃 생지 75g*20EA","2.서도"],"SD27":["마카다미아쿠키 생지 40g*60EA","2.서도"],"SD28":["초코쿠키 생지 40g*60EA","2.서도"],"SD29":["피넛쿠키 생지 40g*60EA","2.서도"],"SD31":["K파이시트 생지 350g*10EA","2.서도"],"SD32":["커피빵 생지 60g*40EA","2.서도"],"SD32_1":["커피빵 생지 1EA(60g)","2.서도"],"SD33":["치아바타 생지 140g*20EA","2.서도"],"SD33_1":["치아바타 생지 1EA(140g)","2.서도"],"SD34":["만쥬 생지 50g*40EA","2.서도"],"SD35":["모카피 생지 50g*30EA","2.서도"],"SD35_1":["모카피 생지 1EA(50g)","2.서도"],"SD36":["우유모닝빵 생지 30g*80EA","2.서도"],"SD36_1":["우유모닝빵 생지 1EA(30g)","2.서도"],"SD37":["밀크스틱 생지 35g*60EA","2.서도"],"SD39":["슈크림빵 생지 95g*30EA","2.서도"],"SD39_1":["슈크림빵 생지 1EA(95g)","2.서도"],"SD40":["완두앙금빵 생지 95g*30EA","2.서도"],"SD40_1":["완두앙금빵 생지 1EA(95g)","2.서도"],"SD44":["통팥빵 생지 110g*30EA","2.서도"],"SD445":["S피자빵플레인생지 200g*10EA","2.서도"],"SD44_1":["통팥빵 생지 1EA(110g)","2.서도"],"SD455_1":["S피자빵플레인생지 1EA(500g)","2.서도"],"SD47":["찹쌀도너츠 생지 70g*30EA","2.서도"],"SD47_1":["찹쌀도너츠 생지 1EA(70g)","2.서도"],"SD50_1":["DB.마늘바게트 1EA","1.빵그"],"SD50_2":["DB.마늘바게트 1EA","1.빵그"],"SD52":["애플페스트리(통사과파이) 생지 105g*20EA","2.서도"],"SD56":["S크로와상55 생지 55g*40EA","2.서도"],"SD_01":["데니쉬스틱 생지(몽블랑) 200g*20EA","1.빵그"],"SD_021":["데니쉬스틱 생지(몽블랑) 200g*1EA","1.빵그"],"SD_17":["빅크로와상 생지 90g","2.서도"],"SD_174":["DB.크로와상78생지 100EA","8.델베"],"SD_1742":["크로와상78생지 78g*1EA","2.서도"],"SD_21":["곡물빵 생지 180g","2.서도"],"SD_6":["데니쉬스틱 생지 110g*30EA","2.서도"],"SD_91":["DJ.푸르티 디 보스코(베리) 12EA/BOX","2.서도"],"SD_910":["DJ.푸르티 디 보스코(베리) 1EA","2.서도"],"SD_92":["DJ.알 마스카포네(모카) 12EA/BOX","2.서도"],"SD_920":["DJ.알 마스카포네(모카) 1EA","2.서도"],"SD_93":["DJ.알 리모네(레몬) 12EA/BOX","2.서도"],"SD_930":["DJ.알 리모네(레몬) 1EA","2.서도"],"SD_940":["DJ.티라미수 클라시코 1EA","2.서도"],"SD_ROI.01":["RO.나비파이 90g*50EA","5.로에"],"SH.WHA00010":["SY,애플파이 BOX(75g*100ea)","10.삼양"],"SH.WHA00010_1":["SY,애플파이 (1EA)","10.삼양"],"SH.WHA00023":["SY,딸기파이 BOX(75g*100ea)","10.삼양"],"SH.WHA00023_1":["SY,딸기파이 (1EA)","10.삼양"],"SH.WHC000016":["SY,초코헤이즐넛스콘 BOX(100g*48ea)","10.삼양"],"SH.WHC000016_1":["SY,초코헤이즐넛스콘 (1EA)","10.삼양"],"SH.WHC000018":["SY,얼그레이스콘 BOX(100g*48ea)","10.삼양"],"SH.WHC000018_1":["SY,얼그레이스콘 (1EA)","10.삼양"],"SH.WHE00002":["SY,단과자볼도우 BOX(50g*160ea)","10.삼양"],"SH.WHE00002_1":["SY,단과자볼도우 (1EA)","10.삼양"],"SH200002":["SY,미니 라즈베리 크라운BOX(42g*120ea)","10.삼양"],"SH200002_1":["SY,미니 라즈베리 크라운 (1EA)","10.삼양"],"SH200004":["SY,미니메이플피칸플레이트BOX(24ea*5pk)","10.삼양"],"SH200004_1":["SY,미니메이플피칸플레이트 (1EA)","10.삼양"],"SH200005":["SY,미니 애플 크라운 BOX(42g*120ea)","10.삼양"],"SH200005_1":["SY,미니 애플 크라운 (1EA)","10.삼양"],"SH200059":["SY,라즈베리 크라운 BOX(100g*12ea*4pk)","10.삼양"],"SH200114_1":["SY,프렌치미니크로와상 (1EA)","10.삼양"],"SH200116":["SY,프렌치 팽 오 쇼콜라 BOX(80g*70ea)","10.삼양"],"SH200116_1":["SY,프렌치 팽 오 쇼콜라 (1EA)","10.삼양"],"SH200122":["SY,프렌치 크로와상 BOX(70g*40EA*2pk)","10.삼양"],"SH200122_1":["SY,프렌치 크로와상 (1EA)","10.삼양"],"SH200309":["SY,초콜릿머핀 BOX(100g*24ea)","10.삼양"],"SH200309_1":["SY,초콜릿머핀 (1EA)","10.삼양"],"SH200310":["SY,버터스카치머핀 BOX(100g*24ea)","10.삼양"],"SH200310_1":["SY,버터스카치머핀 (1EA)","10.삼양"],"SH200311":["SY,바닐라 초콜릿 트위스트 BOX(80g*80ea)","10.삼양"],"SH200311_1":["SY,바닐라 초콜릿 트위스트 (1EA)","10.삼양"],"SH200400":["SY,미니 플레인 베니에 BOX(20g*140EA)","10.삼양"],"SH200400_1":["SY,미니 플레인 베니에 (1EA)","10.삼양"],"SH200401":["SY,미니 초코 헤이즐넛 베니에 BOX(25g*140EA)","10.삼양"],"SH200401_1":["SY,미니 초코 헤이즐넛 베니에 (1EA)","10.삼양"],"SH200402":["SY,미니 라즈베리 베니에 BOX(25g*140EA)","10.삼양"],"SH200402_1":["SY,미니 라즈베리 베니에 (1EA)","10.삼양"],"SH200403":["SY,미니 애플 베니에 BOX(25g*140EA)","10.삼양"],"SH200403_1":["SY,미니 애플 베니에 (1EA)","10.삼양"],"SH200503":["SY,미니 시나몬 휠 BOX(42g*120EA)","10.삼양"],"SH200503_1":["SY,미니 시나몬 휠 (1EA)","10.삼양"],"SH300162":["SY,쫀득찰고구마빵 냉동반죽 BOX(77g*30ea*2pk)","10.삼양"],"SH300162_1":["SY,쫀득찰고구마빵 냉동반죽 (1EA)","10.삼양"],"SH_WHA00034":["SY.프레팡)크로와상(RTP) BOX(90g*20EA*4pk)","10.삼양"],"SI01":["SI.마론레진_(실온) 600g","(주)선인"],"SI02":["SI.민트레진_(실온) 600g","(주)선인"],"SI03":["SI.초코레진다크_(실온) 500g","(주)선인"],"SI04":["SI.프렌치바닐라레진_(실온) 600g","(주)선인"],"SI05":["SI.피스타치오레진_(실온) 600g","(주)선인"],"SI06":["SI.녹차레진N_(실온) 300g","(주)선인"],"SI07":["SI.딸기레진N_(실온) 300g","(주)선인"],"SI08":["SI.바나나레진N_(실온) 300g","(주)선인"],"SI09":["SI.포도레진N_(실온) 300g","(주)선인"],"SP.01":["OPP접착봉투(12*18*+4) 200EA*1PK","새로피엔엘"],"SP.02":["OPP접착봉투(18*25*+4) 50EA*1PK","새로피엔엘"],"SP.03":["OPP접착봉투(30*25*+4) 200EA*1PK","새로피엔엘"],"SP.04":["OPP접착봉투(15*20*+4) 500EA*1PK","새로피엔엘"],"SY.01":["OPP풀발이(17*23+40)","세영종합상사"],"SY.02":["OPP봉투(15*18+4[500ea])","세영종합상사"],"SY.03":["OPP풀발이(15*25+4)","세영종합상사"],"SY.04":["OPP풀발이(20*30+4)","세영종합상사"],"SY18":["OPP봉투(18*25*+4) 250EA*20PK","세영종합상사"],"SY19":["OPP봉투(20*23*+6) 200EA*20PK","세영종합상사"],"T01":["도너츠파인 찹쌀(대두) 3kg",""],"UR.01":["신선알란 10EA",""],"UR.02":["팩딸기 1팩",""],"UR.03":["샤인머스켓",""],"UR.04":["검정볶음깨 50g",""],"Ubio_01":["black 잉크",""],"Ubio_02":["yellow 잉크",""],"Ubio_03":["blue 잉크",""],"Ubio_04":["red 잉크",""],"WF-1":["WF.소금빵 생지 60g*200EA","사.와푸"],"WF-2":["WF.소금빵 생지 60g*1EA","사.와푸"],"WF333":["WF.구운 소금빵 60EA","1.빵그"],"Y10":["빵판 46AL","영림베이크웨어"],"YJ.012":["콤프",""],"YJ.05":["도우컨디셔너",""],"YL-24":["짤주머니 24인치","영림베이크웨어"],"YL.01":["테프론시트2000","영림베이크웨어"],"YL.02":["1/2대식빵팬AC(D단)","영림베이크웨어"],"YL100":["몽블랑 원형 미니틀","영림베이크웨어"],"YL45":["1회용 랙커버(20매용)",""],"MB07":["M.미니글레이즈도넛 30g*80EA","9.마브"],"MB50":["M.초코 뚱카롱",""],"CH.B22_0":["S500개량제_gg29","철은인터내셔날"],"IC01_0":["현미가루_gg32","이천쌀라이스크림"],"LH26_0":["고메버터(이즈니/엘르엔)_gg06","로하스코리아"]};
+function ecAllCache() { try { return JSON.parse(localStorage.getItem(ECALL_KEY) || '{}'); } catch (e) { return {}; } }
+function ecAllCacheSet(c) { try { const ks = Object.keys(c).sort(); while (ks.length > 40) delete c[ks.shift()]; localStorage.setItem(ECALL_KEY, JSON.stringify(c)); } catch (e) { } }
+function ecProdMap() {
+  if (_ecProd) return _ecProd; const m = {};
+  try { (JSON.parse(localStorage.getItem(ECPROD_KEY) || '[]')).forEach(p => { if (p && p.code && !m[p.code]) m[p.code] = { name: p.name, vendor: p.vendor || '' }; }); } catch (e) { }
+  Object.keys(EC_NAMES).forEach(c => { if (!m[c]) m[c] = { name: EC_NAMES[c][0], vendor: EC_NAMES[c][1] || '' }; else if (!m[c].vendor) m[c].vendor = EC_NAMES[c][1] || ''; });
+  try { const F = JSON.parse(localStorage.getItem(FIN_STATE_KEY) || 'null'); (F && F.items || []).forEach(i => { if (i && i.code && !m[i.code]) m[i.code] = { name: i.name, vendor: i.vendor || i.client || '' }; }); } catch (e) { }
+  return _ecProd = m;
+}
+function ecName(code) { const M = masterStore().items; if (M[code]) return { name: shortName(M[code].name), vendor: M[code].vendor || '', raw: true }; const p = ecProdMap()[code]; return { name: p ? p.name : '', vendor: p ? p.vendor : '', raw: false }; }
+function ecAllDateShift(n) { const d = new Date(($('#ecAllDate').value || today()) + 'T00:00:00'); d.setDate(d.getDate() + n); const v = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); $('#ecAllDate').value = v; ecAllGo(); }
+async function ecAllFetch(date) {
+  const td = today();
+  if (date >= td) { if (!finLastData) await syncFromEcount(false); if (!finLastData) throw new Error('현재 연동 자료를 받지 못했습니다'); return { data: finLastData, src: '현재 연동 자료' }; }
+  const c = ecAllCache(); if (c[date]) return { data: c[date], src: '저장된 이력' };
+  const until = encodeURIComponent(date + 'T23:59:59+09:00');
+  const r = await fetch(`https://api.github.com/repos/lee1812-oss/wonryo/commits?path=data.json&until=${until}&per_page=1`, { headers: { Accept: 'application/vnd.github+json' } });
+  if (r.status === 403 || r.status === 429) throw new Error('깃허브 이력 조회 한도(시간당 60회) 초과 — 잠시 후 다시 시도하세요');
+  if (!r.ok) throw new Error('깃허브 이력 조회 실패 (' + r.status + ')');
+  const cs = await r.json(); if (!Array.isArray(cs) || !cs.length) throw new Error('그 날짜 이전에 올라온 연동 자료가 없습니다 (이카운트 연동 시작 2026-09-09)');
+  const sha = cs[0].sha, commitAt = cs[0].commit && cs[0].commit.committer ? cs[0].commit.committer.date : '';
+  const r2 = await fetch(`https://raw.githubusercontent.com/lee1812-oss/wonryo/${sha}/data.json`); if (!r2.ok) throw new Error('이력 자료를 읽지 못했습니다 (' + r2.status + ')');
+  const d = await r2.json(); if (!d || !Array.isArray(d.items)) throw new Error('이력 자료 형식 오류');
+  const slim = { updatedAt: d.updatedAt, changedAt: d.changedAt, checkedAt: d.checkedAt, baseDate: d.baseDate, count: d.count, items: d.items.map(i => ({ code: i.code, qty: i.qty })), sha, commitAt };
+  c[date] = slim; ecAllCacheSet(c); return { data: slim, src: '깃허브 이력' };
+}
+async function ecAllGo() {
+  const date = $('#ecAllDate').value || today(); const btn = $('#ecAllGo'); btn.disabled = true; $('#ecAllMsg').textContent = date + ' 자료를 찾는 중…';
+  try { const r = await ecAllFetch(date); ecAll = { date, data: r.data, src: r.src }; renderEcAll(); }
+  catch (e) { ecAll = { date, data: null, src: '' }; $('#ecAllTable').innerHTML = '<div class="empty">' + esc(e.message || e) + '</div>'; $('#ecAllMsg').textContent = ''; $('#ecAllSub').textContent = ''; }
+  btn.disabled = false;
+}
+function ecAllRows() {
+  const cur = finLastData ? Object.fromEntries(finLastData.items.map(i => [i.code, Number(i.qty) || 0])) : null;
+  return ecAll.data.items.map(i => { const n = ecName(i.code); const qty = Number(i.qty) || 0; const cq = cur && i.code in cur ? cur[i.code] : null; return { code: i.code, name: n.name, vendor: n.vendor, raw: n.raw, qty, cq, d: cq == null ? null : Math.round((cq - qty) * 100) / 100 }; });
+}
+function renderEcAll() {
+  if (!ecAll.data) return;
+  const all = ecAllRows(); const q = ($('#ecAllSearch').value || '').trim().toLowerCase(); const f = ui.ecAllFilter || 'all';
+  const rows = all.filter(r => (!q || (r.code + ' ' + r.name + ' ' + r.vendor).toLowerCase().includes(q)) && (f === 'all' || (f === 'nz' && r.qty !== 0) || (f === 'raw' && r.raw) || (f === 'chg' && r.d)));
+  rows.sort((a, b) => (b.raw - a.raw) || (a.name && !b.name ? -1 : !a.name && b.name ? 1 : 0) || (a.name || '').localeCompare(b.name || '', 'ko') || a.code.localeCompare(b.code));
+  const at = ecAll.data.updatedAt || ecAll.data.changedAt || ''; const atD = at.slice(0, 10), atT = at.slice(11, 16);
+  const named = all.filter(r => r.name).length, isToday = ecAll.date >= today();
+  $('#ecAllSub').textContent = `${ecAll.date} 기준 · ${all.length}품목 · 재고 있음 ${all.filter(r => r.qty !== 0).length}`;
+  $('#ecAllMsg').innerHTML = `${esc(ecAll.src)} · 이카운트 재고 변동 ${esc(atD)} ${esc(atT)}${!isToday && atD && atD !== ecAll.date ? ` <b style="color:var(--warn)">(${esc(ecAll.date)}에는 새 변동이 없어 ${esc(atD)} 자료를 표시)</b>` : ''} · 품목명 확인 ${named}/${all.length}${named < all.length ? ' · <span style="color:var(--ink3)">이름 없는 품목은 「품목명 목록」으로 이카운트 재고현황·품목등록 엑셀을 올리면 채워집니다</span>' : ''} · 표시 ${rows.length}`;
+  $('#ecAllTable').innerHTML = rows.length ? `<table class="t"><thead><tr><th class="num">No</th><th>품목코드</th><th class="sticky">품목명</th><th class="mh">매입처</th><th class="num">${esc(ecAll.date.slice(5))} 재고</th><th class="num">현재 재고</th><th class="num">변동(현재−조회일)</th></tr></thead><tbody>${rows.map((r, i) => `<tr class="${r.raw ? '' : ''}"><td class="num muted">${i + 1}</td><td class="code" style="white-space:nowrap">${esc(r.code)}</td><td class="sticky">${r.name ? esc(r.name) : '<span class="muted">(이름 없음)</span>'}${r.raw ? ' <span class="pill ok" style="font-size:10.5px">원료</span>' : ''}</td><td class="mh small">${esc(r.vendor)}</td><td class="num"><b>${fmt(r.qty)}</b></td><td class="num">${r.cq == null ? '—' : fmt(r.cq)}</td><td class="num ${r.d ? cls(r.d) : ''}">${r.d == null || r.d === 0 ? (r.d === 0 ? '0' : '—') : fmtS(r.d)}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">조건에 맞는 품목이 없습니다.</div>';
+}
+$('#ecAllDate').value = today();
+$('#ecAllGo').onclick = ecAllGo; $('#ecAllPrev').onclick = () => ecAllDateShift(-1); $('#ecAllNext').onclick = () => ecAllDateShift(1);
+$('#ecAllDate').onchange = ecAllGo; $('#ecAllDate').onkeydown = e => { if (e.key === 'Enter') ecAllGo(); };
+$('#ecAllSearch').addEventListener('input', renderEcAll);
+$$('#ecAllFilter button').forEach(b => b.onclick = () => { ui.ecAllFilter = b.dataset.f; $$('#ecAllFilter button').forEach(x => x.classList.toggle('on', x === b)); renderEcAll(); });
+$('#ecAllXlsx').onclick = () => { if (!ecAll.data) return toast('먼저 조회하세요'); const rows = ecAllRows(); const aoa = [['품목코드', '품목명', '매입처', `${ecAll.date} 재고`, '현재 재고', '변동(현재−조회일)'], ...rows.map(r => [r.code, r.name, r.vendor, r.qty, r.cq, r.d])]; aoaXlsx([[`이카운트재고_${ecAll.date}`, aoa, [14, 40, 16, 14, 14, 16]]], `${APP_NAME}_${ymd(today())}_v${APP_VER}_이카운트전체재고_${ecAll.date}.xlsx`); };
+$('#ecAllNames').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try { const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' }); let rows = []; wb.SheetNames.forEach(n => { rows = rows.concat(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: false, defval: '' })); });
+    const out = []; let ci = -1, ni = -1, vi = -1;
+    for (const r of rows) { if (!r) continue; const cells = r.map(c => String(c == null ? '' : c).trim()); if (ci < 0) { const a = cells.findIndex(c => /품목코드|품목 코드|PROD_CD/i.test(c)), b = cells.findIndex(c => /품목명|품목 명|PROD_DES/i.test(c)); if (a >= 0 && b >= 0 && a !== b) { ci = a; ni = b; vi = cells.findIndex(c => /거래처|매입처/.test(c)); } continue; } const code = cells[ci], name = cells[ni]; if (code && name && !/합계|소계/.test(name)) out.push({ code, name, vendor: vi >= 0 ? cells[vi] : '' }); }
+    if (!out.length) throw new Error('품목코드·품목명 열을 찾지 못했습니다');
+    const seen = new Set(); const prods = out.filter(p => !seen.has(p.code) && seen.add(p.code)); localStorage.setItem(ECPROD_KEY, JSON.stringify(prods)); _ecProd = null; toast(`이카운트 품목명 ${prods.length}건 저장`); renderEcAll();
+  } catch (err) { toast('품목명 목록 오류: ' + (err.message || err)); } };
+/* 새 연동 자료가 오면 오늘 조회 결과·현재 재고 열 갱신 */
+const _finPost0 = finPost; finPost = function (d) { _finPost0(d); if (ecAll.data && $('#ecAllTable')) { if (ecAll.date >= today()) ecAll.data = d; renderEcAll(); } };
+
 /* ── render: 실물입력 ── */
 function sortItems(arr) {
   const k = ui.piSort; const key = i => k === 'name' ? shortName(i.name) : k === 'vendor' ? i.vendor + shortName(i.name) : i.code;
@@ -968,17 +1090,44 @@ function renderPhys() {
   $('#piOnlyEmpty').classList.toggle('primary', ui.piOnlyEmpty);
   const q = ui.piSearch.trim().toLowerCase();
   let list = sortItems(items.filter(i => (!q || [i.code, i.name, i.vendor].join(' ').toLowerCase().includes(q)) && (!ui.piOnlyEmpty || !confirmed(i, ph[i.code]))));
-  $('#piList').innerHTML = list.map(i => {
+  renderPhysCards($('#piList'), list, items, cw, ph, { rerender: renderPhys, onProg: renderProg });
+  function renderProg() { const carriedN = items.filter(i => confirmed(i, ph[i.code]) && ph[i.code].carry).length; const done = items.filter(i => confirmed(i, ph[i.code])).length - carriedN; const t = new Date(); $('#piProg').textContent = `${done} / ${items.length} 확인${carriedN ? ` · 이전값 유지 ${carriedN}` : ''} · 저장 ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:${String(t.getSeconds()).padStart(2, '0')}`; $('#piBar').style.width = (done / items.length * 100) + '%'; }
+}
+/* v031: 잔량 총중량 → 용기 무게 / 실제 잔량 자동 구분 표시 */
+function physCalcHtml(it, p) {
+  p = p || {}; const mm = masterOf(it.code, it.name) || {}; const spec = Number(it.spec || mm.spec) || 0, tare = Number(it.tare || mm.tare) || 0;
+  if (p.mode === 'direct') { const v = p.direct == null || p.direct === '' ? null : Number(p.direct); return `<div class="calc">${v == null ? '<span class="muted">실물 g을 직접 입력</span>' : `직접 입력 실물 <b>${fmt(v)} g</b>`}</div>`; }
+  const packs = p.packs == null || p.packs === '' ? null : Number(p.packs), gross = p.gross == null || p.gross === '' ? null : Number(p.gross);
+  if (packs == null && gross == null) return '<div class="calc"><span class="muted">미개봉 포수와 잔량 총중량을 입력하면 용기 무게를 뺀 실제 중량을 계산합니다</span></div>';
+  const pk = (packs || 0) * spec; let net = 0, gPart = '';
+  if (gross != null) { if (S.settings.netWeight) { net = gross; gPart = `잔량(순중량) <b>${fmt(gross)}</b>`; } else { net = Math.max(0, gross - tare); gPart = `잔량 총중량 ${fmt(gross)} − <span class="tare">용기 ${fmt(tare)}</span> = 실제 잔량 <b>${fmt(net)}</b>${gross < tare ? ' <em class="warn">총중량이 용기보다 가벼워 0으로 계산</em>' : ''}`; } }
+  const total = Math.round((pk + net) * 10) / 10; const eq = it.qty == null ? null : Number(it.qty);
+  return `<div class="calc"><span>미개봉 ${fmt(packs || 0)}포 × ${fmt(spec)} = <b>${fmt(pk)}</b></span>${gPart ? `<span>${gPart}</span>` : ''}<span class="sum">실물 <b>${fmt(total)} g</b>${eq == null ? '' : ` · 전산 ${fmt(eq)} g · 차이 <b class="${cls(Math.round((total - eq) * 10) / 10)}">${fmtS(Math.round((total - eq) * 10) / 10)}</b>`}</span></div>`;
+}
+/* v032: 잔량 총중량 옆에 용기 무게를 뺀 「실제 잔량」을 입력칸처럼 크게 표시 */
+function physNetHtml(it, p) {
+  p = p || {}; const mm = masterOf(it.code, it.name) || {}; const tare = Number(it.tare || mm.tare) || 0;
+  const gross = p.gross == null || p.gross === '' ? null : Number(p.gross);
+  if (S.settings.netWeight) return `<div class="inp net"><span>실제 잔량 g <small>(순중량 입력)</small></span><div class="${gross == null ? 'zero' : ''}">${gross == null ? '—' : fmt(gross)}</div></div>`;
+  if (p.noTare) return `<div class="inp net notare" title="용기 없이 잰 무게 — 용기 무게를 빼지 않습니다"><span>실제 잔량 g <small>(용기 없음)</small></span><div class="${gross == null ? 'zero' : ''}">${gross == null ? '—' : fmt(gross)}</div></div>`;
+  const net = gross == null ? null : Math.max(0, Math.round((gross - tare) * 10) / 10); const low = gross != null && gross < tare;
+  return `<div class="inp net" title="잔량 총중량 − 빈 용기 ${fmt(tare)}g"><span>실제 잔량 g <small>(−용기 ${fmt(tare)})</small></span><div class="${net == null ? 'zero' : low ? 'warn' : ''}">${net == null ? '—' : fmt(net)}</div></div>`;
+}
+function renderPhysCards(listEl, list, items, cw, ph, opts) {
+  opts = opts || {}; const extra = opts.extra || (() => ''); const renderProg = opts.onProg || (() => {}); const rerender = opts.rerender || renderPhys;
+  listEl.innerHTML = list.map(i => {
     const p = ph[i.code] || {}; const pq = physQty(i, p); const eq = i.qty == null ? null : Number(i.qty); const d = pq != null && eq != null ? pq - eq : null;
     const direct = p.mode === 'direct'; const est = isEst(p); const carry = !est && pq != null && p.carry;
     return `<div class="pi-item ${est ? 'est' : carry ? 'done carry' : pq != null ? 'done' : ''}" data-code="${esc(i.code)}">
-      <div class="row between"><div><div class="name">${esc(shortName(i.name))}${est ? '<span class="esttag">전산 추정</span>' : carry ? `<span class="esttag carry" title="${esc(p.carry)}에 확인한 값을 그대로 가져옴">이전값 ${esc(p.carry.slice(5))}</span>` : ''}</div><div class="meta">${esc(i.vendor)} · 규격 ${fmt(i.spec)}g · 용기 ${fmt(i.tare)}g</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="okbtn ${!est && pq != null && !carry ? 'on' : ''}" data-act="ok" title="${carry ? '이전값이 오늘도 맞으면 누르세요' : '추정값 그대로 확인'}">${carry ? '✓ 오늘 확인' : !est && pq != null ? '✓ 확인됨' : '✓ 그대로'}</button><button class="mode ${direct ? 'on' : ''}" data-act="mode" title="입력방식 전환">${direct ? '직접 g' : '포수+잔량'}</button></div></div>
+      <div class="row between"><div><div class="name">${esc(shortName(i.name))}${est ? '<span class="esttag">전산 추정</span>' : carry ? `<span class="esttag carry" title="${esc(p.carry)}에 확인한 값을 그대로 가져옴">이전값 ${esc(p.carry.slice(5))}</span>` : p.by ? `<span class="esttag" style="background:var(--line2);color:var(--ink3)" title="공유 저장소에서 받은 값">${esc(p.by)} ${esc(String(p.ts || '').slice(11, 16))}</span>` : ''}</div><div class="meta">${esc(i.vendor)} · 규격 ${fmt(i.spec)}g · 용기 ${fmt(i.tare)}g</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="okbtn ${!est && pq != null && !carry ? 'on' : ''}" data-act="ok" title="${carry ? '이전값이 오늘도 맞으면 누르세요' : '추정값 그대로 확인'}">${carry ? '✓ 오늘 확인' : !est && pq != null ? '✓ 확인됨' : '✓ 그대로'}</button><button class="mode ${direct ? 'on' : ''}" data-act="mode" title="입력방식 전환">${direct ? '직접 g' : '포수+잔량'}</button></div></div>
       <div class="inputs ${direct ? 'direct' : ''}">
         ${direct ? `<div class="inp"><span>실물 (g)</span><input type="number" inputmode="decimal" data-f="direct" value="${p.direct ?? ''}" placeholder="0"></div>`
                  : `<div class="inp"><span>미개봉 포수</span><input type="number" inputmode="decimal" data-f="packs" value="${p.packs ?? ''}" placeholder="0"></div>
-                    <div class="inp"><span>잔량 ${S.settings.netWeight ? '순중량' : '총중량(용기포함)'} g</span><input type="number" inputmode="decimal" data-f="gross" value="${p.gross ?? ''}" placeholder="0"></div>`}
+                    <div class="inp"><span>${S.settings.netWeight ? '잔량 순중량' : p.noTare ? '잔량' : '총중량'} g${S.settings.netWeight ? '' : ` <button type="button" class="tarebtn ${p.noTare ? 'on' : ''}" data-act="tare" title="${p.noTare ? '용기에 담아 잰 무게라면 눌러 용기 포함으로' : '용기 없이 잰 무게라면 눌러 용기 무게 빼지 않기'}">${p.noTare ? '용기 없음' : '용기 포함'}</button>`}</span><input type="number" inputmode="decimal" data-f="gross" value="${p.gross ?? ''}" placeholder="0"></div>
+                    ${physNetHtml(i, p)}`}
         <div class="result"><b class="${pq == null ? 'zero' : ''}">${pq == null ? '—' : fmt(pq)}</b><i>전산<em>${fmt(eq)}</em></i></div>
       </div>
+      ${extra(i, p)}
       <div class="bar2">
         <div class="inp exp ${expiryOf(i.code, cw, p) ? 'has' : ''}"><span>소비기한</span><label class="expwrap"><input type="date" data-f="expiry" value="${esc(expiryOf(i.code, cw, p))}"><em>📅 날짜 선택</em></label></div>
         <div class="inp memo"><span>메모</span><input data-f="note" value="${esc(p.note || '')}" placeholder="예: 1포 파손"></div>
@@ -986,30 +1135,30 @@ function renderPhys() {
       </div>
     </div>`;
   }).join('') || '<div class="empty">해당 품목이 없습니다.</div>';
-  $$('#piList .pi-item').forEach(el => {
+  listEl.querySelectorAll('.pi-item').forEach(el => {
     const code = el.dataset.code; const it = items.find(i => i.code === code);
-    const upd = () => { const p = ph[code] || (ph[code] = {}); el.querySelectorAll('input[data-f]').forEach(inp => p[inp.dataset.f] = inp.value); p.ts = new Date().toISOString(); if (p.est || p.carry) { delete p.est; delete p.carry; el.classList.remove('est'); el.classList.remove('carry'); const tg = el.querySelector('.esttag'); if (tg) tg.remove(); const ob = el.querySelector('[data-act=ok]'); ob.classList.add('on'); ob.textContent = '✓ 확인됨'; } if (p.expiry) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); m.expiry = p.expiry; m.expiryWeek = cw; } el.querySelector('.inp.exp').classList.toggle('has', !!expiryOf(code, cw, p)); save();
+    const upd = () => { const p = ph[code] || (ph[code] = {}); el.querySelectorAll('input[data-f]').forEach(inp => p[inp.dataset.f] = inp.value); p.ts = new Date().toISOString(); if (p.est || p.carry) { delete p.est; delete p.carry; el.classList.remove('est'); el.classList.remove('carry'); const tg = el.querySelector('.esttag'); if (tg) tg.remove(); const ob = el.querySelector('[data-act=ok]'); ob.classList.add('on'); ob.textContent = '✓ 확인됨'; } if (p.expiry) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); m.expiry = p.expiry; m.expiryWeek = cw; } el.querySelector('.inp.exp').classList.toggle('has', !!expiryOf(code, cw, p)); save(); shareMark(cw, code, p.ts);
       const pq = physQty(it, p); const eq = it.qty == null ? null : Number(it.qty); const d = pq != null && eq != null ? pq - eq : null;
       el.classList.toggle('done', pq != null); el.querySelector('.result b').textContent = pq == null ? '—' : fmt(pq); el.querySelector('.result b').className = pq == null ? 'zero' : '';
-      const sp = el.querySelector('.diff'); sp.textContent = d == null ? '' : '차이 ' + fmtS(d); sp.className = 'diff ' + cls(d); renderProg(); };
+      const sp = el.querySelector('.diff'); sp.textContent = d == null ? '' : '차이 ' + fmtS(d); sp.className = 'diff ' + cls(d); const ex = el.querySelector('.wkstrip'); if (ex && opts.extra) ex.outerHTML = extra(it, p); const nb = el.querySelector('.inp.net'); if (nb) nb.outerHTML = physNetHtml(it, p); renderProg(); };
     el.querySelectorAll('input').forEach(inp => { inp.addEventListener('input', upd); inp.addEventListener('focus', () => inp.select()); inp.addEventListener('keydown', e => { if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey && inp.dataset.f !== 'note')) { e.preventDefault(); nextInput(inp, e.key === 'Enter'); } }); });
-    el.querySelector('[data-act=mode]').onclick = () => { const p = ph[code] || (ph[code] = {}); p.mode = p.mode === 'direct' ? 'packs' : 'direct'; delete p.est; delete p.carry; save(true); renderPhys(); };
-    el.querySelector('[data-act=ok]').onclick = () => { const p = ph[code]; if (!p || physQty(it, p) == null) return toast('수량을 먼저 입력하세요'); delete p.est; delete p.carry; p.ts = new Date().toISOString(); save(true); el.classList.remove('est'); el.classList.remove('carry'); el.classList.add('done'); const tg = el.querySelector('.esttag'); if (tg) tg.remove(); const ob = el.querySelector('[data-act=ok]'); ob.classList.add('on'); ob.textContent = '✓ 확인됨'; el.querySelector('.result b').className = ''; renderProg(); };
+    const tb = el.querySelector('[data-act=tare]'); if (tb) tb.onclick = () => { const p = ph[code] || (ph[code] = {}); p.noTare = !p.noTare; if (p.est || p.carry) { delete p.est; delete p.carry; } p.ts = new Date().toISOString(); save(true); shareMark(cw, code, p.ts); rerender(); };
+    el.querySelector('[data-act=mode]').onclick = () => { const p = ph[code] || (ph[code] = {}); p.mode = p.mode === 'direct' ? 'packs' : 'direct'; delete p.est; delete p.carry; save(true); shareMark(cw, code); rerender(); };
+    el.querySelector('[data-act=ok]').onclick = () => { const p = ph[code]; if (!p || physQty(it, p) == null) return toast('수량을 먼저 입력하세요'); delete p.est; delete p.carry; p.ts = new Date().toISOString(); save(true); shareMark(cw, code, p.ts); el.classList.remove('est'); el.classList.remove('carry'); el.classList.add('done'); const tg = el.querySelector('.esttag'); if (tg) tg.remove(); const ob = el.querySelector('[data-act=ok]'); ob.classList.add('on'); ob.textContent = '✓ 확인됨'; el.querySelector('.result b').className = ''; renderProg(); };
   });
-  function renderProg() { const carriedN = items.filter(i => confirmed(i, ph[i.code]) && ph[i.code].carry).length; const done = items.filter(i => confirmed(i, ph[i.code])).length - carriedN; const t = new Date(); $('#piProg').textContent = `${done} / ${items.length} 확인${carriedN ? ` · 이전값 유지 ${carriedN}` : ''} · 저장 ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:${String(t.getSeconds()).padStart(2, '0')}`; $('#piBar').style.width = (done / items.length * 100) + '%'; }
 }
 function nextInput(inp, enter) {
-  const all = $$('#piList input[type=number]'); const i = all.indexOf(inp);
+  const root = inp.closest('[data-pilist]') || $('#piList'); const all = [...root.querySelectorAll('input[type=number]')]; const i = all.indexOf(inp);
   if (inp.dataset.f === 'note' || inp.dataset.f === 'expiry') return;
   // Enter: 포수 → 잔량 → 다음 품목 포수 (메모는 건너뜀)
   const nx = all[i + 1]; if (nx) { nx.focus(); nx.scrollIntoView({ block: 'center', behavior: 'smooth' }); } else { inp.blur(); toast('마지막 품목입니다'); }
 }
 
 /* ── 실물재고 입력표 인쇄(v024): 현재 정렬·검색·미입력 필터 그대로 A4 표 ── */
-function buildPhysPrint() {
-  const cw = curWeek(); const items = itemsFor(cw).filter(i => !hidden(i.code)); const ph = physFor(cw);
-  const q = ui.piSearch.trim().toLowerCase();
-  const list = sortItems(items.filter(i => (!q || [i.code, i.name, i.vendor].join(' ').toLowerCase().includes(q)) && (!ui.piOnlyEmpty || !confirmed(i, ph[i.code]))));
+function buildPhysPrint(o) {
+  o = o || {}; const cw = o.week || curWeek(); const items = o.items || itemsFor(cw).filter(i => !hidden(i.code)); const ph = physFor(cw); const X = o.extra || null;
+  const q = o.items ? '' : ui.piSearch.trim().toLowerCase();
+  const list = o.items ? sortItems([...items]) : sortItems(items.filter(i => (!q || [i.code, i.name, i.vendor].join(' ').toLowerCase().includes(q)) && (!ui.piOnlyEmpty || !confirmed(i, ph[i.code]))));
   const rows = list.map(i => { const p = ph[i.code] || {}; const mm = masterOf(i.code, i.name) || {}; const spec = Number(i.spec || mm.spec) || 0, tare = Number(i.tare || mm.tare) || 0;
     const pq = physQty(i, p); const eq = i.qty == null ? null : Number(i.qty); const d = pq != null && eq != null ? Math.round((pq - eq) * 10) / 10 : null;
     const exp = expiryOf(i.code, cw, p); const dd = ddays(exp);
@@ -1022,9 +1171,9 @@ function buildPhysPrint() {
   const expCls = dd => dd == null ? '' : dd < 31 ? 'near' : dd < 92 ? 'soon' : '';
   $('#physPrint').innerHTML = `
     <div class="pp-head"><img src="${LOGO_DATA}" alt=""><div><div class="pp-co">${esc(S.settings.company || APP_NAME)}</div><div class="pp-sub">원료수불부 · 실물재고 입력표</div></div>
-      <div class="pp-title">원료 실물재고 확인표</div>
+      <div class="pp-title">${esc(o.title || '원료 실물재고 확인표')}</div>
       </div>
-    <div class="pp-meta"><span>기준일 <b>${esc(cw || '—')}</b> · 출력 ${today()}${S.settings.reporter ? ' · 보고자 ' + esc(S.settings.reporter) : ''}</span><span>${sortL}${filt ? ' · ' + filt : ''} · 표시 ${rows.length} / 전체 ${items.length}품목</span></div>
+    <div class="pp-meta"><span>기준일 <b>${esc(cw || '—')}</b> · 출력 ${today()}${S.settings.reporter ? ' · 보고자 ' + esc(S.settings.reporter) : ''}</span><span>${o.sub ? esc(o.sub) : `${sortL}${filt ? ' · ' + filt : ''} · 표시 ${rows.length} / 전체 ${items.length}품목`}</span></div>
     <div class="pp-sum">
       <div><span>확인 완료</span><b>${done} / ${items.length}</b></div>
       <div class="${estN ? 'warn' : ''}"><span>미확인(전산 추정)</span><b>${estN}</b></div>
@@ -1033,26 +1182,145 @@ function buildPhysPrint() {
       <div><span>차이 발생</span><b>${diffN}건</b></div>
       <div class="${adjN ? 'adj' : ''}"><span>조정대상</span><b>${adjN}건</b></div>
     </div>
-    <table><colgroup><col style="width:7.5mm"><col style="width:43mm"><col style="width:17mm"><col style="width:12mm"><col style="width:15mm"><col style="width:17mm"><col style="width:17mm"><col style="width:15mm"><col style="width:19mm"><col style="width:11mm"><col></colgroup>
-      <thead><tr><th>No</th><th>품목 / 매입처</th><th>규격 / 용기(g)</th><th>미개봉<br>포수</th><th>잔량<br>${S.settings.netWeight ? '순중량' : '총중량'}(g)</th><th>실물(g)</th><th>전산(g)</th><th>차이(g)</th><th>소비기한</th><th>확인</th><th>메모</th></tr></thead>
+    <table><colgroup><col style="width:7.5mm"><col style="width:${X ? 33 : 43}mm"><col style="width:${X ? 15 : 17}mm">${X ? '<col style="width:14mm"><col style="width:13mm">' : ''}<col style="width:${X ? 10 : 12}mm"><col style="width:${X ? 13 : 15}mm"><col style="width:${X ? 15 : 17}mm"><col style="width:${X ? 15 : 17}mm"><col style="width:${X ? 13 : 15}mm"><col style="width:${X ? 15 : 19}mm"><col style="width:${X ? 10 : 11}mm"><col></colgroup>
+      <thead><tr><th>No</th><th>품목 / 매입처</th><th>규격 / 용기(g)</th>${X ? '<th>기준일<br>전산(g)</th><th>전산<br>변동(g)</th>' : ''}<th>미개봉<br>포수</th><th>잔량<br>${S.settings.netWeight ? '순중량' : '총중량'}(g)</th><th>실물(g)</th><th>전산(g)</th><th>차이(g)</th><th>소비기한</th><th>확인</th><th>메모</th></tr></thead>
       <tbody>${rows.map((r, n) => `<tr class="${r.est ? 'est' : ''}">
         <td class="c">${n + 1}</td>
         <td class="nm">${esc(shortName(r.i.name))}<small>${esc(r.i.vendor || '')}${r.i.code ? ' · ' + esc(r.i.code) : ''}</small></td>
-        <td class="c">${fmt(r.spec)} / ${fmt(r.tare)}</td>
+        <td class="c">${fmt(r.spec)} / ${fmt(r.tare)}</td>${X ? `<td class="num">${fmt((X[r.i.code] || {}).q0)}</td><td class="num ${(X[r.i.code] || {}).d > 0 ? 'plus' : 'minus'}">${fmtS((X[r.i.code] || {}).d)}</td>` : ''}
         <td class="num">${r.direct ? '—' : (r.p.packs ?? '') === '' ? '' : fmt(Number(r.p.packs))}</td>
-        <td class="num">${r.direct ? '직접 ' + (r.p.direct ?? '') : (r.p.gross ?? '') === '' ? '' : fmt(Number(r.p.gross))}</td>
+        <td class="num">${r.direct ? '직접 ' + (r.p.direct ?? '') : (r.p.gross ?? '') === '' ? '' : fmt(Number(r.p.gross)) + (r.p.noTare ? '<span style="font-size:7.5px;color:#B5501F"> 용기無</span>' : '')}</td>
         <td class="num phys">${r.pq == null ? '' : fmt(r.pq)}</td>
         <td class="num">${fmt(r.eq)}</td>
         <td class="num ${r.d == null ? '' : r.d > 0 ? 'plus' : r.d < 0 ? 'minus' : ''}">${r.d == null ? '' : r.d === 0 ? '0' : fmtS(r.d)}</td>
         <td class="c exp ${expCls(r.dd)}">${r.exp ? esc(r.exp) + (r.dd != null ? '<br><span style="font-size:8.3px">' + ddLabel(r.dd) + '</span>' : '') : ''}</td>
         <td class="c"><span class="tag ${r.carry ? 'carry' : r.ok ? 'ok' : r.est ? 'est' : 'no'}">${r.carry ? '이전값 ' + r.carry.slice(5) : r.ok ? '확인' : r.est ? '추정' : '미입력'}</span></td>
-        <td style="font-size:8.8px">${esc(r.p.note || '')}</td></tr>`).join('') || '<tr><td colspan="11" class="c" style="padding:10px">해당 품목이 없습니다.</td></tr>'}</tbody>
-      <tfoot><tr><td colspan="5" class="c">합계 (확인 완료 품목 기준)</td><td class="num">${fmt(Math.round(tp * 10) / 10)}</td><td class="num">${fmt(Math.round(tee * 10) / 10)}<div style="font-weight:400;font-size:8.3px">전체 ${fmt(Math.round(te * 10) / 10)}</div></td><td class="num ${tp - tee > 0 ? 'plus' : tp - tee < 0 ? 'minus' : ''}">${done ? fmtS(Math.round((tp - tee) * 10) / 10) : ''}</td><td colspan="3"></td></tr></tfoot>
+        <td style="font-size:8.8px">${esc(r.p.note || '')}</td></tr>`).join('') || '<tr><td colspan="${X ? 13 : 11}" class="c" style="padding:10px">해당 품목이 없습니다.</td></tr>'}</tbody>
+      <tfoot><tr><td colspan="${X ? 7 : 5}" class="c">합계 (확인 완료 품목 기준)</td><td class="num">${fmt(Math.round(tp * 10) / 10)}</td><td class="num">${fmt(Math.round(tee * 10) / 10)}<div style="font-weight:400;font-size:8.3px">전체 ${fmt(Math.round(te * 10) / 10)}</div></td><td class="num ${tp - tee > 0 ? 'plus' : tp - tee < 0 ? 'minus' : ''}">${done ? fmtS(Math.round((tp - tee) * 10) / 10) : ''}</td><td colspan="3"></td></tr></tfoot>
     </table>
     <div class="pp-memo"><b>비고</b>${esc(S.memos[cw] || '')}</div>
     <div class="pp-note">실물(g) = 미개봉 포수 × 규격 + (잔량 총중량 − 빈 용기) · 「추정」은 전산재고로 미리 채운 값으로 현장에서 확인 전임 · 「이전값」은 그 날짜에 확인한 실물값을 변동 없이 그대로 가져온 것 · 차이 = 실물 − 전산 · 소비기한 붉은 칸 = 1개월 이내(경과 포함), 주황 칸 = 3개월 이내</div>`;
 }
 $('#btnPhysPrint').onclick = () => { buildPhysPrint(); $$('.view').forEach(v => v.classList.toggle('print', v.dataset.view === 'phys')); setTimeout(() => window.print(), 30); };
+
+/* ── v030: 주간 재고 현황 — gg 품목 중 기준일~현재 전산 변동 품목만 실물 입력 ── */
+let wk = { from: '', to: '', rows: [], srcFrom: '', srcTo: '', loading: false, onlyEmpty: false };
+/* v033: 주간재고 조회 조건 — 설정에 저장(S.settings.wkFilters), 기본 「품목명에 gg 포함」. 조건이 여러 개면 하나라도 맞으면 포함, 비어 있으면 관리 품목 전체 */
+const WK_FIELDS = { name: '품목명', code: '품목코드', vendor: '매입처' };
+function wkFilters() { const s = S.settings; if (!Array.isArray(s.wkFilters)) s.wkFilters = [{ field: 'name', kw: 'gg' }]; return s.wkFilters; }
+function wkItemText(i, field) { const mm = masterOf(i.code, i.name) || {}; const ec = EC_NAMES[i.code] || []; if (field === 'code') return String(i.code || ''); if (field === 'vendor') return [i.vendor, mm.vendor, ec[1]].filter(Boolean).join(' '); return [i.name, mm.name, ec[0]].filter(Boolean).join(' '); }
+const isGgItem = i => { const fs = wkFilters().filter(f => f.kw && String(f.kw).trim()); if (!fs.length) return true; return fs.some(f => wkItemText(i, f.field || 'name').toLowerCase().includes(String(f.kw).trim().toLowerCase())); };
+function wkFilterLabel() { const fs = wkFilters().filter(f => f.kw && String(f.kw).trim()); return fs.length ? fs.map(f => `${WK_FIELDS[f.field] || '품목명'}에 「${f.kw}」`).join(' 또는 ') + ' 포함' : '관리 품목 전체'; }
+function wkFilterModal() {
+  const draft = wkFilters().map(f => ({ field: f.field || 'name', kw: f.kw || '' })); const base = itemsFor(wk.to || curWeek()).filter(i => !hidden(i.code));
+  const draw = () => { const fs = draft.filter(f => f.kw.trim()); const cnt = base.filter(i => !fs.length || fs.some(f => wkItemText(i, f.field).toLowerCase().includes(f.kw.trim().toLowerCase()))).length;
+    modal(`<h2>주간재고 조회 조건</h2><div class="muted" style="margin-bottom:10px">조건이 여러 개면 <b>하나라도</b> 맞는 품목을 조회합니다. 비워 두면 관리 품목 전체가 대상입니다.</div>
+      <div id="wkfRows">${draft.map((f, n) => `<div class="row" style="gap:6px;margin-bottom:6px;flex-wrap:nowrap"><select data-wkf="${n}" style="border:1px solid var(--line);border-radius:8px;padding:7px 8px;font-size:13px;background:#fff">${Object.entries(WK_FIELDS).map(([k, v]) => `<option value="${k}" ${f.field === k ? 'selected' : ''}>${v}</option>`).join('')}</select><span class="muted" style="white-space:nowrap">에</span><input data-wkk="${n}" value="${esc(f.kw)}" placeholder="포함할 글자 (예: gg)" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:14px"><span class="muted" style="white-space:nowrap">포함</span><button class="btn xs danger" data-wkd="${n}" title="삭제">✕</button></div>`).join('') || '<div class="muted" style="margin-bottom:6px">조건 없음 — 관리 품목 전체</div>'}</div>
+      <div class="row between" style="margin-top:8px"><button class="btn sm" id="wkfAdd">＋ 조건 추가</button><span class="muted">현재 조건에 맞는 품목 <b>${cnt}</b> / ${base.length}</span></div>
+      <div class="row" style="margin-top:14px;justify-content:flex-end;gap:8px"><button class="btn" onclick="closeModal()">취소</button><button class="btn primary" id="wkfSave">저장 후 조회</button></div>`);
+    $$('[data-wkf]').forEach(s => s.onchange = () => { draft[+s.dataset.wkf].field = s.value; draw(); });
+    $$('[data-wkk]').forEach(inp => { inp.oninput = () => { draft[+inp.dataset.wkk].kw = inp.value; const fs = draft.filter(f => f.kw.trim()); const c = base.filter(i => !fs.length || fs.some(f => wkItemText(i, f.field).toLowerCase().includes(f.kw.trim().toLowerCase()))).length; const b = $('#wkfRows').parentElement.querySelector('.row.between b'); if (b) b.textContent = c; }; inp.onkeydown = e => { if (e.key === 'Enter') $('#wkfSave').click(); }; });
+    $$('[data-wkd]').forEach(b => b.onclick = () => { draft.splice(+b.dataset.wkd, 1); draw(); });
+    $('#wkfAdd').onclick = () => { draft.push({ field: 'name', kw: '' }); draw(); const last = $$('[data-wkk]').slice(-1)[0]; if (last) last.focus(); };
+    $('#wkfSave').onclick = () => { S.settings.wkFilters = draft.filter(f => f.kw.trim()).map(f => ({ field: f.field, kw: f.kw.trim() })); save(true); closeModal(); wk.rows = []; renderWeekly(); toast('조회 조건 저장: ' + wkFilterLabel()); }; };
+  draw();
+}
+function snapQtyMap(date) { const ws = weeks().filter(w => w <= date); const k = ws.slice(-1)[0]; if (!k) return null; const m = {}; S.snapshots[k].items.forEach(i => { if (i.qty != null) m[i.code] = Number(i.qty); }); return { map: m, src: `주간 스냅샷 ${k}` }; }
+async function qtyMapAt(date) {
+  if (date >= today()) { if (!finLastData) { try { await syncFromEcount(false); } catch (e) { } } if (finLastData) return { map: Object.fromEntries(finLastData.items.map(i => [i.code, Number(i.qty) || 0])), src: '현재 연동 ' + String(finLastData.updatedAt || '').slice(5, 16).replace('T', ' ') }; return snapQtyMap(date) || { map: {}, src: '자료 없음' }; }
+  try { const r = await ecAllFetch(date); return { map: Object.fromEntries(r.data.items.map(i => [i.code, Number(i.qty) || 0])), src: `${r.src} ${String(r.data.updatedAt || '').slice(5, 16).replace('T', ' ')}` }; }
+  catch (e) { const s = snapQtyMap(date); if (s) { s.src += ` (연동 이력 없음: ${e.message || e})`; return s; } return { map: {}, src: '자료 없음 — ' + (e.message || e) }; }
+}
+function physAtOrBefore(code, date) { const ws = Object.keys(S.physical).filter(w => w <= date).sort().reverse(); for (const w of ws) { const p = S.physical[w][code]; if (p && !p.est && hasPhysVal(p)) { const it = itemsFor(w).find(i => i.code === code) || {}; return { week: p.carry || w, qty: physQty(it, p) }; } } return null; }
+function wkDefaults() { const t = today(); const d = new Date(t + 'T00:00:00'); d.setDate(d.getDate() - 7); const f = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); wk.from = S.ui.wkFrom || f; wk.to = S.ui.wkTo && S.ui.wkTo <= t ? S.ui.wkTo : t; }
+async function renderWeekly() {
+  if (!wk.from) wkDefaults(); $('#wkFrom').value = wk.from; $('#wkTo').value = wk.to; $('#wkOnlyEmpty').classList.toggle('primary', wk.onlyEmpty);
+  if (wk.loading) return; if (!wk.rows.length || wk.loadedFor !== wk.from + '~' + wk.to) { wk.loading = true; $('#wkMsg').textContent = '전산재고 이력을 불러오는 중…'; $('#wkList').innerHTML = ''; $('#wkStats').innerHTML = ''; $('#wkSame').innerHTML = '';
+    try { const [a, b] = await Promise.all([qtyMapAt(wk.from), qtyMapAt(wk.to)]); wk.srcFrom = a.src; wk.srcTo = b.src; wk.mapFrom = a.map; wk.mapTo = b.map; wk.loadedFor = wk.from + '~' + wk.to; } catch (e) { $('#wkMsg').textContent = '불러오기 실패: ' + (e.message || e); wk.loading = false; return; }
+    wk.loading = false; }
+  const to = wk.to; physFor(to); const ph = physFor(to);
+  const items = itemsFor(to).filter(i => !hidden(i.code) && isGgItem(i)).map(i => { const q1 = wk.mapTo[i.code]; return Object.assign({}, i, { qty: q1 != null ? q1 : i.qty }); });
+  wk.rows = items.map(i => { const q0 = wk.mapFrom[i.code]; const q1 = i.qty == null ? null : Number(i.qty); const d = q0 != null && q1 != null ? Math.round((q1 - q0) * 10) / 10 : null; return { it: i, q0: q0 == null ? null : q0, q1, d, changed: d != null && d !== 0, p0: physAtOrBefore(i.code, wk.from) }; });
+  const changed = wk.rows.filter(r => r.changed), same = wk.rows.filter(r => !r.changed);
+  const chItems = changed.map(r => r.it); prefillPhys(to, chItems);
+  const dec = changed.filter(r => r.d < 0), inc = changed.filter(r => r.d > 0);
+  const sumDec = dec.reduce((a, r) => a + r.d, 0), sumInc = inc.reduce((a, r) => a + r.d, 0);
+  const prog = () => { const carriedN = chItems.filter(i => confirmed(i, ph[i.code]) && ph[i.code].carry).length; const done = chItems.filter(i => confirmed(i, ph[i.code])).length - carriedN; const adjN = chItems.filter(i => { const p = ph[i.code]; if (!confirmed(i, p)) return false; const pq = physQty(i, p); return pq != null && needAdj(Math.round((pq - i.qty) * 10) / 10, i.qty); }).length; $('#wkProg').textContent = `변동 품목 ${chItems.length} · 확인 ${done}${carriedN ? ` · 이전값 유지 ${carriedN}` : ''} · 조정대상 ${adjN}`; $('#wkBar').style.width = (chItems.length ? done / chItems.length * 100 : 0) + '%'; };
+  $('#wkSub').textContent = `${wk.from} → ${wk.to}`; $('#wkCond').textContent = wkFilterLabel();
+  $('#wkMsg').innerHTML = `기준일 전산: ${esc(wk.srcFrom)} · 현재 전산: ${esc(wk.srcTo)} · 조건 품목 ${wk.rows.length}개 중 변동 ${changed.length}개`;
+  $('#wkStats').innerHTML = `<div class="stat"><span>변동 품목</span><b>${changed.length}<i>/ ${wk.rows.length}</i></b></div><div class="stat"><span>전산 감소 (${dec.length})</span><b class="minus">${fmt(sumDec)} g</b></div><div class="stat"><span>전산 증가 (${inc.length})</span><b class="plus">${sumInc ? '+' : ''}${fmt(sumInc)} g</b></div><div class="stat"><span>변동 없음</span><b>${same.length}</b></div>`;
+  if (!changed.length) { $('#wkList').innerHTML = `<div class="empty">${wk.rows.length ? '기준일과 현재 사이에 전산재고가 바뀐 품목이 없습니다.' : '조회 조건에 맞는 관리 품목이 없습니다. 「조건 편집」에서 조건을 확인하세요.'}</div>`; }
+  else {
+    const list = sortItems(chItems.filter(i => !wk.onlyEmpty || !confirmed(i, ph[i.code])));
+    const extra = (i, p) => { const r = wk.rows.find(x => x.it.code === i.code) || {}; const pq = physQty(i, p); const pd = r.p0 && pq != null ? Math.round((pq - r.p0.qty) * 10) / 10 : null; const gap = pd != null && r.d != null ? Math.round((pd - r.d) * 10) / 10 : null;
+      return `<div class="wkstrip"><div><span>기준일 전산 (${esc(wk.from.slice(5))})</span><b>${fmt(r.q0)}</b></div><div><span>전산 변동</span><b class="${r.d > 0 ? 'up' : 'dn'}">${fmtS(r.d)}</b></div><div><span>기준일 실물${r.p0 ? ' (' + esc(r.p0.week.slice(5)) + ')' : ''}</span><b>${r.p0 ? fmt(r.p0.qty) : '—'}</b></div><div><span>실물 변동 · 전산 대비</span><b class="${pd == null ? '' : pd > 0 ? 'up' : 'dn'}">${pd == null ? '—' : fmtS(pd)}</b>${gap == null ? '' : ` <small class="${gap === 0 ? '' : cls(gap)}" style="font-size:11px">(${gap === 0 ? '일치' : fmtS(gap)})</small>`}</div></div>`; };
+    renderPhysCards($('#wkList'), list, chItems, to, ph, { rerender: renderWeekly, onProg: prog, extra });
+  }
+  prog();
+  $('#wkSame').innerHTML = same.length ? `<div class="row between" style="margin-bottom:6px"><b>변동 없는 품목 ${same.length}</b><span class="muted">전산 그대로 — 실물 입력은 실물입력 화면에서</span></div><div class="wksame">${same.map(r => `<span>${esc(shortName(r.it.name))} <b>${fmt(r.q1)}</b></span>`).join('')}</div>` : '';
+}
+$('#wkGo').onclick = () => { const f = $('#wkFrom').value, t = $('#wkTo').value; if (!f || !t) return toast('기준일과 현재 날짜를 고르세요'); if (f > t) return toast('기준일이 현재 날짜보다 뒤입니다'); wk.from = f; wk.to = t; S.ui.wkFrom = f; S.ui.wkTo = t; wk.loadedFor = ''; wk.rows = []; if (S.ui.week !== t) { S.ui.week = t; physFor(t); } save(true); renderWeekly(); };
+$('#wkFrom').onchange = () => $('#wkGo').click(); $('#wkTo').onchange = () => $('#wkGo').click();
+$('#wkOnlyEmpty').onclick = () => { wk.onlyEmpty = !wk.onlyEmpty; renderWeekly(); };
+$('#wkCondEdit').onclick = wkFilterModal;
+$('#wkPrint').onclick = () => { const ch = wk.rows.filter(r => r.changed); if (!ch.length) return toast('인쇄할 변동 품목이 없습니다'); buildPhysPrint({ items: ch.map(r => r.it), week: wk.to, title: '주간 재고 변동 품목 실물 확인표', sub: `기준일 ${wk.from} → 현재 ${wk.to} · 기준일 전산 ${wk.srcFrom} · 현재 전산 ${wk.srcTo}`, extra: Object.fromEntries(ch.map(r => [r.it.code, r])) }); $$('.view').forEach(v => v.classList.toggle('print', v.dataset.view === 'phys')); setTimeout(() => window.print(), 30); };
+
+
+/* ── v034: 공유 저장소(구글 시트 Apps Script) 동기화 — 실물·소비기한·메모 ── */
+function shareCfg() { if (!S.share || !Array.isArray(S.share.outbox)) S.share = { outbox: [], since: '', device: '', lastPull: '', lastPush: '', err: '' }; if (!S.share.device) S.share.device = (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? '휴대폰' : 'PC') + '-' + Math.random().toString(36).slice(2, 6); return S.share; }
+const shareOn = () => /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test((S.settings.shareUrl || '').trim());
+const shareKey = r => r.week + '|' + r.code + '|' + r.kind;
+function shareMark(week, code, ts) {
+  if (!shareOn() || !week || !code) return; const sh = shareCfg(); const p = (S.physical[week] || {})[code]; const it = itemsFor(week).find(i => i.code === code) || {};
+  const row = { ts: ts || new Date().toISOString(), week, code, name: shortName(it.name || code), kind: 'phys' };
+  if (!p || (!hasPhysVal(p) && !p.note && !p.expiry)) row.del = true; else { if (p.est || p.carry) return; Object.assign(row, { mode: p.mode || 'packs', packs: p.packs ?? '', gross: p.gross ?? '', direct: p.direct ?? '', expiry: p.expiry || '', note: p.note || '', notare: p.noTare ? 1 : '' }); p.ts = row.ts; }
+  sh.outbox = sh.outbox.filter(r => shareKey(r) !== shareKey(row)); sh.outbox.push(row); save(); renderShareStatus(); sharePushSoon();
+}
+function shareMarkMemo(week, ts) { if (!shareOn() || !week) return; const sh = shareCfg(); const row = { ts: ts || new Date().toISOString(), week, code: '', name: '', kind: 'memo', note: S.memos[week] || '' }; (S.memoTs = S.memoTs || {})[week] = row.ts; sh.outbox = sh.outbox.filter(r => shareKey(r) !== shareKey(row)); sh.outbox.push(row); save(); renderShareStatus(); sharePushSoon(); }
+function shareMarkAll(week) { Object.keys(S.physical[week] || {}).forEach(c => shareMark(week, c)); if (S.memos[week] != null) shareMarkMemo(week); }
+let sharePushT = null, shareBusy = false;
+function sharePushSoon() { clearTimeout(sharePushT); sharePushT = setTimeout(sharePush, 1200); }
+async function sharePush() {
+  if (!shareOn() || shareBusy) return; const sh = shareCfg(); if (!sh.outbox.length) return; shareBusy = true; const batch = sh.outbox.slice(0, 200); renderShareStatus('보내는 중…');
+  try { const r = await fetch(S.settings.shareUrl.trim(), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ rows: batch, user: S.settings.reporter || '', device: sh.device }) }); const j = await r.json(); if (!j.ok) throw new Error(j.error || '저장 실패');
+    const sent = new Set(batch.map(b => b.ts + '|' + shareKey(b))); sh.outbox = sh.outbox.filter(b => !sent.has(b.ts + '|' + shareKey(b))); sh.lastPush = new Date().toISOString(); sh.err = ''; save(true); }
+  catch (e) { sh.err = '보내기 실패: ' + (e.message || e); save(); }
+  shareBusy = false; renderShareStatus(); if (sh.outbox.length && !sh.err) sharePushSoon();
+}
+function shareTyping() { const a = document.activeElement; return !!(a && a.tagName === 'INPUT' && a.closest('[data-pilist]')); }
+async function sharePull(full, quiet) {
+  if (!shareOn() || shareBusy) return; const sh = shareCfg(); shareBusy = true; let changed = 0; if (!quiet) renderShareStatus('받는 중…');
+  try { const r = await fetch(S.settings.shareUrl.trim() + '?action=pull&since=' + encodeURIComponent(full ? '' : (sh.since || '')) + '&t=' + Date.now(), { cache: 'no-store' }); const j = await r.json(); if (!j.ok) throw new Error(j.error || '읽기 실패');
+    (j.rows || []).sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0).forEach(row => {
+      if (!row.week || !row.ts) return; if (row.ts > (sh.since || '')) sh.since = row.ts; if (row.device && row.device === sh.device && !full) return;
+      if (row.kind === 'memo') { const cur = (S.memoTs || {})[row.week] || ''; if (row.ts > cur) { S.memos[row.week] = row.note || ''; (S.memoTs = S.memoTs || {})[row.week] = row.ts; changed++; } return; }
+      if (!row.code) return; const ph = physFor(row.week); const p = ph[row.code]; const lts = p && !p.est && !p.carry ? (p.ts || '') : '';
+      if (lts >= row.ts) return;
+      if (row.del) { if (p) { delete ph[row.code]; changed++; } return; }
+      ph[row.code] = { mode: row.mode || 'packs', packs: row.packs ?? '', gross: row.gross ?? '', direct: row.direct ?? '', expiry: row.expiry || '', note: row.note || '', ts: row.ts, by: row.user || '' }; if (row.notare && String(row.notare) !== '0' && String(row.notare).toUpperCase() !== 'FALSE') ph[row.code].noTare = true;
+      if (row.expiry) { const m = S.itemMeta[row.code] || (S.itemMeta[row.code] = {}); m.expiry = row.expiry; m.expiryWeek = row.week; } changed++; });
+    sh.lastPull = new Date().toISOString(); sh.err = ''; save(true);
+    if (changed) { toast(`공유 저장소에서 ${changed}건 반영`); if (S.ui.menu !== 'fin' && ['phys', 'weekly', 'cmp', 'dash', 'trend'].includes(S.ui.tab)) { if (shareTyping()) { sh.pendingRender = true; } else { if (S.ui.tab === 'weekly') wk.rows = []; renderAll(); } } } }
+  catch (e) { sh.err = '받기 실패: ' + (e.message || e); save(); }
+  shareBusy = false; renderShareStatus();
+}
+function renderShareStatus(msg) {
+  const sh = S.share || {}; const on = shareOn(); const hm = t => t ? t.slice(11, 16) : '—';
+  const txt = !on ? '' : msg ? `☁ ${msg}` : sh.err ? `☁ ${sh.err}` : `☁ 공유 ${hm(sh.lastPull || sh.lastPush)}${sh.outbox && sh.outbox.length ? ` · 보낼 것 ${sh.outbox.length}` : ''}${S.settings.reporter ? ' · ' + S.settings.reporter : ' · 보고자 이름 미설정'}`;
+  ['#piShare', '#wkShare'].forEach(s => { const el = $(s); if (el) { el.textContent = txt; el.style.color = sh.err ? 'var(--warn)' : ''; } });
+  const st = $('#shareStatus'); if (st) st.innerHTML = !on ? (S.settings.shareUrl ? '<span style="color:var(--warn)">URL 형식이 맞지 않습니다. https://script.google.com/macros/s/…/exec 형태여야 합니다.</span>' : '연결 안 됨 — URL을 입력하세요.') : `${msg ? msg + ' · ' : ''}마지막 받음 ${hm(sh.lastPull)} · 마지막 보냄 ${hm(sh.lastPush)} · 보낼 것 ${(sh.outbox || []).length}건 · 이 기기 ${esc(sh.device || '')} · 입력자 이름 ${esc(S.settings.reporter || '(미설정 — 설정 상단 보고자)')}${sh.err ? `<br><span style="color:var(--warn)">${esc(sh.err)}</span>` : ''}`;
+}
+$('#setShareUrl').addEventListener('change', e => { S.settings.shareUrl = e.target.value.trim(); e.target.value = S.settings.shareUrl; save(true); renderShareStatus(); if (shareOn()) { shareCfg(); sharePull(true); } });
+$('#btnShareTest').onclick = async () => { if (!shareOn()) return toast('웹 앱 URL을 먼저 입력하세요'); renderShareStatus('연결 확인 중…'); try { const r = await fetch(S.settings.shareUrl.trim() + '?action=ping&t=' + Date.now(), { cache: 'no-store' }); const j = await r.json(); if (!j.ok) throw new Error(j.error || '응답 오류'); shareCfg().err = ''; toast(`연결됨 — 시트 「${j.sheet}」 기록 ${j.rows}건`); } catch (e) { shareCfg().err = '연결 실패: ' + (e.message || e); } save(); renderShareStatus(); };
+$('#btnShareSync').onclick = async () => { if (!shareOn()) return toast('웹 앱 URL을 먼저 입력하세요'); await sharePush(); await sharePull(false); toast('동기화 완료'); };
+$('#btnShareFull').onclick = async () => { if (!shareOn()) return toast('웹 앱 URL을 먼저 입력하세요'); shareCfg().since = ''; await sharePull(true); toast('전체 다시 받기 완료'); };
+$('#btnShareSendAll').onclick = () => { if (!shareOn()) return toast('웹 앱 URL을 먼저 입력하세요'); if (!confirm('이 기기에 저장된 모든 날짜의 실물 입력값(확인된 값만)과 메모를 공유 저장소에 올릴까요? 같은 품목·날짜에 더 나중 입력이 있으면 그쪽이 우선합니다.')) return; let n = 0; Object.keys(S.physical).forEach(w => { Object.keys(S.physical[w]).forEach(c => { const p = S.physical[w][c]; if (p && !p.est && !p.carry && hasPhysVal(p)) { shareMark(w, c, p.ts || new Date().toISOString()); n++; } }); if (S.memos[w]) shareMarkMemo(w, (S.memoTs || {})[w]); }); toast(`${n}건을 보내기 목록에 넣었습니다`); sharePush(); };
+document.addEventListener('visibilitychange', () => { if (!document.hidden && shareOn()) { sharePush(); sharePull(false, true); } });
+document.addEventListener('focusout', () => { setTimeout(() => { if (S.share && S.share.pendingRender && !shareTyping()) { S.share.pendingRender = false; if (S.ui.tab === 'weekly') wk.rows = []; renderAll(); } }, 300); });
+window.addEventListener('online', () => { if (shareOn()) { sharePush(); sharePull(false, true); } });
+setInterval(() => { if (!document.hidden && shareOn()) { if (S.share && S.share.pendingRender && !shareTyping()) { S.share.pendingRender = false; if (S.ui.tab === 'weekly') wk.rows = []; renderAll(); } sharePull(false, true); } }, 60000);
+setTimeout(() => { if (shareOn()) { shareCfg(); renderShareStatus(); sharePull(false, true).then(() => sharePush()); } }, 1500);
+
 
 /* ── report text ── */
 function reportText(week) {
@@ -1147,6 +1415,7 @@ function renderSet() {
   renderMaster();
   $('#verInfo').textContent = `${APP_NAME} v${APP_VER} · 마지막 저장 ${S.savedAt ? S.savedAt.replace('T', ' ').slice(0, 19) : '—'} · 브라우저 저장 ${Math.round((localStorage.getItem(STORE_KEY) || '').length / 1024)} KB`;
 }
+$('#setShareUrl').value = S.settings.shareUrl || '';
 ['setCompany', 'setReporter'].forEach(id => $('#' + id).addEventListener('input', e => { S.settings[id === 'setCompany' ? 'company' : 'reporter'] = e.target.value; $('#hSub').textContent = S.settings.company; save(); }));
 $('#setTol').addEventListener('input', e => { S.settings.tolG = Number(e.target.value) || 0; save(); });
 $('#setTolPct').addEventListener('input', e => { S.settings.tolPct = Number(e.target.value) || 0; save(); });
@@ -1194,7 +1463,7 @@ function physText(week) {
   const L = [`${PHYS_TAG} ${week}`];
   items.forEach(it => { const p = ph[it.code]; if (!p) return; const pq = physQty(it, p); if (pq == null && !p.note && !p.expiry) return;
     const nt = (p.note || '').replace(/[|\n]/g, ' '), ex = p.expiry || '';
-    L.push(p.mode === 'direct' ? `${it.code}|d|${p.direct ?? ''}||${nt}|${ex}` : `${it.code}|p|${p.packs ?? ''}|${p.gross ?? ''}|${nt}|${ex}`); });
+    L.push(p.mode === 'direct' ? `${it.code}|d|${p.direct ?? ''}||${nt}|${ex}` : `${it.code}|${p.noTare ? 'n' : 'p'}|${p.packs ?? ''}|${p.gross ?? ''}|${nt}|${ex}`); });
   if (S.memos[week]) L.push(`@memo|${S.memos[week].replace(/\n/g, ' ')}`);
   L.push(`@end ${L.length - 1}`);
   return L.join('\n');
@@ -1209,7 +1478,7 @@ function importPhysText(txt) {
     if (l.startsWith('@memo|')) { S.memos[week] = l.slice(6); continue; }
     const f = l.split('|'); if (f.length < 4) continue;
     const [code, mode, a, b, note, ex] = f;
-    ph[code] = mode === 'd' ? { mode: 'direct', direct: a, note: note || '', expiry: ex || '', ts } : { mode: 'packs', packs: a, gross: b, note: note || '', expiry: ex || '', ts };
+    ph[code] = mode === 'd' ? { mode: 'direct', direct: a, note: note || '', expiry: ex || '', ts } : { mode: 'packs', packs: a, gross: b, note: note || '', expiry: ex || '', ts }; if (mode === 'n') ph[code].noTare = true;
     if (ex) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); m.expiry = ex; m.expiryWeek = week; }
     n++;
   }
@@ -1219,7 +1488,7 @@ function physInModal() {
   modal(`<h2>휴대폰 실물 가져오기</h2><div class="muted" style="margin-bottom:8px">휴대폰에서 「PC로 보내기」로 복사한 문자를 붙여넣으세요. (같은 품목은 덮어씁니다)</div>
   <textarea id="physBox" style="width:100%;height:40vh;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13px" placeholder="${PHYS_TAG} 2026-09-04&#10;CH.138_0|p|2|3500|"></textarea>
   <div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn" onclick="closeModal()">취소</button><button class="btn primary" id="physGo">가져오기</button></div>`);
-  $('#physGo').onclick = () => { try { const r = importPhysText($('#physBox').value); closeModal(); renderAll(); toast(`${r.week} 실물 ${r.n}품목 가져옴`); } catch (e) { toast(e.message); } };
+  $('#physGo').onclick = () => { try { const r = importPhysText($('#physBox').value); shareMarkAll(r.week); closeModal(); renderAll(); toast(`${r.week} 실물 ${r.n}품목 가져옴`); } catch (e) { toast(e.message); } };
 }
 
 /* ═════════════ 재고조정 이력 (자가사용전표 ESM004E) ═════════════ */
@@ -1829,7 +2098,7 @@ $('#piSort').onchange = e => { ui.piSort = e.target.value; renderPhys(); };
 $('#piDate').onchange = e => { const d = e.target.value; if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { e.target.value = curWeek(); return; } if (d === curWeek()) return; const isNew = !S.snapshots[d] && !(S.physical[d] && Object.keys(S.physical[d]).length); S.ui.week = d; physFor(d); save(true); renderAll(); toast(isNew ? `${d} 실물재고를 새로 만들었습니다` : `${d} 실물재고를 열었습니다`); };
 $('#piOnlyEmpty').onclick = () => { ui.piOnlyEmpty = !ui.piOnlyEmpty; renderPhys(); };
 $('#piSearch').addEventListener('input', e => { ui.piSearch = e.target.value; renderPhys(); });
-$('#piMemo').addEventListener('input', e => { S.memos[curWeek()] = e.target.value; save(); });
+$('#piMemo').addEventListener('input', e => { S.memos[curWeek()] = e.target.value; save(); }); $('#piMemo').addEventListener('change', () => shareMarkMemo(curWeek()));
 $('#btnReport').onclick = () => copyText(reportText(curWeek()));
 $('#expSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; ui.expAll = b.id === 'expAll'; renderDash(); };
 $('#btnPdfDash').onclick = () => pdfPreview(curWeek());
@@ -1838,7 +2107,7 @@ $('#btnCmpReport').onclick = () => copyText(reportText(curWeek()));
 $('#btnPhysOut').onclick = async () => { const t = physText(curWeek()); if (t.split('\n').length <= 2) return toast('입력된 실물이 없습니다'); if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) { try { await navigator.share({ text: t }); return; } catch (e) {} } copyText(t); };
 $('#btnPhysIn').onclick = physInModal;
 $('#btnShare').onclick = async () => { const t = reportText(curWeek()); if (navigator.share) { try { await navigator.share({ title: `${APP_NAME} ${curWeek()}`, text: t }); } catch (e) {} } else copyText(t); };
-$('#btnPhysClear').onclick = () => { const cw = curWeek(); if (!confirm(`${cw} 실물 입력값을 모두 지울까요?`)) return; S.physical[cw] = {}; delete S.memos[cw]; save(true); renderAll(); };
+$('#btnPhysClear').onclick = () => { const cw = curWeek(); if (!confirm(`${cw} 실물 입력값을 모두 지울까요?`)) return; const codes = Object.keys(S.physical[cw] || {}); S.physical[cw] = {}; S.memos[cw] = ''; save(true); codes.forEach(c => shareMark(cw, c)); shareMarkMemo(cw); delete S.memos[cw]; renderAll(); };
 $('#cmpFilter').onclick = e => { const b = e.target.closest('button'); if (!b) return; ui.cmpFilter = b.dataset.f; $$('#cmpFilter button').forEach(x => x.classList.toggle('on', x === b)); renderCmp(); };
 $('#btnCmpXlsx').onclick = exportCmp;
 $('#btnCmpPrint').onclick = () => { ui.cmpFilter = 'all'; $$('#cmpFilter button').forEach(x => x.classList.toggle('on', x.dataset.f === 'all')); renderCmp(); $$('.view').forEach(v => v.classList.toggle('print', v.dataset.view === 'cmp')); window.print(); };
@@ -1854,7 +2123,7 @@ window.addEventListener('beforeunload', () => save(true));
 function renderAll() {
   renderTabs(); renderHeader(); if (typeof renderSyncPill === 'function') renderSyncPill(); if (typeof renderChanges === 'function') setTimeout(renderChanges, 0);
   const t = S.ui.tab;
-  if (t === 'dash') renderDash(); else if (t === 'stock') renderStock(); else if (t === 'phys') renderPhys(); else if (t === 'cmp') renderCmp(); else if (t === 'trend') renderTrend(); else if (t === 'adj') renderAdj(); else renderSet();
+  if (t === 'dash') renderDash(); else if (t === 'stock') renderStock(); else if (t === 'phys') renderPhys(); else if (t === 'weekly') renderWeekly(); else if (t === 'cmp') renderCmp(); else if (t === 'trend') renderTrend(); else if (t === 'adj') renderAdj(); else renderSet();
 }
 function measureHead() { document.documentElement.style.setProperty('--head-h', document.querySelector('header.top').offsetHeight + 'px'); }
 window.addEventListener('resize', measureHead);
