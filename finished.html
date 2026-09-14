@@ -261,6 +261,8 @@ body.briefing{overflow:hidden}
 @media (max-width:640px){.bfhead h1{font-size:18px;white-space:normal}.bfhead>div:first-child{flex-basis:100%;display:block}.bfhead .bfdate{margin-left:0}.bfcols{grid-template-columns:1fr!important}.bfkpi{grid-template-columns:1fr!important}}
 .bfhead h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
 .bfhead .d{font-size:13px;color:var(--ink2)}
+.btn.newtx{background:#4a2f1a;border-color:#4a2f1a;color:#fff;font-weight:800;padding:8px 16px}.btn.newtx:hover{background:#3a2412}
+#ledgerAdd.flash{animation:txflash 1.2s ease-out}@keyframes txflash{0%{box-shadow:0 0 0 4px rgba(74,47,26,.45);background:#fbf3ea}100%{box-shadow:0 0 0 0 rgba(74,47,26,0)}}
 .bfkpi .df{padding:12px 14px;border-left:1px solid var(--line2);background:var(--vio-bg)}.bfkpi .df .l{color:var(--vio);font-weight:800}.bfkpi .df .l small{font-weight:600;color:var(--ink2);margin-left:6px}.dfrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:4px 0;border-bottom:1px dashed var(--line)}.dfrow:last-child{border-bottom:0}.dfrow .n{font-weight:700;font-size:13.5px}.dfrow .q{font-weight:900;font-size:16px;color:var(--vio);white-space:nowrap}
 @media (max-width:640px){.bfkpi .df{border-left:0;border-top:1px solid var(--line2)}}
 .bfdate{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:4px 6px;font-size:13px}.bfdate .nav{font-weight:700;min-width:64px}.bfdate .dow{font-weight:800;font-size:14px;color:var(--ink);padding:0 6px 0 2px;white-space:nowrap}.bfdate .dow.sat{color:var(--blue)}.bfdate .dow.sun{color:var(--red)}
@@ -402,7 +404,7 @@ html.embedded #tabs{display:none}html.embedded .appbar .brand{display:none}html.
     <button data-v="dash" class="on">대시보드</button>
     <button data-v="stock">재고현황</button>
     <button data-v="expiry">소비기한</button>
-    <button data-v="ledger">입출고대장</button>
+    <button data-v="ledger">200입출고대장</button>
     <button data-v="trend">추이</button>
     <button data-v="items">품목·설정</button>
   </nav>
@@ -446,7 +448,7 @@ html.embedded #tabs{display:none}html.embedded .appbar .brand{display:none}html.
   <div class="expgrid" id="expSections"></div>
 </section>
 
-<!-- 입출고대장 -->
+<!-- 200입출고대장 -->
 <section class="view" id="v-ledger">
   <div class="printhead" id="ph-ledger"></div>
   <div class="toolbar">
@@ -455,6 +457,7 @@ html.embedded #tabs{display:none}html.embedded .appbar .brand{display:none}html.
     <button class="btn" id="btnNewLedger">＋ 대장 추가</button>
     <div class="seg" id="ledgerView"><button data-v="report" class="on">일일 보고</button><button data-v="rows">입출고 내역</button><button data-v="partners">판매처·생산</button><button data-v="monthly">월별 분석</button></div>
     <div class="grow"></div>
+    <button class="btn newtx noprint" id="btnNewTx" title="입고·생산·판매 거래를 새로 입력합니다">＋ 새 거래 추가</button>
     <div class="balbig" id="ledgerSum"></div>
   </div>
   <div id="lv-report" class="lview">
@@ -611,7 +614,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 (function(){
 'use strict';
 const PLATFORM='완제품생지재고관리';
-const VERSION=62;
+const VERSION=63;
 const LS_KEY='wjsg_state_v1';
 const EMBED=(()=>{try{return window.parent!==window;}catch(e){return false;}})();if(EMBED)document.documentElement.classList.add('embedded');
 const TEMPLATE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
@@ -928,6 +931,7 @@ function ledgerAdd(){const L=ledger();if(!L)return;const date=$('#laDate').value
   if(laCat==='입고'&&i==null&&o!=null){toast('입고 분류에는 입고 수량을 입력하세요');$('#laIn').focus();return;}
   L.rows.push({date,memo,cat:laCat,in:i,out:o,exp,note,seq:9999});commit();$('#laMemo').value='';$('#laIn').value='';$('#laOut').value='';$('#laExp').value='';$('#laNote').value='';ledgerMonth='all';render();$('#laMemo').focus();toast('추가됨');}
 $('#btnLedgerAdd').onclick=ledgerAdd;
+$('#btnNewTx').onclick=()=>{ledgerView='rows';renderLedger();const f=$('#ledgerAdd');if(f){f.scrollIntoView({behavior:'smooth',block:'center'});f.classList.remove('flash');void f.offsetWidth;f.classList.add('flash');}const d=$('#laDate');if(d){if(!d.value)d.value=today();setTimeout(()=>$('#laMemo').focus(),350);}};
 $('#ledgerAdd').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();const ord=laCat==='입고'?['laDate','laMemo','laIn','laExp','laNote']:['laDate','laMemo','laOut','laExp','laNote'];const i=ord.indexOf(e.target.id);if(e.target.id==='laNote')ledgerAdd();else if(i>=0)$('#'+ord[i+1]).focus();else $('#laExp').focus();}});
 
 /* 200생지 백업 JSON 병합 */
