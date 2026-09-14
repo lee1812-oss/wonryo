@@ -170,6 +170,7 @@ table.t th.sticky{z-index:3;background:#F4F6F8}
 .chg{border:1.5px solid #F2C9A6;background:#FFF7F0;border-radius:8px;padding:8px 10px;margin:0 0 10px;font-size:12.5px}.chg h3{margin:0 0 4px;font-size:13px;color:#B5501F;display:flex;justify-content:space-between;align-items:center;gap:8px}.chg .ent{padding:4px 0;border-top:1px dashed #F2C9A6}.chg .ent:first-of-type{border-top:0}.chg .when{font-weight:700;color:#173F4B;font-size:12px}.chg .it{display:flex;justify-content:space-between;gap:8px;padding:1px 0}.chg .it b{font-weight:600}.chg .up{color:#0E6E8C;font-weight:700}.chg .dn{color:#B23A3A;font-weight:700}.chg .more{color:var(--ink3);font-size:11.5px}
 .sync{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 10px;margin-bottom:10px;border-radius:8px;background:var(--plus-bg);font-size:12.5px}.sync.off{background:var(--line2)}.sync.err{background:var(--warn-bg)}.sync b{color:var(--plus)}
 .pi-item.est{border-style:dashed;border-color:#C9D2DA}.pi-item.est .result b{color:var(--ink3)}
+.pi-item.carry{border-color:#BBD6E8;background:#F7FBFE}.pi-item .esttag.carry{background:#E5F2F7;color:#0E6E8C}
 .pi-item .esttag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:99px;background:var(--warn-bg);color:var(--warn);font-size:11px;font-weight:700;vertical-align:middle}
 .pi-item .okbtn{padding:5px 10px;border:1px solid var(--accent);color:var(--accent);border-radius:8px;font-size:12px;font-weight:700;background:#fff}.pi-item .okbtn.on{background:var(--accent);color:#fff}
 .pi-item .name{font-weight:700;font-size:15px}
@@ -296,6 +297,40 @@ table.t th.sticky{z-index:3;background:#F4F6F8}
   #adjRep{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   #adjRep .rp-t tr{break-inside:avoid}
 }
+/* ── 실물재고 입력표 인쇄(v024) ── */
+.physpr{display:none}
+@media print{
+  .view.print[data-view=phys] .pi-head,.view.print[data-view=phys] .pi-grid,.view.print[data-view=phys]>.card{display:none!important}
+  .view.print[data-view=phys] .physpr{display:block!important;width:190mm;margin:0 auto;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .physpr .pp-head{display:flex;align-items:center;gap:12px;border-bottom:2.5px solid #C8551F;padding-bottom:5px;margin-bottom:6px}
+  .physpr .pp-head img{width:40px;height:40px;border-radius:9px}
+  .physpr .pp-co{font-size:13px;font-weight:800}.physpr .pp-sub{font-size:9.5px;color:#666}
+  .physpr .pp-title{flex:1;text-align:center;font-size:19px;font-weight:800;letter-spacing:1.5px;white-space:nowrap}
+  .physpr .pp-head .sig{display:flex}.physpr .pp-head .sig div{border:1px solid #999;width:22mm;text-align:center;font-size:9.5px}
+  .physpr .pp-head .sig div span{display:block;border-bottom:1px solid #999;background:#eee;padding:2px}.physpr .pp-head .sig div i{display:block;height:9mm}
+  .physpr .pp-meta{display:flex;justify-content:space-between;gap:10px;font-size:10.5px;color:#333;margin-bottom:6px}
+  .physpr .pp-meta b{font-weight:800}
+  .physpr .pp-sum{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-bottom:6px}
+  .physpr .pp-sum>div{border:1px solid #ccc;border-radius:5px;padding:3px 8px;display:flex;align-items:baseline;justify-content:space-between;gap:6px}.physpr .pp-sum span{font-size:9.5px;color:#555}.physpr .pp-sum b{font-size:13.5px;font-weight:800;letter-spacing:-.3px}
+  .physpr .pp-sum>div.warn{background:#FFF7F0;border-color:#E3B79B}.physpr .pp-sum>div.adj{background:#FBE9E9;border-color:#E3A3A3}
+  .physpr table{width:100%;border-collapse:collapse;font-size:9.3px;table-layout:fixed}
+  .physpr th,.physpr td{border:1px solid #bbb;padding:1.5px 4px;line-height:1.2;word-break:keep-all;overflow-wrap:break-word;vertical-align:middle}
+  .physpr th{background:#F6EFE9;color:#222;font-weight:700;text-align:center;font-size:9.3px;line-height:1.25;white-space:nowrap}
+  .physpr thead{display:table-header-group}.physpr tfoot{display:table-row-group}.physpr tr{break-inside:avoid;page-break-inside:avoid}
+  .physpr td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.physpr td.c{text-align:center;white-space:nowrap}
+  .physpr td.nm{font-weight:700}.physpr td.nm small{display:block;font-weight:400;color:#666;font-size:7.6px;line-height:1.2}
+  .physpr td.phys{font-weight:800;font-size:10.2px}
+  .physpr tr.est td{color:#666}.physpr tr.est td.nm,.physpr tr.est td.phys{color:#666;font-weight:600}
+  .physpr .tag{display:inline-block;padding:0 5px;border-radius:99px;font-size:8.3px;font-weight:700;white-space:nowrap}
+  .physpr .tag.ok{background:#E3F2EE;color:#1F7A63}.physpr .tag.est{background:#FFF1E0;color:#B5501F}.physpr .tag.no{background:#eee;color:#666}.physpr .tag.carry{background:#E5F2F7;color:#0E6E8C}
+  .physpr td.plus{color:#0E6E8C;font-weight:700}.physpr td.minus{color:#B23A3A;font-weight:700}
+  .physpr td.exp.near{background:#FBE9E9;font-weight:700}.physpr td.exp.soon{background:#FFF1E0}
+  .physpr tbody tr:nth-child(even) td{background:#FAFAFA}.physpr tbody tr:nth-child(even) td.exp.near{background:#FBE9E9}.physpr tbody tr:nth-child(even) td.exp.soon{background:#FFF1E0}
+  .physpr tfoot td{background:#EFE7E0;font-weight:800;border-top:2px solid #999}
+  .physpr .pp-memo{margin-top:6px;border:1px solid #bbb;border-radius:5px;padding:4px 9px;font-size:9.5px;line-height:1.45;min-height:7mm;break-inside:avoid}
+  .physpr .pp-memo b{display:block;color:#C8551F;margin-bottom:2px}
+  .physpr .pp-note{margin-top:4px;font-size:8.4px;color:#666;line-height:1.4}
+}
 .print-only{display:none}
 @media screen and (max-width:759px){.adj-h{display:none}}
 #adjItemTable.plain{border:0;background:none;overflow:visible} #adjItemTable.plain .tablewrap{margin-top:0} table.t tr.grp td{background:#F4F6F8;border-top:1px solid var(--line)}
@@ -396,12 +431,13 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
     <div class="pi-head">
       <div class="row between" style="margin-bottom:6px;flex-wrap:nowrap">
         <div style="min-width:0">
-          <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="piTitle">실물재고 입력</div>
+          <div class="row" style="gap:6px;flex-wrap:nowrap;align-items:center"><span style="font-weight:700;white-space:nowrap">실물재고</span><input type="date" id="piDate" title="입력할 날짜 — 바꾸면 그 날짜 실물재고를 열거나 새로 만듭니다" style="border:1px solid var(--line);border-radius:8px;padding:5px 7px;font-size:13px;font-weight:700;background:#fff;color:var(--ink);font-family:inherit;max-width:150px"></div>
           <div class="muted" id="piProg"></div>
         </div>
         <div class="row" style="flex-wrap:nowrap">
           <select id="piSort" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;background:#fff"><option value="name">품목명순</option><option value="vendor">매입처순</option><option value="code">코드순</option></select>
           <button class="btn sm" id="piOnlyEmpty">미입력</button>
+          <button class="btn sm" id="btnPhysPrint" title="실물재고 입력표 인쇄 (A4)">🖨<span class="mh"> 인쇄</span></button>
         </div>
       </div>
       <div class="progress"><i id="piBar" style="width:0"></i></div>
@@ -419,6 +455,7 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
       </div>
       <div class="muted" style="margin-top:8px">품목마다 전산재고량을 규격으로 나눠 미개봉 포수와 잔량(용기 포함)을 미리 채워 둡니다(점선 카드·「전산 추정」). 실제 무게로 고치거나 맞으면 「✓ 그대로」를 누르면 확인 완료로 바뀝니다. 「PDF 보고서」는 실물재고·소비기한 임박 순 보고서를 PDF로 만들어 휴대폰에 저장하거나 카카오톡으로 바로 보냅니다. 「PC로 보내기」는 입력한 실물 데이터를 문자로 복사합니다. 카톡 나와의 채팅으로 보낸 뒤 PC의 비교분석 → 「실물 가져오기」에 붙여넣으면 됩니다.</div>
     </div>
+    <div class="physpr" id="physPrint"></div>
   </section>
 
   <!-- ═══ 비교분석 ═══ -->
@@ -427,7 +464,7 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
       <div class="print-title">
         <h1 id="prTitle">원료 전산·실물 재고 비교분석</h1>
         <div class="row between"><span id="prMeta"></span>
-          <div class="sig"><div><span>담당</span><i></i></div><div><span>검토</span><i></i></div><div><span>승인</span><i></i></div></div>
+          
         </div>
       </div>
       <div class="card">
@@ -487,7 +524,7 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
       <div class="print-title">
         <h1>원료 재고조정 이력 분석</h1>
         <div class="row between"><span id="adjPrMeta"></span>
-          <div class="sig"><div><span>담당</span><i></i></div><div><span>검토</span><i></i></div><div><span>승인</span><i></i></div></div>
+          
         </div>
       </div>
       <div class="card">
@@ -585,7 +622,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    원료수불부 — 이카운트 전산재고 × 휴대폰 실물재고 비교 플랫폼
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
-const APP_VER  = '023';
+const APP_VER  = '027';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -653,8 +690,11 @@ let saveT = null;
 function save(now) {
   S.savedAt = new Date().toISOString();
   const w = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { toast('저장 실패: 저장공간 부족'); } };
-  if (now) { clearTimeout(saveT); w(); } else { clearTimeout(saveT); saveT = setTimeout(w, 250); }
+  if (now) { clearTimeout(saveT); saveT = null; w(); } else { clearTimeout(saveT); saveT = setTimeout(() => { saveT = null; w(); }, 150); }
 }
+/* v026: 화면을 벗어나거나(탭 전환·홈 버튼·카톡 이동) 닫히기 직전에 아직 쓰지 않은 입력을 즉시 저장 */
+document.addEventListener('visibilitychange', () => { if (document.hidden && saveT) save(true); });
+window.addEventListener('pagehide', () => { if (saveT) save(true); });
 
 /* ── helpers ── */
 const $ = s => document.querySelector(s);
@@ -702,9 +742,19 @@ function estimateFromEcount(it) {
   const packs = spec > 0 ? Math.floor(q / spec) : 0; const rest = Math.round((q - packs * spec) * 10) / 10;
   return { mode: 'packs', packs, gross: rest > 0 ? (S.settings.netWeight ? rest : Math.round((rest + tare) * 10) / 10) : 0, est: true, ts: new Date().toISOString() };
 }
+/* v026: 이전 날짜에 확인한 실물값이 있으면 그 값을 그대로 가져옴(carry = 원래 확인한 날짜). 없을 때만 전산 추정 */
+function hasPhysVal(p) { if (!p) return false; if (p.mode === 'direct') return p.direct != null && p.direct !== ''; return (p.packs != null && p.packs !== '') || (p.gross != null && p.gross !== ''); }
+function carryFrom(week, code) {
+  const ws = Object.keys(S.physical).filter(w => w < week).sort().reverse();
+  for (const w of ws) { const p = S.physical[w][code]; if (p && !p.est && hasPhysVal(p)) return { from: p.carry || w, p }; }
+  return null;
+}
 function prefillPhys(week, items) {
   const ph = physFor(week); let n = 0;
-  items.forEach(it => { const p = ph[it.code]; if (p && (physQty(it, p) != null || p.mode === 'direct')) return; const e = estimateFromEcount(it); if (!e) return; ph[it.code] = Object.assign({}, p || {}, e); n++; });
+  items.forEach(it => { const p = ph[it.code]; if (p && (physQty(it, p) != null || p.mode === 'direct')) return;
+    const c = carryFrom(week, it.code);
+    if (c) { const q = c.p; ph[it.code] = Object.assign({}, p || {}, { mode: q.mode || 'packs', packs: q.packs ?? '', gross: q.gross ?? '', direct: q.direct ?? '', carry: c.from, ts: new Date().toISOString() }); delete ph[it.code].est; n++; return; }
+    const e = estimateFromEcount(it); if (!e) return; ph[it.code] = Object.assign({}, p || {}, e); n++; });
   if (n) save();
   return n;
 }
@@ -738,7 +788,7 @@ function compareRows(week) {
     const eq = it.qty == null ? null : Number(it.qty);
     const diff = pq == null || eq == null ? (pq != null && eq == null ? pq : null) : Math.round((pq - eq) * 10) / 10;
     const price = priceOf(it.code, it.name); const mm = masterOf(it.code, it.name) || {};
-    return Object.assign({ phys: pq, ecount: eq, diff, est: isEst(ph[it.code]), adj: diff != null && needAdj(diff, eq), note: (ph[it.code] || {}).note || '', price, amt: diff == null || price == null ? null : Math.round(diff * price) }, it, { spec: it.spec || mm.spec || 0, tare: it.tare || mm.tare || 0 });
+    return Object.assign({ phys: pq, ecount: eq, diff, est: isEst(ph[it.code]), carry: !isEst(ph[it.code]) && (ph[it.code] || {}).carry || null, adj: diff != null && needAdj(diff, eq), note: (ph[it.code] || {}).note || '', price, amt: diff == null || price == null ? null : Math.round(diff * price) }, it, { spec: it.spec || mm.spec || 0, tare: it.tare || mm.tare || 0 });
   });
 }
 
@@ -848,7 +898,7 @@ function finPost(d) { const f = $('#finFrame'); if (!f || !f.contentWindow || !f
 function renderHeader() {
   $('#hSub').textContent = S.settings.company || '빵을그리다(주)'; const lg = $('#brandLogo'); if (lg && !lg.getAttribute('src')) { lg.src = LOGO_DATA; }
   const ws = weeks(); const phOnly = Object.keys(S.physical).filter(w => !S.snapshots[w] && Object.keys(S.physical[w]).length);
-  const all = [...new Set([...ws, ...phOnly])].sort();
+  const all = [...new Set([...ws, ...phOnly, S.ui.week].filter(w => w && (S.snapshots[w] || S.physical[w])))].sort();
   const cw = curWeek();
   $('#weekSel').innerHTML = all.map(w => `<option value="${w}" ${w === cw ? 'selected' : ''}>${w}${S.snapshots[w] ? '' : ' (실물만)'}</option>`).reverse().join('') + `<option value="__new">＋ 새 주차(오늘)</option>`;
   $('#weekSel').onchange = e => {
@@ -908,21 +958,21 @@ function sortItems(arr) {
 }
 function renderPhys() {
   const cw = curWeek(); const items = itemsFor(cw).filter(i => !hidden(i.code)); const ph = physFor(cw);
-  $('#piTitle').textContent = `실물재고 ${cw || '— 주차 없음'}`;
+  $('#piDate').value = cw || '';
   $('#piMemo').value = S.memos[cw] || '';
   if (!items.length) { $('#piList').innerHTML = '<div class="empty">품목이 없습니다. 먼저 전산재고를 업로드하세요.</div>'; $('#piProg').textContent = ''; $('#piBar').style.width = '0'; return; }
   prefillPhys(cw, items);
-  const done = items.filter(i => confirmed(i, ph[i.code])).length;
-  $('#piProg').textContent = `${done} / ${items.length} 확인${items[0].virtual ? ` · 품목 기준 ${items[0].snapWeek} 전산` : ''}`;
+  const carriedN = items.filter(i => confirmed(i, ph[i.code]) && ph[i.code].carry).length; const done = items.filter(i => confirmed(i, ph[i.code])).length - carriedN;
+  $('#piProg').textContent = `${done} / ${items.length} 확인${carriedN ? ` · 이전값 유지 ${carriedN}` : ''}${items[0].virtual ? ` · 품목 기준 ${items[0].snapWeek} 전산` : ''}`;
   $('#piBar').style.width = (done / items.length * 100) + '%';
   $('#piOnlyEmpty').classList.toggle('primary', ui.piOnlyEmpty);
   const q = ui.piSearch.trim().toLowerCase();
   let list = sortItems(items.filter(i => (!q || [i.code, i.name, i.vendor].join(' ').toLowerCase().includes(q)) && (!ui.piOnlyEmpty || !confirmed(i, ph[i.code]))));
   $('#piList').innerHTML = list.map(i => {
     const p = ph[i.code] || {}; const pq = physQty(i, p); const eq = i.qty == null ? null : Number(i.qty); const d = pq != null && eq != null ? pq - eq : null;
-    const direct = p.mode === 'direct'; const est = isEst(p);
-    return `<div class="pi-item ${est ? 'est' : pq != null ? 'done' : ''}" data-code="${esc(i.code)}">
-      <div class="row between"><div><div class="name">${esc(shortName(i.name))}${est ? '<span class="esttag">전산 추정</span>' : ''}</div><div class="meta">${esc(i.vendor)} · 규격 ${fmt(i.spec)}g · 용기 ${fmt(i.tare)}g</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="okbtn ${!est && pq != null ? 'on' : ''}" data-act="ok" title="추정값 그대로 확인">${!est && pq != null ? '✓ 확인됨' : '✓ 그대로'}</button><button class="mode ${direct ? 'on' : ''}" data-act="mode" title="입력방식 전환">${direct ? '직접 g' : '포수+잔량'}</button></div></div>
+    const direct = p.mode === 'direct'; const est = isEst(p); const carry = !est && pq != null && p.carry;
+    return `<div class="pi-item ${est ? 'est' : carry ? 'done carry' : pq != null ? 'done' : ''}" data-code="${esc(i.code)}">
+      <div class="row between"><div><div class="name">${esc(shortName(i.name))}${est ? '<span class="esttag">전산 추정</span>' : carry ? `<span class="esttag carry" title="${esc(p.carry)}에 확인한 값을 그대로 가져옴">이전값 ${esc(p.carry.slice(5))}</span>` : ''}</div><div class="meta">${esc(i.vendor)} · 규격 ${fmt(i.spec)}g · 용기 ${fmt(i.tare)}g</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="okbtn ${!est && pq != null && !carry ? 'on' : ''}" data-act="ok" title="${carry ? '이전값이 오늘도 맞으면 누르세요' : '추정값 그대로 확인'}">${carry ? '✓ 오늘 확인' : !est && pq != null ? '✓ 확인됨' : '✓ 그대로'}</button><button class="mode ${direct ? 'on' : ''}" data-act="mode" title="입력방식 전환">${direct ? '직접 g' : '포수+잔량'}</button></div></div>
       <div class="inputs ${direct ? 'direct' : ''}">
         ${direct ? `<div class="inp"><span>실물 (g)</span><input type="number" inputmode="decimal" data-f="direct" value="${p.direct ?? ''}" placeholder="0"></div>`
                  : `<div class="inp"><span>미개봉 포수</span><input type="number" inputmode="decimal" data-f="packs" value="${p.packs ?? ''}" placeholder="0"></div>
@@ -938,15 +988,15 @@ function renderPhys() {
   }).join('') || '<div class="empty">해당 품목이 없습니다.</div>';
   $$('#piList .pi-item').forEach(el => {
     const code = el.dataset.code; const it = items.find(i => i.code === code);
-    const upd = () => { const p = ph[code] || (ph[code] = {}); el.querySelectorAll('input[data-f]').forEach(inp => p[inp.dataset.f] = inp.value); p.ts = new Date().toISOString(); if (p.est) { delete p.est; el.classList.remove('est'); const tg = el.querySelector('.esttag'); if (tg) tg.remove(); const ob = el.querySelector('[data-act=ok]'); ob.classList.add('on'); ob.textContent = '✓ 확인됨'; } if (p.expiry) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); m.expiry = p.expiry; m.expiryWeek = cw; } el.querySelector('.inp.exp').classList.toggle('has', !!expiryOf(code, cw, p)); save();
+    const upd = () => { const p = ph[code] || (ph[code] = {}); el.querySelectorAll('input[data-f]').forEach(inp => p[inp.dataset.f] = inp.value); p.ts = new Date().toISOString(); if (p.est || p.carry) { delete p.est; delete p.carry; el.classList.remove('est'); el.classList.remove('carry'); const tg = el.querySelector('.esttag'); if (tg) tg.remove(); const ob = el.querySelector('[data-act=ok]'); ob.classList.add('on'); ob.textContent = '✓ 확인됨'; } if (p.expiry) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); m.expiry = p.expiry; m.expiryWeek = cw; } el.querySelector('.inp.exp').classList.toggle('has', !!expiryOf(code, cw, p)); save();
       const pq = physQty(it, p); const eq = it.qty == null ? null : Number(it.qty); const d = pq != null && eq != null ? pq - eq : null;
       el.classList.toggle('done', pq != null); el.querySelector('.result b').textContent = pq == null ? '—' : fmt(pq); el.querySelector('.result b').className = pq == null ? 'zero' : '';
       const sp = el.querySelector('.diff'); sp.textContent = d == null ? '' : '차이 ' + fmtS(d); sp.className = 'diff ' + cls(d); renderProg(); };
     el.querySelectorAll('input').forEach(inp => { inp.addEventListener('input', upd); inp.addEventListener('focus', () => inp.select()); inp.addEventListener('keydown', e => { if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey && inp.dataset.f !== 'note')) { e.preventDefault(); nextInput(inp, e.key === 'Enter'); } }); });
-    el.querySelector('[data-act=mode]').onclick = () => { const p = ph[code] || (ph[code] = {}); p.mode = p.mode === 'direct' ? 'packs' : 'direct'; delete p.est; save(); renderPhys(); };
-    el.querySelector('[data-act=ok]').onclick = () => { const p = ph[code]; if (!p || physQty(it, p) == null) return toast('수량을 먼저 입력하세요'); delete p.est; p.ts = new Date().toISOString(); save(); el.classList.remove('est'); el.classList.add('done'); const tg = el.querySelector('.esttag'); if (tg) tg.remove(); const ob = el.querySelector('[data-act=ok]'); ob.classList.add('on'); ob.textContent = '✓ 확인됨'; el.querySelector('.result b').className = ''; renderProg(); };
+    el.querySelector('[data-act=mode]').onclick = () => { const p = ph[code] || (ph[code] = {}); p.mode = p.mode === 'direct' ? 'packs' : 'direct'; delete p.est; delete p.carry; save(true); renderPhys(); };
+    el.querySelector('[data-act=ok]').onclick = () => { const p = ph[code]; if (!p || physQty(it, p) == null) return toast('수량을 먼저 입력하세요'); delete p.est; delete p.carry; p.ts = new Date().toISOString(); save(true); el.classList.remove('est'); el.classList.remove('carry'); el.classList.add('done'); const tg = el.querySelector('.esttag'); if (tg) tg.remove(); const ob = el.querySelector('[data-act=ok]'); ob.classList.add('on'); ob.textContent = '✓ 확인됨'; el.querySelector('.result b').className = ''; renderProg(); };
   });
-  function renderProg() { const done = items.filter(i => confirmed(i, ph[i.code])).length; $('#piProg').textContent = `${done} / ${items.length} 확인`; $('#piBar').style.width = (done / items.length * 100) + '%'; }
+  function renderProg() { const carriedN = items.filter(i => confirmed(i, ph[i.code]) && ph[i.code].carry).length; const done = items.filter(i => confirmed(i, ph[i.code])).length - carriedN; const t = new Date(); $('#piProg').textContent = `${done} / ${items.length} 확인${carriedN ? ` · 이전값 유지 ${carriedN}` : ''} · 저장 ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}:${String(t.getSeconds()).padStart(2, '0')}`; $('#piBar').style.width = (done / items.length * 100) + '%'; }
 }
 function nextInput(inp, enter) {
   const all = $$('#piList input[type=number]'); const i = all.indexOf(inp);
@@ -954,6 +1004,55 @@ function nextInput(inp, enter) {
   // Enter: 포수 → 잔량 → 다음 품목 포수 (메모는 건너뜀)
   const nx = all[i + 1]; if (nx) { nx.focus(); nx.scrollIntoView({ block: 'center', behavior: 'smooth' }); } else { inp.blur(); toast('마지막 품목입니다'); }
 }
+
+/* ── 실물재고 입력표 인쇄(v024): 현재 정렬·검색·미입력 필터 그대로 A4 표 ── */
+function buildPhysPrint() {
+  const cw = curWeek(); const items = itemsFor(cw).filter(i => !hidden(i.code)); const ph = physFor(cw);
+  const q = ui.piSearch.trim().toLowerCase();
+  const list = sortItems(items.filter(i => (!q || [i.code, i.name, i.vendor].join(' ').toLowerCase().includes(q)) && (!ui.piOnlyEmpty || !confirmed(i, ph[i.code]))));
+  const rows = list.map(i => { const p = ph[i.code] || {}; const mm = masterOf(i.code, i.name) || {}; const spec = Number(i.spec || mm.spec) || 0, tare = Number(i.tare || mm.tare) || 0;
+    const pq = physQty(i, p); const eq = i.qty == null ? null : Number(i.qty); const d = pq != null && eq != null ? Math.round((pq - eq) * 10) / 10 : null;
+    const exp = expiryOf(i.code, cw, p); const dd = ddays(exp);
+    return { i, p, spec, tare, pq, eq, d, exp, dd, est: isEst(p), ok: confirmed(i, p), carry: !isEst(p) && pq != null && p.carry, direct: p.mode === 'direct', adj: d != null && needAdj(d, eq) }; });
+  const carriedN = rows.filter(r => r.carry).length; const done = items.filter(i => confirmed(i, ph[i.code])).length - carriedN, estN = items.filter(i => isEst(ph[i.code])).length, none = items.filter(i => physQty(i, ph[i.code]) == null).length;
+  const diffN = rows.filter(r => r.d != null && r.d !== 0).length, adjN = rows.filter(r => r.adj).length;
+  const tp = rows.reduce((a, r) => a + (r.ok ? r.pq || 0 : 0), 0), te = rows.reduce((a, r) => a + (r.eq || 0), 0), tee = rows.reduce((a, r) => a + (r.ok ? r.eq || 0 : 0), 0);
+  const filt = [ui.piOnlyEmpty ? '미입력·미확인만' : '', q ? `검색 「${ui.piSearch.trim()}」` : ''].filter(Boolean).join(' · ');
+  const sortL = { name: '품목명순', vendor: '매입처순', code: '코드순' }[ui.piSort] || '';
+  const expCls = dd => dd == null ? '' : dd < 31 ? 'near' : dd < 92 ? 'soon' : '';
+  $('#physPrint').innerHTML = `
+    <div class="pp-head"><img src="${LOGO_DATA}" alt=""><div><div class="pp-co">${esc(S.settings.company || APP_NAME)}</div><div class="pp-sub">원료수불부 · 실물재고 입력표</div></div>
+      <div class="pp-title">원료 실물재고 확인표</div>
+      </div>
+    <div class="pp-meta"><span>기준일 <b>${esc(cw || '—')}</b> · 출력 ${today()}${S.settings.reporter ? ' · 보고자 ' + esc(S.settings.reporter) : ''}</span><span>${sortL}${filt ? ' · ' + filt : ''} · 표시 ${rows.length} / 전체 ${items.length}품목</span></div>
+    <div class="pp-sum">
+      <div><span>확인 완료</span><b>${done} / ${items.length}</b></div>
+      <div class="${estN ? 'warn' : ''}"><span>미확인(전산 추정)</span><b>${estN}</b></div>
+      <div><span>미입력</span><b>${none}</b></div>
+      <div><span>이전값 유지</span><b>${carriedN}</b></div>
+      <div><span>차이 발생</span><b>${diffN}건</b></div>
+      <div class="${adjN ? 'adj' : ''}"><span>조정대상</span><b>${adjN}건</b></div>
+    </div>
+    <table><colgroup><col style="width:7.5mm"><col style="width:43mm"><col style="width:17mm"><col style="width:12mm"><col style="width:15mm"><col style="width:17mm"><col style="width:17mm"><col style="width:15mm"><col style="width:19mm"><col style="width:11mm"><col></colgroup>
+      <thead><tr><th>No</th><th>품목 / 매입처</th><th>규격 / 용기(g)</th><th>미개봉<br>포수</th><th>잔량<br>${S.settings.netWeight ? '순중량' : '총중량'}(g)</th><th>실물(g)</th><th>전산(g)</th><th>차이(g)</th><th>소비기한</th><th>확인</th><th>메모</th></tr></thead>
+      <tbody>${rows.map((r, n) => `<tr class="${r.est ? 'est' : ''}">
+        <td class="c">${n + 1}</td>
+        <td class="nm">${esc(shortName(r.i.name))}<small>${esc(r.i.vendor || '')}${r.i.code ? ' · ' + esc(r.i.code) : ''}</small></td>
+        <td class="c">${fmt(r.spec)} / ${fmt(r.tare)}</td>
+        <td class="num">${r.direct ? '—' : (r.p.packs ?? '') === '' ? '' : fmt(Number(r.p.packs))}</td>
+        <td class="num">${r.direct ? '직접 ' + (r.p.direct ?? '') : (r.p.gross ?? '') === '' ? '' : fmt(Number(r.p.gross))}</td>
+        <td class="num phys">${r.pq == null ? '' : fmt(r.pq)}</td>
+        <td class="num">${fmt(r.eq)}</td>
+        <td class="num ${r.d == null ? '' : r.d > 0 ? 'plus' : r.d < 0 ? 'minus' : ''}">${r.d == null ? '' : r.d === 0 ? '0' : fmtS(r.d)}</td>
+        <td class="c exp ${expCls(r.dd)}">${r.exp ? esc(r.exp) + (r.dd != null ? '<br><span style="font-size:8.3px">' + ddLabel(r.dd) + '</span>' : '') : ''}</td>
+        <td class="c"><span class="tag ${r.carry ? 'carry' : r.ok ? 'ok' : r.est ? 'est' : 'no'}">${r.carry ? '이전값 ' + r.carry.slice(5) : r.ok ? '확인' : r.est ? '추정' : '미입력'}</span></td>
+        <td style="font-size:8.8px">${esc(r.p.note || '')}</td></tr>`).join('') || '<tr><td colspan="11" class="c" style="padding:10px">해당 품목이 없습니다.</td></tr>'}</tbody>
+      <tfoot><tr><td colspan="5" class="c">합계 (확인 완료 품목 기준)</td><td class="num">${fmt(Math.round(tp * 10) / 10)}</td><td class="num">${fmt(Math.round(tee * 10) / 10)}<div style="font-weight:400;font-size:8.3px">전체 ${fmt(Math.round(te * 10) / 10)}</div></td><td class="num ${tp - tee > 0 ? 'plus' : tp - tee < 0 ? 'minus' : ''}">${done ? fmtS(Math.round((tp - tee) * 10) / 10) : ''}</td><td colspan="3"></td></tr></tfoot>
+    </table>
+    <div class="pp-memo"><b>비고</b>${esc(S.memos[cw] || '')}</div>
+    <div class="pp-note">실물(g) = 미개봉 포수 × 규격 + (잔량 총중량 − 빈 용기) · 「추정」은 전산재고로 미리 채운 값으로 현장에서 확인 전임 · 「이전값」은 그 날짜에 확인한 실물값을 변동 없이 그대로 가져온 것 · 차이 = 실물 − 전산 · 소비기한 붉은 칸 = 1개월 이내(경과 포함), 주황 칸 = 3개월 이내</div>`;
+}
+$('#btnPhysPrint').onclick = () => { buildPhysPrint(); $$('.view').forEach(v => v.classList.toggle('print', v.dataset.view === 'phys')); setTimeout(() => window.print(), 30); };
 
 /* ── report text ── */
 function reportText(week) {
@@ -973,6 +1072,8 @@ function reportText(week) {
   if (miss.length) { L.push(''); L.push(`■ 미입력 ${miss.length}: ` + miss.map(r => shortName(r.name)).join(', ')); }
   const estL = rows.filter(r => r.est);
   if (estL.length) { L.push(''); L.push(`■ 미확인(전산 추정값 그대로) ${estL.length}: ` + estL.map(r => shortName(r.name)).join(', ')); }
+  const carL = rows.filter(r => r.carry);
+  if (carL.length) { L.push(''); L.push(`■ 이전값 유지(변동 없음) ${carL.length}: ` + carL.map(r => `${shortName(r.name)}(${r.carry.slice(5)})`).join(', ')); }
   const noted = entered.filter(r => r.note && !r.adj); if (noted.length) { L.push(''); noted.forEach(r => L.push(`* ${shortName(r.name)}: ${r.note}`)); }
   const soon = rows.map(r => ({ r, e: expiryOf(r.code, week) })).map(x => ({ ...x, d: ddays(x.e) })).filter(x => x.d != null && x.d <= 90).sort((a, b) => a.d - b.d);
   if (soon.length) { L.push(''); L.push('■ 소비기한 3개월 이내 (임박 순)'); soon.forEach(x => L.push(`- ${shortName(x.r.name)}: ${x.e} (${ddLabel(x.d)}${x.d < 0 ? ' 경과' : ''}) ${EXP_LBL[expBucket(x.d)]}`)); }
@@ -1000,7 +1101,8 @@ function renderCmp() {
     const pct = r.diff != null && r.ecount ? (r.diff / Math.abs(r.ecount) * 100) : null;
     const w = r.diff ? Math.max(4, Math.round(Math.abs(r.diff) / maxAbs * 60)) : 0;
     const st = r.phys == null ? '<span class="pill gray">미입력</span>' : r.diff === 0 ? '<span class="pill ok">일치</span>' : r.adj ? `<span class="pill ${cls(r.diff)}">${r.diff < 0 ? '부족·조정' : '초과·조정'}</span>` : '<span class="pill warn">오차내</span>';
-    return `<tr><td class="sticky">${esc(shortName(r.name))}<div class="muted mh code">${esc(r.code)}</div></td><td class="num">${fmt(r.ecount)}</td><td class="num"><b>${fmt(r.phys)}</b></td><td class="num ${cls(r.diff)}"><b>${r.diff == null ? '—' : fmtS(r.diff)}</b>${w ? ` <span class="diffbar" style="width:${w}px;background:${r.diff < 0 ? 'var(--minus)' : 'var(--plus)'}"></span>` : ''}</td><td class="num mh ${cls(r.diff)}">${pct == null ? '—' : fmtS(Math.round(pct * 10) / 10) + '%'}</td><td>${st}</td><td class="num mh ${r.adj ? cls(r.diff) : 'zero'}">${r.adj ? fmtS(r.diff) : ''}</td><td class="num ${r.diff ? cls(r.amt) : 'zero'}">${r.diff ? (r.amt == null ? '<span class="muted">단가없음</span>' : fmtWS(r.amt)) : ''}</td><td class="mh small"><span class="dday ${expBucket(ddays(expiryOf(r.code, cw)))}">${expiryOf(r.code, cw) || ''}</span></td><td class="small mh">${esc(r.note)}</td></tr>`;
+    const stc = r.carry ? ` <span class="pill gray" title="${esc(r.carry)} 확인값 유지">이전값 ${esc(r.carry.slice(5))}</span>` : '';
+    return `<tr><td class="sticky">${esc(shortName(r.name))}<div class="muted mh code">${esc(r.code)}</div></td><td class="num">${fmt(r.ecount)}</td><td class="num"><b>${fmt(r.phys)}</b></td><td class="num ${cls(r.diff)}"><b>${r.diff == null ? '—' : fmtS(r.diff)}</b>${w ? ` <span class="diffbar" style="width:${w}px;background:${r.diff < 0 ? 'var(--minus)' : 'var(--plus)'}"></span>` : ''}</td><td class="num mh ${cls(r.diff)}">${pct == null ? '—' : fmtS(Math.round(pct * 10) / 10) + '%'}</td><td>${st}${stc}</td><td class="num mh ${r.adj ? cls(r.diff) : 'zero'}">${r.adj ? fmtS(r.diff) : ''}</td><td class="num ${r.diff ? cls(r.amt) : 'zero'}">${r.diff ? (r.amt == null ? '<span class="muted">단가없음</span>' : fmtWS(r.amt)) : ''}</td><td class="mh small"><span class="dday ${expBucket(ddays(expiryOf(r.code, cw)))}">${expiryOf(r.code, cw) || ''}</span></td><td class="small mh">${esc(r.note)}</td></tr>`;
   }).join('');
   $('#cmpTable').innerHTML = `<table class="t"><thead><tr><th class="sticky">품목</th><th class="num">전산(g)</th><th class="num">실물(g)</th><th class="num">차이(g)</th><th class="num mh">차이율</th><th>상태</th><th class="num mh">조정수량</th><th class="num">금액</th><th class="mh">소비기한</th><th class="mh">메모</th></tr></thead><tbody>${body || '<tr><td colspan="10" class="empty">해당 품목 없음</td></tr>'}</tbody><tfoot><tr><td class="sticky">합계 ${list.length}품목</td><td class="num">${fmt(te)}</td><td class="num">${fmt(tp)}</td><td class="num ${cls(tp - tee)}">${fmtS(Math.round((tp - tee) * 10) / 10)}</td><td class="mh"></td><td></td><td class="num mh">${fmtS(adj.reduce((a, r) => a + r.diff, 0))}</td><td class="num ${cls(adjAmt)}">${adj.length ? fmtWS(adjAmt) : ''}</td><td class="mh"></td><td class="mh"></td></tr></tfoot></table>`;
 }
@@ -1462,7 +1564,7 @@ function adjReportRender(date, vs, R) {
   <div class="rp-head">
     <div class="rp-brand"><img src="${LOGO_DATA}" alt=""><div><div class="rp-co">${esc(S.settings.company || '빵을그리다(주)')}</div><div class="rp-sub">원료수불부 · 재고조정</div></div></div>
     <div class="rp-title">${esc(R.title)}</div>
-    <div class="sig"><div><span>담당</span><i></i></div><div><span>검토</span><i></i></div><div><span>승인</span><i></i></div></div>
+    
   </div>
   <table class="rp-meta"><tr><th>조정일자</th><td><b>${date}</b></td><th>전표번호</th><td>${vs.map(v => esc(v.no)).join(', ')}</td><th>출고창고</th><td>${esc(whs)}</td></tr><tr><th>보고자</th><td>${esc(R.reporter || '')}</td><th>조정 품목</th><td>${rows.length}품목 (증 ${mi.length} · 감 ${pl.length})</td><th>출력일</th><td>${today()}</td></tr></table>
   <div class="rp-sum">
@@ -1723,6 +1825,8 @@ $('#btnDelSnap').onclick = () => { const cw = curWeek(); if (!S.snapshots[cw]) r
 $('#stockSearch').addEventListener('input', e => { ui.stockSearch = e.target.value; renderStock(); });
 $('#btnStockXlsx').onclick = exportStock;
 $('#piSort').onchange = e => { ui.piSort = e.target.value; renderPhys(); };
+/* v027: 실물입력 날짜 지정 — 지난 날짜 정정 입력, 앞 날짜 미리 입력 모두 가능. 없는 날짜는 새로 만들고 최신 전산 품목·이전 실물값을 가져옴 */
+$('#piDate').onchange = e => { const d = e.target.value; if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { e.target.value = curWeek(); return; } if (d === curWeek()) return; const isNew = !S.snapshots[d] && !(S.physical[d] && Object.keys(S.physical[d]).length); S.ui.week = d; physFor(d); save(true); renderAll(); toast(isNew ? `${d} 실물재고를 새로 만들었습니다` : `${d} 실물재고를 열었습니다`); };
 $('#piOnlyEmpty').onclick = () => { ui.piOnlyEmpty = !ui.piOnlyEmpty; renderPhys(); };
 $('#piSearch').addEventListener('input', e => { ui.piSearch = e.target.value; renderPhys(); });
 $('#piMemo').addEventListener('input', e => { S.memos[curWeek()] = e.target.value; save(); });
