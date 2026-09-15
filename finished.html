@@ -391,7 +391,7 @@ html.embedded #tabs{display:none}html.embedded .appbar .brand{display:none}html.
     <div class="brand"><b>완제품·생지 재고관리</b><span id="brandSub">빵을그리다</span></div>
     <div class="snapsel"><small>확인일</small><select id="snapSel"></select><button class="btn sm ghost" id="btnNewSnap" title="현재 확인일의 재고를 복사해 새 확인일을 만듭니다">＋ 새 확인일</button></div>
     <div class="spacer"></div>
-    <span class="status" id="saveStatus"></span>
+    <span class="status" id="saveStatus"></span><span class="status" id="syncBadge" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
     <span class="ecbadge off" id="ecBadge" title="클릭하면 이카운트 자료를 바로 확인합니다">이카운트 미연동</span>
     <div class="savebar">
       <button class="btn pri" id="btnBrief" style="background:var(--blue);border-color:var(--blue)">📋 일일 보고</button>
@@ -453,8 +453,6 @@ html.embedded #tabs{display:none}html.embedded .appbar .brand{display:none}html.
   <div class="printhead" id="ph-ledger"></div>
   <div class="toolbar">
     <select class="f" id="ledgerSel"></select>
-    <button class="btn" id="btnLedgerCfg">대장 설정</button>
-    <button class="btn" id="btnNewLedger">＋ 대장 추가</button>
     <div class="seg" id="ledgerView"><button data-v="report" class="on">일일 보고</button><button data-v="rows">입출고 내역</button><button data-v="partners">판매처·생산</button><button data-v="monthly">월별 분석</button></div>
     <div class="grow"></div>
     <button class="btn newtx noprint" id="btnNewTx" title="입고·생산·판매 거래를 새로 입력합니다">＋ 새 거래 추가</button>
@@ -554,6 +552,10 @@ html.embedded #tabs{display:none}html.embedded .appbar .brand{display:none}html.
     <div class="setrow"><div><div class="h">엑셀 업로드</div><div class="d">「2026년_재고_현황_YYMMDD.xlsx」 형식 · 확인일별로 재고가 추가되고, 새 품목은 품목 목록에 자동 등록</div></div>
       <div><div class="drop" id="drop">여기에 엑셀을 끌어다 놓거나 <b>클릭해서 선택</b></div><input type="file" id="fileIn" accept=".xlsx" multiple="" class="hidden"><div class="log hidden" id="importLog"></div></div></div>
     <div class="setrow"><div><div class="h">200생지 백업 JSON 불러오기</div><div class="d">이전 「200생지_재고관리」 플랫폼의 백업(JSON)을 대장에 병합합니다 · 중복 거래는 건너뜀</div></div><div><button class="btn" id="btnD200In">JSON 선택</button><input type="file" id="d200In" accept=".json" class="hidden"></div></div>
+    <div class="setrow" id="setSync" style="display:block"><div><div class="h">공유 저장소 (구글 시트)</div><div class="d">재고·소비기한·200생지 대장·품목·설정을 구글 시트 「완제품」 탭에 모아 담당자 PC·휴대폰·열람자가 같은 값을 봅니다. 원료수불부와 같은 시트를 씁니다. 같은 항목은 나중에 입력한 값이 우선하며 입력자 이름이 기록됩니다.</div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><input id="setSyncUrl" placeholder="https://script.google.com/macros/s/…/exec" style="flex:1;min-width:240px;font-family:monospace;font-size:12px"><input id="setSyncUser" placeholder="입력자 이름" style="width:120px"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn" id="btnSyncTest">연결 확인</button><button class="btn pri" id="btnSyncNow">지금 동기화</button><button class="btn" id="btnSyncFull">전체 다시 받기</button></div>
+      <div class="d" id="syncStatus" style="margin-top:6px"></div></div>
     <div class="setrow"><div><div class="h">확인일 삭제</div><div class="d">선택된 확인일의 재고·소비기한 기록을 지웁니다</div></div><button class="btn danger" id="btnDelSnap">현재 확인일 삭제</button></div>
     <div class="setrow"><div><div class="h">백업 · 복원</div><div class="d">JSON 파일로 전체 데이터 저장·불러오기</div></div><div style="display:flex;gap:6px"><button class="btn" id="btnJsonOut">JSON 내보내기</button><button class="btn" id="btnJsonIn">JSON 불러오기</button><input type="file" id="jsonIn" accept=".json" class="hidden"></div></div>
     <div class="setrow"><div><div class="h">브라우저 저장 데이터</div><div class="d">이 PC 브라우저에 자동 저장된 변경사항을 지우고 HTML 파일에 담긴 데이터로 되돌립니다</div></div><button class="btn danger" id="btnResetLocal">브라우저 데이터 초기화</button></div>
@@ -602,7 +604,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 (function(){
 'use strict';
 const PLATFORM='완제품생지재고관리';
-const VERSION=68;
+const VERSION=71;
 const LS_KEY='wjsg_state_v1';
 const EMBED=(()=>{try{return window.parent!==window;}catch(e){return false;}})();if(EMBED)document.documentElement.classList.add('embedded');
 const TEMPLATE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
@@ -838,9 +840,9 @@ $('#lQ').addEventListener('input',e=>{lQ=e.target.value.trim().toLowerCase();ren
 $('#laCat').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;laCat=b.dataset.c;$$('#laCat button').forEach(x=>x.classList.toggle('on',x.dataset.c===laCat));$('#laMemoL').textContent='적요 ('+(laCat==='판매'?'거래처명':laCat==='생산'?'생산품목':'입고처')+')';$('#laMemo').focus();});
 $('#ledgerSel').addEventListener('change',e=>{ledgerId=e.target.value;ledgerMonth='all';renderLedger();});
 $('#ledgerMonth').addEventListener('change',e=>{ledgerMonth=e.target.value;renderLedger();});
-$('#btnNewLedger').onclick=()=>{const name=prompt('대장을 만들 품목명',S.items[0]?S.items[0].name:'');if(!name)return;const spec=prompt('규격 (예: 20EA*1봉)','')||'';
+const _bNL=$('#btnNewLedger');if(_bNL)_bNL.onclick=()=>{const name=prompt('대장을 만들 품목명',S.items[0]?S.items[0].name:'');if(!name)return;const spec=prompt('규격 (예: 20EA*1봉)','')||'';
   const L={id:'L'+Date.now(),name:name.trim(),spec,rows:[],cfg:{safety:0,leadTime:7,unitPerBox:0,orderUnit:0,price:0}};const it=S.items.find(i=>i.name===name.trim());if(it)L.itemId=it.id;S.ledgers.push(L);ledgerId=L.id;commit();renderLedger();};
-$('#btnLedgerCfg').onclick=()=>{const L=ledger();if(!L)return;const c=lcfg(L);$('#lcName').value=L.name;$('#lcSpec').value=L.spec||'';
+const _bLC=$('#btnLedgerCfg');if(_bLC)_bLC.onclick=()=>{const L=ledger();if(!L)return;const c=lcfg(L);$('#lcName').value=L.name;$('#lcSpec').value=L.spec||'';
   $('#lcItem').innerHTML='<option value="">연동 안 함</option>'+S.items.map(i=>`<option value="${i.id}"${i.id===L.itemId?' selected':''}>${esc(i.name)} · ${esc(i.vendor)}</option>`).join('');
   $('#lcSafety').value=c.safety||'';$('#lcLead').value=c.leadTime;$('#lcUnit').value=c.orderUnit||'';$('#lcEa').value=c.unitPerBox||'';$('#lcPrice').value=c.price||'';$('#mLedger').classList.add('on');};
 $('#lcSave').onclick=()=>{const L=ledger();L.name=$('#lcName').value.trim()||L.name;L.spec=$('#lcSpec').value.trim();L.itemId=$('#lcItem').value||null;
@@ -1303,6 +1305,86 @@ window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.return
 window.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();$('#btnSaveHtml').click();}});
 
 load();render();setStatus($('#saveStatus').textContent||('HTML 파일 데이터 · '+vstr));
+
+/* ── v069: 공유 저장소(구글 시트 Apps Script, 탭 「완제품」) 동기화 — 재고·소비기한·200생지 대장·품목·설정 ── */
+const SY_KEY='wjsg_sync_v1';
+const DEFAULT_SHARE_URL='https://script.google.com/macros/s/AKfycbxM0LELDMSjzNn34ohd7twyfKRV6WqVA3ikvkKUaMjuPnjG-kmfVhpxKfnNiuhfqwXUKA/exec';
+const SY_SHEET='완제품';
+let SY=null;
+function syLoad(){if(SY)return SY;try{SY=JSON.parse(localStorage.getItem(SY_KEY)||'null');}catch(e){}if(!SY||typeof SY!=='object')SY={};SY.sent=SY.sent||{};SY.recTs=SY.recTs||{};SY.outbox=SY.outbox||[];SY.since=SY.since||'';SY.device=SY.device||((/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)?'휴대폰':'PC')+'-'+Math.random().toString(36).slice(2,6));if(SY.url==null)SY.url=DEFAULT_SHARE_URL;return SY;}
+function sySave(){try{localStorage.setItem(SY_KEY,JSON.stringify(SY));}catch(e){}}
+const syOn=()=>/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test((syLoad().url||'').trim());
+const syUser=()=>(S.meta.syncUser||S.meta.fieldBy||'').trim();
+function syHash(s){let x=5381;for(let i=0;i<s.length;i++)x=((x<<5)+x+s.charCodeAt(i))|0;return (x>>>0).toString(36);}
+function syRowUid(L){const seen={};L.rows.forEach(r=>{if(r.uid)return;const base=[r.date,r.memo||'',r.cat||'',r.in??'',r.out??'',r.exp||'',r.note||'',r.set??''].join('|');const n=(seen[base]=(seen[base]||0)+1);r.uid='h'+syHash(base)+(n>1?'-'+n:'');});}
+const syEmptyStock=st=>!st||((st.box==null||st.box==='')&&(st.bag==null||st.bag==='')&&(st.each==null||st.each===''));
+function syLedgerRow(r){const o={date:r.date,memo:r.memo||'',cat:r.cat||'',in:r.in??null,out:r.out??null,exp:r.exp||'',note:r.note||''};if(r.set!=null)o.set=r.set;return o;}
+function syText(kind,key,v,del){const parts=key.split('|');
+  if(kind==='stock'){const it=item(parts[1]);const nm=it?it.name:parts[1];if(del)return `재고 ${parts[0]} · ${nm}: 지움`;return `재고 ${parts[0]} · ${nm}: 박스 ${v.box??'-'} · 봉 ${v.bag??'-'} · 낱개 ${v.each??'-'}`;}
+  if(kind==='ledger'){if(del||!v)return `200생지 대장 거래 삭제`;return `200생지 대장 ${v.date} ${v.cat||''} ${v.memo||''} · 입고 ${v.in??'-'} / 출고 ${v.out??'-'}${v.note?' · '+v.note:''}`;}
+  if(kind==='item'){const nm=v?v.name:(item(key)||{}).name||key;return `품목 ${nm} ${del?'삭제':'정보 수정'}`;}
+  if(kind==='expiry')return `소비기한·비상품 ${key} 갱신`;if(kind==='snap')return `확인일 ${key} ${del?'삭제':'추가'}`;if(kind==='ledgercfg')return '200생지 대장 설정 변경';if(kind==='meta')return '설정 변경';return kind+' '+key;}
+function syLog(e){const sy=syLoad();sy.log=sy.log||[];sy.log.push(e);if(sy.log.length>300)sy.log=sy.log.slice(-300);}
+function syPostLog(){try{if(window.parent&&window.parent!==window)window.parent.postMessage({type:'fin-sync-log',log:(syLoad().log||[]).slice(-300)},'*');}catch(e){}}
+function syMetaRec(){const m=Object.assign({},S.meta);delete m.savedAt;delete m.kakaoRecent;return m;}
+/* 현재 상태를 레코드(kind|key → json)로 펼침 */
+function syRecords(){const R={};
+  S.items.forEach(it=>{R['item|'+it.id]=JSON.stringify(it);});
+  S.snapshots.forEach(sn=>{R['snap|'+sn.date]='1';R['expiry|'+sn.date]=JSON.stringify(sn.expiry||{});Object.keys(sn.stock||{}).forEach(id=>{const st=sn.stock[id];if(!syEmptyStock(st))R['stock|'+sn.date+'|'+id]=JSON.stringify({box:st.box??null,bag:st.bag??null,each:st.each??null});});});
+  S.ledgers.forEach(L=>{syRowUid(L);R['ledgercfg|'+L.id]=JSON.stringify({name:L.name,spec:L.spec,itemId:L.itemId||'',cfg:L.cfg||{}});L.rows.forEach(r=>{R['ledger|'+L.id+'|'+r.uid]=JSON.stringify(syLedgerRow(r));});});
+  R['meta|meta']=JSON.stringify(syMetaRec());
+  return R;}
+let syDiffT=null,syBusy=false,syApplying=false;
+function sySchedule(){if(!syOn()||syApplying)return;clearTimeout(syDiffT);syDiffT=setTimeout(syDiff,1500);}
+function syDiff(){if(!syOn())return;const sy=syLoad();const R=syRecords();const ts=new Date().toISOString();let n=0;
+  const logs=[];const q=(kind,key,json,del)=>{sy.outbox=sy.outbox.filter(b=>!(b.kind===kind&&b.key===key));sy.outbox.push({ts,kind,key,json:json||'',del:!!del});n++;let v=null;try{v=json?JSON.parse(json):null;}catch(e){}logs.push({ts,user:syUser(),device:sy.device,kind,key,text:syText(kind,key,v,del)});};
+  Object.keys(R).forEach(k=>{if(sy.sent[k]!==R[k]){const [kind,...rest]=k.split('|');q(kind,rest.join('|'),R[k],false);sy.sent[k]=R[k];sy.recTs[k]=ts;}});
+  Object.keys(sy.sent).forEach(k=>{if(!(k in R)){const [kind,...rest]=k.split('|');q(kind,rest.join('|'),'',true);delete sy.sent[k];sy.recTs[k]=ts;}});
+  if(n){if(logs.length>60)syLog({ts,user:syUser(),device:sy.device,text:`전체 자료 올리기 ${logs.length}건`});else logs.forEach(syLog);sySave();syStatus();syPostLog();syPushSoon();}}
+let syPushT=null;function syPushSoon(){clearTimeout(syPushT);syPushT=setTimeout(syPush,800);}
+async function syPush(){if(!syOn()||syBusy)return;const sy=syLoad();if(!sy.outbox.length)return;syBusy=true;const batch=sy.outbox.slice(0,150);syStatus('보내는 중… '+sy.outbox.length+'건');
+  try{const r=await fetch(sy.url.trim(),{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({sheet:SY_SHEET,rows:batch,user:syUser(),device:sy.device})});const j=await r.json();if(!j.ok)throw new Error(j.error||'저장 실패');
+    const sent=new Set(batch.map(b=>b.ts+'|'+b.kind+'|'+b.key));sy.outbox=sy.outbox.filter(b=>!sent.has(b.ts+'|'+b.kind+'|'+b.key));sy.lastPush=new Date().toISOString();sy.err='';sySave();}
+  catch(e){sy.err='보내기 실패: '+(e.message||e);sySave();}
+  syBusy=false;syStatus();if(sy.outbox.length&&!sy.err)syPushSoon();}
+function syTyping(){const a=document.activeElement;return !!(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA')&&!a.classList.contains('hidden')&&a.type!=='file'&&!a.closest('#setSync'));}
+function syApplyRow(row){const k=row.kind+'|'+row.key;const sy=syLoad();if((sy.recTs[k]||'')>=row.ts)return false;sy.recTs[k]=row.ts;
+  const parts=row.key.split('|');let v=null;if(!row.del&&row.json){try{v=JSON.parse(row.json);}catch(e){return false;}}
+  if(row.kind==='item'){const idx=S.items.findIndex(i=>i.id===row.key);if(row.del){if(idx>=0)S.items.splice(idx,1);}else if(idx>=0)S.items[idx]=v;else S.items.push(v);}
+  else if(row.kind==='snap'){const d=row.key;if(row.del){const i=S.snapshots.findIndex(s=>s.date===d);if(i>=0)S.snapshots.splice(i,1);if(!S.snapshots.length)return false;}else if(!snap(d)){S.snapshots.push({date:d,stock:{},expiry:{near:[],expired:[],defect:[]}});S.snapshots.sort((a,b)=>a.date<b.date?-1:1);}}
+  else if(row.kind==='expiry'){let sn=snap(row.key);if(!sn){sn={date:row.key,stock:{},expiry:{near:[],expired:[],defect:[]}};S.snapshots.push(sn);S.snapshots.sort((a,b)=>a.date<b.date?-1:1);}if(row.del)sn.expiry={near:[],expired:[],defect:[]};else sn.expiry=Object.assign({near:[],expired:[],defect:[]},v);}
+  else if(row.kind==='stock'){const d=parts[0],id=parts[1];let sn=snap(d);if(!sn){sn={date:d,stock:{},expiry:{near:[],expired:[],defect:[]}};S.snapshots.push(sn);S.snapshots.sort((a,b)=>a.date<b.date?-1:1);}if(row.del)delete sn.stock[id];else sn.stock[id]={box:v.box??null,bag:v.bag??null,each:v.each??null};}
+  else if(row.kind==='ledgercfg'){const L=S.ledgers.find(l=>l.id===row.key)||S.ledgers[0];if(L&&!row.del){L.name=v.name||L.name;L.spec=v.spec||L.spec;if(v.itemId)L.itemId=v.itemId;L.cfg=v.cfg||L.cfg;}}
+  else if(row.kind==='ledger'){const lid=parts[0],uid=parts.slice(1).join('|');const L=S.ledgers.find(l=>l.id===lid)||S.ledgers[0];if(!L)return false;syRowUid(L);const i=L.rows.findIndex(r=>r.uid===uid);if(row.del){if(i>=0)L.rows.splice(i,1);}else{const nr=Object.assign({uid,seq:9999},v);if(i>=0)L.rows[i]=Object.assign(L.rows[i],nr);else L.rows.push(nr);}L._touch=true;}
+  else if(row.kind==='meta'){if(!row.del){const keep={savedAt:S.meta.savedAt,kakaoRecent:S.meta.kakaoRecent};S.meta=Object.assign({},S.meta,v,keep);}}
+  else return false;
+  sy.sent[k]=row.del?undefined:row.json;if(row.del)delete sy.sent[k];return true;}
+async function syPull(full,quiet){if(!syOn()||syBusy)return;const sy=syLoad();syBusy=true;let changed=0;if(!quiet)syStatus('받는 중…');
+  try{const r=await fetch(sy.url.trim()+'?action=pull&sheet='+encodeURIComponent(SY_SHEET)+'&since='+encodeURIComponent(full?'':(sy.since||''))+'&t='+Date.now(),{cache:'no-store'});const j=await r.json();if(!j.ok)throw new Error(j.error||'읽기 실패');
+    syApplying=true;const rows=(j.rows||[]).sort((a,b)=>a.ts<b.ts?-1:a.ts>b.ts?1:0);
+    const got=[];rows.forEach(row=>{if(!row.ts||!row.kind)return;if(row.ts>(sy.since||''))sy.since=row.ts;if(row.device&&row.device===sy.device){const k=row.kind+'|'+row.key;if(!row.del)sy.sent[k]=row.json;return;}if(syApplyRow(row)){changed++;got.push(row);}});
+    if(got.length>60)syLog({ts:got[got.length-1].ts,user:'(여러 명)',device:'공유 저장소',text:`공유 자료 ${got.length}건 받음`});else got.forEach(row=>{let v=null;try{v=row.json?JSON.parse(row.json):null;}catch(e){}syLog({ts:row.ts,user:row.user||'',device:row.device||'',kind:row.kind,key:row.key,text:syText(row.kind,row.key,v,row.del)});});
+    if(changed){S.ledgers.forEach(L=>{if(L._touch){delete L._touch;ledgerTouch(L);}});if(!snap(S.cur))S.cur=S.snapshots[S.snapshots.length-1].date;S.meta.savedAt=new Date().toISOString();try{localStorage.setItem(LS_KEY,JSON.stringify(S));}catch(e){}}
+    syApplying=false;sy.lastPull=new Date().toISOString();sy.err='';sySave();if(got.length)syPostLog();
+    if(changed){toast(`공유 저장소에서 ${changed}건 반영`);if(syTyping())sy.pendingRender=true;else render();}}
+  catch(e){syApplying=false;sy.err='받기 실패: '+(e.message||e);sySave();}
+  syBusy=false;syStatus();}
+function syStatus(msg){const sy=syLoad();const on=syOn();const hm=t=>t?t.slice(11,16):'—';const el=$('#syncStatus');if(el)el.innerHTML=!on?(sy.url?'<span style="color:var(--red)">URL 형식이 맞지 않습니다 (…/exec 형태)</span>':'연결 안 됨 — URL을 입력하세요'):`${msg?msg+' · ':''}마지막 받음 ${hm(sy.lastPull)} · 마지막 보냄 ${hm(sy.lastPush)} · 보낼 것 ${sy.outbox.length}건 · 이 기기 ${sy.device} · 입력자 ${syUser()||'(미설정)'}${sy.err?`<br><span style="color:var(--red)">${sy.err}</span>`:''}`;
+  const b=$('#syncBadge');if(b){b.textContent=!on?'':msg?'☁ '+msg:sy.err?'☁ '+sy.err:`☁ 공유 ${hm(sy.lastPull||sy.lastPush)}${sy.outbox.length?' · 보낼 것 '+sy.outbox.length:''}`;b.title=b.textContent;b.style.color=sy.err?'var(--red)':'';}}
+/* commit()마다 변경분 계산 */
+const _commit0=commit;commit=function(){_commit0();sySchedule();};
+$('#setSyncUrl').value=syLoad().url||'';$('#setSyncUser').value=S.meta.syncUser||S.meta.fieldBy||'';
+$('#setSyncUrl').addEventListener('change',e=>{const sy=syLoad();sy.url=e.target.value.trim();e.target.value=sy.url;sySave();syStatus();if(syOn()){syPull(true).then(()=>{syDiff();});}});
+$('#setSyncUser').addEventListener('change',e=>{S.meta.syncUser=e.target.value.trim();commit();syStatus();});
+$('#btnSyncTest').onclick=async()=>{if(!syOn())return toast('웹 앱 URL을 먼저 입력하세요');syStatus('연결 확인 중…');try{const r=await fetch(syLoad().url.trim()+'?action=ping&sheet='+encodeURIComponent(SY_SHEET)+'&t='+Date.now(),{cache:'no-store'});const j=await r.json();if(!j.ok)throw new Error(j.error||'응답 오류');syLoad().err='';toast(`연결됨 — 시트 「${j.sheet}」 기록 ${j.rows}건`);}catch(e){syLoad().err='연결 실패: '+(e.message||e);}sySave();syStatus();};
+$('#btnSyncNow').onclick=async()=>{if(!syOn())return toast('웹 앱 URL을 먼저 입력하세요');syDiff();await syPush();await syPull(false);toast('동기화 완료');};
+$('#btnSyncFull').onclick=async()=>{if(!syOn())return toast('웹 앱 URL을 먼저 입력하세요');syLoad().since='';await syPull(true);syDiff();toast('전체 다시 받기 완료');};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&syOn()){syPush();syPull(false,true);}});
+window.addEventListener('online',()=>{if(syOn()){syPush();syPull(false,true);}});
+document.addEventListener('focusout',()=>{setTimeout(()=>{const sy=syLoad();if(sy.pendingRender&&!syTyping()){sy.pendingRender=false;render();}},300);});
+setInterval(()=>{if(!document.hidden&&syOn()){const sy=syLoad();if(sy.pendingRender&&!syTyping()){sy.pendingRender=false;render();}syPull(false,true);}},60000);
+setTimeout(()=>{if(syOn()){syStatus();syPostLog();syPull(false,true).then(()=>{syDiff();syPush();});}},2000);
+
 window.WJSG={get S(){return S;},ecFetch,ecApply,item,go,commit,render,renderStock,setStockState:v=>{stockState=v;},getMapDraft:()=>mapDraft,version:vstr,bfToCanvas};
 })();
 

@@ -1,7 +1,7 @@
 {
-  "name": "원료수불부",
-  "short_name": "원료수불부",
-  "description": "원료 실물재고 입력·보고 및 전산재고 비교",
+  "name": "빵을그리다 통합 재고관리",
+  "short_name": "통합 재고관리",
+  "description": "원료수불부 + 완제품·생지 재고관리 — 이카운트 전산재고와 실물재고 비교",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
