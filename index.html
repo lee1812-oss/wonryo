@@ -683,7 +683,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    빵을그리다 통합 재고관리 — 원료수불부(이카운트 전산재고 × 휴대폰 실물재고) + 완제품·생지 재고관리
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
-const APP_VER  = '041';
+const APP_VER  = '042';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -928,7 +928,7 @@ function importPaste() {
 
 /* ── render: frame ── */
 function renderTabs() {
-  S.ui.menu = S.ui.menu === 'fin' ? 'fin' : 'raw'; S.ui.finTab = S.ui.finTab || 'dash'; if (!FIN_TABS.some(t => t[0] === S.ui.finTab)) S.ui.finTab = 'dash'; /* v040: 추이 탭 제거 — 저장된 탭이 없는 탭이면 대시보드로 */
+  S.ui.menu = S.ui.menu === 'fin' ? 'fin' : 'raw'; S.ui.finTab = S.ui.finTab || 'dash'; if (!FIN_TABS.some(t => t[0] === S.ui.finTab)) S.ui.finTab = 'dash'; /* v041: 추이 탭 제거 — 저장된 탭이 없는 탭이면 대시보드로 */
   const menu = S.ui.menu, M = MENUS[menu]; const cur = menu === 'fin' ? S.ui.finTab : S.ui.tab;
   // 상단: 대메뉴 2개
   $('#topMenu').innerHTML = Object.entries(MENUS).map(([k, m]) => `<button data-menu="${k}" class="${menu === k ? 'on' : ''}">${m.ico}<span>${m.name}</span></button>`).join('');
@@ -1309,7 +1309,7 @@ async function sharePull(full, quiet) {
   try { const r = await fetch(S.settings.shareUrl.trim() + '?action=pull&since=' + encodeURIComponent(full ? '' : (sh.since || '')) + '&t=' + Date.now(), { cache: 'no-store' }); const j = await r.json(); if (!j.ok) throw new Error(j.error || '읽기 실패');
     const applied = [];
     (j.rows || []).sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0).forEach(row => {
-      if (!row.week || !row.ts) return; if (row.ts > (sh.since || '')) sh.since = row.ts; if (row.device && row.device === sh.device) return; applied.push(row);
+      if (!row.week || !row.ts) return; if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.week))) { const d = new Date(row.week); if (!isNaN(d)) row.week = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); } if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.expiry || ''))) row.expiry = String(row.expiry).slice(0, 10); if (row.ts > (sh.since || '')) sh.since = row.ts; if (row.device && row.device === sh.device) return; applied.push(row);
       if (row.kind === 'memo') { const cur = (S.memoTs || {})[row.week] || ''; if (row.ts > cur) { S.memos[row.week] = row.note || ''; (S.memoTs = S.memoTs || {})[row.week] = row.ts; changed++; } return; }
       if (!row.code) return; const ph = physFor(row.week); const p = ph[row.code]; const lts = p && !p.est && !p.carry ? (p.ts || '') : '';
       if (lts >= row.ts) return;
