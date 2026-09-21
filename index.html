@@ -1147,6 +1147,14 @@ function finSendKey() {
     }).catch(() => {});
   }
 }
+/* v081: 「이 기기에 기억된 비밀번호 지우기」 — 완제품·생지가 기억한 열쇠도 함께 지웁니다.
+   같은 주소에서 열리면 저장소를 공유하므로 여기서 바로 지우고, 배포본(깃허브)으로 넘어간
+   경우를 위해 프레임에도 알립니다. */
+function finForget() {
+  try { localStorage.removeItem('wonryo_finlock_v1'); } catch (e) {}
+  const f = $('#finFrame'); if (!f || !f.contentWindow) return;
+  try { f.contentWindow.postMessage({ type: 'wonryo-forget' }, finTargetOrigin()); } catch (e) {}
+}
 /* 완제품·생지가 「열쇠 주세요」라고 하면 바로 보냅니다 (프레임이 먼저 뜬 경우 대비).
    완제품 프레임이 보낸 것만 응답합니다. */
 window.addEventListener('message', e => {
@@ -2480,7 +2488,7 @@ $('#btnTrendXlsx').onclick = exportTrend;
 $('#btnSaveHtml').onclick = saveHtml;
 /* v050 */
 $('#btnPwChange').onclick = async () => { if (await WLOCK.askChange()) { pwStateText(); try { finSendKey(); } catch (e) {} toast('비밀번호가 바뀌었습니다 — ①「데이터 포함 HTML 저장」 ②「공유 저장소 열쇠 복사」 후 Apps Script 새 버전 배포'); } };
-$('#btnPwForget').onclick = () => { WLOCK.forget(); pwStateText(); toast('이 기기에 기억된 비밀번호를 지웠습니다'); };
+$('#btnPwForget').onclick = () => { WLOCK.forget(); finForget(); pwStateText(); toast('이 기기에 기억된 비밀번호를 지웠습니다'); };
 /* v052: 공유 저장소 열쇠 — 화면에 띄우지 않고 클립보드에만 담습니다 (캡처·어깨너머 유출 방지) */
 $('#btnShareKey').onclick = async () => {
   const k = WLOCK.shareKey();
