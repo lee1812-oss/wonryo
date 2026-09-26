@@ -189,6 +189,7 @@ table.t th.sticky{z-index:3;background:#F4F6F8}
 .pi-item .inp span{font-size:11px;color:var(--ink2);font-weight:600}
 .pi-item .inp input{border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:17px;text-align:right;width:100%;background:#FBFCFD}
 .pi-item .inp input:focus{background:#fff;border-color:var(--accent)}
+.pi-item .inp input::placeholder{color:#B4BEC7;font-weight:400;opacity:1}.pi-item .esttag.hint{background:var(--line2);color:var(--ink3);font-weight:600}
 .pi-item .result{text-align:right;min-width:92px}
 .pi-item .result b{display:block;font-size:19px;letter-spacing:-.3px}
 .pi-item .result i{font-style:normal;display:inline-block;margin-top:5px;padding:4px 8px;border-radius:8px;background:var(--plus-bg);color:var(--plus);font-size:12px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
@@ -611,7 +612,7 @@ body.home-on header.top .brand{background:rgba(255,255,255,.16);box-shadow:inset
         <button class="btn brand" id="btnPhysOut">PC로 보내기</button>
         <button class="btn danger" id="btnPhysClear">이 주차 실물 지우기</button>
       </div>
-      <div class="muted" style="margin-top:8px">품목마다 전산재고량을 규격으로 나눠 미개봉 포수와 잔량(용기 포함)을 미리 채워 둡니다(점선 카드·「전산 추정」). 실제 무게로 고치거나 맞으면 「✓ 그대로」를 누르면 확인 완료로 바뀝니다. 「PDF 보고서」는 실물재고·소비기한 임박 순 보고서를 PDF로 만들어 휴대폰에 저장하거나 카카오톡으로 바로 보냅니다. 「PC로 보내기」는 입력한 실물 데이터를 문자로 복사합니다. 카톡 나와의 채팅으로 보낸 뒤 PC의 비교분석 → 「실물 가져오기」에 붙여넣으면 됩니다.</div>
+      <div class="muted" style="margin-top:8px">입력칸은 빈칸으로 시작합니다. 이전 날짜에 확인한 값(없으면 전산재고로 계산한 추정값)은 입력칸에 흐린 글씨로만 보이며 저장·공유되지 않습니다. 실제 무게를 입력하거나, 흐린 값이 맞으면 「✓ 이전값 그대로」·「✓ 추정값 그대로」를 누르면 확인 완료로 바뀝니다. 「PDF 보고서」는 실물재고·소비기한 임박 순 보고서를 PDF로 만들어 휴대폰에 저장하거나 카카오톡으로 바로 보냅니다. 「PC로 보내기」는 입력한 실물 데이터를 문자로 복사합니다. 카톡 나와의 채팅으로 보낸 뒤 PC의 비교분석 → 「실물 가져오기」에 붙여넣으면 됩니다.</div>
     </div>
     <div class="physpr" id="physPrint"></div>
   </section>
@@ -954,15 +955,20 @@ function carryFrom(week, code) {
   for (const w of ws) { const p = S.physical[w][code]; if (p && !p.est && hasPhysVal(p)) return { from: p.carry || w, p }; }
   return null;
 }
-function prefillPhys(week, items) {
-  const ph = physFor(week); let n = 0;
-  items.forEach(it => { const p = ph[it.code]; if (p && (physQty(it, p) != null || p.mode === 'direct')) return;
-    const c = carryFrom(week, it.code);
-    if (c) { const q = c.p; ph[it.code] = Object.assign({}, p || {}, { mode: q.mode || 'packs', packs: q.packs ?? '', gross: q.gross ?? '', direct: q.direct ?? '', carry: c.from, ts: new Date().toISOString() }); if (q.noTare) ph[it.code].noTare = true; else delete ph[it.code].noTare; delete ph[it.code].est; n++; return; }
-    const e = estimateFromEcount(it); if (!e) return; ph[it.code] = Object.assign({}, p || {}, e); n++; });
-  if (n) save();
-  return n;
+/* 2026-09-26: 실물입력은 빈칸으로 시작 — 이전 확인값(없으면 전산 추정)은 저장하지 않고 입력칸 흐린 글씨(placeholder)로만 참고 표시 */
+function physHint(week, it) {
+  const c = carryFrom(week, it.code); if (c) return { src: 'carry', from: c.from, p: c.p };
+  const e = estimateFromEcount(it); return e ? { src: 'est', from: '', p: e } : null;
 }
+/* 공유 저장소에 올릴 만한 실제 입력(추정·이전값 복사본 제외) */
+/* 화면 표시용: 추정·이전값 복사본이면 수치를 비우고, 아직 입력 전이면 참고값의 입력방식·용기 설정을 따름 */
+function physShown(p, hint) {
+  p = p || {}; const derived = !!(p.est || p.carry); const v = derived ? Object.assign({}, p, { packs: '', gross: '', direct: '' }) : Object.assign({}, p);
+  delete v.est; delete v.carry;
+  if (!hasPhysVal(v) && hint && !(!derived && p.mode)) { v.mode = hint.p.mode || 'packs'; if (!(!derived && 'noTare' in p)) v.noTare = !!hint.p.noTare; }
+  if (!v.mode) v.mode = 'packs'; if (!v.noTare) delete v.noTare; return v;
+}
+function physReal(p) { return !!p && !p.est && !p.carry && (hasPhysVal(p) || !!p.note || !!p.expiry); }
 function isEst(p) { return !!(p && p.est); }
 function confirmed(it, p) { return physQty(it, p) != null && !isEst(p); }
 function hidden(code) { return !!(S.itemMeta[code] && S.itemMeta[code].hidden); }
@@ -1348,7 +1354,6 @@ function renderPhys() {
   $('#piDate').value = cw || '';
   $('#piMemo').value = S.memos[cw] || '';
   if (!items.length) { $('#piList').innerHTML = '<div class="empty">품목이 없습니다. 먼저 전산재고를 업로드하세요.</div>'; $('#piProg').textContent = ''; $('#piBar').style.width = '0'; return; }
-  prefillPhys(cw, items);
   const carriedN = items.filter(i => confirmed(i, ph[i.code]) && ph[i.code].carry).length; const done = items.filter(i => confirmed(i, ph[i.code])).length - carriedN;
   $('#piProg').textContent = `${done} / ${items.length} 확인${carriedN ? ` · 이전값 유지 ${carriedN}` : ''}${items[0].virtual ? ` · 품목 기준 ${items[0].snapWeek} 전산` : ''}`;
   $('#piBar').style.width = (done / items.length * 100) + '%';
@@ -1381,14 +1386,17 @@ function physNetHtml(it, p) {
 function renderPhysCards(listEl, list, items, cw, ph, opts) {
   opts = opts || {}; const extra = opts.extra || (() => ''); const renderProg = opts.onProg || (() => {}); const rerender = opts.rerender || renderPhys;
   listEl.innerHTML = list.map(i => {
-    const p = ph[i.code] || {}; const pq = physQty(i, p); const eq = i.qty == null ? null : Number(i.qty); const d = pq != null && eq != null ? pq - eq : null;
-    const direct = p.mode === 'direct'; const est = isEst(p); const carry = !est && pq != null && p.carry;
-    return `<div class="pi-item ${est ? 'est' : carry ? 'done carry' : pq != null ? 'done' : ''}" data-code="${esc(i.code)}">
-      <div class="row between"><div><div class="name">${esc(shortName(i.name))}${est ? '<span class="esttag">전산 추정</span>' : carry ? `<span class="esttag carry" title="${esc(p.carry)}에 확인한 값을 그대로 가져옴">이전값 ${esc(p.carry.slice(5))}</span>` : p.by ? `<span class="esttag" style="background:var(--line2);color:var(--ink3)" title="공유 저장소에서 받은 값">${esc(p.by)} ${esc(String(p.ts || '').slice(11, 16))}</span>` : ''}</div><div class="meta">${esc(i.vendor)} · 규격 ${fmt(i.spec)}g · 용기 ${fmt(i.tare)}g</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="okbtn ${!est && pq != null && !carry ? 'on' : ''}" data-act="ok" title="${carry ? '이전값이 오늘도 맞으면 누르세요' : '추정값 그대로 확인'}">${carry ? '✓ 오늘 확인' : !est && pq != null ? '✓ 확인됨' : '✓ 그대로'}</button><button class="mode ${direct ? 'on' : ''}" data-act="mode" title="입력방식 전환">${direct ? '직접 g' : '포수+잔량'}</button></div></div>
+    const p0 = ph[i.code] || {}; const derived = !!(p0.est || p0.carry);
+    const hint = derived ? { src: p0.est ? 'est' : 'carry', from: p0.carry || '', p: p0 } : hasPhysVal(p0) ? null : physHint(cw, i);
+    const p = physShown(p0, hint); const pq = physQty(i, p); const eq = i.qty == null ? null : Number(i.qty); const d = pq != null && eq != null ? pq - eq : null;
+    const direct = p.mode === 'direct'; const hp = hint ? hint.p : {}; const hq = hint ? physQty(i, hp) : null;
+    const ph1 = v => v == null || v === '' ? '' : esc(String(v));
+    return `<div class="pi-item ${pq != null ? 'done' : ''}" data-code="${esc(i.code)}">
+      <div class="row between"><div><div class="name">${esc(shortName(i.name))}${pq == null && hint ? (hint.src === 'carry' ? `<span class="esttag hint" title="${esc(hint.from)}에 확인한 값 — 입력칸에 흐린 글씨로만 보입니다">참고 이전값 ${esc(hint.from.slice(5))}${hq != null ? ' · ' + fmt(hq) + 'g' : ''}</span>` : `<span class="esttag hint" title="전산재고로 계산한 추정값 — 입력칸에 흐린 글씨로만 보입니다">참고 전산 추정</span>`) : p.by ? `<span class="esttag" style="background:var(--line2);color:var(--ink3)" title="공유 저장소에서 받은 값">${esc(p.by)} ${esc(String(p.ts || '').slice(11, 16))}</span>` : ''}</div><div class="meta">${esc(i.vendor)} · 규격 ${fmt(i.spec)}g · 용기 ${fmt(i.tare)}g</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="okbtn ${pq != null ? 'on' : ''}" data-act="ok" title="${pq != null ? '입력한 값으로 확인' : hint ? (hint.src === 'carry' ? '흐린 글씨의 이전값이 오늘도 맞으면 누르세요' : '흐린 글씨의 전산 추정값이 맞으면 누르세요') : '수량을 입력하세요'}">${pq != null ? '✓ 확인됨' : hint ? (hint.src === 'carry' ? '✓ 이전값 그대로' : '✓ 추정값 그대로') : '✓ 그대로'}</button><button class="mode ${direct ? 'on' : ''}" data-act="mode" title="입력방식 전환">${direct ? '직접 g' : '포수+잔량'}</button></div></div>
       <div class="inputs ${direct ? 'direct' : ''}">
-        ${direct ? `<div class="inp"><span>실물 (g)</span><input type="number" inputmode="decimal" data-f="direct" value="${p.direct ?? ''}" placeholder="0"></div>`
-                 : `<div class="inp"><span>미개봉 포수</span><input type="number" inputmode="decimal" data-f="packs" value="${p.packs ?? ''}" placeholder="0"></div>
-                    <div class="inp"><span>${S.settings.netWeight ? '잔량 순중량' : p.noTare ? '잔량' : '총중량'} g${S.settings.netWeight ? '' : ` <button type="button" class="tarebtn ${p.noTare ? 'on' : ''}" data-act="tare" title="${p.noTare ? '용기에 담아 잰 무게라면 눌러 용기 포함으로' : '용기 없이 잰 무게라면 눌러 용기 무게 빼지 않기'}">${p.noTare ? '용기 없음' : '용기 포함'}</button>`}</span><input type="number" inputmode="decimal" data-f="gross" value="${p.gross ?? ''}" placeholder="0"></div>
+        ${direct ? `<div class="inp"><span>실물 (g)</span><input type="number" inputmode="decimal" data-f="direct" value="${p.direct ?? ''}" placeholder="${ph1(hp.mode === 'direct' ? hp.direct : hq)}"></div>`
+                 : `<div class="inp"><span>미개봉 포수</span><input type="number" inputmode="decimal" data-f="packs" value="${p.packs ?? ''}" placeholder="${hp.mode === 'direct' ? '' : ph1(hp.packs)}"></div>
+                    <div class="inp"><span>${S.settings.netWeight ? '잔량 순중량' : p.noTare ? '잔량' : '총중량'} g${S.settings.netWeight ? '' : ` <button type="button" class="tarebtn ${p.noTare ? 'on' : ''}" data-act="tare" title="${p.noTare ? '용기에 담아 잰 무게라면 눌러 용기 포함으로' : '용기 없이 잰 무게라면 눌러 용기 무게 빼지 않기'}">${p.noTare ? '용기 없음' : '용기 포함'}</button>`}</span><input type="number" inputmode="decimal" data-f="gross" value="${p.gross ?? ''}" placeholder="${hp.mode === 'direct' ? '' : ph1(hp.gross)}"></div>
                     ${physNetHtml(i, p)}`}
         <div class="result"><b class="${pq == null ? 'zero' : ''}">${pq == null ? '—' : fmt(pq)}</b><i>전산<em>${fmt(eq)}</em></i></div>
       </div>
@@ -1402,14 +1410,19 @@ function renderPhysCards(listEl, list, items, cw, ph, opts) {
   }).join('') || '<div class="empty">해당 품목이 없습니다.</div>';
   listEl.querySelectorAll('.pi-item').forEach(el => {
     const code = el.dataset.code; const it = items.find(i => i.code === code);
-    const upd = () => { const p = ph[code] || (ph[code] = {}); el.querySelectorAll('input[data-f]').forEach(inp => p[inp.dataset.f] = inp.value); p.ts = new Date().toISOString(); if (p.est || p.carry) { delete p.est; delete p.carry; el.classList.remove('est'); el.classList.remove('carry'); const tg = el.querySelector('.esttag'); if (tg) tg.remove(); const ob = el.querySelector('[data-act=ok]'); ob.classList.add('on'); ob.textContent = '✓ 확인됨'; } if (p.expiry) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); m.expiry = p.expiry; m.expiryWeek = cw; } el.querySelector('.inp.exp').classList.toggle('has', !!expiryOf(code, cw, p)); save(); shareMark(cw, code, p.ts);
+    /* 손대는 순간 실제 입력으로 전환: 추정·이전값 복사본의 수치는 버리고(원래 날짜 값은 그대로), 화면에 보이던 입력방식·용기 설정만 이어받음 */
+    const realize = () => { const p0 = ph[code] || (ph[code] = {}); const derived = !!(p0.est || p0.carry); const hint = derived ? { p: Object.assign({}, p0) } : hasPhysVal(p0) ? null : physHint(cw, it); const sh = physShown(p0, hint);
+      if (physReal(p0) && !sharePending(cw, code)) p0.hadVal = 1; if (derived) { p0.packs = ''; p0.gross = ''; p0.direct = ''; delete p0.est; delete p0.carry; } p0.mode = sh.mode; p0.noTare = !!sh.noTare; return { p: p0, hint }; };
+    const upd = () => { const { p } = realize(); el.querySelectorAll('input[data-f]').forEach(inp => p[inp.dataset.f] = inp.value); p.ts = new Date().toISOString(); { const tg = el.querySelector('.esttag.hint'); const ob = el.querySelector('[data-act=ok]'); if (hasPhysVal(p)) { if (tg) tg.remove(); ob.classList.add('on'); ob.textContent = '✓ 확인됨'; } } if (p.expiry) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); m.expiry = p.expiry; m.expiryWeek = cw; } el.querySelector('.inp.exp').classList.toggle('has', !!expiryOf(code, cw, p)); save(); shareMark(cw, code, p.ts);
       const pq = physQty(it, p); const eq = it.qty == null ? null : Number(it.qty); const d = pq != null && eq != null ? pq - eq : null;
       el.classList.toggle('done', pq != null); el.querySelector('.result b').textContent = pq == null ? '—' : fmt(pq); el.querySelector('.result b').className = pq == null ? 'zero' : '';
       const sp = el.querySelector('.diff'); sp.textContent = d == null ? '' : '차이 ' + fmtS(d); sp.className = 'diff ' + cls(d); const ex = el.querySelector('.wkstrip'); if (ex && opts.extra) ex.outerHTML = extra(it, p); const nb = el.querySelector('.inp.net'); if (nb) nb.outerHTML = physNetHtml(it, p); renderProg(); };
     el.querySelectorAll('input').forEach(inp => { inp.addEventListener('input', upd); inp.addEventListener('focus', () => inp.select()); inp.addEventListener('keydown', e => { if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey && inp.dataset.f !== 'note')) { e.preventDefault(); nextInput(inp, e.key === 'Enter'); } }); });
-    const tb = el.querySelector('[data-act=tare]'); if (tb) tb.onclick = () => { const p = ph[code] || (ph[code] = {}); p.noTare = !p.noTare; if (p.est || p.carry) { delete p.est; delete p.carry; } p.ts = new Date().toISOString(); save(true); shareMark(cw, code, p.ts); rerender(); };
-    el.querySelector('[data-act=mode]').onclick = () => { const p = ph[code] || (ph[code] = {}); p.mode = p.mode === 'direct' ? 'packs' : 'direct'; delete p.est; delete p.carry; save(true); shareMark(cw, code); rerender(); };
-    el.querySelector('[data-act=ok]').onclick = () => { const p = ph[code]; if (!p || physQty(it, p) == null) return toast('수량을 먼저 입력하세요'); delete p.est; delete p.carry; p.ts = new Date().toISOString(); save(true); shareMark(cw, code, p.ts); el.classList.remove('est'); el.classList.remove('carry'); el.classList.add('done'); const tg = el.querySelector('.esttag'); if (tg) tg.remove(); const ob = el.querySelector('[data-act=ok]'); ob.classList.add('on'); ob.textContent = '✓ 확인됨'; el.querySelector('.result b').className = ''; renderProg(); };
+    const tb = el.querySelector('[data-act=tare]'); if (tb) tb.onclick = () => { const { p } = realize(); p.noTare = !p.noTare; p.ts = new Date().toISOString(); save(true); shareMark(cw, code, p.ts); rerender(); };
+    el.querySelector('[data-act=mode]').onclick = () => { const { p } = realize(); p.mode = p.mode === 'direct' ? 'packs' : 'direct'; save(true); shareMark(cw, code); rerender(); };
+    el.querySelector('[data-act=ok]').onclick = () => { const { p, hint } = realize();
+      if (!hasPhysVal(p)) { if (!hint || physQty(it, hint.p) == null) { save(); return toast('수량을 먼저 입력하세요'); } const h = hint.p; Object.assign(p, { mode: h.mode || 'packs', packs: h.packs ?? '', gross: h.gross ?? '', direct: h.direct ?? '' }); if (h.noTare) p.noTare = true; else delete p.noTare; }
+      p.ts = new Date().toISOString(); save(true); shareMark(cw, code, p.ts); rerender(); };
   });
 }
 function nextInput(inp, enter) {
@@ -1507,7 +1520,7 @@ async function renderWeekly() {
   const items = itemsFor(to).filter(i => !hidden(i.code) && isGgItem(i)).map(i => { const q1 = wk.mapTo[i.code]; return Object.assign({}, i, { qty: q1 != null ? q1 : i.qty }); });
   wk.rows = items.map(i => { const q0 = wk.mapFrom[i.code]; const q1 = i.qty == null ? null : Number(i.qty); const d = q0 != null && q1 != null ? Math.round((q1 - q0) * 10) / 10 : null; return { it: i, q0: q0 == null ? null : q0, q1, d, changed: d != null && d !== 0, p0: physAtOrBefore(i.code, wk.from) }; });
   const changed = wk.rows.filter(r => r.changed), same = wk.rows.filter(r => !r.changed);
-  const chItems = changed.map(r => r.it); prefillPhys(to, chItems);
+  const chItems = changed.map(r => r.it);
   const dec = changed.filter(r => r.d < 0), inc = changed.filter(r => r.d > 0);
   const sumDec = dec.reduce((a, r) => a + r.d, 0), sumInc = inc.reduce((a, r) => a + r.d, 0);
   const prog = () => { const carriedN = chItems.filter(i => confirmed(i, ph[i.code]) && ph[i.code].carry).length; const done = chItems.filter(i => confirmed(i, ph[i.code])).length - carriedN; const adjN = chItems.filter(i => { const p = ph[i.code]; if (!confirmed(i, p)) return false; const pq = physQty(i, p); return pq != null && needAdj(Math.round((pq - i.qty) * 10) / 10, i.qty); }).length; $('#wkProg').textContent = `변동 품목 ${chItems.length} · 확인 ${done}${carriedN ? ` · 이전값 유지 ${carriedN}` : ''} · 조정대상 ${adjN}`; $('#wkBar').style.width = (chItems.length ? done / chItems.length * 100 : 0) + '%'; };
@@ -1545,10 +1558,15 @@ const shareKey = r => r.week + '|' + r.code + '|' + r.kind;
 function shareMark(week, code, ts) {
   if (!shareOn() || !week || !code) return; const sh = shareCfg(); const p = (S.physical[week] || {})[code]; const it = itemsFor(week).find(i => i.code === code) || {};
   const row = { ts: ts || new Date().toISOString(), week, code, name: shortName(it.name || code), kind: 'phys' };
-  if (!p || (!hasPhysVal(p) && !p.note && !p.expiry)) row.del = true; else { if (p.est || p.carry) return; Object.assign(row, { mode: p.mode || 'packs', packs: p.packs ?? '', gross: p.gross ?? '', direct: p.direct ?? '', expiry: p.expiry || '', note: p.note || '', notare: p.noTare ? 1 : '' }); p.ts = row.ts; }
+  if (p && (p.est || p.carry)) return; /* 추정·이전값 복사본은 절대 올리지 않음 */
+  if (!physReal(p)) { /* 빈 값: 이 기기에 실제 값이 있었다가 지운 경우에만 삭제를 보냄 — 빈칸 때문에 다른 기기 입력이 지워지지 않게 */
+    if (p && !p.hadVal) { /* 아직 안 보낸 값은 보내기 목록에서 빼기만 */ sh.outbox = sh.outbox.filter(r => shareKey(r) !== shareKey(row)); save(); renderShareStatus(); renderSharePill(); return; }
+    row.del = true; }
+  else { Object.assign(row, { mode: p.mode || 'packs', packs: p.packs ?? '', gross: p.gross ?? '', direct: p.direct ?? '', expiry: p.expiry || '', note: p.note || '', notare: p.noTare ? 1 : '' }); p.ts = row.ts; }
   sh.outbox = sh.outbox.filter(r => shareKey(r) !== shareKey(row)); sh.outbox.push(row); if (!shareBulk) logAdd({ ts: row.ts, user: S.settings.reporter || '', device: sh.device, text: shareRowText(row) }); save(); renderShareStatus(); renderSharePill(); sharePushSoon();
 }
 let shareBulk = false;
+const sharePending = (week, code) => !!(S.share && (S.share.outbox || []).some(r => r.kind === 'phys' && r.week === week && r.code === code));
 function shareMarkMemo(week, ts) { if (!shareOn() || !week) return; const sh = shareCfg(); const row = { ts: ts || new Date().toISOString(), week, code: '', name: '', kind: 'memo', note: S.memos[week] || '' }; (S.memoTs = S.memoTs || {})[week] = row.ts; sh.outbox = sh.outbox.filter(r => shareKey(r) !== shareKey(row)); sh.outbox.push(row); if (!shareBulk) logAdd({ ts: row.ts, user: S.settings.reporter || '', device: sh.device, text: shareRowText(row) }); save(); renderShareStatus(); renderSharePill(); sharePushSoon(); }
 function shareMarkAll(week) { Object.keys(S.physical[week] || {}).forEach(c => shareMark(week, c)); if (S.memos[week] != null) shareMarkMemo(week); }
 let sharePushT = null, shareBusy = false;
@@ -1570,7 +1588,7 @@ async function shareApi(payload) {
 async function sharePush() {
   if (!shareOn() || shareBusy) return; const sh = shareCfg(); if (!sh.outbox.length) return; shareBusy = true; const batch = sh.outbox.slice(0, 200); renderShareStatus('보내는 중…');
   try { const j = await shareApi({ rows: batch, user: S.settings.reporter || '', device: sh.device });
-    const sent = new Set(batch.map(b => b.ts + '|' + shareKey(b))); sh.outbox = sh.outbox.filter(b => !sent.has(b.ts + '|' + shareKey(b))); sh.lastPush = new Date().toISOString(); sh.err = ''; save(true); }
+    const sent = new Set(batch.map(b => b.ts + '|' + shareKey(b))); batch.forEach(b => { if (b.kind !== 'phys') return; const p = (S.physical[b.week] || {})[b.code]; if (!p) return; if (b.del) delete p.hadVal; else if (p.ts === b.ts) p.hadVal = 1; }); sh.outbox = sh.outbox.filter(b => !sent.has(b.ts + '|' + shareKey(b))); sh.lastPush = new Date().toISOString(); sh.err = ''; save(true); }
   catch (e) { sh.err = '보내기 실패: ' + (e.message || e); save(); }
   shareBusy = false; renderShareStatus(); if (sh.outbox.length && !sh.err) sharePushSoon();
 }
@@ -1584,10 +1602,10 @@ async function sharePull(full, quiet) {
       if (row.kind === 'notice' || row.kind === 'noticeack') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; const r = nbApply(row); if (r) nbCh++; if (r === 2) nbNew.push(row); return; }
       if (!row.week || !row.ts) return; if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.week))) { const d = new Date(row.week); if (!isNaN(d)) row.week = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); } if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.expiry || ''))) row.expiry = String(row.expiry).slice(0, 10); if (row.ts > (sh.since || '')) sh.since = row.ts; if (row.device && row.device === sh.device) return; applied.push(row);
       if (row.kind === 'memo') { const cur = (S.memoTs || {})[row.week] || ''; if (row.ts > cur) { S.memos[row.week] = row.note || ''; (S.memoTs = S.memoTs || {})[row.week] = row.ts; changed++; } return; }
-      if (!row.code) return; const ph = physFor(row.week); const p = ph[row.code]; const lts = p && !p.est && !p.carry ? (p.ts || '') : '';
+      if (!row.code) return; const ph = physFor(row.week); const p = ph[row.code]; const lts = physReal(p) || (p && !p.est && !p.carry && sharePending(row.week, row.code)) ? (p.ts || '') : '';
       if (lts >= row.ts) return;
       if (row.del) { if (p) { delete ph[row.code]; changed++; } return; }
-      ph[row.code] = { mode: row.mode || 'packs', packs: row.packs ?? '', gross: row.gross ?? '', direct: row.direct ?? '', expiry: row.expiry || '', note: row.note || '', ts: row.ts, by: row.user || '' }; if (row.notare && String(row.notare) !== '0' && String(row.notare).toUpperCase() !== 'FALSE') ph[row.code].noTare = true;
+      ph[row.code] = { mode: row.mode || 'packs', packs: row.packs ?? '', gross: row.gross ?? '', direct: row.direct ?? '', expiry: row.expiry || '', note: row.note || '', ts: row.ts, by: row.user || '', hadVal: 1 }; if (row.notare && String(row.notare) !== '0' && String(row.notare).toUpperCase() !== 'FALSE') ph[row.code].noTare = true;
       if (row.expiry) { const m = S.itemMeta[row.code] || (S.itemMeta[row.code] = {}); m.expiry = row.expiry; m.expiryWeek = row.week; } changed++; });
     if (applied.length > 60) logAdd({ ts: applied[applied.length - 1].ts, user: '(여러 명)', device: '공유 저장소', text: `공유 자료 ${applied.length}건 받음` }); else applied.forEach(row => logAdd({ ts: row.ts, user: row.user || '', device: row.device || '', text: shareRowText(row) }));
     sh.lastPull = new Date().toISOString(); sh.err = ''; save(true); renderSharePill();
@@ -2471,7 +2489,7 @@ $('#btnCmpReport').onclick = () => copyText(reportText(curWeek()));
 $('#btnPhysOut').onclick = async () => { const t = physText(curWeek()); if (t.split('\n').length <= 2) return toast('입력된 실물이 없습니다'); if (navigator.share && /Android|iPhone|iPad/i.test(navigator.userAgent)) { try { await navigator.share({ text: t }); return; } catch (e) {} } copyText(t); };
 $('#btnPhysIn').onclick = physInModal;
 $('#btnShare').onclick = async () => { const t = reportText(curWeek()); if (navigator.share) { try { await navigator.share({ title: `${APP_NAME} ${curWeek()}`, text: t }); } catch (e) {} } else copyText(t); };
-$('#btnPhysClear').onclick = () => { const cw = curWeek(); if (!confirm(`${cw} 실물 입력값을 모두 지울까요?`)) return; const codes = Object.keys(S.physical[cw] || {}); S.physical[cw] = {}; S.memos[cw] = ''; save(true); codes.forEach(c => shareMark(cw, c)); shareMarkMemo(cw); delete S.memos[cw]; renderAll(); };
+$('#btnPhysClear').onclick = () => { const cw = curWeek(); if (!confirm(`${cw} 실물 입력값을 모두 지울까요?`)) return; const codes = Object.keys(S.physical[cw] || {}).filter(c => physReal(S.physical[cw][c]) || S.physical[cw][c].hadVal); S.physical[cw] = {}; S.memos[cw] = ''; save(true); codes.forEach(c => shareMark(cw, c)); shareMarkMemo(cw); delete S.memos[cw]; renderAll(); };
 $('#cmpFilter').onclick = e => { const b = e.target.closest('button'); if (!b) return; ui.cmpFilter = b.dataset.f; $$('#cmpFilter button').forEach(x => x.classList.toggle('on', x === b)); renderCmp(); };
 $('#btnCmpXlsx').onclick = exportCmp;
 $('#btnCmpPrint').onclick = () => { ui.cmpFilter = 'all'; $$('#cmpFilter button').forEach(x => x.classList.toggle('on', x.dataset.f === 'all')); renderCmp(); $$('.view').forEach(v => v.classList.toggle('print', v.dataset.view === 'cmp')); window.print(); };
