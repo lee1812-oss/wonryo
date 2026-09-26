@@ -193,6 +193,7 @@ table.t th.sticky{z-index:3;background:#F4F6F8}
 .pi-item .inp input::placeholder{color:#B4BEC7;font-weight:400;opacity:1}.pi-item .esttag.hint{background:var(--line2);color:var(--ink3);font-weight:600}
 .pi-item .result{text-align:right;min-width:92px}
 .pi-item .result b{display:block;font-size:19px;letter-spacing:-.3px}
+.pi-item .result b small{font-size:12px;font-weight:700;color:var(--ink2);margin-right:5px;letter-spacing:-.2px;vertical-align:2px}.pi-item .result b .rv{font-variant-numeric:tabular-nums}
 .pi-item .result i{font-style:normal;display:inline-block;margin-top:5px;padding:4px 8px;border-radius:8px;background:var(--plus-bg);color:var(--plus);font-size:12px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
 .pi-item .result i em{font-style:normal;font-size:16px;font-weight:800;margin-left:4px;font-variant-numeric:tabular-nums}
 .pi-item .bar2{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:end;margin-top:8px}
@@ -1410,7 +1411,7 @@ function renderPhysCards(listEl, list, items, cw, ph, opts) {
                  : `<div class="inp"><span>미개봉 포수</span><input type="number" inputmode="decimal" data-f="packs" value="${p.packs ?? ''}" placeholder="${hp.mode === 'direct' ? '' : ph1(hp.packs)}"></div>
                     <div class="inp"><span>${S.settings.netWeight ? '잔량 순중량' : p.noTare ? '잔량' : '총중량'} g${S.settings.netWeight ? '' : ` <button type="button" class="tarebtn ${p.noTare ? 'on' : ''}" data-act="tare" title="${p.noTare ? '용기에 담아 잰 무게라면 눌러 용기 포함으로' : '용기 없이 잰 무게라면 눌러 용기 무게 빼지 않기'}">${p.noTare ? '용기 없음' : '용기 포함'}</button>`}</span><input type="number" inputmode="decimal" data-f="gross" value="${p.gross ?? ''}" placeholder="${hp.mode === 'direct' ? '' : ph1(hp.gross)}"></div>
                     ${physNetHtml(i, p)}`}
-        <div class="result"><b class="${pq == null ? 'zero' : ''}">${pq == null ? '—' : fmt(pq)}</b><i>전산<em>${fmt(eq)}</em></i></div>
+        <div class="result"><b class="${pq == null ? 'zero' : ''}"><small>실물</small><span class="rv">${pq == null ? '—' : fmt(pq)}</span></b><i>전산<em>${fmt(eq)}</em></i></div>
       </div>
       ${extra(i, p)}
       <div class="bar2">
@@ -1427,7 +1428,7 @@ function renderPhysCards(listEl, list, items, cw, ph, opts) {
       if (physReal(p0) && !sharePending(cw, code)) p0.hadVal = 1; if (derived) { p0.packs = ''; p0.gross = ''; p0.direct = ''; delete p0.est; delete p0.carry; } p0.mode = sh.mode; p0.noTare = !!sh.noTare; return { p: p0, hint }; };
     const upd = () => { const { p } = realize(); el.querySelectorAll('input[data-f]').forEach(inp => p[inp.dataset.f] = inp.value); p.ts = new Date().toISOString(); { const tg = el.querySelector('.esttag.hint'); const ob = el.querySelector('[data-act=ok]'); if (hasPhysVal(p)) { if (tg) tg.remove(); el.querySelectorAll('input[type=number]').forEach(x => x.placeholder = ''); ob.classList.add('on'); const t = new Date(); ob.textContent = '✓ 저장됨 ' + [t.getHours(), t.getMinutes(), t.getSeconds()].map(n => String(n).padStart(2, '0')).join(':'); ob.title = '수정할 때마다 바로 저장·공유됩니다'; } } if (p.expiry) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); m.expiry = p.expiry; m.expiryWeek = cw; } el.querySelector('.inp.exp').classList.toggle('has', !!expiryOf(code, cw, p)); save(); shareMark(cw, code, p.ts);
       const pq = physQty(it, p); const eq = it.qty == null ? null : Number(it.qty); const d = pq != null && eq != null ? pq - eq : null;
-      el.classList.toggle('done', pq != null); el.querySelector('.result b').textContent = pq == null ? '—' : fmt(pq); el.querySelector('.result b').className = pq == null ? 'zero' : '';
+      el.classList.toggle('done', pq != null); el.querySelector('.result .rv').textContent = pq == null ? '—' : fmt(pq); el.querySelector('.result b').className = pq == null ? 'zero' : '';
       const sp = el.querySelector('.diff'); sp.textContent = d == null ? '' : '차이 ' + fmtS(d); sp.className = 'diff ' + cls(d); const ex = el.querySelector('.wkstrip'); if (ex && opts.extra) ex.outerHTML = extra(it, p); const nb = el.querySelector('.inp.net'); if (nb) nb.outerHTML = physNetHtml(it, p); renderProg(); };
     el.querySelectorAll('input').forEach(inp => { inp.addEventListener('input', upd); inp.addEventListener('focus', () => inp.select()); inp.addEventListener('keydown', e => { if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey && inp.dataset.f !== 'note')) { e.preventDefault(); nextInput(inp, e.key === 'Enter'); } }); });
     const tb = el.querySelector('[data-act=tare]'); if (tb) tb.onclick = () => { const { p } = realize(); p.noTare = !p.noTare; p.ts = new Date().toISOString(); save(true); shareMark(cw, code, p.ts); rerender(); };
