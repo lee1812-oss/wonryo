@@ -189,6 +189,7 @@ table.t th.sticky{z-index:3;background:#F4F6F8}
 .pi-item .inp span{font-size:11px;color:var(--ink2);font-weight:600}
 .pi-item .inp input{border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:17px;text-align:right;width:100%;background:#FBFCFD}
 .pi-item .inp input:focus{background:#fff;border-color:var(--accent)}
+.pi-item .pwbtn{margin-left:2px;padding:0 6px;border-radius:99px;border:1px solid var(--line);background:#fff;color:var(--ink3);font-size:10.5px;font-weight:700;line-height:17px;cursor:pointer}.pi-item .meta .pw{color:#B5501F}
 .pi-item .inp input::placeholder{color:#B4BEC7;font-weight:400;opacity:1}.pi-item .esttag.hint{background:var(--line2);color:var(--ink3);font-weight:600}
 .pi-item .result{text-align:right;min-width:92px}
 .pi-item .result b{display:block;font-size:19px;letter-spacing:-.3px}
@@ -612,7 +613,7 @@ body.home-on header.top .brand{background:rgba(255,255,255,.16);box-shadow:inset
         <button class="btn brand" id="btnPhysOut">PC로 보내기</button>
         <button class="btn danger" id="btnPhysClear">이 주차 실물 지우기</button>
       </div>
-      <div class="muted" style="margin-top:8px">입력칸은 빈칸으로 시작합니다. 이전 날짜에 확인한 값(없으면 전산재고로 계산한 추정값)은 입력칸에 흐린 글씨로만 보이며 저장·공유되지 않습니다. 실제 무게를 입력하거나, 흐린 값이 맞으면 「✓ 이전값 그대로」·「✓ 추정값 그대로」를 누르면 확인 완료로 바뀝니다. 「PDF 보고서」는 실물재고·소비기한 임박 순 보고서를 PDF로 만들어 휴대폰에 저장하거나 카카오톡으로 바로 보냅니다. 「PC로 보내기」는 입력한 실물 데이터를 문자로 복사합니다. 카톡 나와의 채팅으로 보낸 뒤 PC의 비교분석 → 「실물 가져오기」에 붙여넣으면 됩니다.</div>
+      <div class="muted" style="margin-top:8px">입력칸은 빈칸으로 시작합니다. 이전 날짜에 확인한 값(없으면 전산재고로 계산한 추정값)은 입력칸에 흐린 글씨로만 보이며 저장·공유되지 않습니다. 실제 무게를 입력하거나, 흐린 값이 맞으면 「✓ 이전값 그대로」·「✓ 추정값 그대로」를 누르면 확인 완료로 바뀝니다. 확인된 뒤에도 값을 고치면 바로 저장·공유됩니다(버튼에 「✓ 저장됨 시각」 표시). 미개봉 1포 무게가 규격과 다른 품목은 「✎ 1포 무게」(또는 설정 → 품목 표의 「1포 실중량」)에 실제 계산 무게를 넣으면 모든 기기에서 그 무게로 계산합니다. 「PDF 보고서」는 실물재고·소비기한 임박 순 보고서를 PDF로 만들어 휴대폰에 저장하거나 카카오톡으로 바로 보냅니다. 「PC로 보내기」는 입력한 실물 데이터를 문자로 복사합니다. 카톡 나와의 채팅으로 보낸 뒤 PC의 비교분석 → 「실물 가져오기」에 붙여넣으면 됩니다.</div>
     </div>
     <div class="physpr" id="physPrint"></div>
   </section>
@@ -937,14 +938,23 @@ function physQty(it, p) {
   const packs = p.packs == null || p.packs === '' ? null : Number(p.packs);
   const gross = p.gross == null || p.gross === '' ? null : Number(p.gross);
   if (packs == null && gross == null) return null;
-  const mm0 = masterOf(it.code, it.name) || {}; let q = (packs || 0) * (Number(it.spec || mm0.spec) || 0);
+  const mm0 = masterOf(it.code, it.name) || {}; let q = (packs || 0) * packWOf(it);
   if (gross != null) q += (S.settings.netWeight || p.noTare) ? gross : Math.max(0, gross - (Number(it.tare || mm0.tare) || 0));
   return Math.round(q * 10) / 10;
+}
+/* 2026-09-26: 미개봉 1포 실중량 — 제품 규격과 달리 잡는 품목(예: 갈색설탕 규격 15,000g → 실중량 14,850g)은 품목별로 지정, 없으면 규격 */
+function packWSet(code) { const m = S.itemMeta[code]; const v = m && Number(m.packW); return v > 0 ? v : null; }
+function packWOf(it) { const v = packWSet(it.code); if (v) return v; const mm = masterOf(it.code, it.name) || {}; return Number(it.spec || mm.spec) || 0; }
+function setPackW(code, v, ts, remote) {
+  const m = S.itemMeta[code] || (S.itemMeta[code] = {}); ts = ts || new Date().toISOString(); if (!remote && (m.packWTs || '') > ts) return false; if (remote && (m.packWTs || '') >= ts) return false;
+  if (v > 0) m.packW = v; else delete m.packW; m.packWTs = ts;
+  if (!remote && shareOn()) { const it = itemsFor(curWeek()).find(i => i.code === code) || {}; const sh = shareCfg(); const row = { ts, week: '', code, name: shortName(it.name || code), kind: 'itemw', note: v > 0 ? String(v) : '' }; sh.outbox = sh.outbox.filter(r => shareKey(r) !== shareKey(row)); sh.outbox.push(row); logAdd({ ts, user: S.settings.reporter || '', device: sh.device, text: shareRowText(row) }); sharePushSoon(); }
+  return true;
 }
 /* 전산재고량으로 포수·잔량 추정 → 실물입력 미리 채우기 (est:true = 아직 확인 안 함) */
 function estimateFromEcount(it) {
   const q = it.qty == null ? null : Number(it.qty); if (q == null || q <= 0) return null;
-  const mm = masterOf(it.code, it.name) || {}; const spec = Number(it.spec || mm.spec) || 0, tare = Number(it.tare || mm.tare) || 0;
+  const mm = masterOf(it.code, it.name) || {}; const spec = packWOf(it), tare = Number(it.tare || mm.tare) || 0;
   const packs = spec > 0 ? Math.floor(q / spec) : 0; const rest = Math.round((q - packs * spec) * 10) / 10;
   return { mode: 'packs', packs, gross: rest > 0 ? (S.settings.netWeight ? rest : Math.round((rest + tare) * 10) / 10) : 0, est: true, ts: new Date().toISOString() };
 }
@@ -1365,7 +1375,7 @@ function renderPhys() {
 }
 /* v031: 잔량 총중량 → 용기 무게 / 실제 잔량 자동 구분 표시 */
 function physCalcHtml(it, p) {
-  p = p || {}; const mm = masterOf(it.code, it.name) || {}; const spec = Number(it.spec || mm.spec) || 0, tare = Number(it.tare || mm.tare) || 0;
+  p = p || {}; const mm = masterOf(it.code, it.name) || {}; const spec = packWOf(it), tare = Number(it.tare || mm.tare) || 0;
   if (p.mode === 'direct') { const v = p.direct == null || p.direct === '' ? null : Number(p.direct); return `<div class="calc">${v == null ? '<span class="muted">실물 g을 직접 입력</span>' : `직접 입력 실물 <b>${fmt(v)} g</b>`}</div>`; }
   const packs = p.packs == null || p.packs === '' ? null : Number(p.packs), gross = p.gross == null || p.gross === '' ? null : Number(p.gross);
   if (packs == null && gross == null) return '<div class="calc"><span class="muted">미개봉 포수와 잔량 총중량을 입력하면 용기 무게를 뺀 실제 중량을 계산합니다</span></div>';
@@ -1392,7 +1402,7 @@ function renderPhysCards(listEl, list, items, cw, ph, opts) {
     const direct = p.mode === 'direct'; const hp = hint ? hint.p : {}; const hq = hint ? physQty(i, hp) : null;
     const ph1 = v => v == null || v === '' ? '' : esc(String(v));
     return `<div class="pi-item ${pq != null ? 'done' : ''}" data-code="${esc(i.code)}">
-      <div class="row between"><div><div class="name">${esc(shortName(i.name))}${pq == null && hint ? (hint.src === 'carry' ? `<span class="esttag hint" title="${esc(hint.from)}에 확인한 값 — 입력칸에 흐린 글씨로만 보입니다">참고 이전값 ${esc(hint.from.slice(5))}${hq != null ? ' · ' + fmt(hq) + 'g' : ''}</span>` : `<span class="esttag hint" title="전산재고로 계산한 추정값 — 입력칸에 흐린 글씨로만 보입니다">참고 전산 추정</span>`) : p.by ? `<span class="esttag" style="background:var(--line2);color:var(--ink3)" title="공유 저장소에서 받은 값">${esc(p.by)} ${esc(String(p.ts || '').slice(11, 16))}</span>` : ''}</div><div class="meta">${esc(i.vendor)} · 규격 ${fmt(i.spec)}g · 용기 ${fmt(i.tare)}g</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="okbtn ${pq != null ? 'on' : ''}" data-act="ok" title="${pq != null ? '입력한 값으로 확인' : hint ? (hint.src === 'carry' ? '흐린 글씨의 이전값이 오늘도 맞으면 누르세요' : '흐린 글씨의 전산 추정값이 맞으면 누르세요') : '수량을 입력하세요'}">${pq != null ? '✓ 확인됨' : hint ? (hint.src === 'carry' ? '✓ 이전값 그대로' : '✓ 추정값 그대로') : '✓ 그대로'}</button><button class="mode ${direct ? 'on' : ''}" data-act="mode" title="입력방식 전환">${direct ? '직접 g' : '포수+잔량'}</button></div></div>
+      <div class="row between"><div><div class="name">${esc(shortName(i.name))}${pq == null && hint ? (hint.src === 'carry' ? `<span class="esttag hint" title="${esc(hint.from)}에 확인한 값 — 입력칸에 흐린 글씨로만 보입니다">참고 이전값 ${esc(hint.from.slice(5))}${hq != null ? ' · ' + fmt(hq) + 'g' : ''}</span>` : `<span class="esttag hint" title="전산재고로 계산한 추정값 — 입력칸에 흐린 글씨로만 보입니다">참고 전산 추정</span>`) : p.by ? `<span class="esttag" style="background:var(--line2);color:var(--ink3)" title="공유 저장소에서 받은 값">${esc(p.by)} ${esc(String(p.ts || '').slice(11, 16))}</span>` : ''}</div><div class="meta">${esc(i.vendor)} · ${packWSet(i.code) ? `<b class="pw">1포 실중량 ${fmt(packWSet(i.code))}g</b> (규격 ${fmt(i.spec)}g)` : `규격 ${fmt(i.spec)}g`} <button type="button" class="pwbtn" data-act="packw" title="미개봉 1포를 규격과 다른 무게로 계산할 때 지정">✎ 1포 무게</button> · 용기 ${fmt(i.tare)}g</div></div><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="okbtn ${pq != null ? 'on' : ''}" data-act="ok" title="${pq != null ? '입력한 값으로 확인' : hint ? (hint.src === 'carry' ? '흐린 글씨의 이전값이 오늘도 맞으면 누르세요' : '흐린 글씨의 전산 추정값이 맞으면 누르세요') : '수량을 입력하세요'}">${pq != null ? '✓ 확인됨' : hint ? (hint.src === 'carry' ? '✓ 이전값 그대로' : '✓ 추정값 그대로') : '✓ 그대로'}</button><button class="mode ${direct ? 'on' : ''}" data-act="mode" title="입력방식 전환">${direct ? '직접 g' : '포수+잔량'}</button></div></div>
       <div class="inputs ${direct ? 'direct' : ''}">
         ${direct ? `<div class="inp"><span>실물 (g)</span><input type="number" inputmode="decimal" data-f="direct" value="${p.direct ?? ''}" placeholder="${ph1(hp.mode === 'direct' ? hp.direct : hq)}"></div>`
                  : `<div class="inp"><span>미개봉 포수</span><input type="number" inputmode="decimal" data-f="packs" value="${p.packs ?? ''}" placeholder="${hp.mode === 'direct' ? '' : ph1(hp.packs)}"></div>
@@ -1413,12 +1423,13 @@ function renderPhysCards(listEl, list, items, cw, ph, opts) {
     /* 손대는 순간 실제 입력으로 전환: 추정·이전값 복사본의 수치는 버리고(원래 날짜 값은 그대로), 화면에 보이던 입력방식·용기 설정만 이어받음 */
     const realize = () => { const p0 = ph[code] || (ph[code] = {}); const derived = !!(p0.est || p0.carry); const hint = derived ? { p: Object.assign({}, p0) } : hasPhysVal(p0) ? null : physHint(cw, it); const sh = physShown(p0, hint);
       if (physReal(p0) && !sharePending(cw, code)) p0.hadVal = 1; if (derived) { p0.packs = ''; p0.gross = ''; p0.direct = ''; delete p0.est; delete p0.carry; } p0.mode = sh.mode; p0.noTare = !!sh.noTare; return { p: p0, hint }; };
-    const upd = () => { const { p } = realize(); el.querySelectorAll('input[data-f]').forEach(inp => p[inp.dataset.f] = inp.value); p.ts = new Date().toISOString(); { const tg = el.querySelector('.esttag.hint'); const ob = el.querySelector('[data-act=ok]'); if (hasPhysVal(p)) { if (tg) tg.remove(); ob.classList.add('on'); ob.textContent = '✓ 확인됨'; } } if (p.expiry) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); m.expiry = p.expiry; m.expiryWeek = cw; } el.querySelector('.inp.exp').classList.toggle('has', !!expiryOf(code, cw, p)); save(); shareMark(cw, code, p.ts);
+    const upd = () => { const { p } = realize(); el.querySelectorAll('input[data-f]').forEach(inp => p[inp.dataset.f] = inp.value); p.ts = new Date().toISOString(); { const tg = el.querySelector('.esttag.hint'); const ob = el.querySelector('[data-act=ok]'); if (hasPhysVal(p)) { if (tg) tg.remove(); el.querySelectorAll('input[type=number]').forEach(x => x.placeholder = ''); ob.classList.add('on'); const t = new Date(); ob.textContent = '✓ 저장됨 ' + [t.getHours(), t.getMinutes(), t.getSeconds()].map(n => String(n).padStart(2, '0')).join(':'); ob.title = '수정할 때마다 바로 저장·공유됩니다'; } } if (p.expiry) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); m.expiry = p.expiry; m.expiryWeek = cw; } el.querySelector('.inp.exp').classList.toggle('has', !!expiryOf(code, cw, p)); save(); shareMark(cw, code, p.ts);
       const pq = physQty(it, p); const eq = it.qty == null ? null : Number(it.qty); const d = pq != null && eq != null ? pq - eq : null;
       el.classList.toggle('done', pq != null); el.querySelector('.result b').textContent = pq == null ? '—' : fmt(pq); el.querySelector('.result b').className = pq == null ? 'zero' : '';
       const sp = el.querySelector('.diff'); sp.textContent = d == null ? '' : '차이 ' + fmtS(d); sp.className = 'diff ' + cls(d); const ex = el.querySelector('.wkstrip'); if (ex && opts.extra) ex.outerHTML = extra(it, p); const nb = el.querySelector('.inp.net'); if (nb) nb.outerHTML = physNetHtml(it, p); renderProg(); };
     el.querySelectorAll('input').forEach(inp => { inp.addEventListener('input', upd); inp.addEventListener('focus', () => inp.select()); inp.addEventListener('keydown', e => { if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey && inp.dataset.f !== 'note')) { e.preventDefault(); nextInput(inp, e.key === 'Enter'); } }); });
     const tb = el.querySelector('[data-act=tare]'); if (tb) tb.onclick = () => { const { p } = realize(); p.noTare = !p.noTare; p.ts = new Date().toISOString(); save(true); shareMark(cw, code, p.ts); rerender(); };
+    el.querySelector('[data-act=packw]').onclick = () => { const cur = packWSet(code); const v = prompt(`${shortName(it.name)} — 미개봉 1포 실중량(g)\n규격 ${fmt(it.spec)}g과 다르게 계산할 무게를 넣으세요. 비우면 규격으로 계산합니다.`, cur || ''); if (v == null) return; const n = Number(String(v).replace(/,/g, '').trim()); if (String(v).trim() !== '' && !(n > 0)) return toast('숫자로 넣어 주세요'); setPackW(code, String(v).trim() === '' ? null : n); save(true); toast(String(v).trim() === '' ? '규격으로 계산합니다' : `1포 ${fmt(n)}g으로 계산합니다`); rerender(); };
     el.querySelector('[data-act=mode]').onclick = () => { const { p } = realize(); p.mode = p.mode === 'direct' ? 'packs' : 'direct'; save(true); shareMark(cw, code); rerender(); };
     el.querySelector('[data-act=ok]').onclick = () => { const { p, hint } = realize();
       if (!hasPhysVal(p)) { if (!hint || physQty(it, hint.p) == null) { save(); return toast('수량을 먼저 입력하세요'); } const h = hint.p; Object.assign(p, { mode: h.mode || 'packs', packs: h.packs ?? '', gross: h.gross ?? '', direct: h.direct ?? '' }); if (h.noTare) p.noTare = true; else delete p.noTare; }
@@ -1437,7 +1448,7 @@ function buildPhysPrint(o) {
   o = o || {}; const cw = o.week || curWeek(); const items = o.items || itemsFor(cw).filter(i => !hidden(i.code)); const ph = physFor(cw); const X = o.extra || null;
   const q = o.items ? '' : ui.piSearch.trim().toLowerCase();
   const list = o.items ? sortItems([...items]) : sortItems(items.filter(i => (!q || [i.code, i.name, i.vendor].join(' ').toLowerCase().includes(q)) && (!ui.piOnlyEmpty || !confirmed(i, ph[i.code]))));
-  const rows = list.map(i => { const p = ph[i.code] || {}; const mm = masterOf(i.code, i.name) || {}; const spec = Number(i.spec || mm.spec) || 0, tare = Number(i.tare || mm.tare) || 0;
+  const rows = list.map(i => { const p = ph[i.code] || {}; const mm = masterOf(i.code, i.name) || {}; const spec = packWOf(i), tare = Number(i.tare || mm.tare) || 0;
     const pq = physQty(i, p); const eq = i.qty == null ? null : Number(i.qty); const d = pq != null && eq != null ? Math.round((pq - eq) * 10) / 10 : null;
     const exp = expiryOf(i.code, cw, p); const dd = ddays(exp);
     return { i, p, spec, tare, pq, eq, d, exp, dd, est: isEst(p), ok: confirmed(i, p), carry: !isEst(p) && pq != null && p.carry, direct: p.mode === 'direct', adj: d != null && needAdj(d, eq) }; });
@@ -1599,6 +1610,7 @@ async function sharePull(full, quiet) {
     const applied = [];
     let nbCh = 0; const nbNew = [];
     (j.rows || []).sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0).forEach(row => {
+      if (row.kind === 'itemw') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.code && row.ts && setPackW(row.code, Number(row.note) > 0 ? Number(row.note) : null, row.ts, true)) { changed++; if (row.device !== sh.device) applied.push(row); } return; }
       if (row.kind === 'notice' || row.kind === 'noticeack') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; const r = nbApply(row); if (r) nbCh++; if (r === 2) nbNew.push(row); return; }
       if (!row.week || !row.ts) return; if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.week))) { const d = new Date(row.week); if (!isNaN(d)) row.week = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); } if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.expiry || ''))) row.expiry = String(row.expiry).slice(0, 10); if (row.ts > (sh.since || '')) sh.since = row.ts; if (row.device && row.device === sh.device) return; applied.push(row);
       if (row.kind === 'memo') { const cur = (S.memoTs || {})[row.week] || ''; if (row.ts > cur) { S.memos[row.week] = row.note || ''; (S.memoTs = S.memoTs || {})[row.week] = row.ts; changed++; } return; }
@@ -1637,6 +1649,7 @@ setTimeout(() => { if (shareOn()) { shareCfg(); renderShareStatus(); sharePull(f
 function logAdd(e) { S.changeLog = S.changeLog || []; S.changeLog.push(e); if (S.changeLog.length > 600) S.changeLog = S.changeLog.slice(-600); }
 function shareRowText(row) {
   if (row.kind === 'memo') return `${row.week} 비고: ${row.note || '(비움)'}`;
+  if (row.kind === 'itemw') return `${row.name || row.code} · 1포 실중량 ${Number(row.note) > 0 ? fmt(Number(row.note)) + ' g' : '해제(규격 사용)'}`;
   const nm = row.name || row.code; if (row.del) return `${nm} · ${row.week} 실물 삭제`;
   const v = row.mode === 'direct' ? `${fmt(row.direct)} g 직접` : `${row.packs || 0}포 + ${fmt(row.gross)} g${row.notare && String(row.notare) !== '0' && String(row.notare).toUpperCase() !== 'FALSE' ? ' (용기 없음)' : ''}`;
   return `${nm} · ${row.week} 실물 ${v}${row.expiry ? ' · 소비기한 ' + row.expiry : ''}${row.note ? ' · ' + row.note : ''}`;
@@ -2167,7 +2180,8 @@ function renderMaster() {
   Object.values(M.items).forEach(m => { const o = map.get(m.code) || { code: m.code, name: m.name, vendor: m.vendor, snap: false }; o.m = m; map.set(m.code, o); });
   const items = sortItems([...map.values()]);
   const inp = (code, f, v, w) => `<input data-mf="${esc(code)}|${f}" type="number" inputmode="decimal" value="${v ?? ''}" style="width:${w}px;text-align:right;border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-size:13px;background:${v == null ? '#FBF1DF' : '#fff'}">`;
-  $('#itemTable').innerHTML = items.length ? `<table class="t"><thead><tr><th class="sticky">품목</th><th class="mh">코드</th><th class="mh">매입처</th><th class="num">규격(g)</th><th class="num">빈용기(g)</th><th class="num">g단가(원)</th><th class="num mh">포장단가</th><th>표시</th></tr></thead><tbody>${items.map(i => { const m = i.m || {}; const spec = m.spec ?? i.spec, tare = m.tare ?? i.tare, pr = m.price; return `<tr><td class="sticky">${esc(shortName(i.name))}${i.snap ? '' : '<div class="muted">전산재고에 없음</div>'}${m.note ? `<div class="muted">${esc(m.note)}</div>` : ''}</td><td class="muted mh">${esc(i.code)}</td><td class="small mh">${esc(i.vendor || m.vendor || '')}</td><td class="num">${inp(i.code, 'spec', spec, 84)}</td><td class="num">${inp(i.code, 'tare', tare, 72)}</td><td class="num">${inp(i.code, 'price', pr, 72)}</td><td class="num mh muted">${spec && pr != null ? fmtW(spec * pr) : '—'}</td><td><label class="row" style="gap:5px"><input type="checkbox" data-hide="${esc(i.code)}" ${hidden(i.code) ? '' : 'checked'}> 사용</label></td></tr>`; }).join('')}</tbody></table>` : '<div class="empty">품목이 없습니다.</div>';
+  $('#itemTable').innerHTML = items.length ? `<table class="t"><thead><tr><th class="sticky">품목</th><th class="mh">코드</th><th class="mh">매입처</th><th class="num">규격(g)</th><th class="num" title="미개봉 1포를 규격과 다르게 계산할 무게 — 비우면 규격">1포 실중량(g)</th><th class="num">빈용기(g)</th><th class="num">g단가(원)</th><th class="num mh">포장단가</th><th>표시</th></tr></thead><tbody>${items.map(i => { const m = i.m || {}; const spec = m.spec ?? i.spec, tare = m.tare ?? i.tare, pr = m.price; return `<tr><td class="sticky">${esc(shortName(i.name))}${i.snap ? '' : '<div class="muted">전산재고에 없음</div>'}${m.note ? `<div class="muted">${esc(m.note)}</div>` : ''}</td><td class="muted mh">${esc(i.code)}</td><td class="small mh">${esc(i.vendor || m.vendor || '')}</td><td class="num">${inp(i.code, 'spec', spec, 84)}</td><td class="num"><input data-pw="${esc(i.code)}" type="number" inputmode="decimal" value="${packWSet(i.code) ?? ''}" placeholder="규격" style="width:84px;text-align:right;border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-size:13px;background:#fff"></td><td class="num">${inp(i.code, 'tare', tare, 72)}</td><td class="num">${inp(i.code, 'price', pr, 72)}</td><td class="num mh muted">${spec && pr != null ? fmtW(spec * pr) : '—'}</td><td><label class="row" style="gap:5px"><input type="checkbox" data-hide="${esc(i.code)}" ${hidden(i.code) ? '' : 'checked'}> 사용</label></td></tr>`; }).join('')}</tbody></table>` : '<div class="empty">품목이 없습니다.</div>';
+  $$('[data-pw]').forEach(el => el.onchange = () => { const v = el.value.replace(/,/g, '').trim(); const n = Number(v); if (v !== '' && !(n > 0)) { el.value = packWSet(el.dataset.pw) ?? ''; return toast('숫자로 넣어 주세요'); } setPackW(el.dataset.pw, v === '' ? null : n); save(true); });
   $$('[data-hide]').forEach(c => c.onchange = () => { const m = S.itemMeta[c.dataset.hide] || (S.itemMeta[c.dataset.hide] = {}); m.hidden = !c.checked; save(); });
   $$('[data-mf]').forEach(el => el.onchange = () => { const [code, f] = el.dataset.mf.split('|'); const M = masterStore(); const base = map.get(code) || {}; const m = M.items[code] || (M.items[code] = { code, name: base.name || '', vendor: base.vendor || '', unit: 'g', spec: base.spec ?? null, tare: base.tare ?? null, price: null, note: '' }); const v = el.value.replace(/,/g, ''); m[f] = v === '' || isNaN(Number(v)) ? null : Number(v); M.importedAt = new Date().toISOString(); el.style.background = m[f] == null ? '#FBF1DF' : '#fff'; save(); });
 }
