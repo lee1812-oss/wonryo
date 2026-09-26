@@ -613,7 +613,7 @@ body.home-on header.top .brand{background:rgba(255,255,255,.16);box-shadow:inset
         <button class="btn brand" id="btnPhysOut">PC로 보내기</button>
         <button class="btn danger" id="btnPhysClear">이 주차 실물 지우기</button>
       </div>
-      <div class="muted" style="margin-top:8px">입력칸은 빈칸으로 시작합니다. 이전 날짜에 확인한 값(없으면 전산재고로 계산한 추정값)은 입력칸에 흐린 글씨로만 보이며 저장·공유되지 않습니다. 실제 무게를 입력하거나, 흐린 값이 맞으면 「✓ 이전값 그대로」·「✓ 추정값 그대로」를 누르면 확인 완료로 바뀝니다. 확인된 뒤에도 값을 고치면 바로 저장·공유됩니다(버튼에 「✓ 저장됨 시각」 표시). 미개봉 1포 무게가 규격과 다른 품목은 「✎ 1포 무게」(또는 설정 → 품목 표의 「1포 실중량」)에 실제 계산 무게를 넣으면 모든 기기에서 그 무게로 계산합니다. 「PDF 보고서」는 실물재고·소비기한 임박 순 보고서를 PDF로 만들어 휴대폰에 저장하거나 카카오톡으로 바로 보냅니다. 「PC로 보내기」는 입력한 실물 데이터를 문자로 복사합니다. 카톡 나와의 채팅으로 보낸 뒤 PC의 비교분석 → 「실물 가져오기」에 붙여넣으면 됩니다.</div>
+      <div class="muted" style="margin-top:8px">입력칸은 빈칸으로 시작합니다. 이전 날짜에 확인한 값(없으면 전산재고로 계산한 추정값)은 입력칸에 흐린 글씨로만 보이며 저장·공유되지 않습니다. 실제 무게를 입력하거나, 흐린 값이 맞으면 「✓ 이전값 그대로」·「✓ 추정값 그대로」를 누르면 확인 완료로 바뀝니다. 소비기한은 이전 실물재고 작업의 날짜를 그대로 보여 주며, 고치면 이 날짜 값으로 저장됩니다. 확인된 뒤에도 값을 고치면 바로 저장·공유됩니다(버튼에 「✓ 저장됨 시각」 표시). 미개봉 1포 무게가 규격과 다른 품목은 「✎ 1포 무게」(또는 설정 → 품목 표의 「1포 실중량」)에 실제 계산 무게를 넣으면 모든 기기에서 그 무게로 계산합니다. 「PDF 보고서」는 실물재고·소비기한 임박 순 보고서를 PDF로 만들어 휴대폰에 저장하거나 카카오톡으로 바로 보냅니다. 「PC로 보내기」는 입력한 실물 데이터를 문자로 복사합니다. 카톡 나와의 채팅으로 보낸 뒤 PC의 비교분석 → 「실물 가져오기」에 붙여넣으면 됩니다.</div>
     </div>
     <div class="physpr" id="physPrint"></div>
   </section>
@@ -985,6 +985,8 @@ function hidden(code) { return !!(S.itemMeta[code] && S.itemMeta[code].hidden); 
 function expiryOf(code, week, p) {
   p = p || (S.physical[week] || {})[code];
   if (p && p.expiry) return p.expiry;
+  /* 2026-09-26: 이 날짜에 아직 없으면 바로 이전 실물재고 작업의 소비기한을 그대로 (고치면 이 날짜 값으로 저장) */
+  const pw = Object.keys(S.physical).filter(w => w < week).sort().reverse(); for (const w of pw) { const q = S.physical[w][code]; if (q && q.expiry && !q.est) return q.expiry; }
   const m = S.itemMeta[code]; if (m && m.expiry) return m.expiry;
   const it = itemsFor(week).find(i => i.code === code); if (it && /^\d{4}[-./]\d{2}[-./]\d{2}/.test(it.expiry || '')) return it.expiry.slice(0, 10).replace(/[./]/g, '-');
   return '';
@@ -1617,6 +1619,8 @@ async function sharePull(full, quiet) {
       if (!row.code) return; const ph = physFor(row.week); const p = ph[row.code]; const lts = physReal(p) || (p && !p.est && !p.carry && sharePending(row.week, row.code)) ? (p.ts || '') : '';
       if (lts >= row.ts) return;
       if (row.del) { if (p) { delete ph[row.code]; changed++; } return; }
+      /* 수량 없이 소비기한·메모만 담긴 행은 이 기기의 수량을 지우지 않고 소비기한·메모만 반영 */
+      if (physReal(p) && hasPhysVal(p) && !hasPhysVal(row)) { p.expiry = row.expiry || ''; p.note = row.note || ''; p.ts = row.ts; p.by = row.user || ''; p.hadVal = 1; if (row.expiry) { const m = S.itemMeta[row.code] || (S.itemMeta[row.code] = {}); m.expiry = row.expiry; m.expiryWeek = row.week; } changed++; return; }
       ph[row.code] = { mode: row.mode || 'packs', packs: row.packs ?? '', gross: row.gross ?? '', direct: row.direct ?? '', expiry: row.expiry || '', note: row.note || '', ts: row.ts, by: row.user || '', hadVal: 1 }; if (row.notare && String(row.notare) !== '0' && String(row.notare).toUpperCase() !== 'FALSE') ph[row.code].noTare = true;
       if (row.expiry) { const m = S.itemMeta[row.code] || (S.itemMeta[row.code] = {}); m.expiry = row.expiry; m.expiryWeek = row.week; } changed++; });
     if (applied.length > 60) logAdd({ ts: applied[applied.length - 1].ts, user: '(여러 명)', device: '공유 저장소', text: `공유 자료 ${applied.length}건 받음` }); else applied.forEach(row => logAdd({ ts: row.ts, user: row.user || '', device: row.device || '', text: shareRowText(row) }));
