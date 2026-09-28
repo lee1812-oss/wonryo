@@ -831,7 +831,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '053';
+const APP_VER  = '054';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1183,12 +1183,14 @@ function fromInsp(e) { const f = $('#inspFrame'); return !!(f && f.contentWindow
 function inspSendKey() {
   const f = $('#inspFrame'); if (!f || !f.contentWindow) return;
   if (window.WLOCK && WLOCK.lockMaterial) WLOCK.lockMaterial().then(m => { if (!m || !m.dk) return; try { f.contentWindow.postMessage({ type: 'wonryo-lockkey', dk: m.dk }, inspOrigin()); } catch (e) {} }).catch(() => {});
+  /* v054: 공유 저장소(구글 시트) 주소·열쇠 — 일지·품목 동기화용 */
+  try { f.contentWindow.postMessage({ type: 'wonryo-sharekey', key: (window.WLOCK && WLOCK.shareKey && WLOCK.shareKey()) || '', url: shareOn() ? String(S.settings.shareUrl || '').trim() : '', user: S.settings.reporter || '' }, inspOrigin()); } catch (e) {}
 }
 function inspNav(tab) { const f = $('#inspFrame'); if (!f || !f.contentWindow || !inspLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-nav', tab }, inspOrigin()); } catch (e) {} }
 function inspPost(d) { const f = $('#inspFrame'); if (!f || !f.contentWindow || !inspLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-ecount', data: { changedAt: d.changedAt, updatedAt: d.updatedAt } }, inspOrigin()); } catch (e) {} }
 window.addEventListener('message', e => {
   if (!fromInsp(e)) return; const m = e.data; if (!m || typeof m !== 'object') return;
-  if (m.type === 'insp-ready' || m.type === 'insp-need-key') { inspHeard = true; $('#inspMsg').classList.add('off'); inspSendKey(); if (m.type === 'insp-ready') inspNav(S.ui.inspTab || 'dashboard'); }
+  if (m.type === 'insp-ready' || m.type === 'insp-need-key' || m.type === 'insp-need-share') { inspHeard = true; $('#inspMsg').classList.add('off'); inspSendKey(); if (m.type === 'insp-ready') inspNav(S.ui.inspTab || 'dashboard'); }
 });
 /* ── 완제품·생지 플랫폼(finished.html)을 iframe으로 내장 — 같은 폴더의 finished.html, 이카운트 자료는 postMessage로 전달 ── */
 let finLoaded = false, finLastData = null;
@@ -1695,6 +1697,7 @@ async function sharePull(full, quiet) {
     const applied = [];
     let nbCh = 0; const nbNew = [];
     (j.rows || []).sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0).forEach(row => {
+      if (row.kind === 'insp' || row.kind === 'inspm') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; return; }   /* v054: 육안검사일지 행은 그쪽(inspect.html)이 받음 */
       if (row.kind === 'itemw') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.code && row.ts && setItemW(row.code, itemWFromNote(row.note), row.ts, true)) { changed++; if (row.device !== sh.device) applied.push(row); } return; }
       if (row.kind === 'notice' || row.kind === 'noticeack') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; const r = nbApply(row); if (r) nbCh++; if (r === 2) nbNew.push(row); return; }
       if (!row.week || !row.ts) return; if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.week))) { const d = new Date(row.week); if (!isNaN(d)) row.week = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); } if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.expiry || ''))) row.expiry = String(row.expiry).slice(0, 10); if (row.ts > (sh.since || '')) sh.since = row.ts; if (row.device && row.device === sh.device) return; applied.push(row);
