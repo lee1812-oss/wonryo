@@ -745,6 +745,11 @@ body.home-on header.top .brand{background:rgba(255,255,255,.16);box-shadow:inset
     <div class="finwrap"><iframe id="finFrame" title="완제품·생지 재고관리" src="about:blank"></iframe>
       <div class="finmsg" id="finMsg">완제품·생지 재고관리 플랫폼을 불러오는 중…</div></div>
   </section>
+  <!-- ═══ v053: 육안검사일지 (inspect.html 내장 — 공개 배포본에는 자료 없음, 자료는 브라우저에만) ═══ -->
+  <section class="view" data-view="insp">
+    <div class="finwrap"><iframe id="inspFrame" title="육안검사일지" src="about:blank"></iframe>
+      <div class="finmsg" id="inspMsg">육안검사일지를 불러오는 중…</div></div>
+  </section>
   <!-- ═══ 설정 ═══ -->
   <section class="view" data-view="set">
     <div class="card">
@@ -826,7 +831,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '052';
+const APP_VER  = '053';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -843,6 +848,7 @@ const TABS = [
 const ICO = {
   raw:'<svg viewBox="0 0 24 24"><path d="M4 7h16v13H4z"/><path d="M4 7l2-4h12l2 4"/><path d="M10 12h4"/></svg>',
   fin:'<svg viewBox="0 0 24 24"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M3 9v6l9 5 9-5V9"/><path d="M12 14v6"/></svg>',
+  insp:'<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M8.5 12.5l2.2 2.2 4.8-4.8"/></svg>',
   expiry:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   ledger:'<svg viewBox="0 0 24 24"><path d="M5 3h14v18H5z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>',
   items:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
@@ -852,8 +858,12 @@ const ICO = {
 const FIN_TABS = [
   ['dash','대시보드',TABS[0][2]], ['stock','재고현황',TABS[1][2]], ['ledger','200입출고대장',ICO.ledger], ['expiry','소비기한',ICO.expiry], ['items','품목·설정',ICO.items], ['brief','일일 보고',ICO.brief]
 ];
-const HOME_MENU = { name: '통합 대시보드', items: [['home', '통합', '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>'], ['@raw', '원료수불부', ICO.raw], ['@fin', '완제품·생지', ICO.fin]] };
-const MENUS = { raw: { name: '원료수불부', ico: ICO.raw, items: TABS }, fin: { name: '완제품·생지', ico: ICO.fin, items: FIN_TABS } };
+const INSP_TABS = [
+  ['eclink','이카운트 연동','<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>'],
+  ['dashboard','대시보드',TABS[0][2]], ['entry','일지 입력','<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>'], ['list','일지 목록',ICO.ledger], ['items','품목 관리',ICO.items]
+];
+const HOME_MENU = { name: '통합 대시보드', items: [['home', '통합', '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>'], ['@raw', '원료수불부', ICO.raw], ['@fin', '완제품·생지', ICO.fin], ['@insp', '육안검사', ICO.insp]] };
+const MENUS = { raw: { name: '원료수불부', ico: ICO.raw, items: TABS }, fin: { name: '완제품·생지', ico: ICO.fin, items: FIN_TABS }, insp: { name: '육안검사', ico: ICO.insp, items: INSP_TABS } };
 
 /* ── state ── */
 const defaultState = () => ({
@@ -1133,27 +1143,53 @@ function importPaste() {
 
 /* ── render: frame ── */
 function renderTabs() {
-  S.ui.menu = ['fin', 'home'].includes(S.ui.menu) ? S.ui.menu : 'raw'; S.ui.finTab = S.ui.finTab || 'dash'; if (!FIN_TABS.some(t => t[0] === S.ui.finTab)) S.ui.finTab = 'dash'; /* v041: 추이 탭 제거 — 저장된 탭이 없는 탭이면 대시보드로 */
-  const menu = S.ui.menu, M = menu === 'home' ? HOME_MENU : MENUS[menu]; const cur = menu === 'fin' ? S.ui.finTab : menu === 'home' ? 'home' : S.ui.tab;
+  S.ui.menu = ['fin', 'home', 'insp'].includes(S.ui.menu) ? S.ui.menu : 'raw'; if (!INSP_TABS.some(t => t[0] === S.ui.inspTab)) S.ui.inspTab = 'dashboard'; S.ui.finTab = S.ui.finTab || 'dash'; if (!FIN_TABS.some(t => t[0] === S.ui.finTab)) S.ui.finTab = 'dash'; /* v041: 추이 탭 제거 — 저장된 탭이 없는 탭이면 대시보드로 */
+  const menu = S.ui.menu, M = menu === 'home' ? HOME_MENU : MENUS[menu]; const cur = menu === 'fin' ? S.ui.finTab : menu === 'insp' ? S.ui.inspTab : menu === 'home' ? 'home' : S.ui.tab;
   // 상단: 대메뉴 2개
   const menuBtns = Object.entries(MENUS).map(([k, m]) => `<button data-menu="${k}" class="${menu === k ? 'on' : ''}">${m.ico}<span>${m.name}</span></button>`).join('');
   $('#topMenu').innerHTML = menuBtns; /* 휴대폰: 헤더 토글 유지 */
   // 좌측 사이드바(PC) + 하단 탭(휴대폰): 현재 대메뉴의 하위 메뉴
   const items = M.items.map(([k, n, ic]) => `<button data-tab="${k}" class="${cur === k ? 'on' : ''}${k === 'brief' ? ' act' : ''}">${ic}<span>${n}</span></button>`).join('');
   weekSelHome(); /* v043: 사이드바를 다시 그리기 전에 주차 선택을 헤더로 돌려놓음 */
-  $('#sideNav').innerHTML = `<button class="homebtn${menu === 'home' ? ' on' : ''}" data-menu="home">${ICO.home}<span>통합 대시보드</span></button><div class="menusw">${menuBtns}</div>` + (menu !== 'fin' ? `<div class="sidewk" id="sideWeek"><label>원료 기준 주차</label></div>` : '') + (menu === 'home' ? '' : `<div class="grp">${M.name}</div>` + items); $('#tabsBottom').innerHTML = items;
+  $('#sideNav').innerHTML = `<button class="homebtn${menu === 'home' ? ' on' : ''}" data-menu="home">${ICO.home}<span>통합 대시보드</span></button><div class="menusw">${menuBtns}</div>` + (menu !== 'fin' && menu !== 'insp' ? `<div class="sidewk" id="sideWeek"><label>원료 기준 주차</label></div>` : '') + (menu === 'home' ? '' : `<div class="grp">${M.name}</div>` + items); $('#tabsBottom').innerHTML = items;
   $$('#topMenu [data-menu], #sideNav [data-menu]').forEach(b => b.onclick = () => { if (S.ui.menu === b.dataset.menu) return; S.ui.menu = b.dataset.menu; save(); renderAll(); window.scrollTo(0, 0); if (S.ui.menu === 'home') finAskSum(); });
   weekSelPlace();
   $$('#sideNav [data-tab], #tabsBottom [data-tab]').forEach(b => b.onclick = () => {
     const k = b.dataset.tab;
     if (k[0] === '@') { homeGo(k.slice(1)); return; }
     if (S.ui.menu === 'fin') { if (k !== 'brief') S.ui.finTab = k; finNav(k); save(); renderTabs(); return; }
+    if (S.ui.menu === 'insp') { S.ui.inspTab = k; inspNav(k); save(); renderTabs(); return; }
     S.ui.tab = k; save(); renderAll(); window.scrollTo(0, 0);
   });
-  $$('.view').forEach(v => v.classList.toggle('on', menu === 'fin' ? v.dataset.view === 'fin' : menu === 'home' ? v.dataset.view === 'home' : v.dataset.view === S.ui.tab));
-  document.body.classList.toggle('fin-tab', menu === 'fin'); document.body.classList.toggle('home-on', menu === 'home');
+  $$('.view').forEach(v => v.classList.toggle('on', menu === 'fin' ? v.dataset.view === 'fin' : menu === 'insp' ? v.dataset.view === 'insp' : menu === 'home' ? v.dataset.view === 'home' : v.dataset.view === S.ui.tab));
+  document.body.classList.toggle('fin-tab', menu === 'fin' || menu === 'insp'); document.body.classList.toggle('home-on', menu === 'home');
   if (menu === 'fin' || menu === 'home') finEnsure();
+  if (menu === 'insp') inspEnsure();
 }
+/* ── v053: 육안검사일지(inspect.html)를 iframe으로 내장 — 완제품·생지와 같은 방식.
+   공개 배포본에는 일지 자료가 없고, 자료는 이 브라우저(IndexedDB)에만 저장됩니다.
+   재고 비밀번호로 만든 data.json 열쇠와 이카운트 자료를 넘겨 주어 입고 연동에 비밀번호를 따로 묻지 않습니다. ── */
+let inspLoaded = false, inspHeard = false;
+function inspEnsure() {
+  const f = $('#inspFrame'); if (!f || inspLoaded) return; inspLoaded = true;
+  const REMOTE_INSP = 'https://lee1812-oss.github.io/wonryo/inspect.html';
+  let fell = false;
+  f.addEventListener('load', () => { inspSendKey(); if (finLastData) inspPost(finLastData); inspNav(S.ui.inspTab || 'dashboard'); });
+  f.src = './inspect.html?v=' + APP_VER;
+  setTimeout(() => { if (!inspHeard && !fell) { fell = true; $('#inspMsg').textContent = '같은 폴더에서 육안검사일지를 열지 못해 배포본(깃허브)에서 불러옵니다…'; f.src = REMOTE_INSP + '?v=' + APP_VER; } }, 7000);
+}
+function inspOrigin() { const f = $('#inspFrame'); if (!f) return '*'; try { const u = new URL(f.src, location.href); return u.protocol === 'file:' ? '*' : u.origin; } catch (e) { return '*'; } }
+function fromInsp(e) { const f = $('#inspFrame'); return !!(f && f.contentWindow && e.source === f.contentWindow); }
+function inspSendKey() {
+  const f = $('#inspFrame'); if (!f || !f.contentWindow) return;
+  if (window.WLOCK && WLOCK.lockMaterial) WLOCK.lockMaterial().then(m => { if (!m || !m.dk) return; try { f.contentWindow.postMessage({ type: 'wonryo-lockkey', dk: m.dk }, inspOrigin()); } catch (e) {} }).catch(() => {});
+}
+function inspNav(tab) { const f = $('#inspFrame'); if (!f || !f.contentWindow || !inspLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-nav', tab }, inspOrigin()); } catch (e) {} }
+function inspPost(d) { const f = $('#inspFrame'); if (!f || !f.contentWindow || !inspLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-ecount', data: { changedAt: d.changedAt, updatedAt: d.updatedAt } }, inspOrigin()); } catch (e) {} }
+window.addEventListener('message', e => {
+  if (!fromInsp(e)) return; const m = e.data; if (!m || typeof m !== 'object') return;
+  if (m.type === 'insp-ready' || m.type === 'insp-need-key') { inspHeard = true; $('#inspMsg').classList.add('off'); inspSendKey(); if (m.type === 'insp-ready') inspNav(S.ui.inspTab || 'dashboard'); }
+});
 /* ── 완제품·생지 플랫폼(finished.html)을 iframe으로 내장 — 같은 폴더의 finished.html, 이카운트 자료는 postMessage로 전달 ── */
 let finLoaded = false, finLastData = null;
 function finEnsure() {
@@ -1226,6 +1262,7 @@ function homeOpen() { if (S.ui.menu === 'home') { finAskSum(); renderHome(); ret
 function homeGo(t) { /* t = 'raw' | 'fin' | 'raw:tab' | 'fin:tab' */
   const [menu, tab] = t.split(':'); S.ui.menu = menu;
   if (menu === 'fin') { if (tab) S.ui.finTab = tab; save(); renderAll(); finNav(tab || S.ui.finTab || 'dash'); }
+  else if (menu === 'insp') { if (tab) S.ui.inspTab = tab; save(); renderAll(); inspNav(tab || S.ui.inspTab || 'dashboard'); }
   else { if (tab) S.ui.tab = tab; save(); renderAll(); }
   window.scrollTo(0, 0);
 }
@@ -2472,7 +2509,7 @@ async function syncFromEcount(manual) {
     const r = await fetch(src + '?t=' + Date.now(), { cache: 'no-store' });
     if (!r.ok) throw new Error('data.json 없음 (' + r.status + ')');
     const d = await WLOCK.openData(await r.json()); if (!d || !Array.isArray(d.items)) throw new Error('data.json 형식 오류');   /* v052: 잠긴 data.json 풀기 */
-    finLastData = d; finPost(d);
+    finLastData = d; finPost(d); inspPost(d);
     const changedAt = d.changedAt || d.updatedAt, checkedAt = d.checkedAt || d.updatedAt;
     if (S.ecountSync && (S.ecountSync.changedAt || S.ecountSync.updatedAt) === changedAt && S.ecountSync.baseDate === (d.baseDate || today())) {
       // 재고는 그대로, 확인 시각만 갱신
