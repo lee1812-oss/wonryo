@@ -503,6 +503,8 @@ body.prod-on #weekSel,body.prod-on #syncPill,body.prod-on #sharePill{display:non
 .pchip small{display:block;font-weight:400;color:var(--ink2);font-size:11px;margin-top:2px;word-break:keep-all;overflow-wrap:anywhere}
 .pchip.on{border-color:var(--accent);background:var(--accent-bg)}
 .psend{flex:1 1 200px;padding:14px;font-size:16px}
+.pmap{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.pmap select{border:1px solid var(--line);border-radius:8px;padding:8px;font-size:14px;background:#fff}
 .pseg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;height:44px}
 .pseg button{padding:0 10px;border:none;background:#fff;font-size:13px;font-weight:600;color:var(--ink2)}
 .pseg button.on{background:var(--brand);color:#fff}
@@ -855,7 +857,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '060';
+const APP_VER  = '061';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1298,6 +1300,13 @@ window.addEventListener('message', e => {
 const WD = ['일', '월', '화', '수', '목', '금', '토'];
 function prodNorm(s) { return String(s || '').toLowerCase().replace(/\[[^\]]*\]/g, '').replace(/[\s()（）\[\]*·.,_\-/]/g, ''); }
 function prodSplit(s) { const t = String(s || '').trim(); const m = t.match(/^(.*?)\s*\[([^\]]*)\]\s*$/); return m ? { name: m[1].trim(), spec: m[2].trim() } : { name: t, spec: '' }; }
+/* 이름이 조금 달라도 맞추기: 한글 낱말·숫자(24EA, 180g) 토큰이 얼마나 겹치는지 */
+function prodToks(s) { const t = String(s || '').toLowerCase().replace(/\[[^\]]*\]/g, ' ').replace(/^\s*(db|d|s)\s*\.\s*/, ' ');
+  return [...new Set((t.match(/[가-힣]{2,}|\d+(?:\.\d+)?\s*(?:ea|g|kg|개|입|pk)?|[a-z]{3,}/g) || []).map(x => x.replace(/\s+/g, '')))]; }
+function prodSim(a, b) { const A = prodToks(a), B = prodToks(b); if (!A.length || !B.length) return 0;
+  const nums = A.filter(x => /^\d/.test(x)); if (nums.some(n => !B.includes(n) && B.some(y => /^\d/.test(y)))) return 0;   /* 숫자 규격이 다르면 다른 품목 */
+  const hit = A.filter(x => B.includes(x) || B.some(y => y.length > 1 && x.length > 1 && !/^\d/.test(x) && (y.includes(x) || x.includes(y)))).length; return hit / A.length; }
+function prodCands(h) { return prodS().items.map(i => ({ i, sc: prodSim(h.name, i.name) })).filter(x => x.sc > 0).sort((a, b) => b.sc - a.sc); }
 function prodHistDate(v) {
   if (v instanceof Date) return v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0');
   if (typeof v === 'number' && v > 30000 && v < 80000) { const d = new Date(Math.round((v - 25569) * 86400000)); return d.toISOString().slice(0, 10); }
@@ -1338,11 +1347,13 @@ function prodLinkHist(first) {
   const ecp = {}; (P.ecprod || []).forEach(p => { (ecp[prodNorm(p.name)] = ecp[prodNorm(p.name)] || []).push(p); });
   const cut = new Date(); cut.setDate(cut.getDate() - 90); const cutS = cut.toISOString().slice(0, 10);
   Object.values(H.items).forEach(h => {
-    let it = h.code ? P.items.find(i => i.code === h.code) : null;
+    const mapped = (P.histMap || {})[h.key];
+    let it = mapped ? P.items.find(i => i.code === mapped) : (h.code ? P.items.find(i => i.code === h.code) : null);
     if (!it) { const c = byNorm[prodNorm(h.name)] || []; it = c.length === 1 ? c[0] : c.find(i => h.spec && prodNorm(i.unit) === prodNorm(h.spec)) || null; }
+    if (!it) { const c = prodCands(h); if (c.length && c[0].sc >= 0.75 && (c.length === 1 || c[0].sc - c[1].sc >= 0.2)) it = c[0].i; }   /* 이름이 비슷한 품목이 하나뿐일 때만 자동 연결 */
     if (!it) { const code = h.code || (((ecp[prodNorm(h.name)] || []).length === 1) ? ecp[prodNorm(h.name)][0].code : '');
       if (code && !P.items.some(i => i.code === code)) { it = { code, name: h.name, unit: h.spec || '', ecEa: false, ecDiv: 0, kind: '', on: h.last >= cutS, fromHist: true }; P.items.push(it); (byNorm[prodNorm(it.name)] = byNorm[prodNorm(it.name)] || []).push(it); added++; } }
-    h.code = it ? it.code : (h.code || ''); if (it && !it.ecSpec && h.spec) it.ecSpec = h.spec;
+    h.code = it ? it.code : (mapped ? '' : (h.code && P.items.some(i => i.code === h.code) ? h.code : '')); if (it && !it.ecSpec && h.spec) it.ecSpec = h.spec;
   });
   if (first) {   /* 같은 이름의 품목이 여러 코드면 가장 최근에 쓴 코드만 켬 */
     const st = prodStats(); Object.values(byNorm).forEach(list => { if (list.length < 2) return; const used = list.filter(i => st[i.code]); if (!used.length) return; const best = used.sort((a, b) => (st[b.code].last || '').localeCompare(st[a.code].last || ''))[0]; const b30 = new Date(st[best.code].last + 'T00:00:00'); b30.setDate(b30.getDate() - 30); const b30S = b30.toISOString().slice(0, 10); list.forEach(i => { if (st[i.code]) i.on = i === best || st[i.code].last >= b30S; }); });   /* 최근 코드보다 한 달 넘게 안 쓴 옛 코드는 끔 */
@@ -1511,7 +1522,7 @@ function renderProdLog() {
 function renderProdSet() {
   const P = prodS(), box = $('#prodSet'); if (!box) return; const c = P.cfg; const H = P.hist; const st = prodStats();
   const whTop = H && H.wh ? Object.entries(H.wh).sort((a, b) => b[1] - a[1])[0] : null;
-  const unlinked = H && H.items ? Object.values(H.items).filter(h => !h.code).sort((a, b) => b.last.localeCompare(a.last)) : [];
+  const unlinked = H && H.items ? Object.values(H.items).filter(h => !h.code && (P.histMap || {})[h.key] !== '-').sort((a, b) => b.n - a.n) : [];
   const dupNames = {}; P.items.forEach(i => { const k = prodNorm(i.name); (dupNames[k] = dupNames[k] || []).push(i); });
   const dups = Object.values(dupNames).filter(l => l.length > 1);
   box.innerHTML = `
@@ -1534,7 +1545,9 @@ function renderProdSet() {
     <div class="muted" style="font-size:12px;margin-bottom:8px">이카운트 「생산입고조회」나 「생산입고현황」 엑셀을 넣으면 자주 만드는 품목 순서, 요일별 추천, 지난번 수량을 입력 화면에 보여 줍니다. 파일은 이 기기에서만 읽고 어디에도 올리지 않습니다.</div>
     ${H ? `<div style="margin-bottom:8px">${esc(H.file || '')} · <b>${esc(H.from)} ~ ${esc(H.to)}</b> · 전표 ${fmt(H.slips)}건 · 품목 ${Object.keys(H.items).length}개${whTop ? ` · 받는 창고 ${esc(whTop[0])}` : ''}<div class="muted" style="font-size:12px">「외 ○건」으로 묶인 전표는 첫 품목만 알 수 있어, 수량은 한 품목짜리 전표(${fmt(H.detail)}건)에서만 가져왔습니다. 품목별로 나온 「생산입고현황」 엑셀을 넣으면 더 정확해집니다.</div></div>` : ''}
     <div class="prow" style="align-items:center"><label class="btn sm primary" for="pHistFile" style="cursor:pointer">엑셀 파일 고르기</label><input type="file" id="pHistFile" accept=".xlsx,.xls,.csv" hidden>${H ? '<button class="btn sm danger" id="pHistDel">이력 지우기</button>' : ''}</div>
-    ${unlinked.length ? `<div style="margin-top:10px"><b style="color:var(--warn)">이카운트 코드를 못 찾은 이력 품목 ${unlinked.length}개</b><div class="muted" style="font-size:12px;margin:2px 0 4px">완제품·생지 「이카운트 품목」 목록을 불러온 뒤 「완제품·생지 품목 불러오기」를 다시 누르거나, 아래 「직접 추가」로 코드를 넣으세요.</div>${unlinked.slice(0, 12).map(h => `<div class="muted" style="font-size:13px">· ${esc(h.name)}${h.spec ? ' [' + esc(h.spec) + ']' : ''} — ${h.n}번, 최근 ${esc(h.last)}</div>`).join('')}</div>` : ''}
+    ${unlinked.length ? `<div style="margin-top:10px"><b style="color:var(--warn)">이카운트 코드를 못 찾은 이력 품목 ${unlinked.length}개</b><div class="muted" style="font-size:12px;margin:2px 0 6px">이카운트 품목명과 완제품·생지 품목명이 달라 자동으로 못 맞춘 품목입니다. 오른쪽에서 같은 품목을 골라 주세요 (한 번만 하면 기억합니다).</div>${unlinked.map(h => { const c = prodCands(h); const top = new Set(c.slice(0, 8).map(x => x.i.code)); const rest = P.items.filter(i => !top.has(i.code)).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+      return `<div class="pmap"><div style="flex:1 1 260px;min-width:0"><b>${esc(h.name)}</b>${h.spec ? ' <span class="muted">[' + esc(h.spec) + ']</span>' : ''}<div class="muted" style="font-size:12px">${h.n}번 생산 · 최근 ${esc(h.last)}</div></div>
+        <select data-pmap="${esc(h.key)}" aria-label="${esc(h.name)} 연결할 품목" style="flex:1 1 260px;min-width:0"><option value="">— 같은 품목 고르기 —</option>${c.slice(0, 8).length ? `<optgroup label="이름이 비슷한 품목">${c.slice(0, 8).map(x => `<option value="${esc(x.i.code)}">${esc(x.i.name)} (${esc(x.i.code)})</option>`).join('')}</optgroup>` : ''}<optgroup label="전체 품목">${rest.map(i => `<option value="${esc(i.code)}">${esc(i.name)} (${esc(i.code)})</option>`).join('')}</optgroup><option value="-">생산일지에 안 씀 (목록에서 숨김)</option></select></div>`; }).join('')}</div>` : ''}
   </div>
   ${dups.length ? `<div class="card" style="border-color:#E8C98E;background:var(--warn-bg)"><b>이름이 같은 품목이 여러 코드로 있습니다</b><div class="muted" style="font-size:12px;margin:2px 0 6px">이력에서 가장 최근에 쓴 코드를 켜 두었습니다. 실제로 쓰는 코드만 체크하세요.</div>${dups.map(l => `<div style="font-size:13px">· ${esc(l[0].name)}: ${l.map(i => `${esc(i.code)}${i.ecSpec ? ' [' + esc(i.ecSpec) + ']' : ''} ${st[i.code] ? '(최근 ' + esc(st[i.code].last) + ')' : '(이력 없음)'}${i.on ? ' ✓' : ''}`).join(' / ')}</div>`).join('')}</div>` : ''}
   <div class="card"><div class="prow" style="align-items:center;margin-bottom:6px"><h2 style="margin:0;flex:1 1 auto">생산 품목 (${prodOnItems().length} / ${P.items.length})</h2><button class="btn sm" id="pLoad">완제품·생지 품목 불러오기</button></div>
@@ -1570,6 +1583,8 @@ function renderProdSet() {
   $('#pExtra').onchange = e => setv('extra', e.target.value);
   $('#pDec').onchange = e => setv('dec', Number(e.target.value));
   $('#pHistFile').onchange = async e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; try { const r = await prodImportHist(f); toast(`생산 이력 ${r.H.from} ~ ${r.H.to} · 전표 ${r.H.slips}건을 읽었습니다${r.added ? ` · 품목 ${r.added}개 추가` : ''}`); } catch (err) { toast(err.message || '엑셀을 읽지 못했습니다'); } renderProdSet(); };
+  $$('#prodSet [data-pmap]').forEach(sel => sel.onchange = () => { P.histMap = P.histMap || {}; const v = sel.value; if (!v) return; P.histMap[sel.dataset.pmap] = v;
+    if (v !== '-') { const it = prodItem(v); if (it) it.on = true; } prodLinkHist(false); save(); renderProdSet(); toast(v === '-' ? '이 이력 품목은 숨겼습니다' : `${(prodItem(v) || {}).name || v}에 연결했습니다`); });
   if ($('#pHistDel')) $('#pHistDel').onclick = () => { delete P.hist; save(); renderProdSet(); toast('생산 이력을 지웠습니다'); };
   $('#pPing').onclick = async () => {
     const url = $('#pRelay').value.trim(); setv('relayUrl', url); const msg = $('#pPingMsg');
