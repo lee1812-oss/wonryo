@@ -501,7 +501,7 @@ body.prod-on #weekSel,body.prod-on #syncPill,body.prod-on #sharePill{display:non
 .pchips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .pchip{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:14px;font-weight:600;text-align:left;color:var(--ink);min-height:52px}
 .pchip small{display:block;font-weight:400;color:var(--ink2);font-size:11px;margin-top:2px;word-break:keep-all;overflow-wrap:anywhere}
-.pchip.on{border-color:var(--accent);background:var(--accent-bg)}
+.pchip.on{border:2px solid var(--accent);background:var(--accent-bg);color:var(--accent)}
 .psend{flex:1 1 200px;padding:14px;font-size:16px}
 .pmap{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
 .pmap select{border:1px solid var(--line);border-radius:8px;padding:8px;font-size:14px;background:#fff}
@@ -857,7 +857,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '063';
+const APP_VER  = '064';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1409,7 +1409,10 @@ function prodHint(st, it) { if (!st) return ''; const u = prodEcUnit(it); return
 function prodNewLine(code) { return { id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), code, qty: '', note: '', mode: '' }; }
 function renderProdNew() {
   const P = prodS(), box = $('#prodNew'); if (!box) return;
-  const ready = prodReady(); const items = prodOnItems(); const st = prodStats();
+  const ready = prodReady(); const st = prodStats();
+  /* 생산 이력(엑셀·보낸 기록)에 있는 품목만 — 직접 추가한 품목은 항상 표시, 「다른 품목 보기」로 전체 */
+  const allOn = prodOnItems(); const onlyMade = !!(P.hist || P.log.length) && !ui.prodAll;
+  const items = onlyMade ? allOn.filter(i => st[i.code] || i.manual) : allOn; const hiddenN = allOn.length - items.length;
   const q = String(ui.prodQ || '').trim().toLowerCase();
   const list = items.filter(i => !q || (i.name + ' ' + i.code).toLowerCase().includes(q)).sort((a, b) => ((st[b.code] || {}).n || 0) - ((st[a.code] || {}).n || 0) || a.name.localeCompare(b.name, 'ko'));
   const inDraft = new Set(P.draft.lines.map(l => l.code));
@@ -1450,8 +1453,9 @@ function renderProdNew() {
   </div>
   <div class="card">
     <div class="prow" style="align-items:center;margin-bottom:8px"><h2 style="margin:0;flex:1 1 auto">품목 고르기</h2><input class="search" id="pQ" value="${esc(ui.prodQ || '')}" placeholder="품목·코드 검색" aria-label="생산 품목 검색" style="flex:0 1 180px;min-width:0"></div>
-    ${items.length ? (list.length ? `<div class="pchips">${list.map(i => `<button type="button" class="pchip${inDraft.has(i.code) ? ' on' : ''}" data-padd="${esc(i.code)}">${esc(i.name)}<small>${st[i.code] ? esc(prodHint(st[i.code], i)) : esc(i.code) + (i.unit ? ' · ' + esc(i.unit) : '')}</small></button>`).join('')}</div>` : '<div class="muted">검색에 맞는 품목이 없습니다.</div>')
+    ${items.length ? (list.length ? `<div class="pchips">${list.map(i => `<button type="button" class="pchip${inDraft.has(i.code) ? ' on' : ''}" data-padd="${esc(i.code)}" aria-pressed="${inDraft.has(i.code)}">${inDraft.has(i.code) ? '✓ ' : ''}${esc(i.name)}<small>${st[i.code] ? esc(prodHint(st[i.code], i)) : esc(i.code) + (i.unit ? ' · ' + esc(i.unit) : '')}</small></button>`).join('')}</div>` : '<div class="muted">검색에 맞는 품목이 없습니다.</div>')
       : '<div class="muted">생산 품목이 없습니다. 「연동 설정 → 생산 품목」에서 완제품·생지 품목을 불러오세요.</div>'}
+    ${hiddenN > 0 || ui.prodAll ? `<div style="margin-top:10px"><button type="button" class="btn sm" id="pAll">${ui.prodAll ? '우리가 생산한 품목만 보기' : `처음 만드는 품목 찾기 (생산 이력에 없는 품목 ${hiddenN}개)`}</button></div>` : ''}
   </div>
   ${todayLog.length ? `<div class="card"><h2 style="margin:0 0 6px">${esc(P.draft.date)} 보낸 생산</h2>${todayLog.map(en => `<div class="muted" style="padding:3px 0">${esc(hmOf(en.sentAt || en.ts))} · ${esc(en.lines.map(l => l.name + ' ' + fmt(l.qty) + (l.mode === 'ea' ? '개' : '')).join(', '))} <span class="pill ok">${en.test ? '테스트 ' : ''}전표 ${esc(en.slip || '')}</span></div>`).join('')}</div>` : ''}`;
   const draftLine = id => P.draft.lines.find(l => l.id === id);
@@ -1463,10 +1467,13 @@ function renderProdNew() {
   $$('#prodNew [data-pgo]').forEach(b => b.onclick = () => { S.ui.prodTab = b.dataset.pgo; save(); renderAll(); });
   if ($('#pSugAll')) $('#pSugAll').onclick = () => { sug.forEach(i => addCode(i.code)); save(); renderProdNew(); const f = document.querySelector('#prodNew [data-pqty]'); if (f) f.focus(); };
   if ($('#pRepeat')) $('#pRepeat').onclick = () => { lastSent.lines.forEach(x => { const l = addCode(x.code); l.mode = x.mode || ''; }); save(); renderProdNew(); const f = document.querySelector('#prodNew [data-pqty]'); if (f) f.focus(); };
-  $$('#prodNew [data-padd]').forEach(b => b.onclick = () => {
-    const had = P.draft.lines.some(x => x.code === b.dataset.padd); const l = addCode(b.dataset.padd); if (!had) { save(); renderProdNew(); }
+  $$('#prodNew [data-padd]').forEach(b => b.onclick = () => {   /* 한 번 누르면 담기, 다시 누르면 빼기 */
+    const code = b.dataset.padd; const had = P.draft.lines.find(x => x.code === code);
+    if (had) { P.draft.lines = P.draft.lines.filter(x => x !== had); save(); renderProdNew(); toast(`${(prodItem(code) || {}).name || code} 뺐습니다`); return; }
+    const l = addCode(code); save(); renderProdNew();
     const inp = document.querySelector(`#prodNew [data-pqty="${l.id}"]`); if (inp) { inp.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => inp.focus(), 250); }
   });
+  if ($('#pAll')) $('#pAll').onclick = () => { ui.prodAll = !ui.prodAll; renderProdNew(); };
   $$('#prodNew [data-pqty]').forEach(inp => inp.oninput = () => { const l = draftLine(inp.dataset.pqty); if (!l) return; l.qty = inp.value.replace(/[^0-9.]/g, ''); save(); refreshConv(l); });
   $$('#prodNew [data-pnote]').forEach(inp => inp.oninput = () => { const l = draftLine(inp.dataset.pnote); if (l) { l.note = inp.value; save(); } });
   $$('#prodNew [data-pstep]').forEach(b => b.onclick = () => { const l = draftLine(b.dataset.pstep); if (!l) return; const v = Math.max(0, (Number(l.qty) || 0) + Number(b.dataset.d)); l.qty = v ? String(v) : ''; save(); const inp = document.querySelector(`#prodNew [data-pqty="${l.id}"]`); if (inp) inp.value = l.qty; refreshConv(l); });
