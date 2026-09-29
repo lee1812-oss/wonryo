@@ -831,7 +831,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '055';
+const APP_VER  = '056';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1187,7 +1187,7 @@ function inspSendKey() {
   try { f.contentWindow.postMessage({ type: 'wonryo-sharekey', key: (window.WLOCK && WLOCK.shareKey && WLOCK.shareKey()) || '', url: shareOn() ? String(S.settings.shareUrl || '').trim() : '', user: S.settings.reporter || '' }, inspOrigin()); } catch (e) {}
 }
 function inspNav(tab) { const f = $('#inspFrame'); if (!f || !f.contentWindow || !inspLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-nav', tab }, inspOrigin()); } catch (e) {} }
-function inspPost(d) { const f = $('#inspFrame'); if (!f || !f.contentWindow || !inspLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-ecount', data: { changedAt: d.changedAt, updatedAt: d.updatedAt } }, inspOrigin()); } catch (e) {} }
+function inspPost(d) { const f = $('#inspFrame'); if (!f || !f.contentWindow || !inspLoaded || !d) return; try { f.contentWindow.postMessage({ type: 'wonryo-ecount', data: { changedAt: d.changedAt, updatedAt: d.updatedAt, items: (d.items || []).map(i => ({ code: i.code, qty: i.qty })) } }, inspOrigin()); } catch (e) {} }   /* v056: 품목 재고도 넘겨 육안검사가 1분마다 바로 비교 (깃허브 조회 없이) */
 window.addEventListener('message', e => {
   if (!fromInsp(e)) return; const m = e.data; if (!m || typeof m !== 'object') return;
   if (m.type === 'insp-ready' || m.type === 'insp-need-key' || m.type === 'insp-need-share') { inspHeard = true; $('#inspMsg').classList.add('off'); inspSendKey(); if (m.type === 'insp-ready') inspNav(S.ui.inspTab || 'dashboard'); }

@@ -2,7 +2,7 @@
 <html lang="ko"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>육안검사일지 v092 — 빵을그리다(주)</title>
+<title>육안검사일지 v093 — 빵을그리다(주)</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&amp;family=DM+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -369,7 +369,7 @@ table.data-table td.num{text-align:right;font-family:'DM Mono',monospace;font-si
       <button onclick="storageDiagnose()" title="브라우저 저장 공간 사용량 확인" style="width:100%;margin-bottom:6px;padding:5px 4px;border-radius:6px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06);color:#cbd5e1;font-size:11px;cursor:pointer">🧹 저장 공간 진단</button>
       <button onclick="exportAllDataJSON()" title="데이터만 JSON으로 백업" style="width:100%;padding:5px 4px;border-radius:6px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:#94a3b8;font-size:10px;font-weight:600;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">{ } JSON 백업 저장</button>
     </div>
-    <div>육안검사일지 v092</div><div id="saveInfo" style="font-size:10px;color:#94a3b8;margin-top:3px;line-height:1.4"></div>
+    <div>육안검사일지 v093</div><div id="saveInfo" style="font-size:10px;color:#94a3b8;margin-top:3px;line-height:1.4"></div>
     <div style="margin-top:2px;font-size:9.5px">저장: IndexedDB(무제한) + HTML 스냅샷</div>
   </div>
 </div>
@@ -5009,7 +5009,7 @@ function init(){
 //   · 신규 입력에서 품목만 고르면 고정값 자동 반영, 수정 가능 / 변동값만 손으로 입력
 //   · 2026-09-14 이후 일지는 신양식(A4 가로, 18열)으로 입력·인쇄, 그 이전 일지는 기존 양식 그대로 조회·인쇄
 // ═══════════════════════════════════════════════════════════════════
-const APP_VER        = 'v092';
+const APP_VER        = 'v093';
 const NEW_FORM_START_DEFAULT = '2026-09-14';
 function NEW_FORM_START_(){ return (typeof cfg==='object' && cfg && isValidDate(cfg.newFormStart)) ? cfg.newFormStart : NEW_FORM_START_DEFAULT; }
 const ALLERGEN_LIST  = ['난류','우유','메밀','땅콩','대두','밀','고등어','게','새우','돼지고기','복숭아','토마토','아황산류','호두','닭고기','쇠고기','오징어','조개류','잣'];
@@ -7589,34 +7589,73 @@ function ecFixPendingUnits(){   // 이전 버전이 g로 넣은 확인 전 자�
 async function ecRun(manual){
   ecLoad();
   if(ecBusy) return; if(!ecState.on && !manual) return;
-  const dkey = ecKey(); if(!dkey){ ecState.err = '재고 비밀번호를 먼저 연결하세요'; ecSave(); ecRender(); return; }
-  if(!ecState.lastSha){ ecState.err = '시작 시점이 없습니다 — 「연결」을 다시 해 주세요'; ecSave(); ecRender(); return; }
+  const dkey = ecKey(); if(!dkey){ ecState.err = '재고 비밀번호 열쇠가 없습니다 — 통합 재고관리 안에서 열어 주세요'; ecSave(); ecRender(); return; }
+  if(!ecState.lastSha){ try{ ecAutoConnect(); }catch(e){} if(!ecState.lastSha) return; }
+  if(!manual && ecState.blockUntil && Date.now() < ecState.blockUntil) return;   /* 깃허브 조회 한도: 1시간 쉬기 */
   ecBusy = true; ecMsg = '이카운트 이력 확인 중…'; ecRender();
-  let added = 0, seen = 0;
+  let added = 0, seen = 0, days = 0;
   try{
-    let list = await ecApi(`since=${encodeURIComponent(ecState.lastAt)}&per_page=100&page=1`);
-    for(let p=2; list.length===100*(p-1) && p<=8; p++){ const more = await ecApi(`since=${encodeURIComponent(ecState.lastAt)}&per_page=100&page=${p}`); list = list.concat(more); if(more.length<100) break; }
-    list = list.reverse().filter(c=>c.sha!==ecState.lastSha && c.date>=ecState.lastAt).slice(0, EC_MAX_PER_RUN);
-    const map = ecActiveMap(); let found = [];
-    let prev = ecState.qty || {}, prevCh = ecState.lastChangedAt || ''; const H = ecState.hist = ecState.hist || {};
-    for(let i=0; i<list.length; i+=6){
-      const chunk = list.slice(i, i+6);
-      const vers = await Promise.all(chunk.map(c=>ecVersion(c.sha, dkey)));
-      const r = ecScanVersions(chunk, vers, map, prev, prevCh, H, c=>{ seen++; ecMsg = `이카운트 이력 확인 중… ${seen}/${list.length}`; ecState.lastSha = c.sha; ecState.lastAt = c.date; });
-      found = found.concat(r.found); prev = r.prev; prevCh = r.prevCh;
-      if(i % 60 === 0) ecRender();
+    const map = ecActiveMap(); const H = ecState.hist = ecState.hist || {};
+    let prev = ecState.qty || {}, prevCh = ecState.lastChangedAt || '';
+    /* v093: 하루치씩 오래된 것부터 (깃허브 목록은 최신순이라 기간을 좁혀야 조회 횟수가 적음 — 하루 약 3회) */
+    while(days < 12){
+      const from = ecState.lastAt; const until = new Date(Math.min(Date.now(), new Date(from).getTime() + 24*3600e3)).toISOString();
+      let list = [];
+      for(let p=1; p<=5; p++){ const a = await ecApi(`since=${encodeURIComponent(from)}&until=${encodeURIComponent(until)}&per_page=100&page=${p}`); list = list.concat(a); if(a.length<100) break; }
+      list = list.reverse().filter(c=>c.sha!==ecState.lastSha && c.date>=from);
+      for(let i=0; i<list.length; i+=6){
+        const chunk = list.slice(i, i+6);
+        const vers = await Promise.all(chunk.map(c=>ecVersion(c.sha, dkey)));
+        const r = ecScanVersions(chunk, vers, map, prev, prevCh, H, c=>{ seen++; ecMsg = `이카운트 이력 확인 중… ${String(c.date).slice(0,10)} · ${seen}건`; ecState.lastSha = c.sha; ecState.lastAt = c.date; });
+        prev = r.prev; prevCh = r.prevCh; ecState.qty = prev; ecState.lastChangedAt = prevCh;
+        if(r.found.length){ ecRecord(r.found, map); added += ecApply(r.found.filter(f=>f.kind==='buy' && map[f.code] && map[f.code].on), map); }
+        if(i % 60 === 0){ ecSave(); ecRender(); }
+      }
+      days++;
+      if(!list.length || ecState.lastAt < until) ecState.lastAt = until;   /* 이 구간 끝까지 봄 */
+      ecSave();
+      if(until >= new Date(Date.now()-60e3).toISOString()) { ecState.liveSeenAt = Date.now(); break; }   /* 지금까지 따라잡음 */
     }
-    ecState.qty = prev; ecState.lastChangedAt = prevCh;
-    if(found.length){ ecRecord(found, map); added = ecApply(found.filter(f=>f.kind==='buy' && map[f.code] && map[f.code].on), map); }
-    ecState.err = ''; ecState.checkedAt = new Date().toISOString();
+    ecState.err = ''; ecState.blockUntil = 0; ecState.checkedAt = new Date().toISOString();
     ecSave();
     if(added) showToast(`📥 이카운트 입고 ${added}품목을 육안검사일지에 자동 입력했습니다 — 「이카운트 연동」에서 확인하세요`, 'success');
-    else if(manual) showToast(list.length ? `이카운트 이력 ${list.length}건 확인 — 새 입고 없음` : '새로 올라온 이카운트 자료가 없습니다', 'info');
-    if(list.length===EC_MAX_PER_RUN) setTimeout(()=>ecRun(false), 4000);   // 밀린 이력 이어서
-  }catch(e){ ecState.err = e.message||String(e); ecState.checkedAt = new Date().toISOString(); ecSave(); if(manual) showToast(ecState.err, 'error'); }
+    else if(manual) showToast(seen ? `이카운트 이력 ${seen}건 확인 — 새 입고 없음` : '새로 올라온 이카운트 자료가 없습니다', 'info');
+    if(days >= 12) setTimeout(()=>ecRun(false), 5000);   /* 밀린 이력 이어서 */
+  }catch(e){ ecState.err = e.message||String(e); if(/한도/.test(ecState.err)) ecState.blockUntil = Date.now() + 60*60000; ecState.checkedAt = new Date().toISOString(); ecSave(); if(manual) showToast(ecState.err, 'error'); }
   ecBusy = false; ecMsg = ''; ecRender(); try{ ecDashBanner(); }catch(e){}
 }
-
+/* v093: 통합 재고관리가 1분마다 받는 이카운트 자료를 바로 비교 (깃허브 조회 없음). 화면이 닫혀 있던 빈틈만 이력으로 채움 */
+function ecLive(d){
+  ecLoad(); if(!d || !Array.isArray(d.items) || !ecKey()) return;
+  ecAutoConnect(); if(!ecState.lastSha || !ecState.on || ecBusy) return;
+  const ch = d.changedAt || d.updatedAt; const now = Date.now();
+  const cont = !!(ecState.liveSeenAt && (now - ecState.liveSeenAt) <= 12*60000 && ecState.qty);
+  if(!cont){ ecRun(false); return; }                      /* 빈틈 → 이력으로 따라잡기 */
+  ecState.liveSeenAt = now;
+  if(!ch || ch===ecState.lastChangedAt){ ecSave(); return; }
+  const qty = {}; d.items.forEach(x=>{ if(x && x.code!=null && x.qty!=null && x.qty!=='' && !isNaN(Number(x.qty))) qty[String(x.code)] = Number(x.qty); });
+  const map = ecActiveMap(); const H = ecState.hist = ecState.hist || {};
+  const r = ecScanVersions([{ sha:'live', date: new Date(ch).toISOString() }], [{ changedAt: ch, qty }], map, ecState.qty, ecState.lastChangedAt, H);
+  ecState.qty = r.prev; ecState.lastChangedAt = r.prevCh; ecState.lastAt = new Date(ch).toISOString(); ecState.lastSha = 'live:'+ch; ecState.checkedAt = new Date().toISOString(); ecState.err = '';
+  let added = 0; if(r.found.length){ ecRecord(r.found, map); added = ecApply(r.found.filter(f=>f.kind==='buy' && map[f.code] && map[f.code].on), map); }
+  ecSave(); if(added) showToast(`📥 이카운트 입고 ${added}품목을 육안검사일지에 자동 입력했습니다`, 'success');
+  try{ ecRender(); ecDashBanner(); }catch(e){}
+}
+/* v093: 자동 연결 — 통합 재고관리 안에서 열리면 「연결」 없이 이카운트 이력 처음부터(2026-09-21 자료부터) 자동으로 봄 */
+const EC_AUTO_FROM = '2026-09-20T15:00:00Z';   /* 2026-09-21 0시(한국) — 이 저장소의 이카운트 이력 시작 */
+function ecAutoConnect(){
+  ecLoad(); if(!ecKey()) return;
+  if(!ecState.lastSha && !Object.keys(ecActiveMap()).length) return;   /* 품목(불러오기)이 생기기 전에는 시작하지 않음 — 빈 상태로 이력을 지나치지 않게 */
+  if(!ecState.lastSha){ Object.assign(ecState, { on: true, lastSha: 'auto', lastAt: EC_AUTO_FROM, lastChangedAt: '', qty: null, err: '', auto: true, liveSeenAt: 0 }); ecLog('자동 연결 — 이카운트 이력 처음(2026-09-21 자료)부터 훑습니다'); ecSave(); }
+  else if(!ecState.on && !ecState.userOff){ ecState.on = true; ecSave(); }
+  /* 체크를 한 번도 만진 적 없으면: 2026년에 손으로 일지를 쓴 적 있는 연결 품목을 「일지 생성」으로 켬 */
+  if(!cfg.ecOnInit && itemMaster.length){
+    const used = new Set(); entries.forEach(e=>{ if(String(e.date)>='2026-01-01') (e.items||[]).forEach(it=>{ if(!it._ec && !it._buy){ if(it.id) used.add(it.id); if(it.name) used.add('n:'+normKey(it.name)); } }); });
+    let n = 0; ecMapItems().forEach(x=>{ if(x.code && !x.dup && (used.has(x.m.id) || used.has('n:'+normKey(x.m.name))) && !x.m.ecOn){ x.m.ecOn = true; n++; } });
+    cfg.ecOnInit = true; saveCfg(); if(n){ saveItems(); ecLog(`2026년 일지에 있는 연결 품목 ${n}개를 「일지 생성」으로 켬`); ecSave(); }
+  }
+  ecSchedule();
+}
 // ── 찾은 입고 → 일지 반영 ──
 function ecApply(found, map){
   const done = new Set();
@@ -7708,7 +7747,8 @@ async function ecConnect(){
   }catch(e){ ecBusy = false; showToast(e.message||String(e), 'error'); }
   ecMsg = ''; ecRender();
 }
-function ecToggle(){ ecLoad(); if(!ecState.lastSha || !ecKey()){ showToast('먼저 재고 비밀번호로 연결하세요', 'error'); return; } ecState.on = !ecState.on; ecSave(); ecSchedule(); ecRender(); if(ecState.on) ecRun(true); }
+function ecToggle(){ ecLoad(); if(!ecKey()){ showToast('통합 재고관리 안에서 열어 주세요 (재고 비밀번호 열쇠 필요)', 'error'); return; } if(!ecState.lastSha) ecAutoConnect(); ecState.on = !ecState.on; ecState.userOff = !ecState.on; ecSave(); ecSchedule(); ecRender(); if(ecState.on) ecRun(true); }
+function ecRestart(){ if(!confirm('이카운트 이력을 처음(2026-09-21 자료)부터 다시 훑습니다. 이미 일지에 넣은 입고는 다시 넣지 않습니다. 진행할까요?')) return; ecLoad(); Object.assign(ecState, { lastSha:'', qty:null, lastChangedAt:'', hist:{}, blockUntil:0, userOff:false }); ecSave(); ecAutoConnect(); ecRun(true); }
 function ecForget(){ if(!confirm('이 PC에 저장된 재고 비밀번호 열쇠를 지우고 연동을 끌까요? (이미 입력된 일지는 그대로)')) return; ecSetKey(''); ecLoad(); ecState.on = false; ecSave(); ecSchedule(); ecRender(); }
 function ecSchedule(){ clearInterval(ecTimer); ecTimer = null; ecLoad(); if(ecState.on && ecKey()) ecTimer = setInterval(()=>{ if(!document.hidden) ecRun(false); }, 5*60*1000); }
 function ecSetCode(id, v){ const m = itemMaster.find(i=>i.id===id); if(!m) return; v = String(v||'').trim(); if(v) m.ecCode = v; else delete m.ecCode; saveItems(); ecRender(); }
@@ -7816,27 +7856,19 @@ function ecRender(){
   const map = ecMapItems(); const linked = map.filter(x=>x.code && !x.dup); const onN = linked.filter(x=>x.on).length; const amap = {}; linked.forEach(x=>{ amap[x.code] = x; });
   const rcv = (ecState.rcv||[]); const rByDate = {}; rcv.forEach(r=>{ (rByDate[r.date]=rByDate[r.date]||[]).push(r); });
   const pend = ecPendingRows(); const byDate = {}; pend.forEach(p=>{ (byDate[p.e.date]=byDate[p.e.date]||[]).push(p); });
-  const st = on ? `<span style="color:#15803d;font-weight:800">● 켜짐</span>` : `<span style="color:#b91c1c;font-weight:800">● 꺼짐</span>`;
+  const st = !hasKey ? `<span style="color:#b91c1c;font-weight:800">● 열쇠 없음</span>` : !ecState.lastSha ? `<span style="color:#b45309;font-weight:800">● 대기 (품목을 옮기면 자동 시작)</span>` : on ? `<span style="color:#15803d;font-weight:800">● 자동 연결</span>` : `<span style="color:#b91c1c;font-weight:800">● 꺼짐</span>`;
   const tsf = t => t ? fmtTs(t) : '—';
   box.innerHTML = `
   <div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">연동 상태 ${st}</div><div style="display:flex;gap:6px;flex-wrap:wrap">
-      <button class="btn btn-primary btn-sm" onclick="ecRun(true)" ${hasKey&&ecState.lastSha&&!ecBusy?'':'disabled'}>↻ 지금 확인</button>
-      <button class="btn btn-secondary btn-sm" onclick="ecToggle()" ${hasKey&&ecState.lastSha?'':'disabled'}>${ecState.on?'끄기':'켜기'}</button>
-      <button class="btn btn-secondary btn-sm" onclick="ecForget()" ${hasKey?'':'disabled'}>비밀번호 열쇠 지우기</button></div></div>
+      <button class="btn btn-primary btn-sm" onclick="ecRun(true)" ${hasKey&&!ecBusy?'':'disabled'}>↻ 지금 확인</button>
+      <button class="btn btn-secondary btn-sm" onclick="ecToggle()" ${hasKey?'':'disabled'}>${ecState.on?'끄기':'켜기'}</button></div></div>
     <div style="padding:10px 14px;font-size:12.5px;line-height:1.8">
+      ${!itemMaster.length || !linked.length ? `<div style="margin-bottom:8px;padding:10px 12px;border-radius:8px;background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B"><b>⚠ 연결된 품목이 없어 입고를 일지로 만들 수 없습니다.</b><br>왼쪽 아래 <b>「📂 불러오기」</b>로 기존 육안검사일지(v089에서 「💾 전체 저장」한 파일)를 먼저 옮겨 주세요. 다른 기기에서 이미 옮겼다면 잠시 뒤 공유 저장소에서 자동으로 받아집니다.</div>` : ''}
       ${ecMsg ? `<div style="color:#1d4ed8;font-weight:700">${esc(ecMsg)}</div>` : ''}
-      ${ecState.err ? `<div style="color:#b91c1c;font-weight:700">⚠ ${esc(ecState.err)}</div>` : ''}
-      마지막 확인 ${tsf(ecState.checkedAt)} · 마지막으로 읽은 이카운트 자료 ${tsf(ecState.lastChangedAt||ecState.lastAt)} · 연결 품목 ${linked.length}개 · 켜져 있으면 5분마다 자동 확인<br>
-      <div style="margin-top:8px;padding:10px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc">
-        <b>${hasKey ? '다시 연결 / 시작 시점 바꾸기' : '처음 연결'}</b> — 통합 재고관리의 「재고 비밀번호」를 넣으세요. 이 PC 브라우저에만 열쇠로 저장되고 「전체 저장」 파일에는 들어가지 않습니다.<br>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px">
-          <input id="ec_pw" type="password" class="form-input" style="max-width:220px;height:32px" placeholder="${hasKey?'(저장된 열쇠 사용 — 바꿀 때만 입력)':'재고 비밀번호'}" autocomplete="off">
-          <label style="font-size:12px">소급 시작일 <input id="ec_start" type="date" class="form-input" style="height:32px;width:150px;display:inline-block" max="${today()}"></label>
-          <button class="btn btn-primary btn-sm" onclick="ecConnect()" ${ecBusy?'disabled':''}>🔗 연결</button>
-        </div>
-        <div style="color:#64748b;font-size:11.5px;margin-top:4px">소급 시작일을 비우면 「지금」부터 새로 들어오는 입고만 넣습니다. 날짜를 고르면 그날 0시부터의 이력을 훑어 빠진 입고를 채웁니다(하루 약 290건, 며칠 전까지만 권장).</div>
-      </div>
-      <div style="color:#64748b;font-size:11.5px;margin-top:6px">⚠ 이 연동은 <b>한 PC에서만</b> 켜 두세요. 여러 PC에서 켜면 각자 일지에 따로 들어가 「전체 저장」 파일을 합칠 때 중복될 수 있습니다. 이카운트 재고가 늘어난 시각의 날짜로 들어가며, 재고조정(+)도 입고로 잡힐 수 있으니 확인 때 지워 주세요.</div>
+      ${ecState.err ? `<div style="color:#b91c1c;font-weight:700">⚠ ${esc(ecState.err)}${ecState.blockUntil && Date.now()<ecState.blockUntil ? ` (${fmtTs(new Date(ecState.blockUntil).toISOString()).slice(11)}에 다시 시도 — 그동안 새 입고는 1분마다 받는 자료로 계속 확인)` : ''}</div>` : ''}
+      ${hasKey ? `<b>자동 연결</b> — 통합 재고관리를 열면 자동으로 연결되어, 1분마다 받는 이카운트 자료로 재고가 늘었는지 바로 확인합니다. 화면이 닫혀 있던 동안의 입고는 다시 열 때 이카운트 이력(2026-09-21 자료부터)으로 채웁니다.<br>` : `<b style="color:#b91c1c">통합 재고관리 안(육안검사 메뉴)에서 열어야 자동 연결됩니다.</b><br>`}
+      마지막 확인 ${tsf(ecState.checkedAt)} · 마지막으로 읽은 이카운트 자료 ${tsf(ecState.lastChangedAt||'')} · 연결 품목 ${linked.length}개 · 일지 생성 ${linked.filter(x=>x.on).length}개
+      <div style="color:#64748b;font-size:11.5px;margin-top:6px">2026-01-01 ~ 09-21 입고는 이카운트 재고 이력이 없어, 구매조회 대조로 채운 일지(불러오기로 옮긴 자료)에 들어 있습니다. 재고조정(+)도 늘어난 재고로 잡힐 수 있으니 「확인 필요」 행을 볼 때 입고가 아니면 지워 주세요. <a href="javascript:void(0)" onclick="ecRestart()" style="color:#64748b">이력 처음부터 다시 훑기</a></div>
     </div></div>
 
   ${buyCardHtml()}
@@ -7847,7 +7879,7 @@ function ecRender(){
         <table class="data-table" style="margin-top:6px"><thead><tr><th>품목</th><th>공급업체</th><th class="num">이카운트 증가</th><th class="num">일지 수량</th><th>시각</th><th>상태</th><th></th></tr></thead><tbody>
         ${L.map(r=>{ const x = amap[r.code]; const st = ecRcvStatus(r, x); const q = x ? ecQtyFor(x, r.inc, x.m.unit, x.m.spec) : null; const t = new Date(r.at);
           return `<tr><td style="font-weight:600">${x ? esc(x.m.name) : esc(r.code)}</td><td>${x ? esc(x.m.supplier||'') : ''}</td><td class="num">+${fmtNum(r.inc)}${r.gBased?' g':''}</td><td class="num">${q ? esc(q.qty)+' '+esc(q.unit||'') : '—'}</td><td>${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}</td><td style="color:${st.c};font-weight:700;font-size:12px">${esc(st.t)}</td><td>${!st.has && x ? `<button class="btn btn-secondary btn-sm" onclick="ecAddRcv('${esc(r.key)}')">일지에 넣기</button>` : ''}</td></tr>`; }).join('')}
-        </tbody></table></div>`; }).join('') : `<div style="padding:14px;color:#64748b;font-size:13px">아직 찾은 재고 증가가 없습니다. 연결 이후 이카운트에서 관리 품목의 재고가 늘면 여기에 날짜별로 나옵니다. 지난 입고일을 보려면 위 「소급 시작일」을 골라 다시 「연결」하세요.</div>`}
+        </tbody></table></div>`; }).join('') : `<div style="padding:14px;color:#64748b;font-size:13px">아직 찾은 재고 증가가 없습니다. 연결 이후 이카운트에서 관리 품목의 재고가 늘면 여기에 날짜별로 나옵니다. 지난 입고를 다시 찾으려면 위 「이력 처음부터 다시 훑기」를 누르세요.</div>`}
     <div style="padding:8px 14px;color:#64748b;font-size:11.5px">연결된 품목의 이카운트 재고가 늘어난 날짜입니다. 붉은 날짜는 그 입고에 해당하는 일지 행이 아직 없습니다 — 「일지에 넣기」로 만들거나 일지 입력에서 직접 입력하세요.</div></div>
 
   ${(()=>{ const Q = (typeof qcRows==='function') ? qcRows() : []; if(!Q.length) return ''; return `<div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">🔎 수량 확인 필요 ${Q.length}건 — 구매전표와 일지 수량이 다름 (일지 값은 그대로)</div></div>
@@ -8097,9 +8129,9 @@ window.addEventListener('message', e=>{
   if(location.protocol!=='file:' && e.origin !== location.origin && e.origin !== 'null') return;
   const m = e.data; if(!m || typeof m!=='object') return;
   if(m.type==='wonryo-lockkey' && m.dk){ const first = !__ecDkey; __ecDkey = m.dk;
-    if(first){ LS.ready().then(()=>{ inspWhenBooted(()=>{ try{ ecRender(); ecLoad(); ecSchedule(); if(ecState.on) setTimeout(()=>ecRun(false), 1500); }catch(_){} }); }); } }   /* v092: 저장 자료를 다 읽은 뒤에만 */   /* v092: 열쇠가 늦게 와도 5분 확인·첫 확인 시작 */
+    if(first){ LS.ready().then(()=>{ inspWhenBooted(()=>{ try{ ecAutoConnect(); ecRender(); if(ecState.on) setTimeout(()=>ecRun(false), 1500); }catch(_){} }); }); } }   /* v093: 자동 연결 */   /* v092: 저장 자료를 다 읽은 뒤에만 */   /* v092: 열쇠가 늦게 와도 5분 확인·첫 확인 시작 */
   if(m.type==='wonryo-ecount'){   // 재고 자료가 새로 들어오면 바로 입고 확인 (연동이 켜져 있을 때만)
-    clearTimeout(__ecKick); __ecKick = setTimeout(()=>inspWhenBooted(()=>{ try{ ecLoad(); if(ecState.on && ecKey()) ecRun(false); }catch(_){} }), 1500);
+    const d = m.data; inspWhenBooted(()=>{ try{ ecLive(d); }catch(_){} });   /* v093: 받은 자료로 바로 비교 */
   }
   if(m.type==='wonryo-nav' && m.tab){
     const id = m.tab==='eclink' ? 'nav-eclink' : 'nav-'+m.tab; const el = document.getElementById(id);
@@ -8226,12 +8258,16 @@ function syAfterApply(n){
   syQuiet = true;
   try{ LS.setItem(STORE_KEY_ENTRIES, JSON.stringify(entries)); LS.setItem(STORE_KEY_ITEMS, JSON.stringify(itemMaster)); }catch(e){}
   try{ mergeSameDateEntries(); }catch(e){}
+  try{ syDedupeRows(); }catch(e){}
   try{ buildItemProfile(); }catch(e){}
   syQuiet = false;
+  try{ ecAutoConnect(); }catch(e){}
   try{ const pg = document.querySelector('.page.active'); const id = pg && pg.id.replace('page-',''); if(id==='eclink') ecRender(); else if(id && typeof onPageEnter==='function' && id!=='entry') onPageEnter(id); ecDashBanner(); }catch(e){}
   showToast(`☁ 공유 저장소에서 일지·품목 ${n}건 받음`, 'info');
 }
 let syQuiet = false;
+/* 두 기기가 같은 입고를 동시에 넣었으면 같은 날짜 안에서 한 행만 남김 (입고 키 기준) */
+function syDedupeRows(){ let n = 0; entries.forEach(e=>{ const seen = new Set(); e.items = (e.items||[]).filter(it=>{ const k = (it._ec && it._ec.keys && it._ec.keys[0]) || (it._buy && it._buy.key) || ''; if(!k) return true; if(seen.has(k)){ n++; return false; } seen.add(k); return true; }); }); if(n) LS.setItem(STORE_KEY_ENTRIES, JSON.stringify(entries)); return n; }
 async function syRun(){
   if(!window.__inspBooted){ syKick(1000); return; }   /* 일지를 다 읽기 전에는 동기화하지 않음 */
   syLoad(); if(!syOn() || syBusy) return; syBusy = true; syMsg = '동기화 중…'; try{ syPaint(); }catch(e){}
