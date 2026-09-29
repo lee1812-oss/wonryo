@@ -10,7 +10,6 @@ goto :EOF
 # 휴대폰·태블릿에서 입력한 생산일지를 구글 중계에서 가져와, 이카운트에 등록된 이 PC에서 생산입고I로 보냅니다.
 # 설정 파일(ecount_relay_pc.json)은 이 파일과 같은 폴더에 만들어지며 이카운트 인증키가 들어 있으니 다른 곳에 올리지 마세요.
 $ErrorActionPreference = 'Stop'
-try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch {}
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
 $Self = $env:RELAY_SELF; if (-not $Self) { $Self = $PSCommandPath }
 $Dir = Split-Path -Parent $Self
@@ -78,9 +77,11 @@ function EcSave($job) {
 }
 
 # ── 설정 ──
-function AskText($q, $pattern, $hint) {
+function AskText($q, $pattern, $hint, [switch]$Secret) {
   while ($true) {
-    $v = (Read-Host $q); if ($null -eq $v) { $v = '' }
+    if ($Secret) { $ss = Read-Host ($q + ' (입력해도 화면에 보이지 않습니다)') -AsSecureString; $v = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ss)) }
+    else { $v = (Read-Host $q) }
+    if ($null -eq $v) { $v = '' }
     $v = $v.Trim().Trim('"').Trim("'").Trim()
     if (-not $pattern -or $v -match $pattern) { return $v }
     Write-Host ('   ↳ 형식이 맞지 않습니다. ' + $hint) -ForegroundColor Yellow
@@ -95,7 +96,7 @@ if (-not (Test-Path -LiteralPath $CfgPath)) {
   while ($true) {
     $urlPat = '^https://script\.google\.com/macros/s/[^\s]+/exec$'; if ($env:RELAY_EC_BASE) { $urlPat = '^http' }
     $c.relayUrl = AskText '1) 생산일지 중계 주소 — 통합재고관리 생산일지 → 연동 설정의 「중계 주소」 칸 값' $urlPat 'https://script.google.com/macros/s/…/exec 모양이어야 합니다'
-    $c.apiKey = AskText '2) 공유 저장소 열쇠 — 연동 설정의 「공유 저장소 열쇠 복사」를 누른 뒤 붙여넣기' '^\S{16,}$' '긴 영문·숫자 값이어야 합니다'
+    $c.apiKey = AskText '2) 공유 저장소 열쇠 — 연동 설정의 「공유 저장소 열쇠 복사」를 누른 뒤 붙여넣기' '^\S{16,}$' '긴 영문·숫자 값이어야 합니다' -Secret
     Write-Host '   중계 연결 확인 중…'
     try { $pr = PostJson $c.relayUrl @{ key = $c.apiKey; action = 'ping' }; if ($pr.ok) { Write-Host '   ↳ 중계 연결 확인됨' -ForegroundColor Green; break } else { Write-Host ('   ↳ 중계가 거절했습니다: ' + $pr.error) -ForegroundColor Yellow } }
     catch { Write-Host ('   ↳ 중계에 연결하지 못했습니다: ' + $_.Exception.Message) -ForegroundColor Yellow }
@@ -104,13 +105,13 @@ if (-not (Test-Path -LiteralPath $CfgPath)) {
   while ($true) {
     $c.comCode = AskText '3) 이카운트 회사코드 (로그인 첫 칸의 숫자)' '^\d{3,}$' '숫자만 넣으세요'
     $c.userId = AskText '4) 이카운트 API 사용자 ID (인증키를 발급받은 ID)' '^\S+$' 'ID를 넣으세요'
-    $c.certKey = AskText '5) 이카운트 실서버 API 인증키' '^\S{10,}$' '긴 영문·숫자 인증키를 넣으세요'
+    $c.certKey = AskText '5) 이카운트 실서버 API 인증키' '^\S{10,}$' '긴 영문·숫자 인증키를 넣으세요' -Secret
     $script:Cfg = [pscustomobject]$c
     Write-Host '   이카운트 로그인 확인 중…'
     try { $null = EcLogin $false $true; Write-Host '   ↳ 이카운트 로그인 성공' -ForegroundColor Green; break }
     catch { Write-Host ('   ↳ ' + $_.Exception.Message) -ForegroundColor Yellow; Write-Host '   3)~5)를 다시 넣어 주세요.' }
   }
-  $c.testCertKey = AskText '6) 이카운트 테스트 인증키 (없으면 그냥 Enter)' '' ''
+  $c.testCertKey = AskText '6) 이카운트 테스트 인증키 (없으면 그냥 Enter)' '' '' -Secret
   ConvertTo-Json -InputObject $c | Set-Content -LiteralPath $CfgPath -Encoding UTF8
   Write-Host '설정을 저장했습니다.' -ForegroundColor Green
   $a = Read-Host 'PC를 켤 때 이 전송기를 자동으로 실행할까요? (Y/N)'
