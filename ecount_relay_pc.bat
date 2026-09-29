@@ -1,0 +1,127 @@
+<# : ecount relay sender - double-click to run (batch part; PowerShell reads the rest)
+@echo off
+set "RELAY_SELF=%~f0"
+title Ecount production sender
+powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((Get-Content -LiteralPath $env:RELAY_SELF -Encoding UTF8) -join [char]10)"
+if errorlevel 1 pause
+goto :EOF
+#>
+# 빵을그리다(주) 통합재고관리 — 생산일지 이카운트 전송기 (사무실 PC용)
+# 휴대폰·태블릿에서 입력한 생산일지를 구글 중계에서 가져와, 이카운트에 등록된 이 PC에서 생산입고I로 보냅니다.
+# 설정 파일(ecount_relay_pc.json)은 이 파일과 같은 폴더에 만들어지며 이카운트 인증키가 들어 있으니 다른 곳에 올리지 마세요.
+$ErrorActionPreference = 'Stop'
+try { [Console]::OutputEncoding = [Text.Encoding]::UTF8 } catch {}
+try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
+$Self = $env:RELAY_SELF; if (-not $Self) { $Self = $PSCommandPath }
+$Dir = Split-Path -Parent $Self
+$CfgPath = Join-Path $Dir 'ecount_relay_pc.json'
+$LogPath = Join-Path $Dir 'ecount_relay_pc.log'
+$Poll = 20
+if ($env:RELAY_POLL) { $Poll = [int]$env:RELAY_POLL }
+
+function Log($m) {
+  $line = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') + '  ' + $m
+  Write-Host $line
+  try { Add-Content -LiteralPath $LogPath -Value $line -Encoding UTF8 } catch {}
+}
+
+function PostJson($url, $obj) {
+  $json = ConvertTo-Json -InputObject $obj -Depth 10 -Compress
+  $bytes = [Text.Encoding]::UTF8.GetBytes($json)
+  $r = Invoke-WebRequest -Uri $url -Method Post -Body $bytes -ContentType 'application/json; charset=utf-8' -UseBasicParsing -TimeoutSec 60
+  $txt = $r.Content
+  if ($txt -is [byte[]]) { $txt = [Text.Encoding]::UTF8.GetString($txt) }
+  elseif ($r.RawContentStream) { try { $ms = New-Object IO.MemoryStream; $r.RawContentStream.Position = 0; $r.RawContentStream.CopyTo($ms); $txt = [Text.Encoding]::UTF8.GetString($ms.ToArray()) } catch {} }
+  return ConvertFrom-Json -InputObject $txt
+}
+
+# ── 설정 ──
+if (-not (Test-Path -LiteralPath $CfgPath)) {
+  Write-Host ''
+  Write-Host '처음 한 번 설정합니다. (값은 이 PC의 ecount_relay_pc.json 에만 저장됩니다)'
+  $c = [ordered]@{}
+  $c.relayUrl = (Read-Host '1) 생산일지 중계 주소 (https://script.google.com/macros/s/…/exec)').Trim()
+  $c.apiKey = (Read-Host '2) 공유 저장소 열쇠 (통합재고관리 「공유 저장소 열쇠 복사」 값)').Trim()
+  $c.comCode = (Read-Host '3) 이카운트 회사코드').Trim()
+  $c.userId = (Read-Host '4) 이카운트 API 사용자 ID').Trim()
+  $c.certKey = (Read-Host '5) 이카운트 실서버 API 인증키').Trim()
+  $c.testCertKey = (Read-Host '6) 이카운트 테스트 인증키 (없으면 그냥 Enter)').Trim()
+  $c.zone = ''
+  ConvertTo-Json -InputObject $c | Set-Content -LiteralPath $CfgPath -Encoding UTF8
+  Write-Host '설정을 저장했습니다.'
+  $a = Read-Host 'PC를 켤 때 이 전송기를 자동으로 실행할까요? (Y/N)'
+  if ($a -match '^[Yy]') {
+    try {
+      $startup = [Environment]::GetFolderPath('Startup')
+      $lnk = Join-Path $startup '생산일지_이카운트_전송기.bat'
+      Set-Content -LiteralPath $lnk -Value ('@start "생산일지 이카운트 전송기" /min "' + $Self + '"') -Encoding Default
+      Write-Host ('자동 실행을 등록했습니다: ' + $lnk)
+    } catch { Write-Host ('자동 실행 등록 실패: ' + $_.Exception.Message) }
+  }
+}
+$Cfg = Get-Content -LiteralPath $CfgPath -Raw -Encoding UTF8 | ConvertFrom-Json
+foreach ($k in 'relayUrl', 'apiKey', 'comCode', 'userId', 'certKey') { if (-not $Cfg.$k) { Log ("설정에 $k 가 비어 있습니다 — " + $CfgPath + ' 파일을 지우고 다시 실행하세요'); Read-Host '끝내려면 Enter'; exit 1 } }
+
+# ── 이카운트 ──
+$Sess = @{}
+function EcHost($test, $zone) { if ($test) { $p = 'sboapi' } else { $p = 'oapi' }; if ($env:RELAY_EC_BASE) { return $env:RELAY_EC_BASE + '/' + $p + $zone }; return 'https://' + $p + $zone + '.ecount.com' }
+function EcZone($test) {
+  if ($Cfg.zone) { return $Cfg.zone }
+  $key = 'zone' + $test; if ($Sess[$key]) { return $Sess[$key] }
+  $r = PostJson ((EcHost $test '') + '/OAPI/V2/Zone') @{ COM_CODE = $Cfg.comCode }
+  $z = $null; if ($r.Data) { $z = $r.Data.ZONE }
+  if (-not $z) { throw ('이카운트 존 조회 실패: ' + (ConvertTo-Json -InputObject $r -Compress -Depth 5)) }
+  $Sess[$key] = $z; return $z
+}
+function EcLogin($test, $fresh) {
+  $key = 'sess' + $test
+  if (-not $fresh -and $Sess[$key] -and $Sess[$key + 'At'] -gt (Get-Date).AddMinutes(-20)) { return $Sess[$key] }
+  if ($test) { $cert = $Cfg.testCertKey } else { $cert = $Cfg.certKey }
+  if (-not $cert) { throw '테스트 인증키가 설정에 없습니다 — 테스트 모드를 끄거나, 설정 파일에 testCertKey를 넣으세요' }
+  $zone = EcZone $test
+  $r = PostJson ((EcHost $test $zone) + '/OAPI/V2/OAPILogin') @{ COM_CODE = $Cfg.comCode; USER_ID = $Cfg.userId; API_CERT_KEY = $cert; LAN_TYPE = 'ko-KR'; ZONE = $zone }
+  $id = $null; if ($r.Data -and $r.Data.Datas) { $id = $r.Data.Datas.SESSION_ID }
+  if (-not $id) { $msg = ''; if ($r.Data -and $r.Data.Message) { $msg = $r.Data.Message } elseif ($r.Error -and $r.Error.Message) { $msg = $r.Error.Message } else { $msg = ConvertTo-Json -InputObject $r -Compress -Depth 5 }; throw ('이카운트 로그인 실패: ' + $msg) }
+  $Sess[$key] = $id; $Sess[$key + 'At'] = Get-Date; return $id
+}
+function EcSave($job) {
+  $test = [bool]$job.test
+  $list = @(); foreach ($row in $job.rows) { $list += , @{ BulkDatas = $row } }
+  $body = @{ GoodsReceiptList = $list }
+  $sid = EcLogin $test $false
+  $url = (EcHost $test (EcZone $test)) + '/OAPI/V2/GoodsReceipt/SaveGoodsReceipt?SESSION_ID='
+  $r = PostJson ($url + [Uri]::EscapeDataString($sid)) $body
+  if ("$($r.Status)" -ne '200' -and ((ConvertTo-Json -InputObject $r -Compress -Depth 6) -match 'session|세션|로그인|login')) {
+    $sid = EcLogin $test $true; $r = PostJson ($url + [Uri]::EscapeDataString($sid)) $body
+  }
+  $d = $r.Data; $details = @()
+  if ($d -and $d.ResultDetails) { foreach ($x in $d.ResultDetails) { $errs = @(); if ($x.Errors) { foreach ($er in $x.Errors) { $errs += ("$($er.ColCd): $($er.Message)").Trim(': ') } }; $details += , @{ ok = [bool]$x.IsSuccess; error = "$($x.TotalError)"; errors = $errs } } }
+  $fail = 0; if ($d -and $d.FailCnt) { $fail = [int]$d.FailCnt }
+  $ok = ("$($r.Status)" -eq '200') -and ($fail -eq 0) -and (-not $r.Error)
+  $err = ''; if ($r.Error) { $err = "$($r.Error.Message)" }
+  if (-not $ok -and -not $err) { $bad = $details | Where-Object { -not $_.ok } | Select-Object -First 1; if ($bad) { $err = $bad.error; if (-not $err) { $err = ($bad.errors -join ' / ') } } else { $err = '이카운트가 입력을 거절했습니다: ' + (ConvertTo-Json -InputObject $r -Compress -Depth 5) } }
+  $slips = @(); if ($d -and $d.SlipNos) { $slips = @($d.SlipNos) }
+  return @{ ok = $ok; test = $test; slipNos = $slips; details = $details; error = $err }
+}
+
+# ── 반복 ──
+Log ('생산일지 이카운트 전송기 시작 — ' + $Poll + '초마다 중계를 확인합니다. 이 창을 닫으면 전송이 멈춥니다.')
+$fails = 0
+while ($true) {
+  try {
+    $r = PostJson $Cfg.relayUrl @{ key = $Cfg.apiKey; action = 'jobs' }
+    if (-not $r.ok) { throw ('중계 거절: ' + $r.error) }
+    if ($fails -gt 0) { Log '중계 연결 복구' }; $fails = 0
+    foreach ($job in @($r.jobs)) {
+      if (-not $job) { continue }
+      $res = $null
+      try { $res = EcSave $job } catch { $res = @{ ok = $false; test = [bool]$job.test; slipNos = @(); details = @(); error = $_.Exception.Message } }
+      if ($res.ok) { $t = ''; if ($res.test) { $t = '[테스트] ' }; Log ($t + '전표 ' + ($res.slipNos -join ', ') + ' 생성 (' + @($job.rows).Count + '품목)') } else { Log ('실패: ' + $res.error) }
+      try { $null = PostJson $Cfg.relayUrl @{ key = $Cfg.apiKey; action = 'done'; id = $job.id; result = $res } } catch { Log ('결과 돌려주기 실패: ' + $_.Exception.Message) }
+    }
+  } catch {
+    $fails++; if ($fails -le 3 -or $fails % 30 -eq 0) { Log ('확인 실패: ' + $_.Exception.Message) }
+  }
+  if ($env:RELAY_ONCE) { break }
+  Start-Sleep -Seconds $Poll
+}

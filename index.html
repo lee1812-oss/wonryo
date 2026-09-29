@@ -857,7 +857,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '064';
+const APP_VER  = '065';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1526,14 +1526,36 @@ async function prodSubmit(entry) {
     if (!url) throw new Error('연동 설정에 이카운트 중계 주소가 없습니다');
     if (!key) throw new Error('재고 비밀번호가 정해져 있지 않습니다');
     let r;
-    try { r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key, action: 'saveProduction', test: !!entry.test, clientId: entry.id, rows: prodRows(entry) }) }); }
+    try { r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key, action: 'saveProduction', test: !!entry.test, clientId: entry.cid || entry.id, who: entry.who || '', rows: prodRows(entry) }) }); }
     catch (e) { const er = new Error('인터넷 연결이 없어 보내지 못했습니다 — 연결되면 자동으로 다시 보냅니다'); er.net = true; throw er; }
     let j; try { j = await r.json(); } catch (e) { throw new Error('중계 응답을 읽지 못했습니다 (' + r.status + ') — 중계 주소와 배포 설정을 확인하세요'); }
-    if (j.ok) { entry.status = 'sent'; entry.err = ''; entry.slip = (j.slipNos || []).join(', '); entry.sentAt = new Date().toISOString(); toast(`${entry.test ? '[테스트] ' : ''}이카운트 생산입고 전표 ${entry.slip || ''} 생성`); }
+    if (j.ok && j.queued) { P.agentSeen = j.agentSeen || P.agentSeen || ''; if (!prodApplyJob(entry, j.job)) { entry.status = 'wait'; entry.err = ''; toast(prodAgentOk() ? '사무실 PC 전송기로 넘겼습니다 — 잠시 뒤 전표번호가 표시됩니다' : '중계에 저장했습니다 — 사무실 PC 전송기가 켜지면 이카운트로 보내집니다'); prodPollSoon(); } }
+    else if (j.ok) { entry.status = 'sent'; entry.err = ''; entry.slip = (j.slipNos || []).join(', '); entry.sentAt = new Date().toISOString(); toast(`${entry.test ? '[테스트] ' : ''}이카운트 생산입고 전표 ${entry.slip || ''} 생성`); }
     else { entry.status = 'fail'; entry.err = j.error || '이카운트가 입력을 거절했습니다'; entry.details = (j.details || []).filter(d => !d.ok).slice(0, 10); toast('전송 실패: ' + entry.err); }
   } catch (e) { entry.status = e.net ? 'queued' : 'fail'; entry.err = e.message || String(e); toast(entry.err); }
   save(true); prodRenderIf();
 }
+/* v066: 이카운트는 등록된 IP만 받으므로, 중계는 대기열이고 사무실 PC 「이카운트 전송기」가 실제로 보냄 → 결과를 물어서 반영 */
+function prodAgentOk() { const t = Date.parse(prodS().agentSeen || ''); return t && Date.now() - t < 5 * 60000; }
+function prodAgentText() { const a = prodS().agentSeen; if (!a) return '사무실 PC 전송기가 아직 연결된 적 없음'; const m = Math.round((Date.now() - Date.parse(a)) / 60000); return m < 5 ? `사무실 PC 전송기 작동 중 (${m < 1 ? '방금' : m + '분 전'} 확인)` : `사무실 PC 전송기 꺼져 있음 — 마지막 확인 ${hmOf(a)}`; }
+function prodApplyJob(entry, job) {
+  if (!job || !job.result || (job.status !== 'sent' && job.status !== 'fail')) return false;
+  const r = job.result;
+  if (job.status === 'sent') { entry.status = 'sent'; entry.err = ''; entry.slip = (r.slipNos || []).join(', '); entry.sentAt = job.doneAt || new Date().toISOString(); toast(`${entry.test ? '[테스트] ' : ''}이카운트 생산입고 전표 ${entry.slip || ''} 생성`); }
+  else { entry.status = 'fail'; entry.err = r.error || '이카운트가 입력을 거절했습니다'; entry.details = (r.details || []).filter(d => !d.ok).slice(0, 10); toast('전송 실패: ' + entry.err); }
+  return true;
+}
+let prodPollT = null, prodPolling = false;
+function prodPollSoon() { clearTimeout(prodPollT); prodPollT = setTimeout(prodPoll, 8000); }
+async function prodPoll() {
+  const P = prodS(); const wait = P.log.filter(en => en.status === 'wait'); if (!wait.length || prodPolling || !P.cfg.relayUrl || !navigator.onLine) return;
+  prodPolling = true; let changed = false;
+  try { const r = await fetch(P.cfg.relayUrl.trim(), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key: prodKey(), action: 'status', ids: wait.map(en => en.cid || en.id) }) }); const j = await r.json();
+    if (j.ok) { if (j.agentSeen !== P.agentSeen) { P.agentSeen = j.agentSeen || ''; changed = true; } wait.forEach(en => { if (prodApplyJob(en, (j.jobs || {})[en.cid || en.id])) changed = true; }); } } catch (e) {}
+  prodPolling = false; if (changed) { save(); if (S.ui.menu === 'prod' && S.ui.prodTab !== 'pnew') prodRenderIf(); }
+  if (P.log.some(en => en.status === 'wait')) prodPollT = setTimeout(prodPoll, document.hidden ? 60000 : 10000);
+}
+setTimeout(prodPoll, 5000);
 async function prodFlush() {
   if (prodBusy || !navigator.onLine) return; const P = prodS(); const q = P.log.filter(en => en.status === 'queued').reverse(); if (!q.length) return;
   prodBusy = true; try { for (const en of q) await prodSubmit(en); } finally { prodBusy = false; }
@@ -1543,18 +1565,19 @@ window.addEventListener('online', () => setTimeout(prodFlush, 1500));
 /* ── 전송 기록 ── */
 function renderProdLog() {
   const P = prodS(), box = $('#prodLog'); if (!box) return;
-  const ST = { sent: ['ok', '전송됨'], fail: ['minus', '실패'], queued: ['warn', '대기 — 연결되면 자동 전송'], sending: ['warn', '보내는 중…'] };
-  box.innerHTML = `<div class="card"><h2 style="margin:0 0 4px">전송 기록</h2><div class="muted">이 기기에서 보낸 생산일지입니다. 전표 수정·삭제는 이카운트에서 하세요.</div></div>
+  const ST = { sent: ['ok', '전송됨'], fail: ['minus', '실패'], queued: ['warn', '대기 — 인터넷 연결되면 자동 전송'], sending: ['warn', '보내는 중…'], wait: ['warn', '사무실 PC 전송 대기'] };
+  box.innerHTML = `<div class="card"><h2 style="margin:0 0 4px">전송 기록</h2><div class="muted">이 기기에서 보낸 생산일지입니다. 전표 수정·삭제는 이카운트에서 하세요.</div><div style="margin-top:6px"><span class="pill ${prodAgentOk() ? 'ok' : 'warn'}">${esc(prodAgentText())}</span></div></div>
   ${P.log.length ? P.log.slice(0, 120).map(en => { const s = ST[en.status] || ['warn', en.status];
     return `<div class="card">
       <div class="prow" style="align-items:center"><b style="flex:1 1 auto">${esc(en.date)}</b>${en.test ? '<span class="pill warn">테스트</span>' : ''}<span class="pill ${s[0]}">${s[1]}${en.slip ? ' · 전표 ' + esc(en.slip) : ''}</span></div>
       <div class="muted" style="font-size:12px;margin:2px 0 6px">${esc(hmOf(en.ts))} · ${esc(en.who || '(이름 없음)')}</div>
       ${en.lines.map(l => `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid var(--line)"><span>${esc(l.name)}${l.note ? ` <span class="muted">(${esc(l.note)})</span>` : ''}</span><span class="num"><b>${fmt(l.qty)}</b> ${esc(l.unit || '')}${l.ecQty && l.ecQty !== l.qty ? ` <span class="muted">= ${fmt(l.ecQty)} ${esc(l.ecUnit || "")}</span>` : ''}</span></div>`).join('')}
       ${en.err && en.status !== 'sent' ? `<div style="margin-top:6px;color:var(--minus);font-size:13px">${esc(en.err)}${(en.details || []).map(d => `<div>${esc([d.error].concat(d.errors || []).filter(Boolean).join(' / '))}</div>`).join('')}</div>` : ''}
+      ${en.status === 'wait' ? `<div class="muted" style="margin-top:6px;font-size:13px">${prodAgentOk() ? '사무실 PC 전송기가 곧 이카운트로 보냅니다.' : '사무실 PC에서 「생산일지 이카운트 전송기」가 켜져 있어야 보내집니다.'}</div>` : ''}
       ${en.status === 'fail' || en.status === 'queued' ? `<div class="prow" style="margin-top:8px"><button class="btn sm primary" data-pretry="${en.id}">다시 보내기</button><button class="btn sm" data-pedit="${en.id}">고쳐서 다시 입력</button><button class="btn sm danger" data-pdrop="${en.id}">기록 지우기</button></div>` : ''}
     </div>`; }).join('') : '<div class="card muted">아직 보낸 생산일지가 없습니다.</div>'}`;
   const find = id => P.log.find(en => en.id === id);
-  $$('#prodLog [data-pretry]').forEach(b => b.onclick = () => { const en = find(b.dataset.pretry); if (en) { en.cfg = { emp: P.cfg.emp, whF: P.cfg.whF, whT: P.cfg.whT, extra: P.cfg.extra }; prodSubmit(en); } });
+  $$('#prodLog [data-pretry]').forEach(b => b.onclick = () => { const en = find(b.dataset.pretry); if (en) { en.cfg = { emp: P.cfg.emp, whF: P.cfg.whF, whT: P.cfg.whT, extra: P.cfg.extra }; en.test = !!P.cfg.test; if (en.status === 'fail') en.cid = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); prodSubmit(en); } });   /* 실패 건은 새 번호로 다시 보냄 (지금 테스트 모드 설정을 따름) */
   $$('#prodLog [data-pedit]').forEach(b => b.onclick = () => { const en = find(b.dataset.pedit); if (!en) return; P.draft = { date: en.date, lines: en.lines.map(l => ({ id: 'l' + Math.random().toString(36).slice(2, 8), code: l.code, qty: String(l.qty), note: l.note || '' })) }; P.log = P.log.filter(x => x !== en); S.ui.prodTab = 'pnew'; save(); renderAll(); toast('입력 화면으로 옮겼습니다 — 고친 뒤 다시 보내세요'); });
   $$('#prodLog [data-pdrop]').forEach(b => b.onclick = () => { P.log = P.log.filter(x => x.id !== b.dataset.pdrop); save(); renderProdLog(); });
 }
@@ -1609,17 +1632,21 @@ function renderProdSet() {
     </div>
     <div style="margin-top:8px"><button class="btn sm" id="pNewAdd">품목 추가</button></div>
   </div>
-  <div class="card"><h2 style="margin:0 0 8px">처음 한 번: 이카운트 중계 만들기</h2>
-    <ol style="margin:0;padding-left:20px;line-height:1.8">
-      <li><a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener">script.google.com</a>에서 새 프로젝트를 만들고, 기존 코드를 지운 뒤 <button class="btn xs" id="pCopyCode">중계 코드 복사</button>로 복사한 코드를 붙여넣고 저장합니다.</li>
-      <li>프로젝트 설정(톱니바퀴) → <b>스크립트 속성</b>에 다음을 넣습니다.<br>
-        <code>API_KEY</code> = <button class="btn xs" id="pCopyKey">공유 저장소 열쇠 복사</button>로 복사한 값<br>
-        <code>COM_CODE</code> 회사코드 · <code>USER_ID</code> API 사용자 ID · <code>API_CERT_KEY</code> 실서버 인증키 · <code>TEST_CERT_KEY</code> 테스트 인증키</li>
-      <li><b>배포 → 새 배포 → 웹 앱</b>, 실행 사용자 「나」, 액세스 「모든 사용자」로 배포하고 권한을 허용합니다.</li>
-      <li>나온 웹 앱 URL을 위 「이카운트 중계 주소」에 넣고 <b>연결 확인</b>을 누릅니다.</li>
-      <li>테스트 모드로 1건 보내 보고, 이카운트 코드·추가 항목을 맞춘 뒤 테스트 모드를 끕니다.</li>
+  <div class="card"><h2 style="margin:0 0 8px">처음 한 번: 중계 + 사무실 PC 전송기</h2>
+    <div class="muted" style="font-size:12px;margin-bottom:6px">이카운트는 등록된 IP에서만 입력을 받습니다. 그래서 휴대폰 입력은 구글 중계에 잠시 보관되고, 이카운트에 IP가 등록된 <b>사무실 PC의 전송기</b>가 가져가 이카운트로 보냅니다. <span class="pill ${prodAgentOk() ? 'ok' : 'warn'}">${esc(prodAgentText())}</span></div>
+    <b>① 구글 중계</b>
+    <ol style="margin:4px 0 8px;padding-left:20px;line-height:1.8">
+      <li><a href="https://script.google.com/home" target="_blank" rel="noopener">script.google.com</a>에서 중계 프로젝트를 열고(없으면 새 프로젝트), 코드를 모두 지운 뒤 <button class="btn xs" id="pCopyCode">중계 코드 복사</button>로 복사한 코드를 붙여넣고 저장합니다.</li>
+      <li>프로젝트 설정 → 스크립트 속성에 <code>API_KEY</code> = <button class="btn xs" id="pCopyKey">공유 저장소 열쇠 복사</button> 값. (이카운트 회사코드·인증키는 중계에 필요 없으니 지워도 됩니다)</li>
+      <li>처음이면 <b>배포 → 새 배포 → 웹 앱</b>(실행 「나」, 액세스 「모든 사용자」), 이미 배포했다면 <b>배포 → 배포 관리 → 연필 → 버전 「새 버전」 → 배포</b>. 주소를 위 「중계 주소」에 넣고 <b>연결 확인</b>.</li>
     </ol>
-    <div class="muted" style="margin-top:8px;font-size:12px">인증키는 이 사이트에 저장되지 않고 중계(구글 계정)에만 있습니다. 비밀번호를 바꾸면 공유 저장소 열쇠도 바뀌니 중계의 API_KEY를 다시 넣어 주세요.</div>
+    <b>② 사무실 PC 전송기</b> (이카운트 재고를 올리는 그 PC)
+    <ol style="margin:4px 0 0;padding-left:20px;line-height:1.8">
+      <li><a href="./ecount_relay_pc.bat" download="생산일지_이카운트_전송기.bat">생산일지_이카운트_전송기.bat 받기</a> → 원하는 폴더(예: 이카운트 동기화 프로그램 폴더)에 저장합니다.</li>
+      <li>파일을 두 번 누르면 검은 창이 뜨고 처음 한 번 중계 주소·열쇠·이카운트 회사코드·API ID·인증키를 묻습니다. 「PC를 켤 때 자동 실행」은 <b>Y</b>.</li>
+      <li>창에 「전송기 시작」이 나오면 끝. <b>창을 닫지 말고</b> 최소화해 두세요. 위 표시가 「작동 중」으로 바뀝니다.</li>
+    </ol>
+    <div class="muted" style="margin-top:8px;font-size:12px">인증키는 사무실 PC의 설정 파일(ecount_relay_pc.json)에만 저장됩니다. 비밀번호를 바꾸면 공유 저장소 열쇠도 바뀌니 중계의 API_KEY와 전송기 설정 파일을 다시 맞춰 주세요 (설정 파일을 지우고 전송기를 다시 실행하면 처음부터 묻습니다).</div>
   </div>`;
   const setv = (k, v) => { P.cfg[k] = v; save(); };
   $('#pRelay').onchange = e => { setv('relayUrl', e.target.value.trim()); P.pingMsg = ''; };
@@ -1645,7 +1672,8 @@ function renderProdSet() {
     if (!prodKey()) { msg.textContent = '재고 비밀번호를 먼저 정하세요'; return; }
     msg.textContent = '확인 중…';
     try { const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key: prodKey(), action: 'ping', test: !!P.cfg.test }) }); const j = await r.json();
-      P.pingMsg = j.ok ? `연결됨 — 회사코드 ${j.com} · ${j.test ? '테스트 서버' : '실서버'} 로그인 성공` : '실패: ' + (j.error || '알 수 없는 오류'); }
+      if (j.ok) P.agentSeen = j.agentSeen || '';
+      P.pingMsg = !j.ok ? '실패: ' + (j.error || '알 수 없는 오류') : j.version >= 2 ? `중계 연결됨 · ${prodAgentText()}` : '중계가 옛 버전입니다 — 아래 안내대로 중계 코드를 새로 붙여넣고 「새 버전」으로 배포하세요'; }
     catch (e) { P.pingMsg = '실패: 중계에 연결하지 못했습니다 — 주소와 배포(액세스 「모든 사용자」)를 확인하세요'; }
     save(); msg.textContent = P.pingMsg;
   };
