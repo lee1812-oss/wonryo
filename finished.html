@@ -1101,7 +1101,7 @@ function renderEcPanel(sn){
   const rb=$('#ecRefresh');if(rb)rb.onclick=()=>ecFetch(true);
 }
 $('#ecBadge').onclick=()=>ecFetch(true);
-window.addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;if(m.type==='wonryo-summary'){finPostSum(true);return;}if(m.type==='wonryo-ecount'&&m.data){try{ecApply(m.data);}catch(err){}finPostSum();}
+window.addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;if(m.type==='wonryo-summary'){finPostSum(true);return;}if(m.type==='wonryo-items-req'&&e.source===window.parent){/* v058: 통합재고관리 생산일지에 품목(코드·이름·단위·EA 환산)만 넘김 */try{e.source.postMessage({type:'fin-items',items:S.items.filter(i=>i.code).map(i=>({code:i.code,name:i.name,kind:i.kind||'',unit:i.unit||'',ecEa:!!i.ecEa,ecDiv:ecDivOf(i)||0,orderOnly:!!i.orderOnly}))},e.origin==='null'?'*':e.origin);}catch(err){}return;}if(m.type==='wonryo-ecount'&&m.data){try{ecApply(m.data);}catch(err){}finPostSum();}
   if(m.type==='wonryo-nav'&&m.tab){if(m.tab==='brief'){$('#btnBrief').click();}else{$$('.modal.on').forEach(x=>x.classList.remove('on'));if($('#brief').classList.contains('on'))$('#bfClose').click();go(m.tab);}}});
 setInterval(()=>{if(document.visibilityState==='visible')ecFetch(false);},60*1000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')ecFetch(false);});
