@@ -857,7 +857,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '065';
+const APP_VER  = '066';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1642,8 +1642,8 @@ function renderProdSet() {
     </ol>
     <b>② 사무실 PC 전송기</b> (이카운트 재고를 올리는 그 PC)
     <ol style="margin:4px 0 0;padding-left:20px;line-height:1.8">
-      <li><a href="./ecount_relay_pc.bat" download="생산일지_이카운트_전송기.bat">생산일지_이카운트_전송기.bat 받기</a> → 원하는 폴더(예: 이카운트 동기화 프로그램 폴더)에 저장합니다.</li>
-      <li>파일을 두 번 누르면 검은 창이 뜨고 처음 한 번 중계 주소·열쇠·이카운트 회사코드·API ID·인증키를 묻습니다. 「PC를 켤 때 자동 실행」은 <b>Y</b>.</li>
+      <li><a href="./ecount_relay_pc.bat" download="생산일지_이카운트_전송기.bat">생산일지_이카운트_전송기.bat 받기</a> → <b>다운로드 폴더가 아닌</b> 계속 둘 폴더(예: 이카운트 동기화 프로그램 폴더)로 옮깁니다. 설정 파일이 같은 폴더에 생깁니다.</li>
+      <li>파일을 두 번 누르면 검은 창이 뜨고 차례로 묻습니다. 값은 <b>하나씩 복사 → 창에 마우스 오른쪽 클릭(붙여넣기) → Enter</b>: ① 위 「중계 주소」 칸 값 ② 「공유 저장소 열쇠 복사」 값 ③ 이카운트 회사코드 ④ API ID ⑤ 실서버 인증키 ⑥ 테스트 인증키(없으면 Enter). 틀리면 그 자리에서 다시 묻습니다. 「PC를 켤 때 자동 실행」은 <b>Y</b>.</li>
       <li>창에 「전송기 시작」이 나오면 끝. <b>창을 닫지 말고</b> 최소화해 두세요. 위 표시가 「작동 중」으로 바뀝니다.</li>
     </ol>
     <div class="muted" style="margin-top:8px;font-size:12px">인증키는 사무실 PC의 설정 파일(ecount_relay_pc.json)에만 저장됩니다. 비밀번호를 바꾸면 공유 저장소 열쇠도 바뀌니 중계의 API_KEY와 전송기 설정 파일을 다시 맞춰 주세요 (설정 파일을 지우고 전송기를 다시 실행하면 처음부터 묻습니다).</div>
