@@ -2,7 +2,7 @@
 <html lang="ko"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>육안검사일지 v094 — 빵을그리다(주)</title>
+<title>육안검사일지 v095 — 빵을그리다(주)</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&amp;family=DM+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -369,7 +369,7 @@ table.data-table td.num{text-align:right;font-family:'DM Mono',monospace;font-si
       <button onclick="storageDiagnose()" title="브라우저 저장 공간 사용량 확인" style="width:100%;margin-bottom:6px;padding:5px 4px;border-radius:6px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06);color:#cbd5e1;font-size:11px;cursor:pointer">🧹 저장 공간 진단</button>
       <button onclick="exportAllDataJSON()" title="데이터만 JSON으로 백업" style="width:100%;padding:5px 4px;border-radius:6px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:#94a3b8;font-size:10px;font-weight:600;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">{ } JSON 백업 저장</button>
     </div>
-    <div>육안검사일지 v094</div><div id="saveInfo" style="font-size:10px;color:#94a3b8;margin-top:3px;line-height:1.4"></div>
+    <div>육안검사일지 v095</div><div id="saveInfo" style="font-size:10px;color:#94a3b8;margin-top:3px;line-height:1.4"></div>
     <div style="margin-top:2px;font-size:9.5px">저장: IndexedDB(무제한) + HTML 스냅샷</div>
   </div>
 </div>
@@ -5009,7 +5009,7 @@ function init(){
 //   · 신규 입력에서 품목만 고르면 고정값 자동 반영, 수정 가능 / 변동값만 손으로 입력
 //   · 2026-09-14 이후 일지는 신양식(A4 가로, 18열)으로 입력·인쇄, 그 이전 일지는 기존 양식 그대로 조회·인쇄
 // ═══════════════════════════════════════════════════════════════════
-const APP_VER        = 'v094';
+const APP_VER        = 'v095';
 const NEW_FORM_START_DEFAULT = '2026-09-14';
 function NEW_FORM_START_(){ return (typeof cfg==='object' && cfg && isValidDate(cfg.newFormStart)) ? cfg.newFormStart : NEW_FORM_START_DEFAULT; }
 const ALLERGEN_LIST  = ['난류','우유','메밀','땅콩','대두','밀','고등어','게','새우','돼지고기','복숭아','토마토','아황산류','호두','닭고기','쇠고기','오징어','조개류','잣'];
@@ -7590,6 +7590,21 @@ function ecFixPendingUnits(){   // 이전 버전이 g로 넣은 확인 전 자�
    ① 실시간: 통합 재고관리가 받는 data.json(파일, 조회 한도 없음)의 이카운트 변동 시각(changedAt)이 바뀔 때만 비교 → 새 입고
    ② 지난 이력 채우기(bf): 화면이 닫혀 있던 빈틈·처음 연결 때만 깃허브 커밋 목록(시간당 60회 한도)으로 하루치씩 — 막혀도 ①은 계속 */
 function ecIso(t){ try{ return new Date(t).toISOString(); }catch(e){ return new Date().toISOString(); } }
+/* v095: 지난 이력은 깃허브 API(시간당 60회 한도) 대신 raw 파일 main~N(한도 없음)으로 읽음.
+   이카운트 변동 시각(changedAt)은 과거→현재로 커지기만 하므로, 양 끝이 같으면 그 사이는 변동 없음 → 반씩 나눠 변동이 있는 곳만 읽음 */
+async function ecRawAt(n, dkey, C, keep){
+  if(C.has(n)) return C.get(n);
+  const p = (async()=>{
+    const r = await fetch(`https://raw.githubusercontent.com/${EC_REPO}/main~${n}/data.json`, { cache:'no-store' });
+    if(r.status===404) return null;   /* 이력 끝 */
+    if(!r.ok) throw new Error(r.status===429 ? '깃허브 자료 읽기가 잠시 막혔습니다 — 10분 뒤 다시 채웁니다' : 'data.json 이력 읽기 실패 ('+r.status+')');
+    const d = await ecOpen(await r.json(), dkey);
+    if(!d || !Array.isArray(d.items)) throw new Error('data.json 형식 오류');
+    const qty = {}; d.items.forEach(x=>{ if(x && x.code!=null && keep.has(String(x.code)) && x.qty!=null && x.qty!=='' && !isNaN(Number(x.qty))) qty[String(x.code)] = Number(x.qty); });
+    const changedAt = d.changedAt || d.updatedAt || ''; return { n, changedAt, t: Date.parse(changedAt) || 0, qty };
+  })();
+  C.set(n, p); p.catch(()=>C.delete(n)); return p;
+}
 async function ecRun(manual){
   ecLoad();
   if(ecBusy) return; if(!ecState.on && !manual) return;
@@ -7597,37 +7612,44 @@ async function ecRun(manual){
   if(!ecState.lastSha){ try{ ecAutoConnect(); }catch(e){} if(!ecState.lastSha) return; }
   const bf = ecState.bf;
   if(!bf){ if(manual) showToast('채울 지난 이력이 없습니다 — 새 입고는 이카운트 자료가 바뀔 때마다 바로 확인합니다', 'info'); return; }
+  if(!bf.to){ if(manual) showToast('이카운트 자료를 받는 중입니다 — 잠시 뒤 자동으로 채웁니다', 'info'); return; }
   if(!manual && ecState.blockUntil && Date.now() < ecState.blockUntil) return;
   ecBusy = true; ecMsg = '지난 이카운트 이력 채우는 중…'; ecRender();
-  let added = 0, seen = 0, days = 0;
+  let added = 0;
   try{
-    const map = ecActiveMap(); const H = ecState.hist = ecState.hist || {};
-    let prev = bf.qty || {}, prevCh = bf.ch || '';
-    while(days < 12){
-      const end = bf.to ? new Date(bf.to).getTime() : Date.now();
-      const from = bf.from; const until = new Date(Math.min(end, new Date(from).getTime() + 24*3600e3)).toISOString();
-      let list = [];
-      for(let p=1; p<=5; p++){ const a = await ecApi(`since=${encodeURIComponent(from)}&until=${encodeURIComponent(until)}&per_page=100&page=${p}`); list = list.concat(a); if(a.length<100) break; }
-      list = list.reverse().filter(c=>c.sha!==bf.sha && c.date>=from);
-      for(let i=0; i<list.length; i+=6){
-        const chunk = list.slice(i, i+6);
-        const vers = await Promise.all(chunk.map(c=>ecVersion(c.sha, dkey)));
-        const r = ecScanVersions(chunk, vers, map, prev, prevCh, H, c=>{ seen++; ecMsg = `지난 이카운트 이력 채우는 중… ${String(c.date).slice(0,10)} · ${seen}건`; bf.sha = c.sha; bf.from = c.date; });
-        prev = r.prev; prevCh = r.prevCh; bf.qty = prev; bf.ch = prevCh;
-        if(r.found.length){ ecRecord(r.found, map); added += ecApply(r.found.filter(f=>f.kind==='buy' && map[f.code] && map[f.code].on), map); }
-        if(i % 60 === 0){ ecSave(); ecRender(); }
-      }
-      days++;
-      if(bf.from < until) bf.from = until;
-      ecSave();
-      if(new Date(until).getTime() >= end - 1000){ if(!bf.to) break;   /* 실시간 기준(첫 자료)이 아직 없으면 그 시점까지 이어서 채우려고 남겨 둠 */
-        ecState.bf = null; ecLog(`지난 이력 채우기 끝 (${seen}건 확인)`); break; }
+    const map = ecActiveMap(); const keep = new Set(Object.keys(map)); Object.keys(bf.qty||{}).forEach(k=>keep.add(k));
+    const H = ecState.hist = ecState.hist || {}; const C = new Map(); let reads = 0;
+    const at = async n => { const had = C.has(n); const v = await ecRawAt(n, dkey, C, keep); if(!had){ reads++; if(reads % 10 === 0){ ecMsg = `지난 이카운트 이력 채우는 중… ${reads}개 읽음`; ecRender(); } } return v; };
+    const toT = Date.parse(bf.to) || Date.now(); const stopT = bf.ch ? (Date.parse(bf.ch) || 0) : (Date.parse(bf.from) || 0);
+    const T = v => v ? v.t : -Infinity; const old = v => !v || T(v) <= stopT;
+    let lo = 0; while(lo < 50 && T(await at(lo)) > toT) lo++;          /* 실시간 기준보다 새 자료는 실시간이 맡음 */
+    let hi = lo, step = 16;
+    if(!old(await at(lo))){ for(;;){ const k = hi + step; if(old(await at(k))){ hi = k; break; } hi = k; step *= 2; if(step > 8192) throw new Error('이력이 너무 깁니다'); } }
+    /* 반씩 나눠 변동 경계 찾기 (한 번에 6개씩) */
+    const queue = [[lo, hi]];
+    while(queue.length){
+      const batch = queue.splice(0, 6);
+      const res = await Promise.all(batch.map(async ([a, b])=>{
+        if(b - a <= 1) return [];
+        const va = await at(a), vb = await at(b); if(!va || old(va)) return [];   /* 더 오래된 쪽(이력 끝·채울 시작점 이전)은 볼 필요 없음 */
+        if(vb && va.changedAt === vb.changedAt) return [];   /* 양 끝이 같으면 사이도 변동 없음 */
+        if(b - a <= 6){ await Promise.all(Array.from({ length: b - a - 1 }, (_, i)=>at(a + 1 + i))); return []; }
+        const m = Math.floor((a + b) / 2); await at(m); return [[a, m], [m, b]];
+      }));
+      res.forEach(r=>queue.push(...r));
     }
+    const vers = []; const seen = new Set();
+    for(const [, p] of C){ const v = await p; if(!v || !v.changedAt || seen.has(v.changedAt)) continue; if(v.t > toT) continue; seen.add(v.changedAt); vers.push(v); }
+    vers.sort((x, y)=>x.t - y.t);
+    let prev = bf.qty, prevCh = bf.ch || '', list = vers.filter(v=>v.t > stopT);
+    if(!prev){ const base = vers.filter(v=>v.t <= stopT).pop() || list.shift(); prev = base ? base.qty : {}; prevCh = base ? base.changedAt : ''; }
+    const r = ecScanVersions(list.map(v=>({ sha: 'main~'+v.n, date: ecIso(v.changedAt) })), list, map, prev, prevCh, H);
+    if(r.found.length){ ecRecord(r.found, map); added = ecApply(r.found.filter(f=>f.kind==='buy' && map[f.code] && map[f.code].on), map); }
+    ecState.bf = null; ecLog(`지난 이력 채우기 끝 — 자료 ${reads}개 읽음, 재고 변동 ${list.length}번 확인${r.found.length ? `, 재고 증가 ${r.found.length}건` : ''}`);
     ecState.err = ''; ecState.blockUntil = 0; ecState.checkedAt = new Date().toISOString(); ecSave();
     if(added) showToast(`📥 지난 이카운트 입고 ${added}품목을 육안검사일지에 넣었습니다 — 「이카운트 연동」에서 확인하세요`, 'success');
-    else if(manual) showToast(`지난 이력 ${seen}건 확인 — 새 입고 없음`, 'info');
-    if(ecState.bf && ecState.bf.to) setTimeout(()=>ecRun(false), 5000);
-  }catch(e){ ecState.err = e.message||String(e); if(/한도/.test(ecState.err)) ecState.blockUntil = Date.now() + 60*60000; ecState.checkedAt = new Date().toISOString(); ecSave(); if(manual) showToast(ecState.err, 'error'); }
+    else if(manual) showToast(`지난 이력 확인 끝 — 새로 넣을 입고 없음`, 'info');
+  }catch(e){ ecState.err = e.message||String(e); ecState.blockUntil = Date.now() + 10*60000; ecState.checkedAt = new Date().toISOString(); ecSave(); if(manual) showToast(ecState.err, 'error'); }
   ecBusy = false; ecMsg = ''; ecRender(); try{ ecDashBanner(); }catch(e){}
 }
 function ecLive(d){
@@ -7661,8 +7683,12 @@ const EC_AUTO_FROM = '2026-09-20T15:00:00Z';   /* 2026-09-21 0시(한국) — �
 function ecAutoConnect(){
   ecLoad(); if(!ecKey()) return;
   if(!ecState.lastSha && !Object.keys(ecActiveMap()).length) return;   /* 품목(불러오기)이 생기기 전에는 시작하지 않음 */
-  if(!ecState.lastSha){ Object.assign(ecState, { on: true, lastSha: 'auto', auto: true, qty: null, lastChangedAt: '', lastAt: '', liveSeenAt: 0, err: '', bf: { from: EC_AUTO_FROM, to: null, qty: null, ch: '' } }); ecLog('자동 연결 — 새 입고는 이카운트 자료가 바뀔 때마다 바로, 지난 입고는 이력(2026-09-21 자료부터)으로 채웁니다'); ecSave(); }
+  if(!ecState.lastSha){ Object.assign(ecState, { on: true, lastSha: 'auto', auto: true, v095: true, qty: null, lastChangedAt: '', lastAt: '', liveSeenAt: 0, err: '', bf: { from: EC_AUTO_FROM, to: null, qty: null, ch: '' } }); ecLog('자동 연결 — 새 입고는 이카운트 자료가 바뀔 때마다 바로, 지난 입고는 이력(2026-09-21 자료부터)으로 채웁니다'); ecSave(); }
   else if(!ecState.on && !ecState.userOff){ ecState.on = true; ecSave(); }
+  if(ecState.lastSha && !ecState.v095){   /* v095: 한 번 2026-09-21 자료부터 다시 훑음 (이전 버전이 한도로 놓친 입고 채우기, 이미 넣은 입고는 다시 안 넣음) */
+    try{ const AP = ecState.applied = Array.isArray(ecState.applied) ? ecState.applied : []; entries.forEach(e=>(e.items||[]).forEach(it=>{ ((it._ec&&it._ec.keys)||[]).concat(it._ecLinked||[]).forEach(k=>{ if(AP.indexOf(k)<0) AP.push(k); }); })); }catch(e){}
+    Object.assign(ecState, { v095: true, bf: { from: EC_AUTO_FROM, to: null, qty: null, ch: '' }, qty: null, liveSeenAt: 0, err: '', blockUntil: 0 }); ecLog('v095: 지난 이력을 2026-09-21 자료부터 다시 채웁니다 (깃허브 한도 없는 방식)'); ecSave();
+  }
   if(ecState.lastSha && ecState.bf===undefined){   /* v093 이하에서 넘어온 상태: 이어서 채울 지점을 bf로 옮기고 실시간 기준은 새로 잡음 */
     ecState.bf = { from: ecState.lastAt || EC_AUTO_FROM, to: null, qty: ecState.qty || null, ch: ecState.lastChangedAt || '', sha: ecState.lastSha==='auto' ? '' : ecState.lastSha };
     Object.assign(ecState, { qty: null, liveSeenAt: 0, err: '', blockUntil: 0 }); ecSave();
@@ -7680,6 +7706,8 @@ function ecAutoConnect(){
 function ecApply(found, map){
   const done = new Set();
   entries.forEach(e=>(e.items||[]).forEach(it=>{ ((it._ec&&it._ec.keys)||[]).forEach(k=>done.add(k)); (it._ecLinked||[]).forEach(k=>done.add(k)); }));
+  ecLoad(); const AP = ecState.applied = Array.isArray(ecState.applied) ? ecState.applied : []; done.forEach(k=>{ if(AP.indexOf(k)<0) AP.push(k); }); AP.forEach(k=>done.add(k));   /* v095: 한 번 넣은 입고는 행을 지워도 다시 넣지 않음 */
+  found.filter(f=>!done.has(f.key)).forEach(f=>AP.push(f.key)); if(AP.length > 3000) AP.splice(0, AP.length - 3000);
   const groups = {};
   found.filter(f=>!done.has(f.key)).forEach(f=>{ const date = localISO(new Date(f.at)); const k = date+'|'+f.code; (groups[k]=groups[k]||{ date, code:f.code, list:[] }).list.push(f); });
   let added = 0; const touched = new Set();
