@@ -855,7 +855,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '059';
+const APP_VER  = '060';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1255,7 +1255,7 @@ function prodReady() {
   return { ok: true, msg: '' };
 }
 function prodRenderIf() { if (S.ui.menu === 'prod') renderProd(); }
-function renderProd() { const t = S.ui.prodTab; if (t === 'plog') renderProdLog(); else if (t === 'pset') renderProdSet(); else renderProdNew(); }
+function renderProd() { try { finEnsure(); } catch (e) {} const t = S.ui.prodTab; if (t === 'plog') renderProdLog(); else if (t === 'pset') renderProdSet(); else renderProdNew(); }
 async function prodCopy(text) {
   let ok = false; try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {}
   if (!ok) { try { const t = document.createElement('textarea'); t.value = text; t.setAttribute('style', 'position:fixed;left:-9999px;top:0'); document.body.appendChild(t); t.select(); ok = document.execCommand('copy'); t.remove(); } catch (e) {} }
@@ -1264,29 +1264,34 @@ async function prodCopy(text) {
 
 
 /* 완제품·생지(finished.html) 품목과 이카운트 품목목록을 받아 생산 품목 후보로 씀 */
-let prodWait = 0;
+let prodWait = 0, prodLocked = false;
 function prodReqItems() {
   try { finEnsure(); } catch (e) {}
-  prodWait = 6;
-  const ask = () => { if (!prodWait) return; prodWait--; const f = $('#finFrame'); if (f && f.contentWindow && finLoaded) { try { f.contentWindow.postMessage({ type: 'wonryo-items-req' }, finTargetOrigin()); } catch (e) {} } if (prodWait) setTimeout(ask, 1500); else toast('완제품·생지 품목을 받지 못했습니다 — 완제품·생지 메뉴를 한 번 연 뒤 다시 눌러 주세요'); };
+  prodWait = 20; prodLocked = false; toast('완제품·생지 품목을 가져오는 중… (최대 30초)');
+  const ask = () => { if (!prodWait) return; prodWait--; const f = $('#finFrame'); if (f && f.contentWindow && finLoaded) { try { f.contentWindow.postMessage({ type: 'wonryo-items-req' }, finTargetOrigin()); } catch (e) {} }
+    if (prodWait) setTimeout(ask, 1500);
+    else toast(prodLocked ? '완제품·생지 자료가 잠겨 있어 품목을 못 가져왔습니다 — 위 「완제품·생지」 메뉴를 열어 재고 화면이 보이는지(비밀번호) 확인한 뒤 다시 누르세요' : '완제품·생지 품목을 받지 못했습니다 — 위 「완제품·생지」 메뉴를 열어 화면이 다 뜬 뒤 다시 눌러 주세요'); };
   ask();
 }
 window.addEventListener('message', e => {
   if (!fromFin(e)) return; const m = e.data; if (!m || typeof m !== 'object' || m.type !== 'fin-items' || !Array.isArray(m.items)) return;
+  if (m.locked) { prodLocked = true; return; }   /* 완제품·생지가 아직 잠겨 있음 — 풀리면 스스로 다시 보냄 */
   const wanted = prodWait > 0; prodWait = 0;
-  const P = prodS(); const by = new Map(P.items.map(i => [i.code, i])); let add = 0;
+  const P = prodS(); const by = new Map(P.items.map(i => [i.code, i])); let add = 0, changed = false;
   m.items.forEach(x => {
     if (!x || !x.code) return; const code = String(x.code).trim(); if (!code) return;
     const base = { code, name: String(x.name || code), unit: String(x.unit || ''), ecEa: !!x.ecEa, ecDiv: Number(x.ecDiv) || 0, kind: String(x.kind || '') };
     const cur = by.get(code);
-    if (cur) { if (!cur.manual) Object.assign(cur, base); cur.fin = true; }
-    else { const it = Object.assign(base, { on: !x.orderOnly, fin: true }); P.items.push(it); by.set(code, it); add++; }
+    if (cur) { if (!cur.manual && Object.keys(base).some(k => cur[k] !== base[k])) { Object.assign(cur, base); changed = true; } if (!cur.fin) { cur.fin = true; changed = true; } }
+    else { const it = Object.assign(base, { on: !x.orderOnly, fin: true }); P.items.push(it); by.set(code, it); add++; changed = true; }
   });
-  if (Array.isArray(m.prods) && m.prods.length) P.ecprod = m.prods.filter(p => p && p.code && p.name).map(p => ({ code: String(p.code), name: String(p.name) }));
-  P.itemsAt = new Date().toISOString();
-  const linked = prodLinkHist(false);
-  save(); prodRenderIf();
-  if (wanted) toast((add ? `완제품·생지 품목 ${add}개를 새로 불러왔습니다` : '완제품·생지 품목을 다시 맞췄습니다') + (linked ? ` · 생산 이력 품목 ${linked}개 추가` : ''));
+  if (Array.isArray(m.prods) && m.prods.length) { const np = m.prods.filter(p => p && p.code && p.name).map(p => ({ code: String(p.code), name: String(p.name) })); if (JSON.stringify(np) !== JSON.stringify(P.ecprod || [])) { P.ecprod = np; changed = true; } }
+  const linked = changed ? prodLinkHist(false) : 0;
+  if (changed || wanted) { P.itemsAt = new Date().toISOString(); save(); }
+  /* 자동으로 받은 경우엔 입력 중인 화면을 다시 그리지 않음 (입력 칸 초점 유지) */
+  if (wanted || (changed && S.ui.menu === 'prod' && S.ui.prodTab !== 'pnew')) prodRenderIf();
+  if (wanted) toast(!m.items.length ? `완제품·생지 품목 ${m.total || 0}개 중 이카운트 코드가 연결된 품목이 없습니다 — 완제품·생지 → 품목·설정에서 이카운트 코드를 먼저 연결하세요`
+    : (add ? `완제품·생지 품목 ${add}개를 새로 불러왔습니다` : `완제품·생지 품목 ${m.items.length}개를 다시 맞췄습니다`) + (linked ? ` · 생산 이력 품목 ${linked}개 추가` : ''));
 });
 
 /* ── v060: 생산 이력 — 이카운트 「생산입고조회」 엑셀을 이 기기에서만 읽어 자주 만드는 품목·요일·지난 수량을 계산 (자료는 사이트에 올리지 않음) ── */

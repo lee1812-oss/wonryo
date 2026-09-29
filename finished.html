@@ -1101,7 +1101,7 @@ function renderEcPanel(sn){
   const rb=$('#ecRefresh');if(rb)rb.onclick=()=>ecFetch(true);
 }
 $('#ecBadge').onclick=()=>ecFetch(true);
-window.addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;if(m.type==='wonryo-summary'){finPostSum(true);return;}if(m.type==='wonryo-items-req'&&e.source===window.parent){/* v058: 통합재고관리 생산일지에 품목(코드·이름·단위·EA 환산)만 넘김 */try{e.source.postMessage({type:'fin-items',items:S.items.filter(i=>i.code).map(i=>({code:i.code,name:i.name,kind:i.kind||'',unit:i.unit||'',ecEa:!!i.ecEa,ecDiv:ecDivOf(i)||0,orderOnly:!!i.orderOnly})),prods:(ECPROD||[]).slice(0,3000).map(p=>({code:p.code,name:p.name}))},e.origin==='null'?'*':e.origin);}catch(err){}return;}if(m.type==='wonryo-ecount'&&m.data){try{ecApply(m.data);}catch(err){}finPostSum();}
+window.addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;if(m.type==='wonryo-summary'){finPostSum(true);return;}if(m.type==='wonryo-items-req'&&e.source===window.parent){/* v058: 통합재고관리 생산일지에 품목(코드·이름·단위·EA 환산)만 넘김 */try{e.source.postMessage(finItemsMsg(true),e.origin==='null'?'*':e.origin);}catch(err){}return;}if(m.type==='wonryo-ecount'&&m.data){try{ecApply(m.data);}catch(err){}finPostSum();}
   if(m.type==='wonryo-nav'&&m.tab){if(m.tab==='brief'){$('#btnBrief').click();}else{$$('.modal.on').forEach(x=>x.classList.remove('on'));if($('#brief').classList.contains('on'))$('#bfClose').click();go(m.tab);}}});
 setInterval(()=>{if(document.visibilityState==='visible')ecFetch(false);},60*1000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')ecFetch(false);});
@@ -1217,7 +1217,9 @@ function finSummary(){const td=today();const sn=snapAsOf(td)||latest();if(!sn)re
     exp:g('expired').length,n31:g('n31').length,n60:g('n60').length,defect:g('defect').length,noPlan:ld.noPlan,
     loss:[...g('expired'),...g('n31'),...g('defect'),...g('n60')].slice(0,8).map(lossRow),dough,
     diffN:diffs.length,ecOn:!!S.ecount,ecMatched:S.ecount?(S.ecount.matched||0):0,ecAt:S.ecount?S.ecount.checkedAt:''};}
-let _fsT=0;function finPostSum(now){if(!EMBED)return;clearTimeout(_fsT);const f=()=>{try{parent.postMessage({type:'fin-summary',sum:finSummary()},parentOrigin());}catch(e){}};if(now)f();else _fsT=setTimeout(f,700);}
+/* v061: 생산일지용 품목 목록 — 잠겨 있으면(S 없음) locked, 이카운트 품목목록(prods)은 요청·첫 전송 때만 */
+let _fiSent=false;function finItemsMsg(withProds){if(!S||!Array.isArray(S.items))return{type:'fin-items',locked:true,items:[]};const m={type:'fin-items',total:S.items.length,items:S.items.filter(i=>i.code).map(i=>({code:i.code,name:i.name,kind:i.kind||'',unit:i.unit||'',ecEa:!!i.ecEa,ecDiv:ecDivOf(i)||0,orderOnly:!!i.orderOnly}))};if(withProds||!_fiSent){try{m.prods=(ECPROD||[]).slice(0,3000).map(p=>({code:p.code,name:p.name}));}catch(e){}_fiSent=true;}return m;}
+let _fsT=0;function finPostSum(now){if(!EMBED)return;clearTimeout(_fsT);const f=()=>{try{parent.postMessage({type:'fin-summary',sum:finSummary()},parentOrigin());}catch(e){}try{parent.postMessage(finItemsMsg(false),parentOrigin());}catch(e){}};if(now)f();else _fsT=setTimeout(f,700);}
 function renderBrief(){
   const {sn,L,ls,items}=briefData();const td=bfDate();const ecOn=!!ecState();
   $('#bfDate').value=td;$('#bfDow').textContent=dow(td)+'요일';$('#bfDow').className='dow'+(dow(td)==='토'?' sat':dow(td)==='일'?' sun':'');
