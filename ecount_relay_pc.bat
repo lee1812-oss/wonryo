@@ -35,33 +35,6 @@ function PostJson($url, $obj) {
   return ConvertFrom-Json -InputObject $txt
 }
 
-# ── 설정 ──
-if (-not (Test-Path -LiteralPath $CfgPath)) {
-  Write-Host ''
-  Write-Host '처음 한 번 설정합니다. (값은 이 PC의 ecount_relay_pc.json 에만 저장됩니다)'
-  $c = [ordered]@{}
-  $c.relayUrl = (Read-Host '1) 생산일지 중계 주소 (https://script.google.com/macros/s/…/exec)').Trim()
-  $c.apiKey = (Read-Host '2) 공유 저장소 열쇠 (통합재고관리 「공유 저장소 열쇠 복사」 값)').Trim()
-  $c.comCode = (Read-Host '3) 이카운트 회사코드').Trim()
-  $c.userId = (Read-Host '4) 이카운트 API 사용자 ID').Trim()
-  $c.certKey = (Read-Host '5) 이카운트 실서버 API 인증키').Trim()
-  $c.testCertKey = (Read-Host '6) 이카운트 테스트 인증키 (없으면 그냥 Enter)').Trim()
-  $c.zone = ''
-  ConvertTo-Json -InputObject $c | Set-Content -LiteralPath $CfgPath -Encoding UTF8
-  Write-Host '설정을 저장했습니다.'
-  $a = Read-Host 'PC를 켤 때 이 전송기를 자동으로 실행할까요? (Y/N)'
-  if ($a -match '^[Yy]') {
-    try {
-      $startup = [Environment]::GetFolderPath('Startup')
-      $lnk = Join-Path $startup '생산일지_이카운트_전송기.bat'
-      Set-Content -LiteralPath $lnk -Value ('@start "생산일지 이카운트 전송기" /min "' + $Self + '"') -Encoding Default
-      Write-Host ('자동 실행을 등록했습니다: ' + $lnk)
-    } catch { Write-Host ('자동 실행 등록 실패: ' + $_.Exception.Message) }
-  }
-}
-$Cfg = Get-Content -LiteralPath $CfgPath -Raw -Encoding UTF8 | ConvertFrom-Json
-foreach ($k in 'relayUrl', 'apiKey', 'comCode', 'userId', 'certKey') { if (-not $Cfg.$k) { Log ("설정에 $k 가 비어 있습니다 — " + $CfgPath + ' 파일을 지우고 다시 실행하세요'); Read-Host '끝내려면 Enter'; exit 1 } }
-
 # ── 이카운트 ──
 $Sess = @{}
 function EcHost($test, $zone) { if ($test) { $p = 'sboapi' } else { $p = 'oapi' }; if ($env:RELAY_EC_BASE) { return $env:RELAY_EC_BASE + '/' + $p + $zone }; return 'https://' + $p + $zone + '.ecount.com' }
@@ -103,6 +76,55 @@ function EcSave($job) {
   $slips = @(); if ($d -and $d.SlipNos) { $slips = @($d.SlipNos) }
   return @{ ok = $ok; test = $test; slipNos = $slips; details = $details; error = $err }
 }
+
+# ── 설정 ──
+function AskText($q, $pattern, $hint) {
+  while ($true) {
+    $v = (Read-Host $q); if ($null -eq $v) { $v = '' }
+    $v = $v.Trim().Trim('"').Trim("'").Trim()
+    if (-not $pattern -or $v -match $pattern) { return $v }
+    Write-Host ('   ↳ 형식이 맞지 않습니다. ' + $hint) -ForegroundColor Yellow
+  }
+}
+if (-not (Test-Path -LiteralPath $CfgPath)) {
+  Write-Host ''
+  Write-Host '처음 한 번 설정합니다. (값은 이 PC의 ecount_relay_pc.json 에만 저장됩니다)'
+  Write-Host '붙여넣기: 창 안에서 마우스 오른쪽 버튼 또는 Ctrl+V → Enter'
+  Write-Host ''
+  $c = [ordered]@{ relayUrl = ''; apiKey = ''; comCode = ''; userId = ''; certKey = ''; testCertKey = ''; zone = '' }
+  while ($true) {
+    $urlPat = '^https://script\.google\.com/macros/s/[^\s]+/exec$'; if ($env:RELAY_EC_BASE) { $urlPat = '^http' }
+    $c.relayUrl = AskText '1) 생산일지 중계 주소 — 통합재고관리 생산일지 → 연동 설정의 「중계 주소」 칸 값' $urlPat 'https://script.google.com/macros/s/…/exec 모양이어야 합니다'
+    $c.apiKey = AskText '2) 공유 저장소 열쇠 — 연동 설정의 「공유 저장소 열쇠 복사」를 누른 뒤 붙여넣기' '^\S{16,}$' '긴 영문·숫자 값이어야 합니다'
+    Write-Host '   중계 연결 확인 중…'
+    try { $pr = PostJson $c.relayUrl @{ key = $c.apiKey; action = 'ping' }; if ($pr.ok) { Write-Host '   ↳ 중계 연결 확인됨' -ForegroundColor Green; break } else { Write-Host ('   ↳ 중계가 거절했습니다: ' + $pr.error) -ForegroundColor Yellow } }
+    catch { Write-Host ('   ↳ 중계에 연결하지 못했습니다: ' + $_.Exception.Message) -ForegroundColor Yellow }
+    Write-Host '   1)·2)를 다시 넣어 주세요.'
+  }
+  while ($true) {
+    $c.comCode = AskText '3) 이카운트 회사코드 (로그인 첫 칸의 숫자)' '^\d{3,}$' '숫자만 넣으세요'
+    $c.userId = AskText '4) 이카운트 API 사용자 ID (인증키를 발급받은 ID)' '^\S+$' 'ID를 넣으세요'
+    $c.certKey = AskText '5) 이카운트 실서버 API 인증키' '^\S{10,}$' '긴 영문·숫자 인증키를 넣으세요'
+    $script:Cfg = [pscustomobject]$c
+    Write-Host '   이카운트 로그인 확인 중…'
+    try { $null = EcLogin $false $true; Write-Host '   ↳ 이카운트 로그인 성공' -ForegroundColor Green; break }
+    catch { Write-Host ('   ↳ ' + $_.Exception.Message) -ForegroundColor Yellow; Write-Host '   3)~5)를 다시 넣어 주세요.' }
+  }
+  $c.testCertKey = AskText '6) 이카운트 테스트 인증키 (없으면 그냥 Enter)' '' ''
+  ConvertTo-Json -InputObject $c | Set-Content -LiteralPath $CfgPath -Encoding UTF8
+  Write-Host '설정을 저장했습니다.' -ForegroundColor Green
+  $a = Read-Host 'PC를 켤 때 이 전송기를 자동으로 실행할까요? (Y/N)'
+  if ($a -match '^[Yy]') {
+    try {
+      $startup = [Environment]::GetFolderPath('Startup')
+      $lnk = Join-Path $startup '생산일지_이카운트_전송기.bat'
+      Set-Content -LiteralPath $lnk -Value ('@start "Ecount production sender" /min "' + $Self + '"') -Encoding Default
+      Write-Host ('자동 실행을 등록했습니다: ' + $lnk)
+    } catch { Write-Host ('자동 실행 등록 실패: ' + $_.Exception.Message) }
+  }
+}
+$Cfg = Get-Content -LiteralPath $CfgPath -Raw -Encoding UTF8 | ConvertFrom-Json
+foreach ($k in 'relayUrl', 'apiKey', 'comCode', 'userId', 'certKey') { if (-not $Cfg.$k) { Log ("설정에 $k 가 비어 있습니다 — " + $CfgPath + ' 파일을 지우고 다시 실행하세요'); Read-Host '끝내려면 Enter'; exit 1 } }
 
 # ── 반복 ──
 Log ('생산일지 이카운트 전송기 시작 — ' + $Poll + '초마다 중계를 확인합니다. 이 창을 닫으면 전송이 멈춥니다.')
