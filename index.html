@@ -831,7 +831,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '054';
+const APP_VER  = '055';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1732,6 +1732,8 @@ document.addEventListener('focusout', () => { setTimeout(() => { if (S.share && 
 window.addEventListener('online', () => { if (shareOn()) { sharePush(); sharePull(false, true); } });
 setInterval(() => { if (!document.hidden && shareOn()) { if (S.share && S.share.pendingRender && !shareTyping()) { S.share.pendingRender = false; if (S.ui.tab === 'weekly') wk.rows = []; renderAll(); } sharePull(false, true); } }, 60000);
 setTimeout(() => { if (shareOn()) { shareCfg(); renderShareStatus(); sharePull(false, true).then(() => sharePush()); } }, 1500);
+/* v055: 육안검사 화면을 처음부터 뒤에서 열어 둠 — 다른 메뉴에 있어도 이카운트 입고 확인·일지 동기화가 돌도록 */
+setTimeout(() => { try { inspEnsure(); } catch (e) {} }, 4000);
 
 
 
