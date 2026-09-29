@@ -2,7 +2,7 @@
 <html lang="ko"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>육안검사일지 v091 — 빵을그리다(주)</title>
+<title>육안검사일지 v092 — 빵을그리다(주)</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&amp;family=DM+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -369,7 +369,7 @@ table.data-table td.num{text-align:right;font-family:'DM Mono',monospace;font-si
       <button onclick="storageDiagnose()" title="브라우저 저장 공간 사용량 확인" style="width:100%;margin-bottom:6px;padding:5px 4px;border-radius:6px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06);color:#cbd5e1;font-size:11px;cursor:pointer">🧹 저장 공간 진단</button>
       <button onclick="exportAllDataJSON()" title="데이터만 JSON으로 백업" style="width:100%;padding:5px 4px;border-radius:6px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:#94a3b8;font-size:10px;font-weight:600;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">{ } JSON 백업 저장</button>
     </div>
-    <div>육안검사일지 v091</div><div id="saveInfo" style="font-size:10px;color:#94a3b8;margin-top:3px;line-height:1.4"></div>
+    <div>육안검사일지 v092</div><div id="saveInfo" style="font-size:10px;color:#94a3b8;margin-top:3px;line-height:1.4"></div>
     <div style="margin-top:2px;font-size:9.5px">저장: IndexedDB(무제한) + HTML 스냅샷</div>
   </div>
 </div>
@@ -5009,7 +5009,7 @@ function init(){
 //   · 신규 입력에서 품목만 고르면 고정값 자동 반영, 수정 가능 / 변동값만 손으로 입력
 //   · 2026-09-14 이후 일지는 신양식(A4 가로, 18열)으로 입력·인쇄, 그 이전 일지는 기존 양식 그대로 조회·인쇄
 // ═══════════════════════════════════════════════════════════════════
-const APP_VER        = 'v091';
+const APP_VER        = 'v092';
 const NEW_FORM_START_DEFAULT = '2026-09-14';
 function NEW_FORM_START_(){ return (typeof cfg==='object' && cfg && isValidDate(cfg.newFormStart)) ? cfg.newFormStart : NEW_FORM_START_DEFAULT; }
 const ALLERGEN_LIST  = ['난류','우유','메밀','땅콩','대두','밀','고등어','게','새우','돼지고기','복숭아','토마토','아황산류','호두','닭고기','쇠고기','오징어','조개류','잣'];
@@ -8088,13 +8088,18 @@ let __ecDkey = '';
 })();
 function inspToParent(msg){ if(!INSP_EMBED) return; try{ window.parent.postMessage(msg, '*'); }catch(e){} /* 요청 신호만 보냄 (자료 없음) */ }
 let __ecKick = null;
+/* v092: 일지·연동 상태를 저장소에서 다 읽은(init 끝난) 뒤에만 연동·동기화를 돌림 — 열쇠가 먼저 오면 빈 상태로 덮어쓰던 문제 방지 */
+window.__inspBooted = false; const __inspWait = [];
+function inspWhenBooted(fn){ if(window.__inspBooted) fn(); else __inspWait.push(fn); }
+LS.ready().then(()=>{ setTimeout(()=>{ window.__inspBooted = true; __inspWait.splice(0).forEach(f=>{ try{ f(); }catch(e){} }); }, 700); });
 window.addEventListener('message', e=>{
   if(!INSP_EMBED || e.source !== window.parent) return;
   if(location.protocol!=='file:' && e.origin !== location.origin && e.origin !== 'null') return;
   const m = e.data; if(!m || typeof m!=='object') return;
-  if(m.type==='wonryo-lockkey' && m.dk){ const first = !__ecDkey; __ecDkey = m.dk; if(first){ try{ ecRender(); }catch(_){} } }
+  if(m.type==='wonryo-lockkey' && m.dk){ const first = !__ecDkey; __ecDkey = m.dk;
+    if(first){ LS.ready().then(()=>{ inspWhenBooted(()=>{ try{ ecRender(); ecLoad(); ecSchedule(); if(ecState.on) setTimeout(()=>ecRun(false), 1500); }catch(_){} }); }); } }   /* v092: 저장 자료를 다 읽은 뒤에만 */   /* v092: 열쇠가 늦게 와도 5분 확인·첫 확인 시작 */
   if(m.type==='wonryo-ecount'){   // 재고 자료가 새로 들어오면 바로 입고 확인 (연동이 켜져 있을 때만)
-    clearTimeout(__ecKick); __ecKick = setTimeout(()=>{ try{ ecLoad(); if(ecState.on && ecKey()) ecRun(false); }catch(_){} }, 1500);
+    clearTimeout(__ecKick); __ecKick = setTimeout(()=>inspWhenBooted(()=>{ try{ ecLoad(); if(ecState.on && ecKey()) ecRun(false); }catch(_){} }), 1500);
   }
   if(m.type==='wonryo-nav' && m.tab){
     const id = m.tab==='eclink' ? 'nav-eclink' : 'nav-'+m.tab; const el = document.getElementById(id);
@@ -8228,6 +8233,7 @@ function syAfterApply(n){
 }
 let syQuiet = false;
 async function syRun(){
+  if(!window.__inspBooted){ syKick(1000); return; }   /* 일지를 다 읽기 전에는 동기화하지 않음 */
   syLoad(); if(!syOn() || syBusy) return; syBusy = true; syMsg = '동기화 중…'; try{ syPaint(); }catch(e){}
   try{
     if(!SY.init){                                   // ① 처음(또는 불러오기 뒤): 전부 받아 공유 값 우선
