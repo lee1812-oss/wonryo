@@ -486,6 +486,23 @@ body.home-on header.top .brand{background:rgba(255,255,255,.16);box-shadow:inset
 @media (max-width:1100px){.hm-kpi{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:759px){.hm-grid{grid-template-columns:minmax(0,1fr)}.hm-kpi{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.hk{padding:8px 10px}.hk .v{font-size:22px}.hm-top h2{font-size:17px}}
 @media print{.hm-kpi{grid-template-columns:repeat(6,1fr)}.hm-grid{grid-template-columns:1fr 1fr}.hp-h .go,.hs-t .more{display:none}}
+/* v058 생산일지 — 휴대폰 입력 공간 확보: 원료 주차·동기화 표시는 숨김 */
+body.prod-on #weekSel,body.prod-on #syncPill,body.prod-on #sharePill{display:none}
+.prow{display:flex;flex-wrap:wrap;gap:8px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.pline{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.pline:first-of-type{border-top:none}
+.pname{flex:1 1 200px;min-width:0}
+.pnote{margin-top:6px;width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:14px;background:#fff}
+.pq{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+.pq>button:not(.btn){width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:22px;font-weight:700;color:var(--brand);line-height:1}
+.pq input{width:88px;height:44px;text-align:center;font-size:20px;font-weight:700;border:1px solid var(--line);border-radius:10px;background:#fff}
+.punit{min-width:28px;color:var(--ink2);font-size:13px}
+.pchips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.pchip{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:14px;font-weight:600;text-align:left;color:var(--ink);min-height:52px}
+.pchip small{display:block;font-weight:400;color:var(--ink2);font-size:11px;margin-top:2px;word-break:break-all}
+.pchip.on{border-color:var(--accent);background:var(--accent-bg)}
+.psend{flex:1 1 200px;padding:14px;font-size:16px}
 </style>
 </head>
 <body>
@@ -750,6 +767,10 @@ body.home-on header.top .brand{background:rgba(255,255,255,.16);box-shadow:inset
     <div class="finwrap"><iframe id="inspFrame" title="육안검사일지" src="about:blank"></iframe>
       <div class="finmsg" id="inspMsg">육안검사일지를 불러오는 중…</div></div>
   </section>
+  <!-- ═══ v058: 생산일지 → 이카운트 생산입고 ═══ -->
+  <section class="view" data-view="pnew"><div id="prodNew"></div></section>
+  <section class="view" data-view="plog"><div id="prodLog"></div></section>
+  <section class="view" data-view="pset"><div id="prodSet"></div></section>
   <!-- ═══ 설정 ═══ -->
   <section class="view" data-view="set">
     <div class="card">
@@ -831,7 +852,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '057';
+const APP_VER  = '058';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -862,8 +883,11 @@ const INSP_TABS = [
   ['eclink','이카운트 연동','<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>'],
   ['dashboard','대시보드',TABS[0][2]], ['entry','일지 입력','<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>'], ['list','일지 목록',ICO.ledger], ['items','품목 관리',ICO.items]
 ];
-const HOME_MENU = { name: '통합 대시보드', items: [['home', '통합', '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>'], ['@raw', '원료수불부', ICO.raw], ['@fin', '완제품·생지', ICO.fin], ['@insp', '육안검사', ICO.insp]] };
+ICO.prod = '<svg viewBox="0 0 24 24"><path d="M4 20V10l5 3V10l5 3V6l6 4v10z"/><path d="M4 20h16"/></svg>';
+const HOME_MENU = { name: '통합 대시보드', items: [['home', '통합', '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>'], ['@raw', '원료수불부', ICO.raw], ['@fin', '완제품·생지', ICO.fin], ['@insp', '육안검사', ICO.insp], ['@prod', '생산일지', ICO.prod]] };
 const MENUS = { raw: { name: '원료수불부', ico: ICO.raw, items: TABS }, fin: { name: '완제품·생지', ico: ICO.fin, items: FIN_TABS }, insp: { name: '육안검사', ico: ICO.insp, items: INSP_TABS } };
+const PROD_TABS = [['pnew', '생산 입력', '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>'], ['plog', '전송 기록', ICO.ledger], ['pset', '연동 설정', ICO.items]];
+MENUS.prod = { name: '생산일지', ico: ICO.prod, items: PROD_TABS };
 
 /* ── state ── */
 const defaultState = () => ({
@@ -1143,15 +1167,15 @@ function importPaste() {
 
 /* ── render: frame ── */
 function renderTabs() {
-  S.ui.menu = ['fin', 'home', 'insp'].includes(S.ui.menu) ? S.ui.menu : 'raw'; if (!INSP_TABS.some(t => t[0] === S.ui.inspTab)) S.ui.inspTab = 'dashboard'; S.ui.finTab = S.ui.finTab || 'dash'; if (!FIN_TABS.some(t => t[0] === S.ui.finTab)) S.ui.finTab = 'dash'; /* v041: 추이 탭 제거 — 저장된 탭이 없는 탭이면 대시보드로 */
-  const menu = S.ui.menu, M = menu === 'home' ? HOME_MENU : MENUS[menu]; const cur = menu === 'fin' ? S.ui.finTab : menu === 'insp' ? S.ui.inspTab : menu === 'home' ? 'home' : S.ui.tab;
+  S.ui.menu = ['fin', 'home', 'insp', 'prod'].includes(S.ui.menu) ? S.ui.menu : 'raw'; if (!PROD_TABS.some(t => t[0] === S.ui.prodTab)) S.ui.prodTab = 'pnew'; if (!INSP_TABS.some(t => t[0] === S.ui.inspTab)) S.ui.inspTab = 'dashboard'; S.ui.finTab = S.ui.finTab || 'dash'; if (!FIN_TABS.some(t => t[0] === S.ui.finTab)) S.ui.finTab = 'dash'; /* v041: 추이 탭 제거 — 저장된 탭이 없는 탭이면 대시보드로 */
+  const menu = S.ui.menu, M = menu === 'home' ? HOME_MENU : MENUS[menu]; const cur = menu === 'fin' ? S.ui.finTab : menu === 'insp' ? S.ui.inspTab : menu === 'prod' ? S.ui.prodTab : menu === 'home' ? 'home' : S.ui.tab;
   // 상단: 대메뉴 2개
   const menuBtns = Object.entries(MENUS).map(([k, m]) => `<button data-menu="${k}" class="${menu === k ? 'on' : ''}">${m.ico}<span>${m.name}</span></button>`).join('');
   $('#topMenu').innerHTML = menuBtns; /* 휴대폰: 헤더 토글 유지 */
   // 좌측 사이드바(PC) + 하단 탭(휴대폰): 현재 대메뉴의 하위 메뉴
   const items = M.items.map(([k, n, ic]) => `<button data-tab="${k}" class="${cur === k ? 'on' : ''}${k === 'brief' ? ' act' : ''}">${ic}<span>${n}</span></button>`).join('');
   weekSelHome(); /* v043: 사이드바를 다시 그리기 전에 주차 선택을 헤더로 돌려놓음 */
-  $('#sideNav').innerHTML = `<button class="homebtn${menu === 'home' ? ' on' : ''}" data-menu="home">${ICO.home}<span>통합 대시보드</span></button><div class="menusw">${menuBtns}</div>` + (menu !== 'fin' && menu !== 'insp' ? `<div class="sidewk" id="sideWeek"><label>원료 기준 주차</label></div>` : '') + (menu === 'home' ? '' : `<div class="grp">${M.name}</div>` + items); $('#tabsBottom').innerHTML = items;
+  $('#sideNav').innerHTML = `<button class="homebtn${menu === 'home' ? ' on' : ''}" data-menu="home">${ICO.home}<span>통합 대시보드</span></button><div class="menusw">${menuBtns}</div>` + (menu !== 'fin' && menu !== 'insp' && menu !== 'prod' ? `<div class="sidewk" id="sideWeek"><label>원료 기준 주차</label></div>` : '') + (menu === 'home' ? '' : `<div class="grp">${M.name}</div>` + items); $('#tabsBottom').innerHTML = items;
   $$('#topMenu [data-menu], #sideNav [data-menu]').forEach(b => b.onclick = () => { if (S.ui.menu === b.dataset.menu) return; S.ui.menu = b.dataset.menu; save(); renderAll(); window.scrollTo(0, 0); if (S.ui.menu === 'home') finAskSum(); });
   weekSelPlace();
   $$('#sideNav [data-tab], #tabsBottom [data-tab]').forEach(b => b.onclick = () => {
@@ -1159,10 +1183,11 @@ function renderTabs() {
     if (k[0] === '@') { homeGo(k.slice(1)); return; }
     if (S.ui.menu === 'fin') { if (k !== 'brief') S.ui.finTab = k; finNav(k); save(); renderTabs(); return; }
     if (S.ui.menu === 'insp') { S.ui.inspTab = k; inspNav(k); save(); renderTabs(); return; }
+    if (S.ui.menu === 'prod') { S.ui.prodTab = k; save(); renderAll(); window.scrollTo(0, 0); return; }
     S.ui.tab = k; save(); renderAll(); window.scrollTo(0, 0);
   });
-  $$('.view').forEach(v => v.classList.toggle('on', menu === 'fin' ? v.dataset.view === 'fin' : menu === 'insp' ? v.dataset.view === 'insp' : menu === 'home' ? v.dataset.view === 'home' : v.dataset.view === S.ui.tab));
-  document.body.classList.toggle('fin-tab', menu === 'fin' || menu === 'insp'); document.body.classList.toggle('home-on', menu === 'home');
+  $$('.view').forEach(v => v.classList.toggle('on', menu === 'fin' ? v.dataset.view === 'fin' : menu === 'insp' ? v.dataset.view === 'insp' : menu === 'prod' ? v.dataset.view === S.ui.prodTab : menu === 'home' ? v.dataset.view === 'home' : v.dataset.view === S.ui.tab));
+  document.body.classList.toggle('fin-tab', menu === 'fin' || menu === 'insp'); document.body.classList.toggle('home-on', menu === 'home'); document.body.classList.toggle('prod-on', menu === 'prod');
   if (menu === 'fin' || menu === 'home') finEnsure();
   if (menu === 'insp') inspEnsure();
 }
@@ -1192,6 +1217,251 @@ window.addEventListener('message', e => {
   if (!fromInsp(e)) return; const m = e.data; if (!m || typeof m !== 'object') return;
   if (m.type === 'insp-ready' || m.type === 'insp-need-key' || m.type === 'insp-need-share') { inspHeard = true; $('#inspMsg').classList.add('off'); inspSendKey(); if (m.type === 'insp-ready') inspNav(S.ui.inspTab || 'dashboard'); }
 });
+/* ── v058: 생산일지 — 휴대폰·태블릿에서 간단히 입력하면 이카운트 「생산입고I」(OAPI SaveGoodsReceipt)로 전표를 만듭니다.
+   이카운트 인증키는 공개 사이트에 두지 않고 구글 Apps Script 중계(ecount_relay.gs)의 스크립트 속성에만 둡니다.
+   중계는 「공유 저장소 열쇠」(재고 비밀번호로 만든 것)가 맞는 요청만 받습니다. ── */
+function prodS() {
+  S.prod = S.prod || {};
+  const P = S.prod;
+  P.cfg = Object.assign({ relayUrl: '', test: true, emp: '', whF: '', whT: '', extra: '' }, P.cfg || {});
+  P.items = Array.isArray(P.items) ? P.items : [];   /* {code,name,unit,ecEa,ecDiv,kind,on,manual} */
+  P.log = Array.isArray(P.log) ? P.log : [];
+  if (!P.draft || !Array.isArray(P.draft.lines)) P.draft = { date: today(), lines: [] };
+  if (!P.draft.lines.length && P.draft.date !== today()) P.draft.date = today();
+  return P;
+}
+function prodOnItems() { return prodS().items.filter(i => i.on && i.code); }
+function prodItem(code) { return prodS().items.find(i => i.code === code) || null; }
+function prodEcQty(it, q) { const n = Number(q); if (!(n > 0)) return 0; return it && it.ecEa && Number(it.ecDiv) > 0 ? Math.round(n * Number(it.ecDiv) * 1000) / 1000 : n; }
+function prodExtra(text) { const o = {}; String(text || '').split(/\r?\n/).forEach(l => { const m = l.match(/^\s*([A-Za-z0-9_]+)\s*=\s*(.*?)\s*$/); if (m) o[m[1].toUpperCase()] = m[2]; }); return o; }
+function prodKey() { return (window.WLOCK && WLOCK.shareKey && WLOCK.shareKey()) || ''; }
+function prodReady() {
+  const P = prodS();
+  if (!prodKey()) return { ok: false, msg: '재고 비밀번호가 정해져 있어야 전송할 수 있습니다 (설정 → 비밀번호 정하기).' };
+  if (!P.cfg.relayUrl.trim()) return { ok: false, msg: '「연동 설정」에 이카운트 중계 주소(Apps Script 웹 앱 URL)를 넣어 주세요.' };
+  if (!prodOnItems().length) return { ok: false, msg: '「연동 설정 → 생산 품목」에서 완제품·생지 품목을 불러와 주세요.' };
+  return { ok: true, msg: '' };
+}
+function prodRenderIf() { if (S.ui.menu === 'prod') renderProd(); }
+function renderProd() { const t = S.ui.prodTab; if (t === 'plog') renderProdLog(); else if (t === 'pset') renderProdSet(); else renderProdNew(); }
+async function prodCopy(text) {
+  let ok = false; try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {}
+  if (!ok) { try { const t = document.createElement('textarea'); t.value = text; t.setAttribute('style', 'position:fixed;left:-9999px;top:0'); document.body.appendChild(t); t.select(); ok = document.execCommand('copy'); t.remove(); } catch (e) {} }
+  return ok;
+}
+
+/* 완제품·생지(finished.html) 품목을 받아 생산 품목 후보로 씀 */
+let prodWait = 0;
+function prodReqItems() {
+  try { finEnsure(); } catch (e) {}
+  prodWait = 6;
+  const ask = () => { if (!prodWait) return; prodWait--; const f = $('#finFrame'); if (f && f.contentWindow && finLoaded) { try { f.contentWindow.postMessage({ type: 'wonryo-items-req' }, finTargetOrigin()); } catch (e) {} } if (prodWait) setTimeout(ask, 1500); else toast('완제품·생지 품목을 받지 못했습니다 — 완제품·생지 메뉴를 한 번 연 뒤 다시 눌러 주세요'); };
+  ask();
+}
+window.addEventListener('message', e => {
+  if (!fromFin(e)) return; const m = e.data; if (!m || typeof m !== 'object' || m.type !== 'fin-items' || !Array.isArray(m.items)) return;
+  const wanted = prodWait > 0; prodWait = 0;
+  const P = prodS(); const by = new Map(P.items.map(i => [i.code, i])); let add = 0;
+  m.items.forEach(x => {
+    if (!x || !x.code) return; const code = String(x.code).trim(); if (!code) return;
+    const base = { code, name: String(x.name || code), unit: String(x.unit || ''), ecEa: !!x.ecEa, ecDiv: Number(x.ecDiv) || 0, kind: String(x.kind || '') };
+    const cur = by.get(code);
+    if (cur) { if (!cur.manual) Object.assign(cur, base); }
+    else { const it = Object.assign(base, { on: !x.orderOnly }); P.items.push(it); by.set(code, it); add++; }
+  });
+  P.itemsAt = new Date().toISOString(); save(); prodRenderIf();
+  if (wanted) toast(add ? `완제품·생지 품목 ${add}개를 새로 불러왔습니다` : '완제품·생지 품목을 다시 맞췄습니다 (새 품목 없음)');
+});
+
+/* ── 입력 화면 ── */
+function renderProdNew() {
+  const P = prodS(), box = $('#prodNew'); if (!box) return;
+  const ready = prodReady(); const items = prodOnItems();
+  const freq = {}; P.log.slice(0, 60).forEach(en => (en.lines || []).forEach(l => { freq[l.code] = (freq[l.code] || 0) + 1; }));
+  const q = String(ui.prodQ || '').trim().toLowerCase();
+  const list = items.filter(i => !q || (i.name + ' ' + i.code).toLowerCase().includes(q)).sort((a, b) => (freq[b.code] || 0) - (freq[a.code] || 0) || a.name.localeCompare(b.name, 'ko'));
+  const inDraft = new Set(P.draft.lines.map(l => l.code));
+  const todayLog = P.log.filter(en => en.date === P.draft.date && en.status === 'sent');
+  box.innerHTML = `
+  ${ready.ok ? '' : `<div class="card" style="border-color:#E8C98E;background:var(--warn-bg)"><b>연동 준비가 필요합니다</b><div class="muted" style="margin:4px 0 8px">${esc(ready.msg)}</div><button class="btn sm" data-pgo="pset">연동 설정 열기</button></div>`}
+  <div class="card">
+    <div class="prow">
+      <div class="field" style="flex:1 1 150px"><label for="pDate">생산일</label><input type="date" id="pDate" value="${esc(P.draft.date)}"></div>
+      <div class="field" style="flex:1 1 120px"><label for="pWho">입력자</label><input id="pWho" value="${esc(S.settings.reporter || '')}" placeholder="이름"></div>
+    </div>
+    <div style="margin-top:8px"><span class="pill ${P.cfg.test ? 'warn' : 'ok'}">${P.cfg.test ? '테스트 모드 — 실제 이카운트에는 들어가지 않습니다' : '실제 이카운트로 전송'}</span></div>
+  </div>
+  <div class="card">
+    <h2 style="margin:0 0 4px">생산한 품목${P.draft.lines.length ? ` <span class="pill ok">${P.draft.lines.length}</span>` : ''}</h2>
+    ${P.draft.lines.length ? P.draft.lines.map(l => { const it = prodItem(l.code) || { name: l.code, unit: '' }; const ecq = prodEcQty(it, l.qty);
+      return `<div class="pline">
+        <div class="pname"><b>${esc(it.name)}</b><div class="muted" style="font-size:12px">${esc(l.code)}${it.ecEa && it.ecDiv ? ` · 이카운트 <span data-pecq="${l.id}">${fmt(ecq)}</span> EA로 보냄` : ''}</div>
+          <input class="pnote" data-pnote="${l.id}" value="${esc(l.note || '')}" placeholder="비고 (선택)" aria-label="${esc(it.name)} 비고"></div>
+        <div class="pq"><button type="button" data-pstep="${l.id}" data-d="-1" aria-label="${esc(it.name)} 수량 줄이기">−</button><input inputmode="decimal" data-pqty="${l.id}" value="${esc(l.qty)}" aria-label="${esc(it.name)} 수량"><button type="button" data-pstep="${l.id}" data-d="1" aria-label="${esc(it.name)} 수량 늘리기">+</button><span class="punit">${esc(it.unit || '')}</span><button type="button" class="btn xs danger" data-pdel="${l.id}" aria-label="${esc(it.name)} 빼기">빼기</button></div>
+      </div>`; }).join('')
+    : '<div class="muted" style="padding:6px 0">아래 「품목 고르기」에서 오늘 생산한 품목을 누르세요.</div>'}
+    ${P.draft.lines.length ? `<div class="prow" style="margin-top:12px"><button class="btn primary psend" id="pSend" ${ready.ok ? '' : 'disabled'}>이카운트로 보내기 (${P.draft.lines.length}품목)</button><button class="btn" id="pClear">비우기</button></div>` : ''}
+  </div>
+  <div class="card">
+    <div class="prow" style="align-items:center;margin-bottom:8px"><h2 style="margin:0;flex:1 1 auto">품목 고르기</h2><input class="search" id="pQ" value="${esc(ui.prodQ || '')}" placeholder="품목·코드 검색" aria-label="생산 품목 검색" style="flex:0 1 180px;min-width:0"></div>
+    ${items.length ? (list.length ? `<div class="pchips">${list.map(i => `<button type="button" class="pchip${inDraft.has(i.code) ? ' on' : ''}" data-padd="${esc(i.code)}">${esc(i.name)}<small>${esc(i.code)}${i.unit ? ' · ' + esc(i.unit) : ''}</small></button>`).join('')}</div>` : '<div class="muted">검색에 맞는 품목이 없습니다.</div>')
+      : '<div class="muted">생산 품목이 없습니다. 「연동 설정 → 생산 품목」에서 완제품·생지 품목을 불러오세요.</div>'}
+  </div>
+  ${todayLog.length ? `<div class="card"><h2 style="margin:0 0 6px">${esc(P.draft.date)} 보낸 생산</h2>${todayLog.map(en => `<div class="muted" style="padding:3px 0">${esc(hmOf(en.sentAt || en.ts))} · ${esc(en.lines.map(l => (prodItem(l.code) || { name: l.code }).name + ' ' + fmt(l.qty)).join(', '))} <span class="pill ok">${en.test ? '테스트 ' : ''}전표 ${esc(en.slip || '')}</span></div>`).join('')}</div>` : ''}`;
+  const draftLine = id => P.draft.lines.find(l => l.id === id);
+  $('#pDate').onchange = e => { P.draft.date = e.target.value || today(); save(); renderProdNew(); };
+  $('#pWho').onchange = e => { S.settings.reporter = e.target.value.trim(); save(); };
+  $('#pQ').oninput = e => { ui.prodQ = e.target.value; const pos = e.target.selectionStart; renderProdNew(); const n = $('#pQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (_) {} };
+  $$('#prodNew [data-pgo]').forEach(b => b.onclick = () => { S.ui.prodTab = b.dataset.pgo; save(); renderAll(); });
+  $$('#prodNew [data-padd]').forEach(b => b.onclick = () => {
+    const code = b.dataset.padd; let l = P.draft.lines.find(x => x.code === code);
+    if (!l) { l = { id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), code, qty: '', note: '' }; P.draft.lines.push(l); save(); renderProdNew(); }
+    const inp = document.querySelector(`#prodNew [data-pqty="${l.id}"]`); if (inp) { inp.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => inp.focus(), 250); }
+  });
+  $$('#prodNew [data-pqty]').forEach(inp => inp.oninput = () => { const l = draftLine(inp.dataset.pqty); if (!l) return; l.qty = inp.value.replace(/[^0-9.]/g, ''); save(); const s = document.querySelector(`#prodNew [data-pecq="${l.id}"]`); if (s) s.textContent = fmt(prodEcQty(prodItem(l.code), l.qty)); });
+  $$('#prodNew [data-pnote]').forEach(inp => inp.oninput = () => { const l = draftLine(inp.dataset.pnote); if (l) { l.note = inp.value; save(); } });
+  $$('#prodNew [data-pstep]').forEach(b => b.onclick = () => { const l = draftLine(b.dataset.pstep); if (!l) return; const v = Math.max(0, (Number(l.qty) || 0) + Number(b.dataset.d)); l.qty = v ? String(v) : ''; save(); const inp = document.querySelector(`#prodNew [data-pqty="${l.id}"]`); if (inp) inp.value = l.qty; const s = document.querySelector(`#prodNew [data-pecq="${l.id}"]`); if (s) s.textContent = fmt(prodEcQty(prodItem(l.code), l.qty)); });
+  $$('#prodNew [data-pdel]').forEach(b => b.onclick = () => { P.draft.lines = P.draft.lines.filter(l => l.id !== b.dataset.pdel); save(); renderProdNew(); });
+  if ($('#pClear')) $('#pClear').onclick = () => { modal(`<h2>입력한 품목 비우기</h2><p>아직 보내지 않은 ${P.draft.lines.length}품목을 지웁니다.</p><div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px"><button class="btn" onclick="closeModal()">취소</button><button class="btn danger" id="pClearOk">비우기</button></div>`); $('#pClearOk').onclick = () => { P.draft.lines = []; save(); closeModal(); renderProdNew(); }; };
+  if ($('#pSend')) $('#pSend').onclick = prodConfirm;
+}
+function prodConfirm() {
+  const P = prodS(); const who = ($('#pWho') && $('#pWho').value.trim()) || S.settings.reporter || '';
+  const bad = P.draft.lines.filter(l => !(Number(l.qty) > 0));
+  if (bad.length) { toast(`수량이 없는 품목이 ${bad.length}개 있습니다 — 수량을 넣거나 빼 주세요`); const i = document.querySelector(`#prodNew [data-pqty="${bad[0].id}"]`); if (i) i.focus(); return; }
+  if (!P.draft.date) { toast('생산일을 고르세요'); return; }
+  const rows = P.draft.lines.map(l => { const it = prodItem(l.code) || { name: l.code, unit: '' }; return `<tr><td>${esc(it.name)}</td><td class="num"><b>${fmt(l.qty)}</b> ${esc(it.unit || '')}</td><td class="num">${it.ecEa && it.ecDiv ? fmt(prodEcQty(it, l.qty)) + ' EA' : fmt(l.qty)}</td></tr>`; }).join('');
+  modal(`<h2>이카운트 생산입고로 보낼까요?</h2>
+    <p style="margin:4px 0 10px">생산일 <b>${esc(P.draft.date)}</b> · 입력자 ${esc(who || '(이름 없음)')} · ${P.cfg.test ? '<span class="pill warn">테스트 모드</span>' : '<span class="pill ok">실제 전송</span>'}</p>
+    <div class="tablewrap"><table class="t"><thead><tr><th>품목</th><th class="num">생산량</th><th class="num">이카운트 수량</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="muted" style="margin-top:8px">한 전표로 만들어집니다. 보낸 뒤에는 이카운트에서 수정·삭제하세요.</p>
+    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px"><button class="btn" onclick="closeModal()">취소</button><button class="btn primary" id="pSendOk">보내기</button></div>`);
+  $('#pSendOk').onclick = () => {
+    closeModal();
+    const entry = { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), ts: new Date().toISOString(), date: P.draft.date, who, test: !!P.cfg.test, status: 'sending',
+      lines: P.draft.lines.map(l => { const it = prodItem(l.code) || {}; return { code: l.code, name: it.name || l.code, unit: it.unit || '', qty: Number(l.qty), ecQty: prodEcQty(it, l.qty), note: String(l.note || '').trim() }; }),
+      cfg: { emp: P.cfg.emp, whF: P.cfg.whF, whT: P.cfg.whT, extra: P.cfg.extra } };
+    P.log.unshift(entry); P.log = P.log.slice(0, 500); P.draft.lines = []; save(true); renderProd();
+    prodSubmit(entry);
+  };
+}
+function prodRows(entry) {
+  const c = entry.cfg || prodS().cfg; const extra = prodExtra(c.extra);
+  return entry.lines.map(l => Object.assign({ UPLOAD_SER_NO: '1', IO_DATE: String(entry.date).replace(/-/g, ''), EMP_CD: c.emp || '', WH_CD_F: c.whF || '', WH_CD_T: c.whT || '', PROD_CD: l.code, QTY: String(l.ecQty || l.qty), REMARKS: l.note || '' }, extra));
+}
+let prodBusy = false;
+async function prodSubmit(entry) {
+  const P = prodS(); entry.status = 'sending'; entry.tries = (entry.tries || 0) + 1; save(); prodRenderIf();
+  try {
+    const url = P.cfg.relayUrl.trim(), key = prodKey();
+    if (!url) throw new Error('연동 설정에 이카운트 중계 주소가 없습니다');
+    if (!key) throw new Error('재고 비밀번호가 정해져 있지 않습니다');
+    let r;
+    try { r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key, action: 'saveProduction', test: !!entry.test, clientId: entry.id, rows: prodRows(entry) }) }); }
+    catch (e) { const er = new Error('인터넷 연결이 없어 보내지 못했습니다 — 연결되면 자동으로 다시 보냅니다'); er.net = true; throw er; }
+    let j; try { j = await r.json(); } catch (e) { throw new Error('중계 응답을 읽지 못했습니다 (' + r.status + ') — 중계 주소와 배포 설정을 확인하세요'); }
+    if (j.ok) { entry.status = 'sent'; entry.err = ''; entry.slip = (j.slipNos || []).join(', '); entry.sentAt = new Date().toISOString(); toast(`${entry.test ? '[테스트] ' : ''}이카운트 생산입고 전표 ${entry.slip || ''} 생성`); }
+    else { entry.status = 'fail'; entry.err = j.error || '이카운트가 입력을 거절했습니다'; entry.details = (j.details || []).filter(d => !d.ok).slice(0, 10); toast('전송 실패: ' + entry.err); }
+  } catch (e) { entry.status = e.net ? 'queued' : 'fail'; entry.err = e.message || String(e); toast(entry.err); }
+  save(true); prodRenderIf();
+}
+async function prodFlush() {
+  if (prodBusy || !navigator.onLine) return; const P = prodS(); const q = P.log.filter(en => en.status === 'queued').reverse(); if (!q.length) return;
+  prodBusy = true; try { for (const en of q) await prodSubmit(en); } finally { prodBusy = false; }
+}
+window.addEventListener('online', () => setTimeout(prodFlush, 1500));
+
+/* ── 전송 기록 ── */
+function renderProdLog() {
+  const P = prodS(), box = $('#prodLog'); if (!box) return;
+  const ST = { sent: ['ok', '전송됨'], fail: ['minus', '실패'], queued: ['warn', '대기 — 연결되면 자동 전송'], sending: ['warn', '보내는 중…'] };
+  box.innerHTML = `<div class="card"><h2 style="margin:0 0 4px">전송 기록</h2><div class="muted">이 기기에서 보낸 생산일지입니다. 전표 수정·삭제는 이카운트에서 하세요.</div></div>
+  ${P.log.length ? P.log.slice(0, 120).map(en => { const s = ST[en.status] || ['warn', en.status];
+    return `<div class="card">
+      <div class="prow" style="align-items:center"><b style="flex:1 1 auto">${esc(en.date)}</b>${en.test ? '<span class="pill warn">테스트</span>' : ''}<span class="pill ${s[0]}">${s[1]}${en.slip ? ' · 전표 ' + esc(en.slip) : ''}</span></div>
+      <div class="muted" style="font-size:12px;margin:2px 0 6px">${esc(hmOf(en.ts))} · ${esc(en.who || '(이름 없음)')}</div>
+      ${en.lines.map(l => `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid var(--line)"><span>${esc(l.name)}${l.note ? ` <span class="muted">(${esc(l.note)})</span>` : ''}</span><span class="num"><b>${fmt(l.qty)}</b> ${esc(l.unit || '')}${l.ecQty && l.ecQty !== l.qty ? ` <span class="muted">= ${fmt(l.ecQty)} EA</span>` : ''}</span></div>`).join('')}
+      ${en.err && en.status !== 'sent' ? `<div style="margin-top:6px;color:var(--minus);font-size:13px">${esc(en.err)}${(en.details || []).map(d => `<div>${esc([d.error].concat(d.errors || []).filter(Boolean).join(' / '))}</div>`).join('')}</div>` : ''}
+      ${en.status === 'fail' || en.status === 'queued' ? `<div class="prow" style="margin-top:8px"><button class="btn sm primary" data-pretry="${en.id}">다시 보내기</button><button class="btn sm" data-pedit="${en.id}">고쳐서 다시 입력</button><button class="btn sm danger" data-pdrop="${en.id}">기록 지우기</button></div>` : ''}
+    </div>`; }).join('') : '<div class="card muted">아직 보낸 생산일지가 없습니다.</div>'}`;
+  const find = id => P.log.find(en => en.id === id);
+  $$('#prodLog [data-pretry]').forEach(b => b.onclick = () => { const en = find(b.dataset.pretry); if (en) { en.cfg = { emp: P.cfg.emp, whF: P.cfg.whF, whT: P.cfg.whT, extra: P.cfg.extra }; prodSubmit(en); } });
+  $$('#prodLog [data-pedit]').forEach(b => b.onclick = () => { const en = find(b.dataset.pedit); if (!en) return; P.draft = { date: en.date, lines: en.lines.map(l => ({ id: 'l' + Math.random().toString(36).slice(2, 8), code: l.code, qty: String(l.qty), note: l.note || '' })) }; P.log = P.log.filter(x => x !== en); S.ui.prodTab = 'pnew'; save(); renderAll(); toast('입력 화면으로 옮겼습니다 — 고친 뒤 다시 보내세요'); });
+  $$('#prodLog [data-pdrop]').forEach(b => b.onclick = () => { P.log = P.log.filter(x => x.id !== b.dataset.pdrop); save(); renderProdLog(); });
+}
+
+/* ── 연동 설정 ── */
+function renderProdSet() {
+  const P = prodS(), box = $('#prodSet'); if (!box) return; const c = P.cfg;
+  box.innerHTML = `
+  <div class="card"><h2 style="margin:0 0 8px">이카운트 연결</h2>
+    <div class="field"><label for="pRelay">이카운트 중계 주소 (Apps Script 웹 앱 URL)</label><input id="pRelay" value="${esc(c.relayUrl)}" placeholder="https://script.google.com/macros/s/…/exec" style="font-family:monospace;font-size:13px"></div>
+    <label class="prow" style="align-items:center;margin-top:10px;gap:8px"><input type="checkbox" id="pTest" ${c.test ? 'checked' : ''} style="width:20px;height:20px"> <span><b>테스트 모드</b> — 이카운트 테스트 서버로 보냅니다. 실제 전표가 생기지 않습니다. 확인이 끝나면 끄세요.</span></label>
+    <div class="prow" style="margin-top:10px;align-items:center"><button class="btn sm primary" id="pPing">연결 확인</button><span class="muted" id="pPingMsg">${esc(P.pingMsg || '')}</span></div>
+  </div>
+  <div class="card"><h2 style="margin:0 0 8px">전표에 들어갈 이카운트 코드</h2>
+    <div class="pgrid">
+      <div class="field"><label for="pEmp">담당자 코드 (EMP_CD)</label><input id="pEmp" value="${esc(c.emp)}" placeholder="예: 00001"></div>
+      <div class="field"><label for="pWhF">생산된 공장 코드 (WH_CD_F)</label><input id="pWhF" value="${esc(c.whF)}" placeholder="예: 200"></div>
+      <div class="field"><label for="pWhT">받는 창고 코드 (WH_CD_T)</label><input id="pWhT" value="${esc(c.whT)}" placeholder="예: 100"></div>
+    </div>
+    <div class="field" style="margin-top:8px"><label for="pExtra">추가 항목 — 우리 회사 입력화면 양식의 필수 항목 (한 줄에 하나, 항목코드=값)</label><textarea id="pExtra" rows="3" placeholder="예: PJT_CD=01" style="font-family:monospace;font-size:13px">${esc(c.extra)}</textarea></div>
+    <div class="muted" style="margin-top:6px;font-size:12px">이카운트 API는 회사마다 입력화면 양식의 필수 항목이 다릅니다. 테스트 전송에서 「필수 항목 누락」이 나오면 그 항목코드를 여기에 넣으세요.</div>
+  </div>
+  <div class="card"><div class="prow" style="align-items:center;margin-bottom:6px"><h2 style="margin:0;flex:1 1 auto">생산 품목 (${prodOnItems().length} / ${P.items.length})</h2><button class="btn sm" id="pLoad">완제품·생지 품목 불러오기</button></div>
+    <div class="muted" style="font-size:12px;margin-bottom:6px">체크한 품목만 입력 화면에 나옵니다. 이카운트가 낱개(EA)로 관리하는 품목은 입력한 수량에 환산수량을 곱해 보냅니다 (완제품·생지 「품목·설정」 기준).</div>
+    ${P.items.length ? `<div class="tablewrap"><table class="t"><thead><tr><th style="width:44px">사용</th><th>품목</th><th>이카운트 코드</th><th>단위</th><th>이카운트 수량</th><th></th></tr></thead><tbody>
+      ${P.items.slice().sort((a, b) => (b.on - a.on) || a.name.localeCompare(b.name, 'ko')).map(i => `<tr><td><input type="checkbox" data-pon="${esc(i.code)}" ${i.on ? 'checked' : ''} aria-label="${esc(i.name)} 사용" style="width:18px;height:18px"></td><td>${esc(i.name)}${i.kind ? ` <span class="muted">${esc(i.kind)}</span>` : ''}</td><td style="font-family:monospace">${esc(i.code)}</td><td>${esc(i.unit || '')}</td><td>${i.ecEa && i.ecDiv ? `× ${fmt(i.ecDiv)} EA` : '그대로'}</td><td>${i.manual ? `<button class="btn xs danger" data-prm="${esc(i.code)}">삭제</button>` : ''}</td></tr>`).join('')}
+    </tbody></table></div>` : '<div class="muted">아직 품목이 없습니다. 「완제품·생지 품목 불러오기」를 누르세요.</div>'}
+    <div class="pgrid" style="margin-top:10px">
+      <div class="field"><label for="pNewCode">직접 추가 — 품목코드</label><input id="pNewCode" placeholder="품목코드"></div>
+      <div class="field"><label for="pNewName">품목명</label><input id="pNewName" placeholder="품목명"></div>
+      <div class="field"><label for="pNewUnit">단위</label><input id="pNewUnit" placeholder="예: Box, 봉"></div>
+    </div>
+    <div style="margin-top:8px"><button class="btn sm" id="pNewAdd">품목 추가</button></div>
+  </div>
+  <div class="card"><h2 style="margin:0 0 8px">처음 한 번: 이카운트 중계 만들기</h2>
+    <ol style="margin:0;padding-left:20px;line-height:1.8">
+      <li><a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener">script.google.com</a>에서 새 프로젝트를 만들고, 기존 코드를 지운 뒤 <button class="btn xs" id="pCopyCode">중계 코드 복사</button>로 복사한 코드를 붙여넣고 저장합니다.</li>
+      <li>프로젝트 설정(톱니바퀴) → <b>스크립트 속성</b>에 다음을 넣습니다.<br>
+        <code>API_KEY</code> = <button class="btn xs" id="pCopyKey">공유 저장소 열쇠 복사</button>로 복사한 값<br>
+        <code>COM_CODE</code> 회사코드 · <code>USER_ID</code> API 사용자 ID · <code>API_CERT_KEY</code> 실서버 인증키 · <code>TEST_CERT_KEY</code> 테스트 인증키</li>
+      <li><b>배포 → 새 배포 → 웹 앱</b>, 실행 사용자 「나」, 액세스 「모든 사용자」로 배포하고 권한을 허용합니다.</li>
+      <li>나온 웹 앱 URL을 위 「이카운트 중계 주소」에 넣고 <b>연결 확인</b>을 누릅니다.</li>
+      <li>테스트 모드로 1건 보내 보고, 이카운트 코드·추가 항목을 맞춘 뒤 테스트 모드를 끕니다.</li>
+    </ol>
+    <div class="muted" style="margin-top:8px;font-size:12px">인증키는 이 사이트에 저장되지 않고 중계(구글 계정)에만 있습니다. 비밀번호를 바꾸면 공유 저장소 열쇠도 바뀌니 중계의 API_KEY를 다시 넣어 주세요.</div>
+  </div>`;
+  const setv = (k, v) => { P.cfg[k] = v; save(); };
+  $('#pRelay').onchange = e => { setv('relayUrl', e.target.value.trim()); P.pingMsg = ''; };
+  $('#pTest').onchange = e => { setv('test', e.target.checked); toast(e.target.checked ? '테스트 모드 — 실제 전표가 생기지 않습니다' : '실제 이카운트로 전송합니다'); };
+  $('#pEmp').onchange = e => setv('emp', e.target.value.trim());
+  $('#pWhF').onchange = e => setv('whF', e.target.value.trim());
+  $('#pWhT').onchange = e => setv('whT', e.target.value.trim());
+  $('#pExtra').onchange = e => setv('extra', e.target.value);
+  $('#pPing').onclick = async () => {
+    const url = $('#pRelay').value.trim(); setv('relayUrl', url); const msg = $('#pPingMsg');
+    if (!url) { msg.textContent = '중계 주소를 먼저 넣으세요'; return; }
+    if (!prodKey()) { msg.textContent = '재고 비밀번호를 먼저 정하세요'; return; }
+    msg.textContent = '확인 중…';
+    try { const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key: prodKey(), action: 'ping', test: !!P.cfg.test }) }); const j = await r.json();
+      P.pingMsg = j.ok ? `연결됨 — 회사코드 ${j.com} · ${j.test ? '테스트 서버' : '실서버'} 로그인 성공` : '실패: ' + (j.error || '알 수 없는 오류'); }
+    catch (e) { P.pingMsg = '실패: 중계에 연결하지 못했습니다 — 주소와 배포(액세스 「모든 사용자」)를 확인하세요'; }
+    save(); msg.textContent = P.pingMsg;
+  };
+  $('#pLoad').onclick = prodReqItems;
+  $$('#prodSet [data-pon]').forEach(x => x.onchange = () => { const it = prodItem(x.dataset.pon); if (it) { it.on = x.checked; save(); } });
+  $$('#prodSet [data-prm]').forEach(b => b.onclick = () => { P.items = P.items.filter(i => i.code !== b.dataset.prm); save(); renderProdSet(); });
+  $('#pNewAdd').onclick = () => {
+    const code = $('#pNewCode').value.trim(), name = $('#pNewName').value.trim(), unit = $('#pNewUnit').value.trim();
+    if (!code || !name) { toast('품목코드와 품목명을 넣으세요'); return; }
+    const cur = prodItem(code); if (cur) Object.assign(cur, { name, unit, on: true, manual: true, ecEa: false, ecDiv: 0 }); else P.items.push({ code, name, unit, on: true, manual: true, ecEa: false, ecDiv: 0, kind: '' });
+    save(); renderProdSet(); toast(`${name} 추가`);
+  };
+  $('#pCopyCode').onclick = async () => { try { const r = await fetch('./ecount_relay.gs?v=' + APP_VER, { cache: 'no-store' }); if (!r.ok) throw 0; const ok = await prodCopy(await r.text()); toast(ok ? '중계 코드를 복사했습니다 — Apps Script에 붙여넣으세요' : '복사하지 못했습니다'); } catch (e) { toast('중계 코드를 불러오지 못했습니다 — 배포 주소(https://…)에서 열어 주세요'); } };
+  $('#pCopyKey').onclick = () => { const b = $('#btnShareKey'); if (b) b.click(); };
+}
+setTimeout(() => { try { const P = prodS(); P.log.forEach(en => { if (en.status === 'sending') en.status = 'queued'; }); prodFlush(); } catch (e) {} }, 3000);
 /* ── 완제품·생지 플랫폼(finished.html)을 iframe으로 내장 — 같은 폴더의 finished.html, 이카운트 자료는 postMessage로 전달 ── */
 let finLoaded = false, finLastData = null;
 function finEnsure() {
@@ -1265,6 +1535,7 @@ function homeGo(t) { /* t = 'raw' | 'fin' | 'raw:tab' | 'fin:tab' */
   const [menu, tab] = t.split(':'); S.ui.menu = menu;
   if (menu === 'fin') { if (tab) S.ui.finTab = tab; save(); renderAll(); finNav(tab || S.ui.finTab || 'dash'); }
   else if (menu === 'insp') { if (tab) S.ui.inspTab = tab; save(); renderAll(); inspNav(tab || S.ui.inspTab || 'dashboard'); }
+  else if (menu === 'prod') { if (tab) S.ui.prodTab = tab; save(); renderAll(); }
   else { if (tab) S.ui.tab = tab; save(); renderAll(); }
   window.scrollTo(0, 0);
 }
@@ -2763,6 +3034,7 @@ setInterval(() => { if (!document.hidden) renderNotice(); }, 60000);
 function renderAll() {
   renderTabs(); renderHeader(); renderNotice(); if (typeof renderSyncPill === 'function') renderSyncPill(); if (typeof renderChanges === 'function') setTimeout(renderChanges, 0);
   if (S.ui.menu === 'home') renderHome();
+  if (S.ui.menu === 'prod') renderProd();
   const t = S.ui.tab;
   if (t === 'dash') renderDash(); else if (t === 'stock') renderStock(); else if (t === 'phys') renderPhys(); else if (t === 'weekly') renderWeekly(); else if (t === 'cmp') renderCmp(); else if (t === 'trend') renderTrend(); else if (t === 'adj') renderAdj(); else renderSet();
 }
