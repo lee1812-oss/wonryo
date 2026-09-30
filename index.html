@@ -510,7 +510,7 @@ body.home-on header.top .brand{background:rgba(255,255,255,.16);box-shadow:inset
 @media (max-width:759px){.hm-grid{grid-template-columns:minmax(0,1fr)}.hm-kpi{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.hk{padding:8px 10px}.hk .v{font-size:22px}.hm-top h2{font-size:17px}}
 @media print{.hm-kpi{grid-template-columns:repeat(6,1fr)}.hm-grid{grid-template-columns:1fr 1fr}.hp-h .go,.hs-t .more{display:none}}
 /* v058 생산일지 — 휴대폰 입력 공간 확보: 원료 주차·동기화 표시는 숨김 */
-body.prod-on #weekSel,body.prod-on #syncPill,body.prod-on #sharePill{display:none}
+body.prod-on #weekSel{display:none}   /* v075: 생산일지·통합 설정에서도 상단 두 연동 칸은 보이게 */
 .prow{display:flex;flex-wrap:wrap;gap:8px}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
 .pline{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
@@ -930,7 +930,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '074';
+const APP_VER  = '075';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
