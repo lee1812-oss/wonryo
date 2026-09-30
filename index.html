@@ -581,6 +581,7 @@ body.sys-sub .finwrap{height:calc(100vh - var(--head-h,62px) - 60px)!important}
     <span class="sk hd"><span class="ttl">작업자 입력 연동</span><span class="who">휴대폰·PC ↔ 공유 저장소</span><span class="stl"><span class="dot"></span><b id="spShState">확인 중</b></span></span>
     <span class="sk"><span class="lb">원료 입력</span><b id="spRaw">—</b><small id="spRawN"></small></span>
     <span class="sk"><span class="lb">완제품 입력</span><b id="spFin">—</b><small id="spFinN"></small></span>
+    <span class="sk"><span class="lb">육안검사 입력</span><b id="spInsp">—</b><small id="spInspN"></small></span>
     <span class="sk mt" style="justify-content:center"><small style="opacity:1;font-weight:700">내역 ▸</small></span>
   </button>
 </header>
@@ -917,7 +918,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '071';
+const APP_VER  = '072';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1379,6 +1380,7 @@ function inspNav(tab) { const f = $('#inspFrame'); if (!f || !f.contentWindow ||
 function inspPost(d) { const f = $('#inspFrame'); if (!f || !f.contentWindow || !inspLoaded || !d) return; try { f.contentWindow.postMessage({ type: 'wonryo-ecount', data: { changedAt: d.changedAt, updatedAt: d.updatedAt, items: (d.items || []).map(i => ({ code: i.code, qty: i.qty })) } }, inspOrigin()); } catch (e) {} }   /* v056: 품목 재고도 넘겨 육안검사가 1분마다 바로 비교 (깃허브 조회 없이) */
 window.addEventListener('message', e => {
   if (!fromInsp(e)) return; const m = e.data; if (!m || typeof m !== 'object') return;
+  if (m.type === 'insp-last' && m.ts && typeof m.ts === 'string') { const L = S.inspLog || []; if (!L.length || L[L.length - 1].ts < m.ts) { inspLogAdd({ ts: m.ts, user: '', code: 'local' }); save(); renderSharePill(); } return; }
   if (m.type === 'insp-ready' || m.type === 'insp-need-key' || m.type === 'insp-need-share') { inspHeard = true; $('#inspMsg').classList.add('off'); inspSendKey(); if (m.type === 'insp-ready') { inspShown = inspWant(); inspNav(inspShown); modePost(); } }
 });
 /* ── v058·v060: 생산일지 — 휴대폰·태블릿에서 간단히 입력하면 이카운트 「생산입고I」(OAPI SaveGoodsReceipt)로 전표를 만듭니다.
@@ -2389,9 +2391,9 @@ async function sharePull(full, quiet) {
   if (!shareOn() || shareBusy) return; const sh = shareCfg(); shareBusy = true; let changed = 0; if (!quiet) renderShareStatus('받는 중…');
   try { const j = await shareApi({ action: 'pull', since: full ? '' : (sh.since || '') });
     const applied = [];
-    let nbCh = 0, pcfgCh = false; const nbNew = [];
+    let nbCh = 0, pcfgCh = false, inspCh = false; const nbNew = [];
     (j.rows || []).sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0).forEach(row => {
-      if (row.kind === 'insp' || row.kind === 'inspm') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; return; }   /* v054: 육안검사일지 행은 그쪽(inspect.html)이 받음 */
+      if (row.kind === 'insp' || row.kind === 'inspm') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.kind === 'insp' && row.ts && inspLogAdd(row)) inspCh = true; return; }   /* v072: 육안검사 마지막 입력 표시용 */   /* v054: 육안검사일지 행은 그쪽(inspect.html)이 받음 */
       if (row.kind === 'itemw') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.code && row.ts && setItemW(row.code, itemWFromNote(row.note), row.ts, true)) { changed++; if (row.device !== sh.device) applied.push(row); } return; }
       if (row.kind === 'pcfg') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.code === 'prod' && prodCfgApply(row)) pcfgCh = true; return; }   /* v068: 생산일지 설정 */
       if (row.kind === 'notice' || row.kind === 'noticeack') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; const r = nbApply(row); if (r) nbCh++; if (r === 2) nbNew.push(row); return; }
@@ -2406,6 +2408,7 @@ async function sharePull(full, quiet) {
       if (row.expiry) { const m = S.itemMeta[row.code] || (S.itemMeta[row.code] = {}); m.expiry = row.expiry; m.expiryWeek = row.week; } changed++; });
     if (applied.length > 60) logAdd({ ts: applied[applied.length - 1].ts, user: '(여러 명)', device: '공유 저장소', text: `공유 자료 ${applied.length}건 받음` }); else applied.forEach(row => logAdd({ ts: row.ts, user: row.user || '', device: row.device || '', text: shareRowText(row) }));
     sh.lastPull = new Date().toISOString(); sh.err = ''; save(true); renderSharePill();
+    if (inspCh) renderSharePill();
     if (pcfgCh) { toast('관리자 PC에서 생산일지 설정을 받았습니다'); if (S.ui.menu === 'prod') renderProd(); }
     if (nbCh) { renderNotice(); if (nbNew.length && !full) { const r = nbNew[nbNew.length - 1]; let t = ''; try { t = JSON.parse(r.note || '{}').text || ''; } catch (e) {} toast(`📢 새 전달사항 · ${r.name || ''}: ${String(t).slice(0, 40)}`); } }
     if (changed) { toast(`공유 저장소에서 ${changed}건 반영`); if (S.ui.menu !== 'fin' && ['phys', 'weekly', 'cmp', 'dash', 'trend'].includes(S.ui.tab)) { if (shareTyping()) { sh.pendingRender = true; } else { if (S.ui.tab === 'weekly') wk.rows = []; renderAll(); } } } }
@@ -2453,12 +2456,19 @@ function allChanges() {
   return out.sort((a, b) => T(b) - T(a));
 }
 const SRC_LBL = { ec: '이카운트', raw: '원료 입력', fin: '완제품 입력' };
+/* v072: 육안검사 입력 기록 — 공유 저장소의 일지 행(누가·언제)과, 이 기기 육안검사 화면이 알려 주는 마지막 저장 시각 */
+function inspLogAdd(row) {
+  const L = S.inspLog = Array.isArray(S.inspLog) ? S.inspLog : [];
+  if (L.some(x => x.ts === row.ts && x.code === row.code)) return false;
+  L.push({ ts: row.ts, user: row.user || '', code: row.code || '', del: row.del ? 1 : 0 }); L.sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0); if (L.length > 400) L.splice(0, L.length - 400);
+  return true;
+}
 function renderSharePill() {
   const p = $('#sharePill'); if (!p) return; const td = today();
   const hmT = iso => { const d = new Date(iso); return isNaN(d) ? '—' : (d.toDateString() === new Date().toDateString()) ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : hmOf(iso); };
   const ld = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
-  const fill = (src, idB, idS) => { const L = src === 'raw' ? (S.changeLog || []) : finLogRead(); const last = L[L.length - 1]; const n = L.filter(e => ld(e.ts) === td).length; const b = $('#' + idB), s = $('#' + idS); if (!b) return; b.textContent = last ? hmT(last.ts) : '—'; s.textContent = last ? `${last.user || '(이름 없음)'} · 오늘 ${n}건` : '기록 없음'; };
-  fill('raw', 'spRaw', 'spRawN'); fill('fin', 'spFin', 'spFinN');
+  const fill = (src, idB, idS) => { const L = src === 'raw' ? (S.changeLog || []) : src === 'insp' ? (S.inspLog || []) : finLogRead(); const last = L[L.length - 1]; const n = L.filter(e => ld(e.ts) === td).length; const b = $('#' + idB), s = $('#' + idS); if (!b) return; b.textContent = last ? hmT(last.ts) : '—'; s.textContent = last ? `${last.user || (last.code === 'local' ? '이 기기' : '(이름 없음)')} · 오늘 ${n}건` : '기록 없음'; };
+  fill('raw', 'spRaw', 'spRawN'); fill('fin', 'spFin', 'spFinN'); fill('insp', 'spInsp', 'spInspN');
   /* v070: 작업자 입력 연동(공유 저장소) 접속 상태 — 1분마다 받기가 되고 있는지, 못 보낸 입력이 있는지 */
   const sh = S.share || {}, on = shareOn(), out = (sh.outbox || []).length; const lp = Date.parse(sh.lastPull || sh.lastPush || ''); const pm = lp ? Math.round((Date.now() - lp) / 60000) : null;
   const st = !on ? ['off', '꺼짐', '공유 저장소 주소가 없습니다 — 입력이 이 기기에만 저장됩니다'] : sh.err ? ['bad', '연결 오류', sh.err] : pm == null ? ['warn', '연결 중', '공유 저장소에 처음 연결하는 중입니다'] : pm > 5 ? ['warn', '응답 지연', `${pm}분째 공유 저장소에서 받지 못했습니다 — 인터넷 연결을 확인하세요`] : out ? ['warn', `보내는 중 ${out}건`, `이 기기 입력 ${out}건을 공유 저장소로 보내는 중입니다`] : ['ok', '정상', `${pm < 1 ? '방금' : pm + '분 전'} 공유 저장소와 맞춤 — 다른 작업자의 입력이 1분마다 들어옵니다`];
