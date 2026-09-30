@@ -502,6 +502,20 @@ body.prod-on #weekSel,body.prod-on #syncPill,body.prod-on #sharePill{display:non
 .pchip{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:14px;font-weight:600;text-align:left;color:var(--ink);min-height:52px}
 .pchip small{display:block;font-weight:400;color:var(--ink2);font-size:11px;margin-top:2px;word-break:keep-all;overflow-wrap:anywhere}
 .pchip.on{border:2px solid var(--accent);background:var(--accent-bg);color:var(--accent)}
+/* v069: 생산 품목 KPI 상자 — 휴대폰도 PC처럼 큰 숫자 상자로, 누르기 쉽게 */
+.pchip.pk{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:3px;padding:11px 12px 10px;min-height:104px;border-radius:12px;box-shadow:0 1px 2px rgba(16,24,40,.06);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .08s}
+.pchip.pk:active{transform:scale(.97)}
+.pchip.pk .pk-n{font-size:14px;font-weight:800;line-height:1.3;color:var(--ink);padding-right:22px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:keep-all;overflow-wrap:anywhere}
+.pchip.pk .pk-l{font-size:11px;color:var(--ink3);font-weight:600;margin-top:auto}
+.pchip.pk .pk-v{font-size:24px;font-weight:800;line-height:1.1;color:var(--brand);letter-spacing:-.5px}
+.pchip.pk .pk-v small{display:inline;font-size:12px;font-weight:700;color:var(--ink2);margin-left:3px;letter-spacing:0}
+.pchip.pk .pk-s{font-size:11px;color:var(--ink3);font-weight:500}
+.pchip.pk .pk-ck{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:#fff;font-size:13px;font-weight:900;line-height:18px;text-align:center;color:transparent}
+.pchip.pk.on .pk-ck{background:var(--accent);border-color:var(--accent);color:#fff}
+.pchip.pk.on .pk-n{color:var(--accent)}
+.pchip.pk.sg{background:#FFFBF0}
+.pchip.pk.sg.on{background:var(--accent-bg)}
+@media (max-width:759px){.pchips{grid-template-columns:repeat(2,minmax(0,1fr))}.pchip.pk{min-height:112px}.pchip.pk .pk-v{font-size:26px}}
 .psend{flex:1 1 200px;padding:14px;font-size:16px}
 .pmap{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
 .pmap select{border:1px solid var(--line);border-radius:8px;padding:8px;font-size:14px;background:#fff}
@@ -540,7 +554,7 @@ body.sys-sub .finwrap{height:calc(100vh - var(--head-h,62px) - 60px)!important}
   <select id="weekSel" title="기준 주차"></select>
   <button class="syncpill" id="syncPill" title="클릭하면 이카운트 자료를 바로 확인합니다">
     <span class="sk st"><span class="dot"></span><span class="lb">이카운트 연동</span><b id="spState">확인 중</b></span>
-    <span class="sk"><span class="lb">마지막 확인</span><b id="spChk">—</b><small id="spAgo"></small></span>
+    <span class="sk"><span class="lb">마지막 반영</span><b id="spChk">—</b><small id="spAgo"></small></span>
     <span class="sk"><span class="lb">재고 변동</span><b id="spChg">—</b><small id="spChgN"></small></span>
     <span class="sk mt"><span class="lb">매칭</span><b id="spMatch">—</b></span>
   </button>
@@ -883,7 +897,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '068';
+const APP_VER  = '069';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1560,6 +1574,11 @@ function prodCfgApply(row) {
 }
 setTimeout(prodCfgShare, 8000); setInterval(prodCfgShare, 60 * 1000);
 
+/* v069: 품목 KPI 상자 — 이름 · 지난번 수량(큰 숫자) · 최근 생산일 */
+function prodKpi(i, s, on, sub, cls) {
+  const u = prodEcUnit(i); const v = s && s.lastQty != null ? `${fmt(s.lastQty)}<small>${esc(u || '')}</small>` : `<small style="margin:0">${esc(i.unit || u || '')}</small>`;
+  return `<button type="button" class="pchip pk${on ? ' on' : ''}${cls ? ' ' + cls : ''}" data-padd="${esc(i.code)}" aria-pressed="${on}"><span class="pk-ck" aria-hidden="true">✓</span><span class="pk-n">${esc(i.name)}</span><span class="pk-l">${s && s.lastQty != null ? '지난번' : esc(i.code)}</span><span class="pk-v">${v}</span><span class="pk-s">${sub}</span></button>`;
+}
 /* ── 입력 화면 ── */
 function prodNewLine(code) { return { id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), code, qty: '', note: '', mode: '' }; }
 function renderProdNew() {
@@ -1586,9 +1605,9 @@ function renderProdNew() {
     </div>
     <div style="margin-top:8px"><span class="pill ${P.cfg.test ? 'warn' : 'ok'}">${P.cfg.test ? '테스트 모드 — 실제 이카운트에는 들어가지 않습니다' : '실제 이카운트로 전송'}</span></div>
   </div>
-  ${!P.draft.lines.length && (sug.length || lastSent) ? `<div class="card"><h2 style="margin:0 0 6px">빠른 시작</h2>
-    ${sug.length ? `<div class="muted" style="margin-bottom:6px">${WD[wd]}요일에 자주 만든 품목</div><div class="pchips">${sug.map(i => `<button type="button" class="pchip" data-padd="${esc(i.code)}">${esc(i.name)}<small>${WD[wd]}요일 ${st[i.code].wd[wd]}번 · ${esc(prodHint(st[i.code], i))}</small></button>`).join('')}</div><div class="prow" style="margin-top:8px"><button class="btn sm primary" id="pSugAll">${sug.length}품목 모두 담기</button></div>` : ''}
-    ${lastSent ? `<div class="prow" style="margin-top:${sug.length ? 10 : 0}px;align-items:center"><span class="muted" style="flex:1 1 200px">지난 입력 (${esc(lastSent.date)}): ${esc(lastSent.lines.map(l => l.name).join(', '))}</span><button class="btn sm" id="pRepeat">같은 품목으로 시작</button></div>` : ''}
+  ${sug.length || (lastSent && !P.draft.lines.length) ? `<div class="card"><h2 style="margin:0 0 6px">빠른 시작</h2>
+    ${sug.length ? `<div class="muted" style="margin-bottom:8px">${WD[wd]}요일에 자주 만든 품목 — 누르면 담고, 다시 누르면 뺍니다</div><div class="pchips">${sug.map(i => prodKpi(i, st[i.code], inDraft.has(i.code), `${WD[wd]}요일 ${st[i.code].wd[wd]}번 · 최근 ${st[i.code].last ? esc(st[i.code].last.slice(5).replace('-', '/')) : '—'}`, 'sg')).join('')}</div>${sug.some(i => !inDraft.has(i.code)) ? `<div class="prow" style="margin-top:10px"><button class="btn primary" id="pSugAll" style="flex:1 1 auto">${sug.filter(i => !inDraft.has(i.code)).length}품목 모두 담기</button></div>` : ''}` : ''}
+    ${lastSent && !P.draft.lines.length ? `<div class="prow" style="margin-top:${sug.length ? 10 : 0}px;align-items:center"><span class="muted" style="flex:1 1 200px">지난 입력 (${esc(lastSent.date)}): ${esc(lastSent.lines.map(l => l.name).join(', '))}</span><button class="btn sm" id="pRepeat">같은 품목으로 시작</button></div>` : ''}
   </div>` : ''}
   <div class="card">
     <h2 style="margin:0 0 4px">생산한 품목${P.draft.lines.length ? ` <span class="pill ok">${P.draft.lines.length}</span>` : ''}</h2>
@@ -1608,7 +1627,7 @@ function renderProdNew() {
   </div>
   <div class="card">
     <div class="prow" style="align-items:center;margin-bottom:8px"><h2 style="margin:0;flex:1 1 auto">품목 고르기</h2><input class="search" id="pQ" value="${esc(ui.prodQ || '')}" placeholder="품목·코드 검색" aria-label="생산 품목 검색" style="flex:0 1 180px;min-width:0"></div>
-    ${items.length ? (list.length ? `<div class="pchips">${list.map(i => `<button type="button" class="pchip${inDraft.has(i.code) ? ' on' : ''}" data-padd="${esc(i.code)}" aria-pressed="${inDraft.has(i.code)}">${inDraft.has(i.code) ? '✓ ' : ''}${esc(i.name)}<small>${st[i.code] ? esc(prodHint(st[i.code], i)) : esc(i.code) + (i.unit ? ' · ' + esc(i.unit) : '')}</small></button>`).join('')}</div>` : '<div class="muted">검색에 맞는 품목이 없습니다.</div>')
+    ${items.length ? (list.length ? `<div class="pchips">${list.map(i => { const x = st[i.code]; return prodKpi(i, x, inDraft.has(i.code), x ? `최근 ${x.last ? esc(x.last.slice(5).replace('-', '/')) : '—'} · ${x.n}회` : '처음 만드는 품목'); }).join('')}</div>` : '<div class="muted">검색에 맞는 품목이 없습니다.</div>')
       : '<div class="muted">생산 품목이 없습니다. 관리자 PC의 설정을 자동으로 받을 때까지 기다리거나, 관리자가 「⚙ 통합 설정 → 생산일지 연동 → 생산 품목」에서 불러옵니다.</div>'}
     ${hiddenN > 0 || ui.prodAll ? `<div style="margin-top:10px"><button type="button" class="btn sm" id="pAll">${ui.prodAll ? '우리가 생산한 품목만 보기' : `처음 만드는 품목 찾기 (생산 이력에 없는 품목 ${hiddenN}개)`}</button></div>` : ''}
   </div>
@@ -1620,7 +1639,7 @@ function renderProdNew() {
   $('#pWho').onchange = e => { S.settings.reporter = e.target.value.trim(); save(); };
   $('#pQ').oninput = e => { ui.prodQ = e.target.value; const pos = e.target.selectionStart; renderProdNew(); const n = $('#pQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (_) {} };
   $$('#prodNew [data-pgo]').forEach(b => b.onclick = () => { if (b.dataset.pgo === 'pset') { if (!isAdmin()) { adminEnter(); return; } S.ui.menu = 'sys'; S.ui.sysTab = 'pset'; } else S.ui.prodTab = b.dataset.pgo; save(); renderAll(); window.scrollTo(0, 0); });
-  if ($('#pSugAll')) $('#pSugAll').onclick = () => { sug.forEach(i => addCode(i.code)); save(); renderProdNew(); const f = document.querySelector('#prodNew [data-pqty]'); if (f) f.focus(); };
+  if ($('#pSugAll')) $('#pSugAll').onclick = () => { sug.forEach(i => addCode(i.code));   /* 이미 담긴 품목은 그대로 */ save(); renderProdNew(); const f = document.querySelector('#prodNew [data-pqty]'); if (f) f.focus(); };
   if ($('#pRepeat')) $('#pRepeat').onclick = () => { lastSent.lines.forEach(x => { const l = addCode(x.code); l.mode = x.mode || ''; }); save(); renderProdNew(); const f = document.querySelector('#prodNew [data-pqty]'); if (f) f.focus(); };
   $$('#prodNew [data-padd]').forEach(b => b.onclick = () => {   /* 한 번 누르면 담기, 다시 누르면 빼기 */
     const code = b.dataset.padd; const had = P.draft.lines.find(x => x.code === code);
@@ -3150,19 +3169,39 @@ function renderSyncPill() {
   const hmT = d => (d.toDateString() === new Date().toDateString()) ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : hmOf(d);
   if (!s) { p.className = 'syncpill bad'; set('spState', '자료 없음'); set('spChk', '—'); set('spAgo', '사무실 PC 확인'); set('spChg', '—'); set('spChgN', ''); set('spMatch', '—'); p.title = '이카운트 자료를 받지 못했습니다 — 사무실 PC 동기화 프로그램을 확인하세요'; return; }
   const chk = new Date(s.checkedAt || s.updatedAt), chg = new Date(s.changedAt || s.updatedAt);
-  const min = Math.max(0, Math.round((Date.now() - chk.getTime()) / 60000)); const stale = min > 40;
+  const min = Math.max(0, Math.round((Date.now() - chk.getTime()) / 60000)); const E = ecOffice(s);
+  const stale = E.stale;
   const ago = min <= 1 ? '방금' : min >= 120 ? Math.floor(min / 60) + '시간 전' : min + '분 전';
   p.className = 'syncpill ' + (stale ? 'warn' : 'ok');
-  set('spState', stale ? '확인 지연 ⚠' : '정상'); set('spChk', hmT(chk)); set('spAgo', stale ? ago + ' · 사무실 PC 확인' : ago);
+  set('spState', stale ? '확인 지연 ⚠' : '정상'); set('spChk', hmT(chk)); set('spAgo', E.pc === 'on' ? 'PC 5분마다 확인 중' : stale ? ago + ' · 사무실 PC 확인' : ago);
   set('spChg', hmT(chg)); const last = (S.ecountChanges || [])[0]; set('spChgN', last && (last.ts === s.changedAt) ? `${last.items.length}품목 변동` : (chg.toDateString() === new Date().toDateString() ? '오늘' : hmOf(chg).split(' ')[0]));
   set('spMatch', `${s.matched}/${s.known}`);
-  p.title = `이카운트 재고 변동 ${hmOf(chg)} / 마지막 확인 ${hmOf(chk)} (${ago}) · 기준일 ${s.baseDate} · 매칭 ${s.matched}/${s.known}품목 — 클릭하면 바로 확인`;
+  p.title = `사무실 PC는 5분마다 이카운트를 확인하고 재고가 바뀔 때만 올립니다 — 「마지막 반영」은 마지막으로 올린 시각입니다.\n${E.text}\n이카운트 재고 변동 ${hmOf(chg)} / 마지막 반영 ${hmOf(chk)} (${ago}) · 기준일 ${s.baseDate} · 매칭 ${s.matched}/${s.known}품목 — 클릭하면 바로 확인`;
 }
 function hmOf(iso) { const t = new Date(iso); return isNaN(t) ? (iso || '—') : `${t.getMonth() + 1}/${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`; }
+/* v069: 사무실 PC 동기화는 5분마다 확인하지만 재고가 바뀔 때만 data.json을 올립니다.
+   그래서 data.json 시각은 「마지막 반영」이고, 사무실 PC가 켜져 있는지는 같은 PC의 생산일지 전송기가
+   중계에 20초마다 남기는 신호(agentSeen)로 봅니다. 신호를 모르면 근무시간에 3시간 넘게 반영이 없을 때만 알립니다. */
+let ecPingAt = 0;
+function ecOffice(s) {
+  const P = prodS(); const a = Date.parse(P.agentSeen || ''); const known = !!(a && String(P.cfg.relayUrl || '').trim());
+  const am = known ? Math.round((Date.now() - a) / 60000) : null;
+  if (known && am <= 10) return { pc: 'on', stale: false, text: `사무실 PC 켜짐 (${am < 1 ? '방금' : am + '분 전'} 신호)` };
+  if (known && am <= 24 * 60) return { pc: 'off', stale: true, text: `사무실 PC 신호 없음 (${am >= 120 ? Math.floor(am / 60) + '시간' : am + '분'} 전 마지막 신호) — PC가 켜져 있는지, 동기화 창이 떠 있는지 확인` };
+  const d = new Date(), work = d.getDay() > 0 && d.getDay() < 6 && d.getHours() >= 9 && d.getHours() < 19;
+  const m = s ? (Date.now() - new Date(s.checkedAt || s.updatedAt).getTime()) / 60000 : 0;
+  return { pc: '', stale: work && m > 180, text: work && m > 180 ? '근무시간에 3시간 넘게 반영이 없습니다 — 사무실 PC 동기화 창을 확인하세요' : '재고가 바뀌면 5분 안에 반영됩니다' };
+}
+async function ecPing() {
+  const P = prodS(); const url = String(P.cfg.relayUrl || '').trim(); if (!url || !prodKey() || Date.now() - ecPingAt < 4 * 60000 || document.hidden) return; ecPingAt = Date.now();
+  try { const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key: prodKey(), action: 'ping' }) }); const j = await r.json(); if (j.ok && j.agentSeen && j.agentSeen !== P.agentSeen) { P.agentSeen = j.agentSeen; save(); } } catch (e) {}
+  renderSyncPill();
+}
+setTimeout(ecPing, 4000); setInterval(ecPing, 60 * 1000);
 function syncStatusText() {
   const s = S.ecountSync; if (!s) return '이카운트 자동 연동 자료 없음 — 사무실 PC 동기화 프로그램이 올리면 여기 표시됩니다';
-  const stale = s.checkedAt && (Date.now() - new Date(s.checkedAt).getTime()) > 40 * 60 * 1000;
-  return `이카운트 재고 변동 <b>${hmOf(s.changedAt || s.updatedAt)}</b> · 마지막 확인 <b>${hmOf(s.checkedAt || s.updatedAt)}</b>${stale ? ' <span style="color:var(--warn)">(40분 넘게 확인 없음 — 사무실 PC 동기화가 멈췄는지 확인)</span>' : ''} · 기준일 ${s.baseDate} · 매칭 ${s.matched}/${s.known}품목 (전체 ${s.count})${s.missing ? ` · 미수신 ${s.missing}` : ''}`;
+  const E = ecOffice(s);
+  return `이카운트 재고 변동 <b>${hmOf(s.changedAt || s.updatedAt)}</b> · 마지막 반영 <b>${hmOf(s.checkedAt || s.updatedAt)}</b> · ${E.stale ? `<span style="color:var(--warn)">${esc(E.text)}</span>` : esc(E.text)} · 기준일 ${s.baseDate} · 매칭 ${s.matched}/${s.known}품목 (전체 ${s.count})${s.missing ? ` · 미수신 ${s.missing}` : ''}`;
 }
 async function syncFromEcount(manual) {
   try {
@@ -3176,7 +3215,7 @@ async function syncFromEcount(manual) {
     if (S.ecountSync && (S.ecountSync.changedAt || S.ecountSync.updatedAt) === changedAt && S.ecountSync.baseDate === (d.baseDate || today())) {
       // 재고는 그대로, 확인 시각만 갱신
       if (S.ecountSync.checkedAt !== checkedAt) { S.ecountSync.checkedAt = checkedAt; save(); }
-      syncBadge('', syncStatusText()); if (manual) toast('재고 변동 없음 · 마지막 확인 ' + hmOf(checkedAt)); return;
+      syncBadge('', syncStatusText()); if (manual) toast('재고 변동 없음 · 마지막 반영 ' + hmOf(checkedAt)); return;
     }
     const date = d.baseDate || today();
     const qty = {}; d.items.forEach(x => { if (x.code) qty[x.code] = x.qty; });
