@@ -447,6 +447,7 @@ html.mode-user #btnSaveJson,html.mode-user #btnSaveHtml{display:none!important}h
     <span class="status" id="saveStatus"></span><span class="status" id="syncBadge" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
     <span class="ecbadge off" id="ecBadge" title="클릭하면 이카운트 자료를 바로 확인합니다">이카운트 미연동</span>
     <div class="savebar">
+      <button class="btn pri" id="btnUpXlsx" style="background:#0F766E;border-color:#0F766E" title="「2026년_재고_현황_YYMMDD.xlsx」 엑셀을 골라 재고를 올립니다 (여러 개 가능)">📤 재고 엑셀 올리기</button>
       <button class="btn pri" id="btnBrief" style="background:var(--blue);border-color:var(--blue)">📋 일일 보고</button>
       <button class="btn" id="btnPrint">인쇄</button>
       <button class="btn" id="btnXlsx">엑셀 내보내기</button>
@@ -1393,7 +1394,9 @@ drop.addEventListener('drop',e=>importFiles(e.dataTransfer.files));
 $('#fileIn').onchange=e=>{importFiles(e.target.files);e.target.value='';};
 async function importFiles(files){const log=$('#importLog');log.classList.remove('hidden');log.textContent='';
   for(const f of Array.from(files)){try{const buf=await f.arrayBuffer();const wb=XLSX.read(buf,{type:'array',cellDates:true});const r=importWb(wb,f.name);log.textContent+=`✔ ${f.name}: ${r}\n`;}catch(err){log.textContent+=`✖ ${f.name}: ${err.message||err}\n`;}}
-  commit();render();}
+  commit();render();
+  if(TAB!=='items'){const t=log.textContent.trim();if(t){const ok=!/✖/.test(t);toast((ok?'재고 엑셀을 올렸습니다 — ':'올리기 중 문제가 있습니다 — ')+t.split('\n').map(x=>x.replace(/^[✔✖]\s*/,'')).join(' / ').slice(0,160));}}}   /* v085: 위쪽 「재고 엑셀 올리기」로 올린 경우 결과를 바로 알림 */
+$('#btnUpXlsx').onclick=()=>$('#fileIn').click();
 function importWb(wb,fname){
   const s1=wb.Sheets[wb.SheetNames.find(n=>/재고 현황/.test(n)&&!/200|임박/.test(n))||wb.SheetNames[0]];if(!s1)throw new Error('재고 현황 시트를 찾지 못했습니다');
   const A=XLSX.utils.sheet_to_json(s1,{header:1,raw:true,defval:null});
