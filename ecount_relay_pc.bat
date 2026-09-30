@@ -15,6 +15,7 @@ $Self = $env:RELAY_SELF; if (-not $Self) { $Self = $PSCommandPath }
 $Dir = Split-Path -Parent $Self
 $CfgPath = Join-Path $Dir 'ecount_relay_pc.json'
 $LogPath = Join-Path $Dir 'ecount_relay_pc.log'
+$DonePath = Join-Path $Dir 'ecount_relay_pc.done.json'   # v2: 이미 만든 전표 기록 — 같은 건을 다시 받아도 전표를 두 번 만들지 않음
 $Poll = 20
 if ($env:RELAY_POLL) { $Poll = [int]$env:RELAY_POLL }
 
@@ -32,6 +33,29 @@ function PostJson($url, $obj) {
   if ($txt -is [byte[]]) { $txt = [Text.Encoding]::UTF8.GetString($txt) }
   elseif ($r.RawContentStream) { try { $ms = New-Object IO.MemoryStream; $r.RawContentStream.Position = 0; $r.RawContentStream.CopyTo($ms); $txt = [Text.Encoding]::UTF8.GetString($ms.ToArray()) } catch {} }
   return ConvertFrom-Json -InputObject $txt
+}
+
+# v2: 구글 중계는 가끔 404·시간 초과를 돌려줌 → 중계 요청만 최대 3번 다시 시도 (이카운트 요청은 다시 보내지 않음)
+function RelayPost($obj) {
+  $last = $null
+  for ($i = 1; $i -le 3; $i++) {
+    try { return PostJson $Cfg.relayUrl $obj } catch { $last = $_; if ($i -lt 3) { Start-Sleep -Seconds (2 * $i) } }
+  }
+  throw $last
+}
+function DoneLoad() {
+  $h = @{}
+  if (Test-Path -LiteralPath $DonePath) {
+    try { $o = Get-Content -LiteralPath $DonePath -Raw -Encoding UTF8 | ConvertFrom-Json; foreach ($p in $o.PSObject.Properties) { $h[$p.Name] = $p.Value } } catch { Log ('처리 기록 파일을 읽지 못했습니다: ' + $_.Exception.Message) }
+  }
+  return $h
+}
+function NowSec() { return [int64]([DateTimeOffset]::UtcNow.ToUnixTimeSeconds()) }
+function DoneSave() {
+  $cut = (NowSec) - 14 * 86400; $keep = @{}   # 14일 지난 기록만 지움 (숫자 시각으로 비교 — 날짜 글자는 PowerShell 판마다 다르게 읽힘)
+  foreach ($k in @($Done.Keys)) { $v = $Done[$k]; $a = 0; try { $a = [int64]$v.t } catch {}; if ($a -eq 0 -or $a -ge $cut) { $keep[$k] = $v } }
+  $script:Done = $keep
+  try { ConvertTo-Json -InputObject $keep -Depth 10 | Set-Content -LiteralPath $DonePath -Encoding UTF8 } catch { Log ('처리 기록 저장 실패: ' + $_.Exception.Message) }
 }
 
 # ── 이카운트 ──
@@ -128,22 +152,30 @@ $Cfg = Get-Content -LiteralPath $CfgPath -Raw -Encoding UTF8 | ConvertFrom-Json
 foreach ($k in 'relayUrl', 'apiKey', 'comCode', 'userId', 'certKey') { if (-not $Cfg.$k) { Log ("설정에 $k 가 비어 있습니다 — " + $CfgPath + ' 파일을 지우고 다시 실행하세요'); Read-Host '끝내려면 Enter'; exit 1 } }
 
 # ── 반복 ──
-Log ('생산일지 이카운트 전송기 시작 — ' + $Poll + '초마다 중계를 확인합니다. 이 창을 닫으면 전송이 멈춥니다.')
+Log ('생산일지 이카운트 전송기 v2 시작 — ' + $Poll + '초마다 중계를 확인합니다. 이 창을 닫으면 전송이 멈춥니다.')
 $fails = 0
+$Done = DoneLoad
 while ($true) {
   try {
-    $r = PostJson $Cfg.relayUrl @{ key = $Cfg.apiKey; action = 'jobs' }
+    $r = RelayPost @{ key = $Cfg.apiKey; action = 'jobs' }
     if (-not $r.ok) { throw ('중계 거절: ' + $r.error) }
     if ($fails -gt 0) { Log '중계 연결 복구' }; $fails = 0
     foreach ($job in @($r.jobs)) {
       if (-not $job) { continue }
-      $res = $null
-      try { $res = EcSave $job } catch { $res = @{ ok = $false; test = [bool]$job.test; slipNos = @(); details = @(); error = $_.Exception.Message } }
-      if ($res.ok) { $t = ''; if ($res.test) { $t = '[테스트] ' }; Log ($t + '전표 ' + ($res.slipNos -join ', ') + ' 생성 (' + @($job.rows).Count + '품목)') } else { Log ('실패: ' + $res.error) }
-      try { $null = PostJson $Cfg.relayUrl @{ key = $Cfg.apiKey; action = 'done'; id = $job.id; result = $res } } catch { Log ('결과 돌려주기 실패: ' + $_.Exception.Message) }
+      $res = $null; $jid = [string]$job.id
+      if ($jid -and $Done.ContainsKey($jid)) {
+        $res = $Done[$jid].result; Log ('이미 전표를 만든 건입니다 (' + (@($res.slipNos) -join ', ') + ') — 새로 만들지 않고 결과만 다시 돌려줍니다')
+      } else {
+        try { $res = EcSave $job } catch { $res = @{ ok = $false; test = [bool]$job.test; slipNos = @(); details = @(); error = $_.Exception.Message } }
+        if ($res.ok) {
+          $t = ''; if ($res.test) { $t = '[테스트] ' }; Log ($t + '전표 ' + ($res.slipNos -join ', ') + ' 생성 (' + @($job.rows).Count + '품목)')
+          if ($jid) { $Done[$jid] = @{ t = (NowSec); result = $res }; DoneSave }   # 결과를 돌려주기 전에 먼저 기록
+        } else { Log ('실패: ' + $res.error) }
+      }
+      try { $null = RelayPost @{ key = $Cfg.apiKey; action = 'done'; id = $job.id; result = $res } } catch { Log ('결과 돌려주기 실패 (다음 확인 때 다시 돌려줍니다, 전표는 다시 만들지 않음): ' + $_.Exception.Message) }
     }
   } catch {
-    $fails++; if ($fails -le 3 -or $fails % 30 -eq 0) { Log ('확인 실패: ' + $_.Exception.Message) }
+    $fails++; if ($fails -le 3 -or $fails % 30 -eq 0) { Log ('확인 실패 (3번 다시 시도 후): ' + $_.Exception.Message) }
   }
   if ($env:RELAY_ONCE) { break }
   Start-Sleep -Seconds $Poll
