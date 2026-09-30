@@ -935,7 +935,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '081';
+const APP_VER  = '082';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1717,6 +1717,8 @@ function prodCfgApply(row) {
   return true;
 }
 setTimeout(prodCfgShare, 8000); setInterval(prodCfgShare, 60 * 1000);
+let prodRefetchAt = 0;
+async function prodCfgRefetch(force) { if (!shareOn() || (!force && Date.now() - prodRefetchAt < 10 * 60000)) return; prodRefetchAt = Date.now(); try { await sharePull(true, true); } catch (e) {} }
 
 /* v074: 품목 묶음 — 같은 생지·같은 계열끼리. 이름으로 자동 분류하고, 관리자가 「생산일지 연동 → 생산 품목」에서 바꿀 수 있음 */
 const PROD_GROUPS = [
@@ -1758,6 +1760,16 @@ function prodPair(it) {
   const cand = P.items.filter(o => o !== it && !o.np && /^ea$/i.test(o.unit || '') !== isEa && (o.on || o.ecSrc === 'cons') && prodGroupOf(o).id === g0);
   const ex = cand.filter(o => prodCore(o.name) === c0); if (ex.length === 1) return ex[0]; if (ex.length > 1) return null;
   const sw = cand.filter(o => { const c = prodCore(o.name); return c0 && c && (c.startsWith(c0) || c0.startsWith(c)); }); return sw.length === 1 ? sw[0] : null;
+}
+/* v082: 박스 · 낱개 · 비상품 한 가족 — 비상품은 이카운트 코드 규칙(NP_ + 낱개 코드) 또는 「[비상품] 낱개 이름」으로 찾음 */
+function prodFamily(it) {
+  if (!it) return null; const P = prodS(); const isEa = x => /^ea$/i.test((x && x.unit) || '');
+  let B = null, E = null, N = null;
+  if (it.np) { N = it; const base = String(it.code).replace(/^NP_/i, ''); E = P.items.find(o => o.code === base && !o.np) || P.items.find(o => !o.np && isEa(o) && prodCore(o.name) === prodCore(it.name)) || null; B = E ? prodPair(E) : null; }
+  else if (isEa(it)) { E = it; B = prodPair(it); }
+  else { B = it; E = prodPair(it); }
+  if (E && !N) N = P.items.find(o => o.np && o.code === 'NP_' + E.code) || P.items.find(o => o.np && prodCore(o.name) === prodCore(E.name)) || null;
+  const n = [B, E, N].filter(Boolean).length; return n >= 2 ? { B, E, N } : null;
 }
 /* ── 입력 화면 ── */
 function prodNewLine(code) { return { id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), code, qty: '', note: '', mode: '' }; }
@@ -1801,8 +1813,8 @@ function renderProdNew() {
         <div class="pname"><b>${esc(it.name)}</b>${(() => { const k = prodEcCheck(it); return `<div style="font-size:12px;${k.ok ? 'color:var(--ink2)' : 'color:var(--minus);font-weight:700'}">이카운트 ${esc(l.code)}${it.ecName ? ' · ' + esc(it.ecName) : ''}${k.ok ? '' : ' — ⚠ ' + esc(k.msg)}</div>`; })()}<div class="muted" style="font-size:12px">${s ? esc(prodHint(s, it)) : ''}</div>
           <div class="muted" style="font-size:12px" data-pconv="${l.id}">${prodConvText(it, l)}</div>
           <input class="pnote" data-pnote="${l.id}" value="${esc(l.note || '')}" placeholder="비고 (선택)" aria-label="${esc(it.name)} 비고"></div>
-        <div class="pq">${(() => { const pr = prodPair(it); if (pr) { const ea = /^ea$/i.test(it.unit || ''); const bx = ea ? pr : it;
-            return `<div class="pseg" role="group" aria-label="${esc(it.name)} 박스·낱개"><button type="button" ${ea ? `data-pswap="${l.id}" data-to="${esc(pr.code)}"` : ''} class="${ea ? '' : 'on'}" title="${esc(bx.code)} · ${esc(bx.name)}">${esc(bx.unit || 'BOX')}</button><button type="button" ${ea ? '' : `data-pswap="${l.id}" data-to="${esc(pr.code)}"`} class="${ea ? 'on' : ''}" title="${esc(ea ? it.code : pr.code)} · ${esc(ea ? it.name : pr.name)}">낱개</button></div>`; }
+        <div class="pq">${(() => { const F = prodFamily(it); if (F) { const btn = (x, label) => x ? `<button type="button" ${x === it ? 'class="on"' : `data-pswap="${l.id}" data-to="${esc(x.code)}"`} title="${esc(x.code)} · ${esc(x.name)}"${label === '비상품' ? ' style="color:var(--minus)"' : ''}>${label}</button>` : '';
+            return `<div class="pseg" role="group" aria-label="${esc(it.name)} 박스·낱개·비상품">${btn(F.B, esc((F.B && F.B.unit) || 'BOX'))}${btn(F.E, '낱개')}${btn(F.N, '비상품')}</div>`; }
           return pk > 1 ? `<div class="pseg" role="group" aria-label="${esc(it.name)} 입력 단위"><button type="button" data-pmode="${l.id}" data-m="" class="${l.mode !== 'ea' ? 'on' : ''}">${esc(it.unit || 'BOX')}</button><button type="button" data-pmode="${l.id}" data-m="ea" class="${l.mode === 'ea' ? 'on' : ''}">낱개</button></div>` : ''; })()}
           <button type="button" data-pstep="${l.id}" data-d="-1" aria-label="${esc(it.name)} 수량 줄이기">−</button><input inputmode="decimal" data-pqty="${l.id}" value="${esc(l.qty)}" placeholder="${esc(ph)}" aria-label="${esc(it.name)} 수량"><button type="button" data-pstep="${l.id}" data-d="1" aria-label="${esc(it.name)} 수량 늘리기">+</button>
           ${s && s.lastQty != null && !l.qty ? `<button type="button" class="btn xs" data-plast="${l.id}">지난번 ${fmt(s.lastQty)}</button>` : ''}
@@ -1814,7 +1826,7 @@ function renderProdNew() {
   <div class="card">
     <div class="prow" style="align-items:center;margin-bottom:8px"><h2 style="margin:0;flex:1 1 auto">품목 고르기</h2><input class="search" id="pQ" value="${esc(ui.prodQ || '')}" placeholder="품목·코드 검색" aria-label="생산 품목 검색" style="flex:0 1 180px;min-width:0"></div>
     ${items.length ? (list.length ? prodGrouped(list, st, inDraft, !q) : '<div class="muted">검색에 맞는 품목이 없습니다.</div>')
-      : '<div class="muted">생산 품목이 없습니다. 관리자 PC의 설정을 자동으로 받을 때까지 기다리거나, 관리자가 「⚙ 통합 설정 → 생산일지 연동 → 생산 품목」에서 불러옵니다.</div>'}
+      : `<div class="muted">생산 품목이 없습니다. 관리자 PC의 설정을 받는 중이거나, 관리자가 아직 「⚙ 통합 설정 → 생산일지 연동 → 생산 품목」을 정하지 않았습니다.</div>${shareOn() ? '<div class="prow" style="margin-top:8px"><button type="button" class="btn primary" id="pCfgRefetch">관리자 설정 다시 받기</button></div>' : ''}`}
     ${hiddenN > 0 || ui.prodAll ? `<div style="margin-top:10px"><button type="button" class="btn sm" id="pAll">${ui.prodAll ? '우리가 생산한 품목만 보기' : `처음 만드는 품목 찾기 (생산 이력에 없는 품목 ${hiddenN}개)`}</button></div>` : ''}
   </div>
   ${todayLog.length ? `<div class="card"><h2 style="margin:0 0 6px">${esc(P.draft.date)} 보낸 생산</h2>${todayLog.map(en => `<div class="muted" style="padding:3px 0">${esc(hmOf(en.sentAt || en.ts))} · ${esc(en.lines.map(l => l.name + ' ' + fmt(l.qty) + (l.mode === 'ea' ? '개' : '')).join(', '))} <span class="pill ok">${en.test ? '테스트 ' : ''}전표 ${esc(en.slip || '')}</span></div>`).join('')}</div>` : ''}`;
@@ -1822,6 +1834,7 @@ function renderProdNew() {
   const refreshConv = l => { const c = document.querySelector(`#prodNew [data-pconv="${l.id}"]`); if (c) c.innerHTML = prodConvText(prodItem(l.code), l); };
   const addCode = (code, focus) => { let l = P.draft.lines.find(x => x.code === code); if (!l) { l = prodNewLine(code); P.draft.lines.push(l); } return l; };
   $('#pDate').onchange = e => { P.draft.date = e.target.value || today(); save(); renderProdNew(); };
+  if ($('#pCfgRefetch')) $('#pCfgRefetch').onclick = async () => { const b = $('#pCfgRefetch'); b.disabled = true; b.textContent = '받는 중…'; prodS().cfgTs = ''; await prodCfgRefetch(true); renderProdNew(); toast(prodOnItems().length ? `생산 품목 ${prodOnItems().length}개를 받았습니다` : '아직 관리자 설정이 없습니다 — 관리자 PC에서 통합 재고관리를 열어 두세요'); };
   $$('#prodNew [data-pwk]').forEach(b => b.onclick = () => { const n = b.dataset.pwk, W = P.draft.workers; const i = W.indexOf(n); if (i >= 0) W.splice(i, 1); else W.push(n); save(); renderProdNew(); });
   const wkAdd = () => { const el = $('#pWkAdd'); const v = el ? el.value.trim() : ''; if (!v) return; v.split(/[,，、·]+/).map(x => x.trim()).filter(Boolean).forEach(n => { if (!P.draft.workers.includes(n)) P.draft.workers.push(n); }); save(); renderProdNew(); };
   if ($('#pWkAdd')) { $('#pWkAdd').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); wkAdd(); } }; $('#pWkAdd').onchange = wkAdd; }
@@ -1844,11 +1857,11 @@ function renderProdNew() {
   $$('#prodNew [data-plast]').forEach(b => b.onclick = () => { const l = draftLine(b.dataset.plast); const s = l && st[l.code]; if (!s) return; l.qty = String(s.lastQty); l.mode = prodIsEa(prodItem(l.code)) ? 'ea' : ''; save(); renderProdNew(); });
   $$('#prodNew [data-pswap]').forEach(b => b.onclick = () => {   /* v081: 박스 ↔ 낱개 제품코드 바꾸기, 수량도 입수로 환산 */
     const l = draftLine(b.dataset.pswap), from = l && prodItem(l.code), to = prodItem(b.dataset.to); if (!l || !from || !to) return;
-    const toEa = /^ea$/i.test(to.unit || ''); const pk = prodPack(toEa ? from : to); const q = Number(l.qty);
-    if (q > 0 && pk > 1) l.qty = String(toEa ? Math.round(q * pk) : prodRound(q / pk));
+    const F = prodFamily(from) || {}; const pcs = x => x !== F.B && /^ea$/i.test(x.unit || ''); const fromBox = !pcs(from), toEa = pcs(to); const pk = prodPack(F.B || (fromBox ? from : to)); const q = Number(l.qty);
+    if (q > 0 && pk > 1 && fromBox !== !toEa) l.qty = String(toEa ? Math.round(q * pk) : prodRound(q / pk));   /* 박스↔낱개·비상품만 환산, 낱개↔비상품은 그대로 */
     const dup = P.draft.lines.find(x => x !== l && x.code === to.code);
     if (dup) { dup.qty = String((Number(dup.qty) || 0) + (Number(l.qty) || 0) || ''); P.draft.lines = P.draft.lines.filter(x => x !== l); toast(`${to.name}에 수량을 합쳤습니다`); }
-    else { l.code = to.code; l.mode = ''; toast(`${toEa ? '낱개' : '박스'} 제품 ${to.code} · ${to.name}(으)로 바꿨습니다`); }
+    else { l.code = to.code; l.mode = ''; toast(`${to.np ? '비상품' : toEa ? '낱개' : '박스'} 제품 ${to.code} · ${to.name}(으)로 바꿨습니다`); }
     save(); renderProdNew(); const inp = document.querySelector(`#prodNew [data-pqty="${(dup || l).id}"]`); if (inp) inp.focus(); });
   $$('#prodNew [data-pmode]').forEach(b => b.onclick = () => { const l = draftLine(b.dataset.pmode); if (!l) return; l.mode = b.dataset.m; save(); renderProdNew(); const inp = document.querySelector(`#prodNew [data-pqty="${l.id}"]`); if (inp) inp.focus(); });
   $$('#prodNew [data-pdel]').forEach(b => b.onclick = () => { P.draft.lines = P.draft.lines.filter(l => l.id !== b.dataset.pdel); save(); renderProdNew(); });
@@ -1862,7 +1875,8 @@ function prodConvText(it, l) {
   const cv = prodConvText0(it, l, pk, n, eu); return [cv, dn].filter(Boolean).join('<br>');
 }
 function prodConvText0(it, l, pk, n, eu) {
-  { const pr = prodPair(it); if (pr) return /^ea$/i.test(it.unit || '') ? `낱개 제품코드로 보냅니다 · 박스로 넣으려면 「${esc(pr.unit || 'BOX')}」 → ${esc(pr.code)}` : `「낱개」를 누르면 낱개 제품 <b>${esc(pr.code)} · ${esc(pr.name)}</b>(으)로 바뀝니다`; }
+  { const F = prodFamily(it); if (F) { const cur = it === F.N ? '비상품' : it === F.E ? '낱개' : '박스'; const o = [F.B && it !== F.B ? `${esc(F.B.unit || 'BOX')} → ${esc(F.B.code)}` : '', F.E && it !== F.E ? `낱개 → ${esc(F.E.code)}` : '', F.N && it !== F.N ? `비상품 → ${esc(F.N.code)}` : ''].filter(Boolean).join(' · ');
+    return `<b>${cur}</b> 제품코드 ${esc(it.code)}로 보냅니다${o ? ` <small>(바꾸기: ${o})</small>` : ''}`; } }
   if (l.mode === 'ea' && pk > 0 && !prodIsEa(it)) return n > 0 ? `낱개 ${fmt(n)}개 ÷ ${fmt(pk)}입 = <b>${fmt(prodEcQty(it, l.qty, 'ea'))} ${esc(eu || 'BOX')}</b>로 보냅니다 <small>(이 제품은 낱개 제품코드가 없어 같은 코드 ${esc(it.code)}에 박스로 환산)</small>` : `낱개 수를 넣으면 ${fmt(pk)}입으로 나눠 ${esc(eu || 'BOX')}로 보냅니다 <small>(낱개 제품코드 없음 → ${esc(it.code)}에 박스로 환산)</small>`;
   if (prodIsEa(it) && pk > 0 && l.mode !== 'ea') return n > 0 ? `이카운트에는 ${fmt(prodEcQty(it, l.qty, l.mode))} EA로 들어갑니다 (${fmt(pk)}입)` : `${esc(it.unit || 'BOX')} 수로 넣으면 ${fmt(pk)}입으로 곱해 EA로 보냅니다`;
   if (l.mode === 'ea' && pk > 0 && !prodIsEa(it)) return n > 0 ? `낱개 ${fmt(n)}개 ÷ ${fmt(pk)}입 = <b>${fmt(prodEcQty(it, l.qty, 'ea'))} ${esc(eu || 'BOX')}</b>로 보냅니다` : `낱개 수를 넣으면 ${fmt(pk)}입으로 나눠 ${esc(eu || 'BOX')}로 보냅니다`;
@@ -2619,6 +2633,7 @@ async function sharePull(full, quiet) {
       if (row.expiry) { const m = S.itemMeta[row.code] || (S.itemMeta[row.code] = {}); m.expiry = row.expiry; m.expiryWeek = row.week; } changed++; });
     if (applied.length > 60) logAdd({ ts: applied[applied.length - 1].ts, user: '(여러 명)', device: '공유 저장소', text: `공유 자료 ${applied.length}건 받음` }); else applied.forEach(row => logAdd({ ts: row.ts, user: row.user || '', device: row.device || '', text: shareRowText(row) }));
     sh.lastPull = new Date().toISOString(); sh.err = ''; save(true); renderSharePill();
+    if (!full && S.prod && !S.prod.hist && !prodOnItems().length && Date.now() - prodRefetchAt >= 10 * 60000) { S.prod.cfgTs = ''; setTimeout(() => prodCfgRefetch(false), 500); }   /* v082: 생산 품목이 비어 있으면 처음부터 한 번 다시 받음 (시각 차이로 설정 행을 건너뛴 경우 대비) */
     if (inspCh) renderSharePill();
     if (pcfgCh) { if (pcfgCh !== 'log') toast('관리자 PC에서 생산일지 설정을 받았습니다'); if (S.ui.menu === 'prod' && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#prodNew'))) renderProd(); }
     if (nbCh) { renderNotice(); if (nbNew.length && !full) { const r = nbNew[nbNew.length - 1]; let t = ''; try { t = JSON.parse(r.note || '{}').text || ''; } catch (e) {} toast(`📢 새 전달사항 · ${r.name || ''}: ${String(t).slice(0, 40)}`); } }
