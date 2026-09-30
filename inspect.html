@@ -2,7 +2,7 @@
 <html lang="ko"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>육안검사일지 v095 — 빵을그리다(주)</title>
+<title>육안검사일지 v096 — 빵을그리다(주)</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&amp;family=DM+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -369,7 +369,7 @@ table.data-table td.num{text-align:right;font-family:'DM Mono',monospace;font-si
       <button onclick="storageDiagnose()" title="브라우저 저장 공간 사용량 확인" style="width:100%;margin-bottom:6px;padding:5px 4px;border-radius:6px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.06);color:#cbd5e1;font-size:11px;cursor:pointer">🧹 저장 공간 진단</button>
       <button onclick="exportAllDataJSON()" title="데이터만 JSON으로 백업" style="width:100%;padding:5px 4px;border-radius:6px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);color:#94a3b8;font-size:10px;font-weight:600;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">{ } JSON 백업 저장</button>
     </div>
-    <div>육안검사일지 v095</div><div id="saveInfo" style="font-size:10px;color:#94a3b8;margin-top:3px;line-height:1.4"></div>
+    <div>육안검사일지 v096</div><div id="saveInfo" style="font-size:10px;color:#94a3b8;margin-top:3px;line-height:1.4"></div>
     <div style="margin-top:2px;font-size:9.5px">저장: IndexedDB(무제한) + HTML 스냅샷</div>
   </div>
 </div>
@@ -5009,7 +5009,7 @@ function init(){
 //   · 신규 입력에서 품목만 고르면 고정값 자동 반영, 수정 가능 / 변동값만 손으로 입력
 //   · 2026-09-14 이후 일지는 신양식(A4 가로, 18열)으로 입력·인쇄, 그 이전 일지는 기존 양식 그대로 조회·인쇄
 // ═══════════════════════════════════════════════════════════════════
-const APP_VER        = 'v095';
+const APP_VER        = 'v096';
 const NEW_FORM_START_DEFAULT = '2026-09-14';
 function NEW_FORM_START_(){ return (typeof cfg==='object' && cfg && isValidDate(cfg.newFormStart)) ? cfg.newFormStart : NEW_FORM_START_DEFAULT; }
 const ALLERGEN_LIST  = ['난류','우유','메밀','땅콩','대두','밀','고등어','게','새우','돼지고기','복숭아','토마토','아황산류','호두','닭고기','쇠고기','오징어','조개류','잣'];
@@ -7907,7 +7907,7 @@ function ecRender(){
   const st = !hasKey ? `<span style="color:#b91c1c;font-weight:800">● 열쇠 없음</span>` : !ecState.lastSha ? `<span style="color:#b45309;font-weight:800">● 대기 (품목을 옮기면 자동 시작)</span>` : on ? `<span style="color:#15803d;font-weight:800">● 자동 연결</span>` : `<span style="color:#b91c1c;font-weight:800">● 꺼짐</span>`;
   const tsf = t => t ? fmtTs(t) : '—';
   box.innerHTML = `
-  <div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">연동 상태 ${st}</div><div style="display:flex;gap:6px;flex-wrap:wrap">
+  <div class="card" data-admin="1" style="margin-bottom:14px"><div class="card-header"><div class="card-title">연동 상태 ${st}</div><div style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn btn-primary btn-sm" onclick="ecRun(true)" ${hasKey&&!ecBusy?'':'disabled'}>↻ 지금 확인</button>
       <button class="btn btn-secondary btn-sm" onclick="ecToggle()" ${hasKey?'':'disabled'}>${ecState.on?'끄기':'켜기'}</button></div></div>
     <div style="padding:10px 14px;font-size:12.5px;line-height:1.8">
@@ -7919,7 +7919,7 @@ function ecRender(){
       <div style="color:#64748b;font-size:11.5px;margin-top:6px">2026-01-01 ~ 09-21 입고는 이카운트 재고 이력이 없어, 구매조회 대조로 채운 일지(불러오기로 옮긴 자료)에 들어 있습니다. 재고조정(+)도 늘어난 재고로 잡힐 수 있으니 「확인 필요」 행을 볼 때 입고가 아니면 지워 주세요. <a href="javascript:void(0)" onclick="ecRestart()" style="color:#64748b">이력 처음부터 다시 훑기</a></div>
     </div></div>
 
-  ${buyCardHtml()}
+  <div data-admin="1">${buyCardHtml()}</div>
   <div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">📅 재고 증가일 = 육안검사일지 입력일 (${Object.keys(rByDate).length}일)</div></div>
     ${rcv.length ? Object.keys(rByDate).sort().reverse().map(d=>{ const L = rByDate[d]; const miss = L.filter(r=>amap[r.code] && (st=>!st.has && !st.skip)(ecRcvStatus(r, amap[r.code]))).length;
       return `<div style="padding:8px 14px;border-top:1px solid #e2e8f0;${miss?'background:#FEF2F2':''}"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:14px">${esc(d)} (${esc(dayStr(d))})</b><span style="font-size:12px;color:${miss?'#b91c1c':'#15803d'};font-weight:700">${miss ? '일지 없는 입고 '+miss+'건' : '일지 입력됨'}</span><span style="flex:1"></span>
@@ -7943,7 +7943,7 @@ function ecRender(){
       </tbody></table></div>`).join('') : '<div style="padding:14px;color:#64748b;font-size:13px">확인할 자동 입력이 없습니다.</div>'}
     <div style="padding:8px 14px;color:#64748b;font-size:11.5px">수량은 이카운트 증가 숫자이고(원료가 g로 늘었으면 1포 규격으로 나눈 포장 수), 단위는 품명으로 BOX·봉·포를 판단해 넣습니다 — 모호하면 숫자만. 소비기한·차량온도는 일지 입력과 같은 규칙(최근 이력)으로 미리 채워지니 <b>실제 확인 후</b> 「일지 열어 수정」에서 고치고 「확인 완료」를 누르세요.</div></div>
 
-  <div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">품목 연결 (${linked.length} / ${map.length}) · 일지 생성 ${onN}개</div><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm" onclick="ecSetAll(true)">연결 품목 전체 선택</button><button class="btn btn-secondary btn-sm" onclick="ecSetAll(false)">전체 해제</button></div></div>
+  <div class="card" data-admin="1" style="margin-bottom:14px"><div class="card-header"><div class="card-title">품목 연결 (${linked.length} / ${map.length}) · 일지 생성 ${onN}개</div><div style="display:flex;gap:6px"><button class="btn btn-secondary btn-sm" onclick="ecSetAll(true)">연결 품목 전체 선택</button><button class="btn btn-secondary btn-sm" onclick="ecSetAll(false)">전체 해제</button></div></div>
     <div style="padding:6px 14px;color:#64748b;font-size:11.5px">이카운트 품목코드로 연결됩니다. 원료(W○○)는 재고현황의 gg코드, 생지는 품목코드로 자동 연결 — 틀리거나 빈 칸이면 이카운트 코드를 직접 넣으세요. <b>「일지 생성」에 체크한 품목만</b> 재고가 늘면 육안검사일지를 자동으로 만듭니다(체크 안 한 품목도 아래 「재고 증가일」에는 표시).</div>
     <div class="table-wrap" style="border:none;border-radius:0"><table class="data-table"><thead><tr><th>품목</th><th>공급업체</th><th>단위 / 규격</th><th style="width:150px">이카운트 코드</th><th>연결 근거</th><th>수량 환산</th><th style="width:70px;text-align:center">일지 생성</th></tr></thead><tbody>
     ${map.sort((a,b)=> (!!b.code-!!a.code) || String(a.m.name).localeCompare(String(b.m.name),'ko')).map(x=>`<tr style="${x.dup||!x.code?'color:#94a3b8':x.on?'background:#F0FDF4':''}"><td style="font-weight:600">${esc(x.m.name)}</td><td>${esc(x.m.supplier||'')}</td><td>${esc(x.m.unit||'')} / ${esc(String(x.m.spec||'')||'—')}</td>
@@ -7953,9 +7953,9 @@ function ecRender(){
       <td style="text-align:center">${x.code && !x.dup ? `<input type="checkbox" ${x.on?'checked':''} onchange="ecSetOn('${x.m.id}', this.checked)" title="체크한 품목만 재고가 늘면 일지를 자동으로 만듭니다">` : ''}</td></tr>`).join('')}
     </tbody></table></div></div>
 
-  <div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">📊 일지 대조 분석 — 이카운트 재고 증가 ↔ 손으로 쓴 일지</div></div>${ecAnaHtml()}</div>
+  <div class="card" data-admin="1" style="margin-bottom:14px"><div class="card-header"><div class="card-title">📊 일지 대조 분석 — 이카운트 재고 증가 ↔ 손으로 쓴 일지</div></div>${ecAnaHtml()}</div>
 
-  <div class="card"><div class="card-header"><div class="card-title">연동 기록</div></div>
+  <div class="card" data-admin="1"><div class="card-header"><div class="card-title">연동 기록</div></div>
     <div style="padding:8px 14px;font-size:12px;line-height:1.7;max-height:260px;overflow:auto">${ecState.log.length ? ecState.log.map(l=>`<div><span style="color:#94a3b8">${esc(fmtTs(l.ts))}</span> ${esc(l.t)}</div>`).join('') : '<span style="color:#94a3b8">기록 없음</span>'}</div></div>`;
   ecDashBanner();
 }
@@ -8154,7 +8154,7 @@ function qcDone(rowId){ entries.forEach(e=>(e.items||[]).forEach(it=>{ if(it._ro
 
 
 // ══════════════════════════════════════════════════════════════
-// 🧩 v090 — 통합 재고관리(index.html) 안에 내장
+// 🧩 v090 (v096 관리자·직원 화면) — 통합 재고관리(index.html) 안에 내장
 //   · 이 파일(inspect.html)은 공개 저장소에 올라가므로 일지·품목·서명·성적서·사진 자료를 담지 않습니다.
 //     자료는 이 브라우저(IndexedDB)에만 저장되고, 처음 한 번 「불러오기」로 기존 파일에서 옮겨 옵니다.
 //   · 통합 재고관리가 data.json 열쇠(재고 비밀번호로 만든 것)와 이카운트 자료를 postMessage로 넘겨 줍니다
@@ -8182,27 +8182,72 @@ window.addEventListener('message', e=>{
     const d = m.data; inspWhenBooted(()=>{ try{ ecLive(d); }catch(_){} });   /* v093: 받은 자료로 바로 비교 */
   }
   if(m.type==='wonryo-nav' && m.tab){
+    if(m.tab==='data') inspDataPage();
     const id = m.tab==='eclink' ? 'nav-eclink' : 'nav-'+m.tab; const el = document.getElementById(id);
     if(el){ if(m.tab==='eclink') el.click(); else goPage(m.tab, el); }
+    inspModeTitle();
   }
+  if(m.type==='wonryo-mode'){ inspSetMode(!!m.admin); }   /* v096: 관리자 / 직원 화면 */
 });
+// ── v096: 「결재 서명 관리」 화면 틀(page-sign)이 원본에 빠져 있어 모든 화면 아래에 붙어 보이던 것을 한 화면으로 묶음
+(function(){
+  if(document.getElementById('page-sign')) return;
+  const h = [...document.querySelectorAll('.page-title')].find(e => e.textContent.includes('결재 서명 관리')); if(!h) return;
+  const ph = h.closest('.page-header'); if(!ph || ph.closest('.page')) return;
+  const pg = document.createElement('div'); pg.className = 'page'; pg.id = 'page-sign';
+  const parts = [ph]; let n = ph.nextElementSibling; while(n && !n.classList.contains('page') && parts.length < 3){ parts.push(n); n = n.nextElementSibling; }
+  ph.parentNode.insertBefore(pg, ph); parts.forEach(x => pg.appendChild(x));
+})();
+// ── v096: 관리자 / 직원 화면 분리 — 직원 화면에서는 연동·설정 카드(data-admin)를 숨김
+window.__inspAdmin = true;
+function inspSetMode(admin){
+  const ch = window.__inspAdmin !== admin; window.__inspAdmin = admin;
+  document.body.classList.toggle('mode-user', !admin);
+  inspModeTitle();
+  if(ch){ try{ const pg = document.getElementById('page-eclink'); if(pg && pg.classList.contains('active')) ecRender(); }catch(e){} }
+}
+function inspModeTitle(){
+  const pg = document.getElementById('page-eclink'); if(!pg) return;
+  const t = window.__inspAdmin ? '이카운트 입고 연동' : '입고 확인';
+  const pt = pg.querySelector('.page-title'); if(pt) pt.textContent = (window.__inspAdmin ? '🔗 ' : '📥 ') + t;
+  const tb = document.getElementById('topbarTitle'); if(tb && pg.classList.contains('active')) tb.textContent = t;
+  const nv = document.getElementById('nav-eclink'); if(nv && nv.firstElementChild && nv.childNodes[1]) nv.childNodes[1].textContent = ' ' + t + ' ';
+}
+// ── v096: 자료 관리 페이지 (사이드바 아래 버튼들을 통합 설정 화면에서 쓰도록 한 곳에 모음)
+function inspDataPage(){
+  if(document.getElementById('page-data')) return;
+  const ref = document.getElementById('page-dashboard'); if(!ref) return;
+  const pg = document.createElement('div'); pg.className = 'page'; pg.id = 'page-data';
+  const btn = (fn, t, d, cls) => `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid #e2e8f0;flex-wrap:wrap"><button class="btn ${cls||'btn-secondary'}" style="min-width:170px" onclick="${fn}">${t}</button><div style="flex:1;min-width:200px;font-size:12.5px;color:#475569;line-height:1.6">${d}</div></div>`;
+  pg.innerHTML = `<div class="page-header"><div><div class="page-title">💾 육안검사 자료 관리</div><div class="page-desc">일지·품목·서명·성적서·사진은 이 기기(브라우저)에 저장됩니다. 옮기기·백업은 여기서 합니다.</div></div></div>
+    <div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">옮기기 · 백업</div></div>
+      ${btn("document.getElementById('importFileInput').click()", '📂 불러오기', '예전 육안검사일지 파일(HTML) 또는 JSON 백업을 골라 이 기기로 옮깁니다. 처음 한 번 또는 새 기기에서 씁니다.', 'btn-primary')}
+      ${btn('exportAllData()', '💾 전체 저장(HTML)', '지금 자료가 모두 들어간 HTML 파일을 내려받습니다(보관·다른 PC로 옮기기용).')}
+      ${btn('exportAllDataJSON()', '{ } JSON 백업', '자료만 JSON 파일로 백업합니다.')}
+      ${btn('storageDiagnose()', '🧹 저장 공간 진단', '브라우저 저장 공간 사용량을 확인합니다.')}
+    </div>`;
+  ref.parentNode.appendChild(pg);
+  const sb = document.getElementById('nav-sign');
+  if(sb && !document.getElementById('nav-data')){ const nv = document.createElement('button'); nv.className = 'nav-item'; nv.id = 'nav-data'; nv.innerHTML = '<span class="nav-icon">💾</span> 자료 관리'; nv.onclick = ()=>goPage('data', nv); sb.insertAdjacentElement('afterend', nv); }
+}
+(function(){ const _g = goPage; goPage = function(id){ if(id==='data') inspDataPage(); const r = _g.apply(this, arguments); if(id==='data'){ const t = document.getElementById('topbarTitle'); if(t) t.textContent = '자료 관리'; } return r; }; })();
 LS.ready().then(()=>{
   setTimeout(()=>{
     inspToParent({ type:'insp-need-key' }); inspToParent({ type:'insp-ready' });
     if(INSP_EMBED){ document.body.classList.add('insp-embed');
       const st = document.createElement('style');   // 휴대폰: 바깥(통합 재고관리) 하단 탭을 쓰므로 안쪽 사이드바를 숨김
-      st.textContent = '@media (max-width:760px){body.insp-embed .sidebar{display:none!important}body.insp-embed .main{margin-left:0!important}}';
+      st.textContent = 'body.insp-embed .sidebar{display:none!important}body.insp-embed .main{margin-left:0!important}body.mode-user [data-admin]{display:none!important}';   /* v096: 내장 시 바깥 탭·통합 설정을 쓰므로 사이드바는 항상 숨김 */
       document.head.appendChild(st); }
     // 자료가 비어 있으면 처음 옮기기 안내
     try{
       if(!entries.length){
         const pg = document.getElementById('page-dashboard'); if(pg && !document.getElementById('inspFirstRun')){
-          const d = document.createElement('div'); d.id = 'inspFirstRun';
+          const d = document.createElement('div'); d.id = 'inspFirstRun'; d.setAttribute('data-admin','1');
           d.innerHTML = `<div style="margin:0 0 14px;padding:14px 16px;border-radius:10px;background:#EFF6FF;border:1px solid #93C5FD;line-height:1.8;font-size:13px">
             <b style="font-size:14px">📂 처음 한 번: 기존 육안검사일지 자료 옮기기</b><br>
             이 화면은 공개 주소에서 열리므로 자료를 파일에 담지 않고 <b>이 브라우저에만</b> 저장합니다.<br>
             ① 사무실 PC에서 쓰던 <b>육안검사일지 v089</b> 파일을 열고 왼쪽 아래 <b>「💾 전체 저장(HTML)」</b>(또는 「JSON 백업 저장」)으로 최신 파일을 만듭니다.<br>
-            ② 여기 왼쪽 아래 <b>「📂 불러오기」</b>로 그 파일을 고르면 일지·품목·서명·성적서·사진이 모두 옮겨집니다.</div>`;
+            ② 통합 재고관리 <b>⚙ 설정 → 육안검사 자료 관리 → 「📂 불러오기」</b>로 그 파일을 고르면 일지·품목·서명·성적서·사진이 모두 옮겨집니다.</div>`;
           const hd = pg.querySelector('.page-header'); (hd || pg.firstChild).insertAdjacentElement(hd ? 'afterend' : 'beforebegin', d);
         }
       }
@@ -8361,7 +8406,7 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && syOn(
 function syPaint(){
   const box = document.getElementById('ecBody'); if(!box) return;
   let el = document.getElementById('syCard');
-  if(!el){ el = document.createElement('div'); el.id = 'syCard'; box.insertAdjacentElement('afterbegin', el); }
+  if(!el){ el = document.createElement('div'); el.id = 'syCard'; el.setAttribute('data-admin','1'); box.insertAdjacentElement('afterbegin', el); }
   syLoad(); const on = syOn(); const t = SY.last ? fmtTs(SY.last) : '—';
   el.innerHTML = `<div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">☁ 공유 저장소 동기화 ${on ? '<span style="color:#15803d;font-weight:800">● 연결</span>' : '<span style="color:#b91c1c;font-weight:800">● 연결 안 됨</span>'}</div>
     <div style="display:flex;gap:6px"><button class="btn btn-primary btn-sm" onclick="syRun()" ${on&&!syBusy?'':'disabled'}>↻ 지금 동기화</button><button class="btn btn-secondary btn-sm" onclick="syReinit()" ${on&&!syBusy?'':'disabled'}>공유 값으로 다시 맞추기</button></div></div>

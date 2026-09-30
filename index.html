@@ -508,6 +508,24 @@ body.prod-on #weekSel,body.prod-on #syncPill,body.prod-on #sharePill{display:non
 .pseg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;height:44px}
 .pseg button{padding:0 10px;border:none;background:#fff;font-size:13px;font-weight:600;color:var(--ink2)}
 .pseg button.on{background:var(--brand);color:#fff}
+/* ── v068: 관리자 / 직원 화면 분리 + 통합 설정 ── */
+aside.side .modebox{margin-top:14px;padding-top:10px;border-top:1px solid var(--line)}
+aside.side .modebox .lockbtn{font-size:13px;color:var(--ink3)}
+.topmenu button.sysbtn{padding-left:10px;padding-right:10px}
+@media (max-width:420px){.topmenu button{padding:6px 7px;font-size:12.5px}}
+@media (max-width:759px){.topmenu button.sysbtn{padding:6px 8px}.topmenu button.sysbtn svg{display:block;width:17px;height:17px}.topmenu button.sysbtn span{display:none}}
+.syssub{display:none;gap:6px;overflow-x:auto;padding:0 0 8px;scrollbar-width:none}
+.syssub::-webkit-scrollbar{display:none}
+.syssub button{flex:0 0 auto;padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:var(--paper);font-size:13px;font-weight:700;color:var(--ink2);white-space:nowrap}
+.syssub button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+body.sys-sub .syssub{display:flex}
+body.sys-sub .finwrap{height:calc(100vh - var(--head-h,62px) - 60px)!important}
+@media (max-width:759px){body.sys-sub .finwrap{height:calc(100vh - var(--head-h,62px) - var(--tab-h) - 60px)!important}}
+.modestate{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 10px}
+.modestate b{padding:4px 10px;border-radius:99px;background:var(--bg);border:1px solid var(--line);font-size:13px}
+.modestate b.adm{background:#E8F1FB;border-color:#9DC0E8;color:#1D4E89}
+.modestate b.usr{background:#EAF6EC;border-color:#9ACDA4;color:#1E6A34}
+.sysnote{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;line-height:1.7;color:var(--ink2)}
 </style>
 </head>
 <body>
@@ -769,6 +787,7 @@ body.prod-on #weekSel,body.prod-on #syncPill,body.prod-on #sharePill{display:non
   </section>
   <!-- ═══ v053: 육안검사일지 (inspect.html 내장 — 공개 배포본에는 자료 없음, 자료는 브라우저에만) ═══ -->
   <section class="view" data-view="insp">
+    <div class="syssub" id="inspSub"></div>
     <div class="finwrap"><iframe id="inspFrame" title="육안검사일지" src="about:blank"></iframe>
       <div class="finmsg" id="inspMsg">육안검사일지를 불러오는 중…</div></div>
   </section>
@@ -777,7 +796,37 @@ body.prod-on #weekSel,body.prod-on #syncPill,body.prod-on #sharePill{display:non
   <section class="view" data-view="plog"><div id="prodLog"></div></section>
   <section class="view" data-view="pset"><div id="prodSet"></div></section>
   <!-- ═══ 설정 ═══ -->
+  <section class="view" data-view="setraw">
+    <div class="card">
+      <div class="row between" style="margin-bottom:8px">
+        <h2 style="margin:0">품목 마스터 · 규격 · g단가</h2>
+        <span class="muted" id="mstCount"></span>
+      </div>
+      <div class="drop" id="mstDrop" style="padding:14px 12px">
+        <div style="font-weight:700;margin-bottom:4px">이카운트 품목등록(ESA009M) 엑셀을 여기에 놓거나</div>
+        <div class="row" style="justify-content:center;gap:8px;margin-top:8px">
+          <label class="btn primary sm">파일 선택<input type="file" id="mstFileIn" accept=".xlsx,.xls,.csv,.txt" multiple="" hidden=""></label>
+          <button class="btn sm" id="btnMstPaste">붙여넣기</button>
+          <button class="btn sm" id="btnMstXlsx">엑셀</button>
+        </div>
+        <div class="muted" style="margin-top:8px">제품규격 → 규격(g), 보관포장무게 → 빈용기(g), 입고단가 → g단가(원). 아래 표에서 직접 고칠 수 있고, 단가는 비교분석·재고조정의 금액 계산에 쓰입니다.</div>
+      </div>
+      <div class="muted" style="margin:10px 0 8px">실물입력·비교에서 제외할 품목은 「사용」을 끕니다. (전산재고 표에는 그대로 표시) 노란 칸은 값이 없는 항목입니다.</div>
+      <div class="tablewrap" id="itemTable"></div>
+    </div>
+  </section>
   <section class="view" data-view="set">
+    <div class="card" id="modeCard">
+      <h2>🔐 비밀번호 · 화면 모드</h2>
+      <div class="sysnote"><b>비밀번호 하나로 전체가 열립니다.</b> 원료수불부 · 완제품·생지 · 육안검사 · 생산일지는 이 시스템을 열 때 넣은 비밀번호 하나를 같이 씁니다(각 화면에서 따로 묻지 않음). 「이 기기에 기억」을 켜 두면 다음부터는 묻지 않습니다.</div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button class="btn" id="btnPwChange">비밀번호 변경</button>
+        <button class="btn" id="btnPwForget">이 기기에서 잠그기</button>
+        <button class="btn" id="btnShareKey">공유 저장소 열쇠 복사</button>
+        <span class="muted" id="pwState" style="align-self:center"></span>
+      </div>
+      <div id="modeBox" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"></div>
+    </div>
     <div class="card">
       <h2>기본 정보</h2>
       <div class="row" style="gap:10px">
@@ -797,23 +846,6 @@ body.prod-on #weekSel,body.prod-on #syncPill,body.prod-on #sharePill{display:non
       <div class="muted" id="shareStatus" style="margin-top:8px"></div>
     </div>
     <div class="card">
-      <div class="row between" style="margin-bottom:8px">
-        <h2 style="margin:0">품목 마스터 · 규격 · g단가</h2>
-        <span class="muted" id="mstCount"></span>
-      </div>
-      <div class="drop" id="mstDrop" style="padding:14px 12px">
-        <div style="font-weight:700;margin-bottom:4px">이카운트 품목등록(ESA009M) 엑셀을 여기에 놓거나</div>
-        <div class="row" style="justify-content:center;gap:8px;margin-top:8px">
-          <label class="btn primary sm">파일 선택<input type="file" id="mstFileIn" accept=".xlsx,.xls,.csv,.txt" multiple="" hidden=""></label>
-          <button class="btn sm" id="btnMstPaste">붙여넣기</button>
-          <button class="btn sm" id="btnMstXlsx">엑셀</button>
-        </div>
-        <div class="muted" style="margin-top:8px">제품규격 → 규격(g), 보관포장무게 → 빈용기(g), 입고단가 → g단가(원). 아래 표에서 직접 고칠 수 있고, 단가는 비교분석·재고조정의 금액 계산에 쓰입니다.</div>
-      </div>
-      <div class="muted" style="margin:10px 0 8px">실물입력·비교에서 제외할 품목은 「사용」을 끕니다. (전산재고 표에는 그대로 표시) 노란 칸은 값이 없는 항목입니다.</div>
-      <div class="tablewrap" id="itemTable"></div>
-    </div>
-    <div class="card">
       <h2>데이터 저장 · 백업</h2>
       <div class="row" style="gap:8px">
         <button class="btn brand" id="btnSaveHtml">데이터 포함 HTML 저장</button>
@@ -821,13 +853,7 @@ body.prod-on #weekSel,body.prod-on #syncPill,body.prod-on #sharePill{display:non
         <label class="btn">JSON 복원<input type="file" id="jsonIn" accept=".json" hidden=""></label>
         <button class="btn danger" id="btnReset">전체 초기화</button>
       </div>
-      <!-- v050: 자료 잠금 -->
-      <div class="row" style="gap:8px;margin-top:10px">
-        <button class="btn" id="btnPwChange">비밀번호 변경</button>
-        <button class="btn" id="btnPwForget">이 기기에서 잠그기</button>
-        <button class="btn" id="btnShareKey">공유 저장소 열쇠 복사</button>
-        <span class="muted" id="pwState" style="align-self:center"></span>
-      </div>
+      <!-- v050: 자료 잠금 (v068: 비밀번호 버튼은 맨 위 「비밀번호 · 화면 모드」로 옮김) -->
       <div class="muted" style="margin-top:6px">「데이터 포함 HTML 저장」으로 내보낸 파일은 <b>비밀번호로 잠겨서</b> 나갑니다. 비밀번호를 모르면 열 수 없으니 잊지 않도록 적어 두세요. 「이 기기에서 잠그기」를 누르면 이 기기에 기억된 비밀번호가 지워져, 다음에 열 때 다시 물어봅니다.</div>
       <div class="muted" style="margin-top:8px">브라우저에 자동 저장됩니다. 다른 PC·휴대폰과 공유하려면 「데이터 포함 HTML 저장」 후 그 파일을 Google Drive에 올려 열면 됩니다. 저장된 HTML은 열 때 내장 데이터가 브라우저 데이터보다 최신이면 내장 데이터를 사용합니다.</div>
       <div class="muted" style="margin-top:6px" id="verInfo"></div>
@@ -857,7 +883,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '067';
+const APP_VER  = '068';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -893,6 +919,87 @@ const HOME_MENU = { name: '통합 대시보드', items: [['home', '통합', '<sv
 const MENUS = { raw: { name: '원료수불부', ico: ICO.raw, items: TABS }, fin: { name: '완제품·생지', ico: ICO.fin, items: FIN_TABS }, insp: { name: '육안검사', ico: ICO.insp, items: INSP_TABS } };
 const PROD_TABS = [['pnew', '생산 입력', '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>'], ['plog', '전송 기록', ICO.ledger], ['pset', '연동 설정', ICO.items]];
 MENUS.prod = { name: '생산일지', ico: ICO.prod, items: PROD_TABS };
+/* ── v068: 관리자 / 직원 화면 분리 + 통합 설정
+   · 연동·설정·백업 화면은 「⚙ 통합 설정」 한 곳에 모읍니다 (원료수불부 · 완제품·생지 · 육안검사 · 생산일지).
+   · 기기마다 「관리자용 / 직원용」을 정합니다. 직원용 기기에서는 설정·연동 화면이 보이지 않고,
+     「🔒 관리자」에 관리자 PIN을 넣으면 그 창을 닫을 때까지 관리자 화면이 됩니다.
+   · 모드·PIN은 이 기기 브라우저에만 저장합니다 (내보낸 HTML·공개 저장소에 들어가지 않음). ── */
+ICO.sys = TABS.find(t => t[0] === 'set')[2];
+const SYS_TABS = [['set', '공통·보안', ICO.sys], ['setraw', '원료 품목', ICO.raw], ['sfin', '완제품·생지', ICO.fin], ['sinsp', '육안검사', ICO.insp], ['pset', '생산일지 연동', ICO.prod]];
+const SYS_INSP = [['eclink', '이카운트 연동'], ['items', '품목 관리'], ['settings', '기준 정보'], ['specs', '품목 규격'], ['remarks', '비고(특이사항)'], ['sign', '결재 서명'], ['ref', '자료실'], ['data', '자료 관리·백업']];
+MENUS.sys = { name: '통합 설정', ico: ICO.sys, items: SYS_TABS };
+const MODE_KEY = 'wonryo_mode_v1', MODE_SES = 'wonryo_admin';
+function modeGet() { try { return JSON.parse(localStorage.getItem(MODE_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function modeSave(o) { try { localStorage.setItem(MODE_KEY, JSON.stringify(o)); } catch (e) {} }
+function modeDevUser() { return modeGet().device === 'user'; }
+function isAdmin() { if (!modeDevUser()) return true; try { return sessionStorage.getItem(MODE_SES) === '1'; } catch (e) { return false; } }
+async function pinHash(p) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('wonryo-admin-v1:' + p)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+function menuItems(menu) {
+  const A = isAdmin();
+  if (menu === 'home') return HOME_MENU.items;
+  if (menu === 'raw') return TABS.filter(t => t[0] !== 'set' && (A || t[0] !== 'adj'));
+  if (menu === 'fin') return FIN_TABS.filter(t => t[0] !== 'items');
+  if (menu === 'insp') return INSP_TABS.filter(t => t[0] !== 'items').map(t => t[0] === 'eclink' && !A ? ['eclink', '입고 확인', t[2]] : t);
+  if (menu === 'prod') return PROD_TABS.filter(t => t[0] !== 'pset');
+  return SYS_TABS;
+}
+function modePost() {
+  const msg = { type: 'wonryo-mode', admin: isAdmin() };
+  const fi = $('#finFrame'); if (fi && fi.contentWindow && finLoaded) { try { fi.contentWindow.postMessage(msg, finTargetOrigin()); } catch (e) {} }
+  const ii = $('#inspFrame'); if (ii && ii.contentWindow && inspLoaded) { try { ii.contentWindow.postMessage(msg, inspOrigin()); } catch (e) {} }
+}
+function pinModal(title, desc, onOk, twice) {
+  modal(`<h2>${esc(title)}</h2><div class="muted" style="margin-bottom:10px;line-height:1.6">${desc}</div>
+    <div class="field"><label>관리자 PIN</label><input id="pinA" type="password" inputmode="numeric" autocomplete="off" style="font-size:18px;letter-spacing:4px"></div>
+    ${twice ? '<div class="field" style="margin-top:8px"><label>한 번 더</label><input id="pinB" type="password" inputmode="numeric" autocomplete="off" style="font-size:18px;letter-spacing:4px"></div>' : ''}
+    <div id="pinErr" style="color:var(--bad,#b91c1c);font-weight:700;margin-top:8px;min-height:18px"></div>
+    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:6px"><button class="btn" onclick="closeModal()">취소</button><button class="btn primary" id="pinOk">확인</button></div>`);
+  const a = $('#pinA'), b = $('#pinB'); setTimeout(() => a.focus(), 50);
+  const go = async () => { const e = await onOk(a.value, b ? b.value : null); if (e) { $('#pinErr').textContent = e; a.select(); } };
+  $('#pinOk').onclick = go; [a, b].forEach(x => x && x.addEventListener('keydown', ev => { if (ev.key === 'Enter') go(); }));
+}
+function adminEnter() {
+  const M = modeGet();
+  if (!M.pin) { try { sessionStorage.setItem(MODE_SES, '1'); } catch (e) {} modeChanged('관리자 화면입니다'); return; }
+  pinModal('🔒 관리자 화면 열기', '관리자 PIN을 넣으면 이 창을 닫을 때까지 설정·연동 화면이 보입니다.', async p => {
+    if (!p) return 'PIN을 넣어 주세요';
+    if (await pinHash(p) !== M.pin) return 'PIN이 맞지 않습니다';
+    try { sessionStorage.setItem(MODE_SES, '1'); } catch (e) {} closeModal(); modeChanged('관리자 화면입니다'); return '';
+  });
+}
+function adminLeave() { try { sessionStorage.removeItem(MODE_SES); } catch (e) {} if (S.ui.menu === 'sys') S.ui.menu = 'home'; modeChanged('직원 화면으로 돌아왔습니다'); }
+function modeSetPin() {
+  pinModal('관리자 PIN 정하기', '숫자 4자리 이상. 직원용 기기에서 관리자 화면을 열 때 씁니다. <b>이 기기에만</b> 저장되므로 직원용으로 바꿀 기기마다 한 번씩 정합니다.', async (p, q) => {
+    if (!/^\d{4,12}$/.test(p || '')) return '숫자 4~12자리로 넣어 주세요';
+    if (p !== q) return '두 번 넣은 PIN이 다릅니다';
+    const M = modeGet(); M.pin = await pinHash(p); modeSave(M); closeModal(); modeChanged('관리자 PIN을 저장했습니다'); return '';
+  }, true);
+}
+function modeDeviceUser() {
+  const M = modeGet(); if (!M.pin) { toast('먼저 관리자 PIN을 정해 주세요'); modeSetPin(); return; }
+  if (!confirm('이 기기를 「직원용」으로 바꿉니다.\n\n· 설정·연동·백업 화면이 보이지 않습니다.\n· 다시 관리자 화면을 보려면 「🔒 관리자」에 PIN을 넣습니다.\n\n바꿀까요?')) return;
+  M.device = 'user'; modeSave(M); try { sessionStorage.removeItem(MODE_SES); } catch (e) {} S.ui.menu = 'home'; modeChanged('이 기기는 이제 직원용입니다');
+}
+function modeDeviceAdmin() { const M = modeGet(); M.device = 'admin'; modeSave(M); modeChanged('이 기기는 이제 관리자용입니다'); }
+function modeChanged(msg) { save(); renderAll(); modePost(); window.scrollTo(0, 0); if (msg) toast(msg); }
+function renderModeBox() {
+  const box = $('#modeBox'); if (!box) return; const M = modeGet(), dev = modeDevUser();
+  box.innerHTML = `<h3 style="margin:0 0 4px;font-size:15px">화면 모드 (이 기기)</h3>
+    <div class="modestate">${dev ? '<b class="usr">직원용 기기</b><span class="muted">지금은 PIN으로 연 관리자 화면</span>' : '<b class="adm">관리자용 기기</b>'}<b>${M.pin ? '관리자 PIN 설정됨' : '관리자 PIN 없음'}</b></div>
+    <div class="sysnote"><b>직원용 기기</b>에서는 생산 입력·일지 입력·재고 확인처럼 매일 쓰는 화면만 보이고, <b>⚙ 통합 설정</b>(연동 설정·품목 연결·백업·비밀번호 등)은 숨겨집니다.<br>
+      직원 휴대폰·태블릿에서 이 화면을 열어 ① 「관리자 PIN 정하기」 ② 「이 기기를 직원용으로」를 누르면 됩니다. 관리자가 잠시 설정을 봐야 하면 화면의 <b>🔒 관리자</b>를 눌러 PIN을 넣습니다.</div>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <button class="btn" id="btnPinSet">${M.pin ? '관리자 PIN 바꾸기' : '관리자 PIN 정하기'}</button>
+      ${dev ? '<button class="btn" id="btnDevAdmin">이 기기를 관리자용으로 되돌리기</button><button class="btn primary" id="btnAdmLeave">직원 화면으로 돌아가기</button>' : '<button class="btn primary" id="btnDevUser">이 기기를 직원용으로</button>'}
+    </div>`;
+  $('#btnPinSet').onclick = modeSetPin;
+  if ($('#btnDevUser')) $('#btnDevUser').onclick = modeDeviceUser;
+  if ($('#btnDevAdmin')) $('#btnDevAdmin').onclick = modeDeviceAdmin;
+  if ($('#btnAdmLeave')) $('#btnAdmLeave').onclick = adminLeave;
+}
+let finShown = '', inspShown = '';
+function finWant() { return S.ui.menu === 'sys' && S.ui.sysTab === 'sfin' ? 'items' : (S.ui.finTab || 'dash'); }
+function inspWant() { return S.ui.menu === 'sys' && S.ui.sysTab === 'sinsp' ? (S.ui.sysInsp || 'eclink') : (S.ui.inspTab || 'dashboard'); }
 
 /* ── state ── */
 const defaultState = () => ({
@@ -1172,29 +1279,47 @@ function importPaste() {
 
 /* ── render: frame ── */
 function renderTabs() {
-  S.ui.menu = ['fin', 'home', 'insp', 'prod'].includes(S.ui.menu) ? S.ui.menu : 'raw'; if (!PROD_TABS.some(t => t[0] === S.ui.prodTab)) S.ui.prodTab = 'pnew'; if (!INSP_TABS.some(t => t[0] === S.ui.inspTab)) S.ui.inspTab = 'dashboard'; S.ui.finTab = S.ui.finTab || 'dash'; if (!FIN_TABS.some(t => t[0] === S.ui.finTab)) S.ui.finTab = 'dash'; /* v041: 추이 탭 제거 — 저장된 탭이 없는 탭이면 대시보드로 */
-  const menu = S.ui.menu, M = menu === 'home' ? HOME_MENU : MENUS[menu]; const cur = menu === 'fin' ? S.ui.finTab : menu === 'insp' ? S.ui.inspTab : menu === 'prod' ? S.ui.prodTab : menu === 'home' ? 'home' : S.ui.tab;
-  // 상단: 대메뉴 2개
-  const menuBtns = Object.entries(MENUS).map(([k, m]) => `<button data-menu="${k}" class="${menu === k ? 'on' : ''}">${m.ico}<span>${m.name}</span></button>`).join('');
-  $('#topMenu').innerHTML = menuBtns; /* 휴대폰: 헤더 토글 유지 */
+  if (!['fin', 'home', 'insp', 'prod', 'sys'].includes(S.ui.menu)) S.ui.menu = 'raw';
+  const A = isAdmin(); if (S.ui.menu === 'sys' && !A) S.ui.menu = 'home';
+  const ok = (m, t) => menuItems(m).some(x => x[0] === t);   /* v068: 설정 탭은 통합 설정으로 옮김 — 저장된 탭이 없는 탭이면 첫 화면으로 */
+  if (!ok('raw', S.ui.tab)) S.ui.tab = 'dash'; if (!ok('fin', S.ui.finTab)) S.ui.finTab = 'dash'; if (!ok('insp', S.ui.inspTab)) S.ui.inspTab = 'dashboard'; if (!ok('prod', S.ui.prodTab)) S.ui.prodTab = 'pnew';
+  if (!ok('sys', S.ui.sysTab)) S.ui.sysTab = 'set'; if (!SYS_INSP.some(x => x[0] === S.ui.sysInsp)) S.ui.sysInsp = 'eclink';
+  const menu = S.ui.menu, sysT = S.ui.sysTab; const M = menu === 'home' ? HOME_MENU : MENUS[menu]; const cur = menu === 'fin' ? S.ui.finTab : menu === 'insp' ? S.ui.inspTab : menu === 'prod' ? S.ui.prodTab : menu === 'sys' ? sysT : menu === 'home' ? 'home' : S.ui.tab;
+  // 상단: 대메뉴
+  const menuBtns = ['raw', 'fin', 'insp', 'prod'].map(k => `<button data-menu="${k}" class="${menu === k ? 'on' : ''}">${MENUS[k].ico}<span>${MENUS[k].name}</span></button>`).join('');
+  const modeBtn = A ? `<button data-menu="sys" class="sysbtn${menu === 'sys' ? ' on' : ''}" title="통합 설정">${ICO.sys}<span>설정</span></button>` : `<button class="sysbtn" data-lock="1" title="관리자 화면 열기">🔒</button>`;
+  $('#topMenu').innerHTML = menuBtns + modeBtn; /* 휴대폰: 헤더 토글 유지 */
   // 좌측 사이드바(PC) + 하단 탭(휴대폰): 현재 대메뉴의 하위 메뉴
-  const items = M.items.map(([k, n, ic]) => `<button data-tab="${k}" class="${cur === k ? 'on' : ''}${k === 'brief' ? ' act' : ''}">${ic}<span>${n}</span></button>`).join('');
+  const items = menuItems(menu).map(([k, n, ic]) => `<button data-tab="${k}" class="${cur === k ? 'on' : ''}${k === 'brief' ? ' act' : ''}">${ic}<span>${n}</span></button>`).join('');
+  const modeBox = `<div class="modebox">${A ? `<button data-menu="sys" class="${menu === 'sys' ? 'on' : ''}">${ICO.sys}<span>통합 설정</span></button>` : ''}${!A ? '<button class="lockbtn" data-lock="1">🔒<span>관리자</span></button>' : modeDevUser() ? '<button class="lockbtn" data-leave="1">↩<span>직원 화면으로</span></button>' : ''}</div>`;
   weekSelHome(); /* v043: 사이드바를 다시 그리기 전에 주차 선택을 헤더로 돌려놓음 */
-  $('#sideNav').innerHTML = `<button class="homebtn${menu === 'home' ? ' on' : ''}" data-menu="home">${ICO.home}<span>통합 대시보드</span></button><div class="menusw">${menuBtns}</div>` + (menu !== 'fin' && menu !== 'insp' && menu !== 'prod' ? `<div class="sidewk" id="sideWeek"><label>원료 기준 주차</label></div>` : '') + (menu === 'home' ? '' : `<div class="grp">${M.name}</div>` + items); $('#tabsBottom').innerHTML = items;
+  $('#sideNav').innerHTML = `<button class="homebtn${menu === 'home' ? ' on' : ''}" data-menu="home">${ICO.home}<span>통합 대시보드</span></button><div class="menusw">${menuBtns}</div>` + (menu === 'raw' || menu === 'home' ? `<div class="sidewk" id="sideWeek"><label>원료 기준 주차</label></div>` : '') + (menu === 'home' ? '' : `<div class="grp">${M.name}</div>` + items) + modeBox; $('#tabsBottom').innerHTML = items;
   $$('#topMenu [data-menu], #sideNav [data-menu]').forEach(b => b.onclick = () => { if (S.ui.menu === b.dataset.menu) return; S.ui.menu = b.dataset.menu; save(); renderAll(); window.scrollTo(0, 0); if (S.ui.menu === 'home') finAskSum(); });
+  $$('#topMenu [data-lock], #sideNav [data-lock]').forEach(b => b.onclick = adminEnter);
+  $$('#sideNav [data-leave]').forEach(b => b.onclick = adminLeave);
   weekSelPlace();
   $$('#sideNav [data-tab], #tabsBottom [data-tab]').forEach(b => b.onclick = () => {
     const k = b.dataset.tab;
     if (k[0] === '@') { homeGo(k.slice(1)); return; }
-    if (S.ui.menu === 'fin') { if (k !== 'brief') S.ui.finTab = k; finNav(k); save(); renderTabs(); return; }
-    if (S.ui.menu === 'insp') { S.ui.inspTab = k; inspNav(k); save(); renderTabs(); return; }
+    if (S.ui.menu === 'fin') { if (k !== 'brief') S.ui.finTab = k; finNav(k); finShown = k === 'brief' ? finShown : k; save(); renderTabs(); return; }
+    if (S.ui.menu === 'insp') { S.ui.inspTab = k; save(); renderTabs(); return; }
     if (S.ui.menu === 'prod') { S.ui.prodTab = k; save(); renderAll(); window.scrollTo(0, 0); return; }
+    if (S.ui.menu === 'sys') { S.ui.sysTab = k; save(); renderAll(); window.scrollTo(0, 0); return; }
     S.ui.tab = k; save(); renderAll(); window.scrollTo(0, 0);
   });
-  $$('.view').forEach(v => v.classList.toggle('on', menu === 'fin' ? v.dataset.view === 'fin' : menu === 'insp' ? v.dataset.view === 'insp' : menu === 'prod' ? v.dataset.view === S.ui.prodTab : menu === 'home' ? v.dataset.view === 'home' : v.dataset.view === S.ui.tab));
-  document.body.classList.toggle('fin-tab', menu === 'fin' || menu === 'insp'); document.body.classList.toggle('home-on', menu === 'home'); document.body.classList.toggle('prod-on', menu === 'prod');
-  if (menu === 'fin' || menu === 'home') finEnsure();
-  if (menu === 'insp') inspEnsure();
+  const sysView = { set: 'set', setraw: 'setraw', sfin: 'fin', sinsp: 'insp', pset: 'pset' }[sysT];
+  const view = menu === 'fin' ? 'fin' : menu === 'insp' ? 'insp' : menu === 'prod' ? S.ui.prodTab : menu === 'sys' ? sysView : menu === 'home' ? 'home' : S.ui.tab;
+  $$('.view').forEach(v => v.classList.toggle('on', v.dataset.view === view));
+  const frameOn = view === 'fin' || view === 'insp';
+  document.body.classList.toggle('fin-tab', frameOn); document.body.classList.toggle('home-on', menu === 'home'); document.body.classList.toggle('prod-on', menu === 'prod' || menu === 'sys');
+  document.body.classList.toggle('mode-user', !A); document.body.classList.toggle('sys-sub', menu === 'sys' && sysT === 'sinsp');
+  // 육안검사 설정: 화면 위 작은 탭
+  $('#inspSub').innerHTML = menu === 'sys' && sysT === 'sinsp' ? SYS_INSP.map(([k, n]) => `<button data-si="${k}" class="${S.ui.sysInsp === k ? 'on' : ''}">${n}</button>`).join('') : '';
+  $$('#inspSub [data-si]').forEach(b => b.onclick = () => { S.ui.sysInsp = b.dataset.si; save(); renderTabs(); });
+  if (menu === 'fin' || menu === 'home' || view === 'fin') finEnsure();
+  if (view === 'fin' && finShown !== finWant()) { finShown = finWant(); finNav(finShown); }
+  if (view === 'insp') { inspEnsure(); if (inspShown !== inspWant()) { inspShown = inspWant(); inspNav(inspShown); } }
+  modePost();
 }
 /* ── v053: 육안검사일지(inspect.html)를 iframe으로 내장 — 완제품·생지와 같은 방식.
    공개 배포본에는 일지 자료가 없고, 자료는 이 브라우저(IndexedDB)에만 저장됩니다.
@@ -1204,7 +1329,7 @@ function inspEnsure() {
   const f = $('#inspFrame'); if (!f || inspLoaded) return; inspLoaded = true;
   const REMOTE_INSP = 'https://lee1812-oss.github.io/wonryo/inspect.html';
   let fell = false;
-  f.addEventListener('load', () => { inspSendKey(); if (finLastData) inspPost(finLastData); inspNav(S.ui.inspTab || 'dashboard'); });
+  f.addEventListener('load', () => { inspSendKey(); if (finLastData) inspPost(finLastData); inspShown = inspWant(); inspNav(inspShown); modePost(); });
   f.src = './inspect.html?v=' + APP_VER;
   setTimeout(() => { if (!inspHeard && !fell) { fell = true; $('#inspMsg').textContent = '같은 폴더에서 육안검사일지를 열지 못해 배포본(깃허브)에서 불러옵니다…'; f.src = REMOTE_INSP + '?v=' + APP_VER; } }, 7000);
 }
@@ -1220,7 +1345,7 @@ function inspNav(tab) { const f = $('#inspFrame'); if (!f || !f.contentWindow ||
 function inspPost(d) { const f = $('#inspFrame'); if (!f || !f.contentWindow || !inspLoaded || !d) return; try { f.contentWindow.postMessage({ type: 'wonryo-ecount', data: { changedAt: d.changedAt, updatedAt: d.updatedAt, items: (d.items || []).map(i => ({ code: i.code, qty: i.qty })) } }, inspOrigin()); } catch (e) {} }   /* v056: 품목 재고도 넘겨 육안검사가 1분마다 바로 비교 (깃허브 조회 없이) */
 window.addEventListener('message', e => {
   if (!fromInsp(e)) return; const m = e.data; if (!m || typeof m !== 'object') return;
-  if (m.type === 'insp-ready' || m.type === 'insp-need-key' || m.type === 'insp-need-share') { inspHeard = true; $('#inspMsg').classList.add('off'); inspSendKey(); if (m.type === 'insp-ready') inspNav(S.ui.inspTab || 'dashboard'); }
+  if (m.type === 'insp-ready' || m.type === 'insp-need-key' || m.type === 'insp-need-share') { inspHeard = true; $('#inspMsg').classList.add('off'); inspSendKey(); if (m.type === 'insp-ready') { inspShown = inspWant(); inspNav(inspShown); modePost(); } }
 });
 /* ── v058·v060: 생산일지 — 휴대폰·태블릿에서 간단히 입력하면 이카운트 「생산입고I」(OAPI SaveGoodsReceipt)로 전표를 만듭니다.
    이카운트 인증키는 공개 사이트에 두지 않고 구글 Apps Script 중계(ecount_relay.gs)의 스크립트 속성에만 둡니다.
@@ -1254,8 +1379,8 @@ function prodKey() { return (window.WLOCK && WLOCK.shareKey && WLOCK.shareKey())
 function prodReady() {
   const P = prodS();
   if (!prodKey()) return { ok: false, msg: '재고 비밀번호가 정해져 있어야 전송할 수 있습니다 (설정 → 비밀번호 정하기).' };
-  if (!P.cfg.relayUrl.trim()) return { ok: false, msg: '「연동 설정」에 이카운트 중계 주소(Apps Script 웹 앱 URL)를 넣어 주세요.' };
-  if (!prodOnItems().length) return { ok: false, msg: '「연동 설정 → 생산 품목」에서 완제품·생지 품목을 불러와 주세요.' };
+  if (!P.cfg.relayUrl.trim()) return { ok: false, msg: shareOn() ? '관리자 PC의 생산일지 설정을 아직 받지 못했습니다. 관리자 PC에서 통합 재고관리를 한 번 열어 두면 1~2분 안에 자동으로 받습니다. (관리자: ⚙ 통합 설정 → 생산일지 연동)' : '「⚙ 통합 설정 → 생산일지 연동」에 이카운트 중계 주소(Apps Script 웹 앱 URL)를 넣어 주세요.' };
+  if (!prodOnItems().length) return { ok: false, msg: '「⚙ 통합 설정 → 생산일지 연동 → 생산 품목」에서 완제품·생지 품목을 불러와 주세요.' };
   return { ok: true, msg: '' };
 }
 function prodRenderIf() { if (S.ui.menu === 'prod') renderProd(); }
@@ -1399,11 +1524,41 @@ function prodStats() {
   const P = prodS(), out = {};
   const add = (code, date, qty, n) => { if (!code) return; const s = out[code] = out[code] || { n: 0, last: '', lastQty: null, wd: [0, 0, 0, 0, 0, 0, 0], med: null, qtys: [] }; s.n += n || 1; if (date > s.last) { s.last = date; if (qty != null) s.lastQty = qty; } if (qty != null) s.qtys.push(qty); if (date) s.wd[new Date(date + 'T00:00:00').getDay()]++; };
   if (P.hist && P.hist.items) Object.values(P.hist.items).forEach(h => { if (!h.code) return; const s = out[h.code] = out[h.code] || { n: 0, last: '', lastQty: null, wd: [0, 0, 0, 0, 0, 0, 0], med: null, qtys: [] }; s.n += h.n; if (h.last > s.last) { s.last = h.last; s.lastQty = h.lastQty; } s.qtys = s.qtys.concat(h.qtys || []); h.wd.forEach((v, i) => { s.wd[i] += v; }); });
+  if (!P.hist && P.shStats) Object.entries(P.shStats).forEach(([code, x]) => { if (!out[code]) out[code] = { n: x.n || 0, last: x.last || '', lastQty: x.lastQty ?? null, wd: Array.isArray(x.wd) ? x.wd.slice() : [0, 0, 0, 0, 0, 0, 0], med: x.med ?? null, qtys: [], shared: 1 }; });   /* v068: 관리자 PC에서 받은 최근 생산 통계 */
   P.log.filter(en => en.status === 'sent' && !en.test).forEach(en => (en.lines || []).forEach(l => add(l.code, en.date, l.ecQty || l.qty)));   /* 수량은 모두 이카운트 단위 */
-  Object.values(out).forEach(s => { const a = s.qtys.slice().sort((x, y) => x - y); s.med = a.length ? a[Math.floor(a.length / 2)] : null; if (s.lastQty == null) s.lastQty = s.med; });
+  Object.values(out).forEach(s => { const a = s.qtys.slice().sort((x, y) => x - y); s.med = a.length ? a[Math.floor(a.length / 2)] : (s.shared ? s.med : null); if (s.lastQty == null) s.lastQty = s.med; });
   return out;
 }
 function prodHint(st, it) { if (!st) return ''; const u = prodEcUnit(it); return `최근 ${st.last ? st.last.slice(5).replace('-', '/') : '—'}${st.lastQty != null ? ` · 지난번 ${fmt(st.lastQty)}${u ? ' ' + u : ''}` : ''}`; }
+
+/* ── v068: 생산일지 설정 공유 — 관리자 PC의 연동 설정(중계 주소·생산 품목·최근 생산 통계)을 공유 저장소(구글 시트)에 올려
+   직원 휴대폰·태블릿이 자동으로 받습니다. 기기마다 연동 설정을 따로 넣지 않아도 됩니다.
+   생산일지 엑셀 이력을 불러온 기기(관리자 PC)가 기준이고, 이력이 없는 기기는 받은 설정을 따라갑니다. ── */
+function prodCfgPack() {
+  const P = prodS(), st = prodStats();
+  const items = prodOnItems().map(i => { const o = {}; ['code', 'name', 'unit', 'ecEa', 'ecDiv', 'ecSpec', 'kind', 'manual', 'prodEa'].forEach(k => { if (i[k] != null && i[k] !== '' && i[k] !== false) o[k] = i[k]; }); return o; });
+  const stats = {}; items.forEach(i => { const x = st[i.code]; if (x) stats[i.code] = { n: x.n, last: x.last, lastQty: x.lastQty, med: x.med, wd: x.wd }; });
+  const c = P.cfg; return { v: 1, cfg: { relayUrl: c.relayUrl, test: !!c.test, emp: c.emp, whF: c.whF, whT: c.whT, extra: c.extra, dec: c.dec }, items, stats };
+}
+function prodCfgShare() {
+  try {
+    if (!isAdmin() || !shareOn() || !S.prod || !(window.WLOCK && WLOCK.shareKey && WLOCK.shareKey())) return; const P = prodS();
+    if (!String(P.cfg.relayUrl || '').trim() || !prodOnItems().length || !(P.hist || !P.cfgTs)) return;   /* 이력을 불러온 기기(또는 처음 정한 기기)만 올림 */
+    const note = JSON.stringify(prodCfgPack()); if (note === P.cfgSent) return;
+    const ts = new Date().toISOString(); P.cfgSent = note; P.cfgTs = ts;
+    nbQueue({ ts, week: '', code: 'prod', name: '생산일지 설정', kind: 'pcfg', note });
+  } catch (e) {}
+}
+function prodCfgApply(row) {
+  const P = prodS(); if (!row.note || row.del) return false; if ((P.cfgTs || '') >= row.ts) return false;
+  if (P.hist) return false;   /* 생산 이력을 가진 기기(관리자 PC)는 자기 설정이 기준 */
+  let pk; try { pk = JSON.parse(row.note); } catch (e) { return false; } if (!pk || !pk.cfg || !Array.isArray(pk.items)) return false;
+  Object.assign(P.cfg, pk.cfg); const old = {}; P.items.forEach(i => { old[i.code] = i; });
+  P.items = pk.items.map(i => Object.assign({}, i, { on: true }));
+  P.shStats = pk.stats || {}; P.cfgTs = row.ts; P.cfgSent = row.note; P.cfgFrom = [row.user, row.device].filter(Boolean).join(' · ');
+  return true;
+}
+setTimeout(prodCfgShare, 8000); setInterval(prodCfgShare, 60 * 1000);
 
 /* ── 입력 화면 ── */
 function prodNewLine(code) { return { id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), code, qty: '', note: '', mode: '' }; }
@@ -1411,7 +1566,7 @@ function renderProdNew() {
   const P = prodS(), box = $('#prodNew'); if (!box) return;
   const ready = prodReady(); const st = prodStats();
   /* 생산 이력(엑셀·보낸 기록)에 있는 품목만 — 직접 추가한 품목은 항상 표시, 「다른 품목 보기」로 전체 */
-  const allOn = prodOnItems(); const onlyMade = !!(P.hist || P.log.length) && !ui.prodAll;
+  const allOn = prodOnItems(); const onlyMade = !!(P.hist || P.log.length || P.shStats) && !ui.prodAll;
   const items = onlyMade ? allOn.filter(i => st[i.code] || i.manual) : allOn; const hiddenN = allOn.length - items.length;
   const q = String(ui.prodQ || '').trim().toLowerCase();
   const list = items.filter(i => !q || (i.name + ' ' + i.code).toLowerCase().includes(q)).sort((a, b) => ((st[b.code] || {}).n || 0) - ((st[a.code] || {}).n || 0) || a.name.localeCompare(b.name, 'ko'));
@@ -1423,7 +1578,7 @@ function renderProdNew() {
   const lastSent = P.log.find(en => en.status === 'sent');
   const todayLog = P.log.filter(en => en.date === P.draft.date && en.status === 'sent');
   box.innerHTML = `
-  ${ready.ok ? '' : `<div class="card" style="border-color:#E8C98E;background:var(--warn-bg)"><b>연동 준비가 필요합니다</b><div class="muted" style="margin:4px 0 8px">${esc(ready.msg)}</div><button class="btn sm" data-pgo="pset">연동 설정 열기</button></div>`}
+  ${ready.ok ? '' : `<div class="card" style="border-color:#E8C98E;background:var(--warn-bg)"><b>연동 준비가 필요합니다</b><div class="muted" style="margin:4px 0 8px">${esc(ready.msg)}</div><button class="btn sm" data-pgo="pset">${isAdmin() ? '⚙ 통합 설정 → 생산일지 연동 열기' : '🔒 관리자에게 알려 주세요 (관리자 화면 열기)'}</button></div>`}
   <div class="card">
     <div class="prow">
       <div class="field" style="flex:1 1 150px"><label for="pDate">생산일</label><input type="date" id="pDate" value="${esc(P.draft.date)}"></div>
@@ -1454,7 +1609,7 @@ function renderProdNew() {
   <div class="card">
     <div class="prow" style="align-items:center;margin-bottom:8px"><h2 style="margin:0;flex:1 1 auto">품목 고르기</h2><input class="search" id="pQ" value="${esc(ui.prodQ || '')}" placeholder="품목·코드 검색" aria-label="생산 품목 검색" style="flex:0 1 180px;min-width:0"></div>
     ${items.length ? (list.length ? `<div class="pchips">${list.map(i => `<button type="button" class="pchip${inDraft.has(i.code) ? ' on' : ''}" data-padd="${esc(i.code)}" aria-pressed="${inDraft.has(i.code)}">${inDraft.has(i.code) ? '✓ ' : ''}${esc(i.name)}<small>${st[i.code] ? esc(prodHint(st[i.code], i)) : esc(i.code) + (i.unit ? ' · ' + esc(i.unit) : '')}</small></button>`).join('')}</div>` : '<div class="muted">검색에 맞는 품목이 없습니다.</div>')
-      : '<div class="muted">생산 품목이 없습니다. 「연동 설정 → 생산 품목」에서 완제품·생지 품목을 불러오세요.</div>'}
+      : '<div class="muted">생산 품목이 없습니다. 관리자 PC의 설정을 자동으로 받을 때까지 기다리거나, 관리자가 「⚙ 통합 설정 → 생산일지 연동 → 생산 품목」에서 불러옵니다.</div>'}
     ${hiddenN > 0 || ui.prodAll ? `<div style="margin-top:10px"><button type="button" class="btn sm" id="pAll">${ui.prodAll ? '우리가 생산한 품목만 보기' : `처음 만드는 품목 찾기 (생산 이력에 없는 품목 ${hiddenN}개)`}</button></div>` : ''}
   </div>
   ${todayLog.length ? `<div class="card"><h2 style="margin:0 0 6px">${esc(P.draft.date)} 보낸 생산</h2>${todayLog.map(en => `<div class="muted" style="padding:3px 0">${esc(hmOf(en.sentAt || en.ts))} · ${esc(en.lines.map(l => l.name + ' ' + fmt(l.qty) + (l.mode === 'ea' ? '개' : '')).join(', '))} <span class="pill ok">${en.test ? '테스트 ' : ''}전표 ${esc(en.slip || '')}</span></div>`).join('')}</div>` : ''}`;
@@ -1464,7 +1619,7 @@ function renderProdNew() {
   $('#pDate').onchange = e => { P.draft.date = e.target.value || today(); save(); renderProdNew(); };
   $('#pWho').onchange = e => { S.settings.reporter = e.target.value.trim(); save(); };
   $('#pQ').oninput = e => { ui.prodQ = e.target.value; const pos = e.target.selectionStart; renderProdNew(); const n = $('#pQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (_) {} };
-  $$('#prodNew [data-pgo]').forEach(b => b.onclick = () => { S.ui.prodTab = b.dataset.pgo; save(); renderAll(); });
+  $$('#prodNew [data-pgo]').forEach(b => b.onclick = () => { if (b.dataset.pgo === 'pset') { if (!isAdmin()) { adminEnter(); return; } S.ui.menu = 'sys'; S.ui.sysTab = 'pset'; } else S.ui.prodTab = b.dataset.pgo; save(); renderAll(); window.scrollTo(0, 0); });
   if ($('#pSugAll')) $('#pSugAll').onclick = () => { sug.forEach(i => addCode(i.code)); save(); renderProdNew(); const f = document.querySelector('#prodNew [data-pqty]'); if (f) f.focus(); };
   if ($('#pRepeat')) $('#pRepeat').onclick = () => { lastSent.lines.forEach(x => { const l = addCode(x.code); l.mode = x.mode || ''; }); save(); renderProdNew(); const f = document.querySelector('#prodNew [data-pqty]'); if (f) f.focus(); };
   $$('#prodNew [data-padd]').forEach(b => b.onclick = () => {   /* 한 번 누르면 담기, 다시 누르면 빼기 */
@@ -1695,7 +1850,7 @@ setTimeout(() => { try { const P = prodS(); P.log.forEach(en => { if (en.status 
 let finLoaded = false, finLastData = null;
 function finEnsure() {
   const f = $('#finFrame'); if (!f || finLoaded) return; finLoaded = true;
-  f.addEventListener('load', () => { $('#finMsg').classList.add('off'); finSendKey(); if (finLastData) finPost(finLastData); finNav(S.ui.finTab || 'dash'); finAskSum(); setTimeout(finAskSum, 1500); });
+  f.addEventListener('load', () => { $('#finMsg').classList.add('off'); finSendKey(); if (finLastData) finPost(finLastData); finShown = finWant(); finNav(finShown); modePost(); finAskSum(); setTimeout(finAskSum, 1500); });
   f.addEventListener('error', () => { $('#finMsg').textContent = 'finished.html을 찾을 수 없습니다 — 같은 폴더(저장소)에 올려 주세요'; });
   /* v051: 같은 폴더의 finished.html을 먼저 씁니다 (인터넷 없이도 열리도록).
            열리지 않을 때만 깃허브 배포본으로 넘어갑니다.
@@ -1754,16 +1909,16 @@ window.addEventListener('message', e => {
   const m = e.data; if (m && typeof m === 'object' && m.type === 'fin-need-key') finSendKey();
 });
 function finNav(tab) { const f = $('#finFrame'); if (!f || !f.contentWindow || !finLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-nav', tab }, finTargetOrigin()); } catch (e) {} }
-window.addEventListener('message', e => { if (!fromFin(e)) return; const m = e.data; if (!m || typeof m !== 'object') return; if (m.type === 'fin-tab' && m.tab && S.ui.menu === 'fin' && S.ui.finTab !== m.tab) { S.ui.finTab = m.tab; save(); renderTabs(); } });
+window.addEventListener('message', e => { if (!fromFin(e)) return; const m = e.data; if (!m || typeof m !== 'object') return; if (m.type === 'fin-tab' && m.tab) { finShown = m.tab; if (S.ui.menu === 'fin' && S.ui.finTab !== m.tab && menuItems('fin').some(t => t[0] === m.tab)) { S.ui.finTab = m.tab; save(); renderTabs(); } } });
 function finPost(d) { const f = $('#finFrame'); if (!f || !f.contentWindow || !finLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-ecount', data: d }, finTargetOrigin()); } catch (e) {} }
 /* ── v049: 통합 대시보드 — 로고를 누르면 원료수불부 + 완제품·생지 핵심만 한 화면 ── */
 function finAskSum() { const f = $('#finFrame'); if (!f || !f.contentWindow || !finLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-summary' }, finTargetOrigin()); } catch (e) {} }
-window.addEventListener('message', e => { if (!fromFin(e)) return; const m = e.data; if (!m || typeof m !== 'object' || m.type !== 'fin-summary' || !m.sum) return; S.finSum = m.sum; save(); if (S.ui.menu === 'home') renderHome(); });
+window.addEventListener('message', e => { if (!fromFin(e)) return; const m = e.data; if (!m || typeof m !== 'object' || m.type !== 'fin-summary' || !m.sum) return; modePost(); S.finSum = m.sum; save(); if (S.ui.menu === 'home') renderHome(); });
 function homeOpen() { if (S.ui.menu === 'home') { finAskSum(); renderHome(); return; } S.ui.menu = 'home'; save(); renderAll(); window.scrollTo(0, 0); finAskSum(); }
 function homeGo(t) { /* t = 'raw' | 'fin' | 'raw:tab' | 'fin:tab' */
   const [menu, tab] = t.split(':'); S.ui.menu = menu;
-  if (menu === 'fin') { if (tab) S.ui.finTab = tab; save(); renderAll(); finNav(tab || S.ui.finTab || 'dash'); }
-  else if (menu === 'insp') { if (tab) S.ui.inspTab = tab; save(); renderAll(); inspNav(tab || S.ui.inspTab || 'dashboard'); }
+  if (menu === 'fin') { if (tab) S.ui.finTab = tab; save(); renderAll(); if (tab) { finShown = S.ui.finTab; finNav(S.ui.finTab); } }
+  else if (menu === 'insp') { if (tab) S.ui.inspTab = tab; save(); renderAll(); }
   else if (menu === 'prod') { if (tab) S.ui.prodTab = tab; save(); renderAll(); }
   else { if (tab) S.ui.tab = tab; save(); renderAll(); }
   window.scrollTo(0, 0);
@@ -2195,10 +2350,11 @@ async function sharePull(full, quiet) {
   if (!shareOn() || shareBusy) return; const sh = shareCfg(); shareBusy = true; let changed = 0; if (!quiet) renderShareStatus('받는 중…');
   try { const j = await shareApi({ action: 'pull', since: full ? '' : (sh.since || '') });
     const applied = [];
-    let nbCh = 0; const nbNew = [];
+    let nbCh = 0, pcfgCh = false; const nbNew = [];
     (j.rows || []).sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0).forEach(row => {
       if (row.kind === 'insp' || row.kind === 'inspm') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; return; }   /* v054: 육안검사일지 행은 그쪽(inspect.html)이 받음 */
       if (row.kind === 'itemw') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.code && row.ts && setItemW(row.code, itemWFromNote(row.note), row.ts, true)) { changed++; if (row.device !== sh.device) applied.push(row); } return; }
+      if (row.kind === 'pcfg') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.code === 'prod' && prodCfgApply(row)) pcfgCh = true; return; }   /* v068: 생산일지 설정 */
       if (row.kind === 'notice' || row.kind === 'noticeack') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; const r = nbApply(row); if (r) nbCh++; if (r === 2) nbNew.push(row); return; }
       if (!row.week || !row.ts) return; if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.week))) { const d = new Date(row.week); if (!isNaN(d)) row.week = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); } if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.expiry || ''))) row.expiry = String(row.expiry).slice(0, 10); if (row.ts > (sh.since || '')) sh.since = row.ts; if (row.device && row.device === sh.device) return; applied.push(row);
       if (row.kind === 'memo') { const cur = (S.memoTs || {})[row.week] || ''; if (row.ts > cur) { S.memos[row.week] = row.note || ''; (S.memoTs = S.memoTs || {})[row.week] = row.ts; changed++; } return; }
@@ -2211,6 +2367,7 @@ async function sharePull(full, quiet) {
       if (row.expiry) { const m = S.itemMeta[row.code] || (S.itemMeta[row.code] = {}); m.expiry = row.expiry; m.expiryWeek = row.week; } changed++; });
     if (applied.length > 60) logAdd({ ts: applied[applied.length - 1].ts, user: '(여러 명)', device: '공유 저장소', text: `공유 자료 ${applied.length}건 받음` }); else applied.forEach(row => logAdd({ ts: row.ts, user: row.user || '', device: row.device || '', text: shareRowText(row) }));
     sh.lastPull = new Date().toISOString(); sh.err = ''; save(true); renderSharePill();
+    if (pcfgCh) { toast('관리자 PC에서 생산일지 설정을 받았습니다'); if (S.ui.menu === 'prod') renderProd(); }
     if (nbCh) { renderNotice(); if (nbNew.length && !full) { const r = nbNew[nbNew.length - 1]; let t = ''; try { t = JSON.parse(r.note || '{}').text || ''; } catch (e) {} toast(`📢 새 전달사항 · ${r.name || ''}: ${String(t).slice(0, 40)}`); } }
     if (changed) { toast(`공유 저장소에서 ${changed}건 반영`); if (S.ui.menu !== 'fin' && ['phys', 'weekly', 'cmp', 'dash', 'trend'].includes(S.ui.tab)) { if (shareTyping()) { sh.pendingRender = true; } else { if (S.ui.tab === 'weekly') wk.rows = []; renderAll(); } } } }
   catch (e) { sh.err = '받기 실패: ' + (e.message || e); save(); }
@@ -3264,6 +3421,7 @@ function renderAll() {
   renderTabs(); renderHeader(); renderNotice(); if (typeof renderSyncPill === 'function') renderSyncPill(); if (typeof renderChanges === 'function') setTimeout(renderChanges, 0);
   if (S.ui.menu === 'home') renderHome();
   if (S.ui.menu === 'prod') renderProd();
+  if (S.ui.menu === 'sys') { if (S.ui.sysTab === 'set' || S.ui.sysTab === 'setraw') renderSet(); if (S.ui.sysTab === 'pset') { try { finEnsure(); } catch (e) {} renderProdSet(); } renderModeBox(); }
   const t = S.ui.tab;
   if (t === 'dash') renderDash(); else if (t === 'stock') renderStock(); else if (t === 'phys') renderPhys(); else if (t === 'weekly') renderWeekly(); else if (t === 'cmp') renderCmp(); else if (t === 'trend') renderTrend(); else if (t === 'adj') renderAdj(); else renderSet();
 }
