@@ -541,6 +541,11 @@ body.prod-on #weekSel{display:none}   /* v075: 생산일지·통합 설정에서
 .pchip.pk{border-top:4px solid var(--gc,var(--line))}
 .pchip.pk.on{border-top-width:4px}
 .pgrp+.pgrp{margin-top:14px}
+.pwk{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pwkc{min-height:44px;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:#fff;font-size:15px;font-weight:700;color:var(--ink3);text-decoration:line-through}
+.pwkc.on{border:2px solid var(--accent);background:var(--accent-bg);color:var(--accent);text-decoration:none}
+.pwkc small{font-size:11px;font-weight:600;opacity:.75}
+#pWkAdd{min-height:44px;border:1px dashed var(--line);border-radius:99px;padding:8px 14px;font-size:14px;width:140px;background:#fff}
 .pgh{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin:0 0 8px;padding:7px 12px;border-radius:10px;border-left:5px solid var(--gc);background:var(--gb)}
 .pgh b{font-size:14.5px;color:var(--gc);font-weight:800}
 .pgh .sub{font-size:12px;color:var(--ink2);font-weight:600}
@@ -930,7 +935,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '075';
+const APP_VER  = '076';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1401,13 +1406,18 @@ window.addEventListener('message', e => {
 function prodS() {
   S.prod = S.prod || {};
   const P = S.prod;
-  P.cfg = Object.assign({ relayUrl: '', test: true, emp: '', whF: '', whT: '', extra: '', dec: 1 }, P.cfg || {});
+  P.cfg = Object.assign({ relayUrl: '', test: true, emp: '', whF: '', whT: '', extra: '', dec: 1, workers: '', wkRem: true }, P.cfg || {});
   P.items = Array.isArray(P.items) ? P.items : [];   /* {code,name,unit,ecEa,ecDiv,kind,on,manual} */
   P.log = Array.isArray(P.log) ? P.log : [];
   if (!P.draft || !Array.isArray(P.draft.lines)) P.draft = { date: today(), lines: [] };
   if (!P.draft.lines.length && P.draft.date !== today()) P.draft.date = today();
+  /* v076: 작업자 — 날마다 기본 작업자로 시작, 그날 안에서는 고친 대로 유지 (휴가 등) */
+  if (!Array.isArray(P.draft.workers) || P.draft.wkDay !== today()) { P.draft.workers = prodWorkersDefault(P); P.draft.wkDay = today(); }
   return P;
 }
+/* v076: 기본 작업자 — 공개 저장소에 이름을 두지 않도록 코드가 아닌 설정(통합 설정 → 생산일지 연동)에 저장하고 공유 저장소로 휴대폰에 전달 */
+function prodWorkersDefault(P) { P = P || S.prod || {}; return [...new Set(String((P.cfg || {}).workers || '').split(/[,，、·\n\/]+/).map(x => x.trim()).filter(Boolean))]; }
+function prodWkText(ws) { return (ws || []).length ? '작업자 ' + ws.join('·') : ''; }
 function prodOnItems() { return prodS().items.filter(i => i.on && i.code); }
 function prodItem(code) { return prodS().items.find(i => i.code === code) || null; }
 /* 입수(한 박스에 든 낱개 수): 완제품·생지 환산수량 → 없으면 품목명의 「36EA」 같은 숫자 */
@@ -1586,7 +1596,7 @@ function prodCfgPack() {
   const P = prodS(), st = prodStats();
   const items = prodOnItems().map(i => { const o = {}; ['code', 'name', 'unit', 'ecEa', 'ecDiv', 'ecSpec', 'kind', 'manual', 'prodEa', 'grp'].forEach(k => { if (i[k] != null && i[k] !== '' && i[k] !== false) o[k] = i[k]; }); return o; });
   const stats = {}; items.forEach(i => { const x = st[i.code]; if (x) stats[i.code] = { n: x.n, last: x.last, lastQty: x.lastQty, med: x.med, wd: x.wd }; });
-  const c = P.cfg; return { v: 1, cfg: { relayUrl: c.relayUrl, test: !!c.test, emp: c.emp, whF: c.whF, whT: c.whT, extra: c.extra, dec: c.dec }, items, stats };
+  const c = P.cfg; return { v: 1, cfg: { relayUrl: c.relayUrl, test: !!c.test, emp: c.emp, whF: c.whF, whT: c.whT, extra: c.extra, dec: c.dec, workers: c.workers || '', wkRem: c.wkRem !== false }, items, stats };
 }
 function prodCfgShare() {
   try {
@@ -1660,6 +1670,10 @@ function renderProdNew() {
     </div>
     <div style="margin-top:8px"><span class="pill ${P.cfg.test ? 'warn' : 'ok'}">${P.cfg.test ? '테스트 모드 — 실제 이카운트에는 들어가지 않습니다' : '실제 이카운트로 전송'}</span></div>
   </div>
+  ${(() => { const def = prodWorkersDefault(P), cur = P.draft.workers || [], names = [...new Set(def.concat(cur))], same = def.length === cur.length && def.every(n => cur.includes(n));
+    return `<div class="card"><div class="prow" style="align-items:center"><h2 style="margin:0;flex:1 1 auto">작업자 <span class="pill ${cur.length ? 'ok' : 'warn'}">${cur.length}명</span></h2>${def.length && !same ? '<button type="button" class="btn xs" id="pWkReset">기본 작업자로</button>' : ''}</div>
+    <div class="muted" style="font-size:12px;margin:2px 0 8px">${def.length ? '기본 작업자가 들어가 있습니다. 휴가 등으로 빠진 사람은 눌러서 빼고, 다시 누르면 넣습니다.' : '관리자가 「⚙ 통합 설정 → 생산일지 연동 → 기본 작업자」를 정하면 매일 자동으로 채워집니다. 지금은 아래에 이름을 넣으세요.'}</div>
+    <div class="pwk">${names.map(n => { const on = cur.includes(n); return `<button type="button" class="pwkc${on ? ' on' : ''}${def.includes(n) ? '' : ' ex'}" data-pwk="${esc(n)}" aria-pressed="${on}">${on ? '✓ ' : ''}${esc(n)}${def.includes(n) ? '' : ' <small>추가</small>'}</button>`; }).join('')}<input id="pWkAdd" placeholder="＋ 이름 추가" aria-label="작업자 이름 추가" enterkeyhint="done"></div></div>`; })()}
   ${sug.length || (lastSent && !P.draft.lines.length) ? `<div class="card"><h2 style="margin:0 0 6px">빠른 시작</h2>
     ${sug.length ? `<div class="muted" style="margin-bottom:8px">${WD[wd]}요일에 자주 만든 품목 — 누르면 담고, 다시 누르면 뺍니다</div><div class="pchips">${sug.map(i => prodKpi(i, st[i.code], inDraft.has(i.code), `${WD[wd]}요일 ${st[i.code].wd[wd]}번 · 최근 ${st[i.code].last ? esc(st[i.code].last.slice(5).replace('-', '/')) : '—'}`, 'sg')).join('')}</div>${sug.some(i => !inDraft.has(i.code)) ? `<div class="prow" style="margin-top:10px"><button class="btn primary" id="pSugAll" style="flex:1 1 auto">${sug.filter(i => !inDraft.has(i.code)).length}품목 모두 담기</button></div>` : ''}` : ''}
     ${lastSent && !P.draft.lines.length ? `<div class="prow" style="margin-top:${sug.length ? 10 : 0}px;align-items:center"><span class="muted" style="flex:1 1 200px">지난 입력 (${esc(lastSent.date)}): ${esc(lastSent.lines.map(l => l.name).join(', '))}</span><button class="btn sm" id="pRepeat">같은 품목으로 시작</button></div>` : ''}
@@ -1691,6 +1705,10 @@ function renderProdNew() {
   const refreshConv = l => { const c = document.querySelector(`#prodNew [data-pconv="${l.id}"]`); if (c) c.innerHTML = prodConvText(prodItem(l.code), l); };
   const addCode = (code, focus) => { let l = P.draft.lines.find(x => x.code === code); if (!l) { l = prodNewLine(code); P.draft.lines.push(l); } return l; };
   $('#pDate').onchange = e => { P.draft.date = e.target.value || today(); save(); renderProdNew(); };
+  $$('#prodNew [data-pwk]').forEach(b => b.onclick = () => { const n = b.dataset.pwk, W = P.draft.workers; const i = W.indexOf(n); if (i >= 0) W.splice(i, 1); else W.push(n); save(); renderProdNew(); });
+  const wkAdd = () => { const el = $('#pWkAdd'); const v = el ? el.value.trim() : ''; if (!v) return; v.split(/[,，、·]+/).map(x => x.trim()).filter(Boolean).forEach(n => { if (!P.draft.workers.includes(n)) P.draft.workers.push(n); }); save(); renderProdNew(); };
+  if ($('#pWkAdd')) { $('#pWkAdd').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); wkAdd(); } }; $('#pWkAdd').onchange = wkAdd; }
+  if ($('#pWkReset')) $('#pWkReset').onclick = () => { P.draft.workers = prodWorkersDefault(P); save(); renderProdNew(); };
   $('#pWho').onchange = e => { S.settings.reporter = e.target.value.trim(); save(); };
   $('#pQ').oninput = e => { ui.prodQ = e.target.value; const pos = e.target.selectionStart; renderProdNew(); const n = $('#pQ'); n.focus(); try { n.setSelectionRange(pos, pos); } catch (_) {} };
   $$('#prodNew [data-pgo]').forEach(b => b.onclick = () => { if (b.dataset.pgo === 'pset') { if (!isAdmin()) { adminEnter(); return; } S.ui.menu = 'sys'; S.ui.sysTab = 'pset'; } else S.ui.prodTab = b.dataset.pgo; save(); renderAll(); window.scrollTo(0, 0); });
@@ -1728,7 +1746,7 @@ function prodConfirm() {
   const warn = P.draft.lines.map(l => { const it = prodItem(l.code); const s = st[l.code]; const ec = prodEcQty(it, l.qty, l.mode); const ref = s && s.qtys.length ? Math.max.apply(null, s.qtys) : null; return ref && ec > ref * 2 && !prodIsEa(it) ? `${(it || {}).name || l.code}: ${fmt(ec)} — 지금까지 가장 많이 만든 양(${fmt(ref)})의 2배가 넘습니다` : ''; }).filter(Boolean);
   const rows = P.draft.lines.map(l => { const it = prodItem(l.code) || { name: l.code, unit: '' }; return `<tr><td>${esc(it.name)}</td><td class="num"><b>${fmt(l.qty)}</b> ${l.mode === 'ea' ? '개' : esc(it.unit || '')}</td><td class="num">${fmt(prodEcQty(it, l.qty, l.mode))} ${esc(prodEcUnit(it))}</td></tr>`; }).join('');
   modal(`<h2>이카운트 생산입고로 보낼까요?</h2>
-    <p style="margin:4px 0 10px">생산일 <b>${esc(P.draft.date)} (${WD[new Date(P.draft.date + 'T00:00:00').getDay()]})</b> · 입력자 ${esc(who || '(이름 없음)')} · ${P.cfg.test ? '<span class="pill warn">테스트 모드</span>' : '<span class="pill ok">실제 전송</span>'}</p>
+    <p style="margin:4px 0 10px">생산일 <b>${esc(P.draft.date)} (${WD[new Date(P.draft.date + 'T00:00:00').getDay()]})</b> · 입력자 ${esc(who || '(이름 없음)')}<br>작업자 <b>${esc((P.draft.workers || []).join(', ') || '(없음)')}</b> · ${P.cfg.test ? '<span class="pill warn">테스트 모드</span>' : '<span class="pill ok">실제 전송</span>'}</p>
     ${P.draft.date !== today() ? `<p style="margin:0 0 8px;color:var(--warn);font-weight:600">생산일이 오늘(${esc(today())})이 아닙니다. 맞는지 확인하세요.</p>` : ''}
     ${warn.length ? `<div style="margin:0 0 8px;color:var(--minus);font-weight:600">${warn.map(esc).join('<br>')}</div>` : ''}
     <div class="tablewrap"><table class="t"><thead><tr><th>품목</th><th class="num">입력</th><th class="num">이카운트 수량</th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -1736,16 +1754,16 @@ function prodConfirm() {
     <div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px"><button class="btn" onclick="closeModal()">취소</button><button class="btn primary" id="pSendOk">보내기</button></div>`);
   $('#pSendOk').onclick = () => {
     closeModal();
-    const entry = { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), ts: new Date().toISOString(), date: P.draft.date, who, test: !!P.cfg.test, status: 'sending',
+    const entry = { id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), ts: new Date().toISOString(), date: P.draft.date, who, workers: (P.draft.workers || []).slice(), test: !!P.cfg.test, status: 'sending',
       lines: P.draft.lines.map(l => { const it = prodItem(l.code) || {}; return { code: l.code, name: it.name || l.code, unit: l.mode === 'ea' ? '개' : (it.unit || ''), mode: l.mode || '', qty: Number(l.qty), ecQty: prodEcQty(it, l.qty, l.mode), ecUnit: prodEcUnit(it), note: String(l.note || '').trim() }; }),
-      cfg: { emp: P.cfg.emp, whF: P.cfg.whF, whT: P.cfg.whT, extra: P.cfg.extra } };
+      cfg: { emp: P.cfg.emp, whF: P.cfg.whF, whT: P.cfg.whT, extra: P.cfg.extra, wkRem: P.cfg.wkRem !== false } };
     P.log.unshift(entry); P.log = P.log.slice(0, 500); P.draft.lines = []; save(true); renderProd();
     prodSubmit(entry);
   };
 }
 function prodRows(entry) {
-  const c = entry.cfg || prodS().cfg; const extra = prodExtra(c.extra);
-  return entry.lines.map(l => Object.assign({ UPLOAD_SER_NO: '1', IO_DATE: String(entry.date).replace(/-/g, ''), EMP_CD: c.emp || '', WH_CD_F: c.whF || '', WH_CD_T: c.whT || '', PROD_CD: l.code, QTY: String(l.ecQty || l.qty), REMARKS: l.note || '' }, extra));
+  const c = entry.cfg || prodS().cfg; const extra = prodExtra(c.extra); const wk = c.wkRem !== false ? prodWkText(entry.workers) : '';   /* v076: 작업자는 이카운트 적요에 함께 */
+  return entry.lines.map(l => Object.assign({ UPLOAD_SER_NO: '1', IO_DATE: String(entry.date).replace(/-/g, ''), EMP_CD: c.emp || '', WH_CD_F: c.whF || '', WH_CD_T: c.whT || '', PROD_CD: l.code, QTY: String(l.ecQty || l.qty), REMARKS: [l.note || '', wk].filter(Boolean).join(' / ').slice(0, 200) }, extra));
 }
 let prodBusy = false;
 async function prodSubmit(entry) {
@@ -1799,7 +1817,7 @@ function renderProdLog() {
   ${P.log.length ? P.log.slice(0, 120).map(en => { const s = ST[en.status] || ['warn', en.status];
     return `<div class="card">
       <div class="prow" style="align-items:center"><b style="flex:1 1 auto">${esc(en.date)}</b>${en.test ? '<span class="pill warn">테스트</span>' : ''}<span class="pill ${s[0]}">${s[1]}${en.slip ? ' · 전표 ' + esc(en.slip) : ''}</span></div>
-      <div class="muted" style="font-size:12px;margin:2px 0 6px">${esc(hmOf(en.ts))} · ${esc(en.who || '(이름 없음)')}</div>
+      <div class="muted" style="font-size:12px;margin:2px 0 6px">${esc(hmOf(en.ts))} · ${esc(en.who || '(이름 없음)')}${(en.workers || []).length ? ` · 작업자 ${esc(en.workers.join(', '))}` : ''}</div>
       ${en.lines.map(l => `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid var(--line)"><span>${esc(l.name)}${l.note ? ` <span class="muted">(${esc(l.note)})</span>` : ''}</span><span class="num"><b>${fmt(l.qty)}</b> ${esc(l.unit || '')}${l.ecQty && l.ecQty !== l.qty ? ` <span class="muted">= ${fmt(l.ecQty)} ${esc(l.ecUnit || "")}</span>` : ''}</span></div>`).join('')}
       ${en.err && en.status !== 'sent' ? `<div style="margin-top:6px;color:var(--minus);font-size:13px">${esc(en.err)}${(en.details || []).map(d => `<div>${esc([d.error].concat(d.errors || []).filter(Boolean).join(' / '))}</div>`).join('')}</div>` : ''}
       ${en.status === 'wait' ? `<div class="muted" style="margin-top:6px;font-size:13px">${prodAgentOk() ? '사무실 PC 전송기가 곧 이카운트로 보냅니다.' : '사무실 PC에서 「생산일지 이카운트 전송기」가 켜져 있어야 보내집니다.'}</div>` : ''}
@@ -1807,7 +1825,7 @@ function renderProdLog() {
     </div>`; }).join('') : '<div class="card muted">아직 보낸 생산일지가 없습니다.</div>'}`;
   const find = id => P.log.find(en => en.id === id);
   $$('#prodLog [data-pretry]').forEach(b => b.onclick = () => { const en = find(b.dataset.pretry); if (en) { en.cfg = { emp: P.cfg.emp, whF: P.cfg.whF, whT: P.cfg.whT, extra: P.cfg.extra }; en.test = !!P.cfg.test; if (en.status === 'fail') en.cid = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); prodSubmit(en); } });   /* 실패 건은 새 번호로 다시 보냄 (지금 테스트 모드 설정을 따름) */
-  $$('#prodLog [data-pedit]').forEach(b => b.onclick = () => { const en = find(b.dataset.pedit); if (!en) return; P.draft = { date: en.date, lines: en.lines.map(l => ({ id: 'l' + Math.random().toString(36).slice(2, 8), code: l.code, qty: String(l.qty), note: l.note || '' })) }; P.log = P.log.filter(x => x !== en); S.ui.prodTab = 'pnew'; save(); renderAll(); toast('입력 화면으로 옮겼습니다 — 고친 뒤 다시 보내세요'); });
+  $$('#prodLog [data-pedit]').forEach(b => b.onclick = () => { const en = find(b.dataset.pedit); if (!en) return; P.draft = { date: en.date, lines: en.lines.map(l => ({ id: 'l' + Math.random().toString(36).slice(2, 8), code: l.code, qty: String(l.qty), note: l.note || '' })) }; if ((en.workers || []).length) { P.draft.workers = en.workers.slice(); P.draft.wkDay = today(); } P.log = P.log.filter(x => x !== en); S.ui.prodTab = 'pnew'; save(); renderAll(); toast('입력 화면으로 옮겼습니다 — 고친 뒤 다시 보내세요'); });
   $$('#prodLog [data-pdrop]').forEach(b => b.onclick = () => { P.log = P.log.filter(x => x.id !== b.dataset.pdrop); save(); renderProdLog(); });
 }
 
@@ -1823,6 +1841,11 @@ function renderProdSet() {
     <div class="field"><label for="pRelay">이카운트 중계 주소 (Apps Script 웹 앱 URL)</label><input id="pRelay" value="${esc(c.relayUrl)}" placeholder="https://script.google.com/macros/s/…/exec" style="font-family:monospace;font-size:13px"></div>
     <label class="prow" style="align-items:center;margin-top:10px;gap:8px"><input type="checkbox" id="pTest" ${c.test ? 'checked' : ''} style="width:20px;height:20px"> <span><b>테스트 모드</b> — 이카운트 테스트 서버로 보냅니다. 실제 전표가 생기지 않습니다. 확인이 끝나면 끄세요.</span></label>
     <div class="prow" style="margin-top:10px;align-items:center"><button class="btn sm primary" id="pPing">연결 확인</button><span class="muted" id="pPingMsg">${esc(P.pingMsg || '')}</span></div>
+  </div>
+  <div class="card"><h2 style="margin:0 0 4px">기본 작업자</h2>
+    <div class="muted" style="font-size:12px;margin-bottom:8px">생산 입력 화면에 매일 자동으로 들어가는 작업자입니다. 쉼표(,)로 구분해 넣으세요. 휴대폰·태블릿에도 자동으로 전달되고, 입력할 때 빠진 사람은 눌러서 뺄 수 있습니다. (이름은 공개 저장소가 아닌 이 설정과 공유 저장소에만 저장됩니다)</div>
+    <div class="field"><label for="pWorkers">기본 작업자</label><input id="pWorkers" value="${esc(c.workers || '')}" placeholder="예: 홍길동, 김철수"></div>
+    <label class="row" style="gap:6px;font-size:14px;margin-top:8px"><input type="checkbox" id="pWkRem" ${c.wkRem !== false ? 'checked' : ''}> 이카운트 전표 적요에 「작업자 ○○·○○」 넣기</label>
   </div>
   <div class="card"><h2 style="margin:0 0 8px">전표에 들어갈 이카운트 코드</h2>
     <div class="pgrid">
@@ -1881,6 +1904,8 @@ function renderProdSet() {
   $('#pRelay').onchange = e => { setv('relayUrl', e.target.value.trim()); P.pingMsg = ''; };
   $('#pTest').onchange = e => { setv('test', e.target.checked); toast(e.target.checked ? '테스트 모드 — 실제 전표가 생기지 않습니다' : '실제 이카운트로 전송합니다'); };
   $('#pEmp').onchange = e => setv('emp', e.target.value.trim());
+  $('#pWorkers').onchange = e => { const v = prodWorkersDefault({ cfg: { workers: e.target.value } }).join(', '); setv('workers', v); e.target.value = v; P.draft.workers = prodWorkersDefault(P); P.draft.wkDay = today(); save(); toast(v ? `기본 작업자 ${v.split(', ').length}명 저장` : '기본 작업자를 비웠습니다'); };
+  $('#pWkRem').onchange = e => setv('wkRem', e.target.checked);
   $('#pWhF').onchange = e => setv('whF', e.target.value.trim());
   $('#pWhT').onchange = e => setv('whT', e.target.value.trim());
   $('#pExtra').onchange = e => setv('extra', e.target.value);
