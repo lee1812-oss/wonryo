@@ -99,6 +99,25 @@ header.top .grow{flex:1;min-width:0}
 @media (min-width:760px){header.top nav.tabs{flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}header.top nav.tabs::-webkit-scrollbar{display:none}header.top nav.tabs button span{white-space:nowrap}}
 @media (min-width:760px) and (max-width:1250px){header.top nav.tabs button{padding:7px 8px;font-size:13px}.syncpill small{display:none}.syncpill{padding:7px 10px}}
 @media print{.syncpill{display:none}}
+/* v070: 두 연동 칸의 머리 — 무엇과 무엇이 연결된 것인지와 접속 상태를 칸마다 따로 */
+.syncpill .hd{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;padding:4px 14px 4px 12px;background:rgba(0,0,0,.14)}
+.syncpill .hd .ttl{font-size:12px;font-weight:800;letter-spacing:-.2px;white-space:nowrap}
+.syncpill .hd .who{font-size:10px;opacity:.72;white-space:nowrap}
+.syncpill .hd .stl{display:flex;align-items:center;gap:6px;margin-top:1px}
+.syncpill .hd .stl b{font-size:13px}
+.syncpill .hd .dot{width:9px;height:9px}
+.syncpill.ec .hd .ttl{color:#9ff0c6}
+.syncpill.share .hd .ttl{color:#bfe3ff}
+.syncpill.ok .hd b{color:#7df0b0}
+.syncpill.warn .hd b{color:#ffd27a}
+.syncpill.bad .hd b{color:#ffb3b3}
+.syncpill.off .hd b{color:#cbd5e1}
+.syncpill.share.ok .dot{background:#3ddc84;box-shadow:0 0 0 3px rgba(61,220,132,.28);animation:sp-pulse 2.4s infinite}
+.syncpill.share.warn .dot{background:#ffb020;box-shadow:0 0 0 3px rgba(255,176,32,.28)}
+.syncpill.share.bad .dot{background:#ff5a5a;box-shadow:0 0 0 3px rgba(255,90,90,.28)}
+.syncpill.share.warn,.syncpill.share.bad{background:rgba(90,160,230,.16);border-color:rgba(125,200,255,.55)}
+@media (min-width:760px) and (max-width:1250px){.syncpill .hd .who{display:none}}
+@media (max-width:759px){.syncpill .hd{padding:4px 9px}.syncpill .hd .who{display:none}.syncpill .hd .ttl{font-size:11px}}
 header.top select{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);color:#fff;border-radius:8px;padding:6px 8px;font-size:13px;max-width:150px}
 header.top select option{color:var(--ink)}
 main{max-width:1080px;margin:0 auto;padding:12px 12px calc(var(--tab-h) + 18px)}
@@ -552,13 +571,14 @@ body.sys-sub .finwrap{height:calc(100vh - var(--head-h,62px) - 60px)!important}
     <button class="nb-add" id="nbAdd" title="전달사항 입력"><span class="nb-plus">＋</span><span class="nb-addt"> 전달</span></button>
   </div>
   <select id="weekSel" title="기준 주차"></select>
-  <button class="syncpill" id="syncPill" title="클릭하면 이카운트 자료를 바로 확인합니다">
-    <span class="sk st"><span class="dot"></span><span class="lb">이카운트 연동</span><b id="spState">확인 중</b></span>
+  <button class="syncpill ec" id="syncPill" title="클릭하면 이카운트 자료를 바로 확인합니다">
+    <span class="sk hd"><span class="ttl">이카운트 실시간 연동</span><span class="who">사무실 PC → 전산재고</span><span class="stl"><span class="dot"></span><b id="spState">확인 중</b></span></span>
     <span class="sk"><span class="lb">마지막 반영</span><b id="spChk">—</b><small id="spAgo"></small></span>
     <span class="sk"><span class="lb">재고 변동</span><b id="spChg">—</b><small id="spChgN"></small></span>
     <span class="sk mt"><span class="lb">매칭</span><b id="spMatch">—</b></span>
   </button>
   <button class="syncpill share" id="sharePill" title="담당자 입력 변동 내역">
+    <span class="sk hd"><span class="ttl">작업자 입력 연동</span><span class="who">휴대폰·PC ↔ 공유 저장소</span><span class="stl"><span class="dot"></span><b id="spShState">확인 중</b></span></span>
     <span class="sk"><span class="lb">원료 입력</span><b id="spRaw">—</b><small id="spRawN"></small></span>
     <span class="sk"><span class="lb">완제품 입력</span><b id="spFin">—</b><small id="spFinN"></small></span>
     <span class="sk mt" style="justify-content:center"><small style="opacity:1;font-weight:700">내역 ▸</small></span>
@@ -897,7 +917,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '069';
+const APP_VER  = '070';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2395,6 +2415,7 @@ async function sharePull(full, quiet) {
 function renderShareStatus(msg) {
   const sh = S.share || {}; const on = shareOn(); const hm = t => t ? t.slice(11, 16) : '—';
   const txt = !on ? '' : msg ? `☁ ${msg}` : sh.err ? `☁ ${sh.err}` : `☁ 공유 ${hm(sh.lastPull || sh.lastPush)}${sh.outbox && sh.outbox.length ? ` · 보낼 것 ${sh.outbox.length}` : ''}${S.settings.reporter ? ' · ' + S.settings.reporter : ' · 보고자 이름 미설정'}`;
+  try { renderSharePill(); } catch (e) {}
   ['#piShare', '#wkShare'].forEach(s => { const el = $(s); if (el) { el.textContent = txt; el.style.color = sh.err ? 'var(--warn)' : ''; } });
   const st = $('#shareStatus'); if (st) st.innerHTML = !on ? (S.settings.shareUrl ? '<span style="color:var(--warn)">URL 형식이 맞지 않습니다. https://script.google.com/macros/s/…/exec 형태여야 합니다.</span>' : '연결 안 됨 — URL을 입력하세요.') : `${msg ? msg + ' · ' : ''}마지막 받음 ${hm(sh.lastPull)} · 마지막 보냄 ${hm(sh.lastPush)} · 보낼 것 ${(sh.outbox || []).length}건 · 이 기기 ${esc(sh.device || '')} · 입력자 이름 ${esc(S.settings.reporter || '(미설정 — 설정 상단 보고자)')}${sh.err ? `<br><span style="color:var(--warn)">${esc(sh.err)}</span>` : ''}`;
 }
@@ -2438,7 +2459,11 @@ function renderSharePill() {
   const ld = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const fill = (src, idB, idS) => { const L = src === 'raw' ? (S.changeLog || []) : finLogRead(); const last = L[L.length - 1]; const n = L.filter(e => ld(e.ts) === td).length; const b = $('#' + idB), s = $('#' + idS); if (!b) return; b.textContent = last ? hmT(last.ts) : '—'; s.textContent = last ? `${last.user || '(이름 없음)'} · 오늘 ${n}건` : '기록 없음'; };
   fill('raw', 'spRaw', 'spRawN'); fill('fin', 'spFin', 'spFinN');
-  p.title = '담당자 입력 변동 — 클릭하면 누가 언제 무엇을 바꿨는지 목록으로 봅니다';
+  /* v070: 작업자 입력 연동(공유 저장소) 접속 상태 — 1분마다 받기가 되고 있는지, 못 보낸 입력이 있는지 */
+  const sh = S.share || {}, on = shareOn(), out = (sh.outbox || []).length; const lp = Date.parse(sh.lastPull || sh.lastPush || ''); const pm = lp ? Math.round((Date.now() - lp) / 60000) : null;
+  const st = !on ? ['off', '꺼짐', '공유 저장소 주소가 없습니다 — 입력이 이 기기에만 저장됩니다'] : sh.err ? ['bad', '연결 오류', sh.err] : pm == null ? ['warn', '연결 중', '공유 저장소에 처음 연결하는 중입니다'] : pm > 5 ? ['warn', '응답 지연', `${pm}분째 공유 저장소에서 받지 못했습니다 — 인터넷 연결을 확인하세요`] : out ? ['warn', `보내는 중 ${out}건`, `이 기기 입력 ${out}건을 공유 저장소로 보내는 중입니다`] : ['ok', '연결됨', `${pm < 1 ? '방금' : pm + '분 전'} 공유 저장소와 맞춤 — 다른 작업자의 입력이 1분마다 들어옵니다`];
+  p.className = 'syncpill share ' + st[0]; const e = $('#spShState'); if (e) e.textContent = st[1];
+  p.title = `작업자 입력 연동: ${st[2]}\n원료·완제품 담당자가 휴대폰·PC에서 넣은 실물재고·소비기한·메모를 공유 저장소(구글 시트)로 주고받습니다.\n클릭하면 누가 언제 무엇을 바꿨는지 목록으로 봅니다`;
 }
 let clF = { src: 'all', user: 'all', range: 'today', q: '' };
 function openChangeLog(src) {
@@ -3167,16 +3192,16 @@ function renderSyncPill() {
   const p = $('#syncPill'); if (!p) return; const s = S.ecountSync;
   const set = (id, v) => { const el = $('#' + id); if (el) el.textContent = v; };
   const hmT = d => (d.toDateString() === new Date().toDateString()) ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : hmOf(d);
-  if (!s) { p.className = 'syncpill bad'; set('spState', '자료 없음'); set('spChk', '—'); set('spAgo', '사무실 PC 확인'); set('spChg', '—'); set('spChgN', ''); set('spMatch', '—'); p.title = '이카운트 자료를 받지 못했습니다 — 사무실 PC 동기화 프로그램을 확인하세요'; return; }
+  if (!s) { p.className = 'syncpill ec bad'; set('spState', '자료 없음'); set('spChk', '—'); set('spAgo', '사무실 PC 확인'); set('spChg', '—'); set('spChgN', ''); set('spMatch', '—'); p.title = '이카운트 자료를 받지 못했습니다 — 사무실 PC 동기화 프로그램을 확인하세요'; return; }
   const chk = new Date(s.checkedAt || s.updatedAt), chg = new Date(s.changedAt || s.updatedAt);
   const min = Math.max(0, Math.round((Date.now() - chk.getTime()) / 60000)); const E = ecOffice(s);
   const stale = E.stale;
   const ago = min <= 1 ? '방금' : min >= 120 ? Math.floor(min / 60) + '시간 전' : min + '분 전';
-  p.className = 'syncpill ' + (stale ? 'warn' : 'ok');
+  p.className = 'syncpill ec ' + (stale ? 'warn' : 'ok');
   set('spState', stale ? '확인 지연 ⚠' : '정상'); set('spChk', hmT(chk)); set('spAgo', E.pc === 'on' ? 'PC 5분마다 확인 중' : stale ? ago + ' · 사무실 PC 확인' : ago);
   set('spChg', hmT(chg)); const last = (S.ecountChanges || [])[0]; set('spChgN', last && (last.ts === s.changedAt) ? `${last.items.length}품목 변동` : (chg.toDateString() === new Date().toDateString() ? '오늘' : hmOf(chg).split(' ')[0]));
   set('spMatch', `${s.matched}/${s.known}`);
-  p.title = `사무실 PC는 5분마다 이카운트를 확인하고 재고가 바뀔 때만 올립니다 — 「마지막 반영」은 마지막으로 올린 시각입니다.\n${E.text}\n이카운트 재고 변동 ${hmOf(chg)} / 마지막 반영 ${hmOf(chk)} (${ago}) · 기준일 ${s.baseDate} · 매칭 ${s.matched}/${s.known}품목 — 클릭하면 바로 확인`;
+  p.title = `이카운트 실시간 연동: 사무실 PC가 이카운트 전산재고를 읽어 올리는 연결입니다.\n사무실 PC는 5분마다 이카운트를 확인하고 재고가 바뀔 때만 올립니다 — 「마지막 반영」은 마지막으로 올린 시각입니다.\n${E.text}\n이카운트 재고 변동 ${hmOf(chg)} / 마지막 반영 ${hmOf(chk)} (${ago}) · 기준일 ${s.baseDate} · 매칭 ${s.matched}/${s.known}품목 — 클릭하면 바로 확인`;
 }
 function hmOf(iso) { const t = new Date(iso); return isNaN(t) ? (iso || '—') : `${t.getMonth() + 1}/${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`; }
 /* v069: 사무실 PC 동기화는 5분마다 확인하지만 재고가 바뀔 때만 data.json을 올립니다.
