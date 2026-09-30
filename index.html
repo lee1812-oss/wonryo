@@ -935,7 +935,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '079';
+const APP_VER  = '080';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1680,7 +1680,9 @@ function prodStats() {
   const add = (code, date, qty, n) => { if (!code) return; const s = out[code] = out[code] || { n: 0, last: '', lastQty: null, wd: [0, 0, 0, 0, 0, 0, 0], med: null, qtys: [] }; s.n += n || 1; if (date > s.last) { s.last = date; if (qty != null) s.lastQty = qty; } if (qty != null) s.qtys.push(qty); if (date) s.wd[new Date(date + 'T00:00:00').getDay()]++; };
   if (P.hist && P.hist.items) Object.values(P.hist.items).forEach(h => { if (!h.code) return; const s = out[h.code] = out[h.code] || { n: 0, last: '', lastQty: null, wd: [0, 0, 0, 0, 0, 0, 0], med: null, qtys: [] }; s.n += h.n; if (h.last > s.last) { s.last = h.last; s.lastQty = h.lastQty; } s.qtys = s.qtys.concat(h.qtys || []); h.wd.forEach((v, i) => { s.wd[i] += v; }); });
   if (!P.hist && P.shStats) Object.entries(P.shStats).forEach(([code, x]) => { if (!out[code]) out[code] = { n: x.n || 0, last: x.last || '', lastQty: x.lastQty ?? null, wd: Array.isArray(x.wd) ? x.wd.slice() : [0, 0, 0, 0, 0, 0, 0], med: x.med ?? null, qtys: [], shared: 1 }; });   /* v068: 관리자 PC에서 받은 최근 생산 통계 */
-  P.log.filter(en => en.status === 'sent' && !en.test).forEach(en => (en.lines || []).forEach(l => add(l.code, en.date, l.ecQty || l.qty)));   /* 수량은 모두 이카운트 단위 */
+  const hTo = (P.hist && P.hist.to) || ''; const mine = new Set(); const asOf = !P.hist && P.shStats ? (P.shAsOf || '') : '';   /* 관리자 PC에서 받은 통계에 이미 들어간 것은 빼고 */
+  P.log.filter(en => en.status === 'sent' && !en.test).forEach(en => { mine.add(String(en.cid || en.id)); if (en.date > hTo && (en.sentAt || en.ts || '') > asOf) (en.lines || []).forEach(l => add(l.code, en.date, l.ecQty || l.qty)); });   /* 수량은 모두 이카운트 단위 · 엑셀 이력 기간 뒤의 것만 (이중 계산 방지) */
+  Object.entries(P.slog || {}).forEach(([id, e]) => { if (mine.has(id) || !(e.d > hTo) || !((e.ts || '') > asOf)) return; (e.l || []).forEach(([c, q]) => add(c, e.d, q)); });   /* v080: 다른 기기에서 보낸 생산 */
   Object.values(out).forEach(s => { const a = s.qtys.slice().sort((x, y) => x - y); s.med = a.length ? a[Math.floor(a.length / 2)] : (s.shared ? s.med : null); if (s.lastQty == null) s.lastQty = s.med; });
   return out;
 }
@@ -1693,7 +1695,8 @@ function prodCfgPack() {
   const P = prodS(), st = prodStats();
   const items = prodOnItems().map(i => { const o = {}; ['code', 'name', 'unit', 'ecEa', 'ecDiv', 'ecSpec', 'kind', 'manual', 'prodEa', 'grp', 'ecName', 'ecMissing', 'ecSrc', 'dough', 'doughName', 'ratio', 'np'].forEach(k => { if (i[k] != null && i[k] !== '' && i[k] !== false) o[k] = i[k]; }); return o; });
   const stats = {}; items.forEach(i => { const x = st[i.code]; if (x) stats[i.code] = { n: x.n, last: x.last, lastQty: x.lastQty, med: x.med, wd: x.wd }; });
-  const c = P.cfg; return { v: 1, cfg: { relayUrl: c.relayUrl, test: !!c.test, emp: c.emp, whF: c.whF, whT: c.whT, extra: c.extra, dec: c.dec, workers: c.workers || '', wkRem: c.wkRem !== false }, items, stats };
+  const asOf = [...Object.values(P.slog || {}).map(e => e.ts || ''), ...P.log.filter(en => en.status === 'sent' && !en.test).map(en => en.sentAt || en.ts || '')].reduce((a, b) => b > a ? b : a, '');
+  const c = P.cfg; return { v: 1, asOf, cfg: { relayUrl: c.relayUrl, test: !!c.test, emp: c.emp, whF: c.whF, whT: c.whT, extra: c.extra, dec: c.dec, workers: c.workers || '', wkRem: c.wkRem !== false }, items, stats };
 }
 function prodCfgShare() {
   try {
@@ -1710,7 +1713,7 @@ function prodCfgApply(row) {
   let pk; try { pk = JSON.parse(row.note); } catch (e) { return false; } if (!pk || !pk.cfg || !Array.isArray(pk.items)) return false;
   Object.assign(P.cfg, pk.cfg); const old = {}; P.items.forEach(i => { old[i.code] = i; });
   P.items = pk.items.map(i => Object.assign({}, i, { on: true }));
-  P.shStats = pk.stats || {}; P.cfgTs = row.ts; P.cfgSent = row.note; P.cfgFrom = [row.user, row.device].filter(Boolean).join(' · ');
+  P.shStats = pk.stats || {}; P.shAsOf = pk.asOf || ''; P.cfgTs = row.ts; P.cfgSent = row.note; P.cfgFrom = [row.user, row.device].filter(Boolean).join(' · ');
   return true;
 }
 setTimeout(prodCfgShare, 8000); setInterval(prodCfgShare, 60 * 1000);
@@ -1896,10 +1899,23 @@ async function prodSubmit(entry) {
 /* v066: 이카운트는 등록된 IP만 받으므로, 중계는 대기열이고 사무실 PC 「이카운트 전송기」가 실제로 보냄 → 결과를 물어서 반영 */
 function prodAgentOk() { const t = Date.parse(prodS().agentSeen || ''); return t && Date.now() - t < 5 * 60000; }
 function prodAgentText() { const a = prodS().agentSeen; if (!a) return '사무실 PC 전송기가 아직 연결된 적 없음'; const m = Math.round((Date.now() - Date.parse(a)) / 60000); return m < 5 ? `사무실 PC 전송기 작동 중 (${m < 1 ? '방금' : m + '분 전'} 확인)` : `사무실 PC 전송기 꺼져 있음 — 마지막 확인 ${hmOf(a)}`; }
+/* v080: 보낸 생산 기록 공유 — 어느 기기에서 보내도 모든 기기의 「지난번 수량·횟수·요일 추천」에 자동 반영
+   (소모현황 엑셀을 다시 넣지 않아도 됨). 품목코드·수량·날짜만 올리고 단가 등은 없음 */
+function prodShareLog(en) {
+  try { if (!en || en.test || en.shared || !shareOn()) return; en.shared = 1;
+    nbQueue({ ts: new Date().toISOString(), week: '', code: String(en.cid || en.id), name: '생산 전송', kind: 'plog', note: JSON.stringify({ d: en.date, s: en.slip || '', l: (en.lines || []).map(l => [l.code, Number(l.ecQty || l.qty) || 0]) }) }); } catch (e) {}
+}
+function prodSlogAdd(row) {
+  if (!row || !row.code) return false; const P = prodS(); P.slog = P.slog || {}; if (row.del) { if (P.slog[row.code]) { delete P.slog[row.code]; return true; } return false; }
+  let o; try { o = JSON.parse(row.note || '{}'); } catch (e) { return false; } if (!o || !o.d || !Array.isArray(o.l)) return false;
+  if (P.slog[row.code] && P.slog[row.code].ts >= row.ts) return false; P.slog[row.code] = { ts: row.ts, d: o.d, l: o.l };
+  const ks = Object.keys(P.slog); if (ks.length > 600) ks.sort((a, b) => (P.slog[a].d || '').localeCompare(P.slog[b].d || '')).slice(0, ks.length - 600).forEach(k => delete P.slog[k]);
+  return true;
+}
 function prodApplyJob(entry, job) {
   if (!job || !job.result || (job.status !== 'sent' && job.status !== 'fail')) return false;
   const r = job.result;
-  if (job.status === 'sent') { entry.status = 'sent'; entry.err = ''; entry.slip = (r.slipNos || []).join(', '); entry.sentAt = job.doneAt || new Date().toISOString(); toast(`${entry.test ? '[테스트] ' : ''}이카운트 생산입고 전표 ${entry.slip || ''} 생성`); }
+  if (job.status === 'sent') { entry.status = 'sent'; entry.err = ''; entry.slip = (r.slipNos || []).join(', '); entry.sentAt = job.doneAt || new Date().toISOString(); prodShareLog(entry); toast(`${entry.test ? '[테스트] ' : ''}이카운트 생산입고 전표 ${entry.slip || ''} 생성`); }
   else { entry.status = 'fail'; entry.err = r.error || '이카운트가 입력을 거절했습니다'; entry.details = (r.details || []).filter(d => !d.ok).slice(0, 10); toast('전송 실패: ' + entry.err); }
   return true;
 }
@@ -2568,6 +2584,7 @@ async function sharePull(full, quiet) {
     (j.rows || []).sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0).forEach(row => {
       if (row.kind === 'insp' || row.kind === 'inspm') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.kind === 'insp' && row.ts && inspLogAdd(row)) inspCh = true; return; }   /* v072: 육안검사 마지막 입력 표시용 */   /* v054: 육안검사일지 행은 그쪽(inspect.html)이 받음 */
       if (row.kind === 'itemw') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.code && row.ts && setItemW(row.code, itemWFromNote(row.note), row.ts, true)) { changed++; if (row.device !== sh.device) applied.push(row); } return; }
+      if (row.kind === 'plog') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (prodSlogAdd(row)) pcfgCh = pcfgCh || 'log'; return; }   /* v080: 다른 기기에서 보낸 생산 기록 */
       if (row.kind === 'pcfg') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.code === 'prod' && prodCfgApply(row)) pcfgCh = true; return; }   /* v068: 생산일지 설정 */
       if (row.kind === 'notice' || row.kind === 'noticeack') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; const r = nbApply(row); if (r) nbCh++; if (r === 2) nbNew.push(row); return; }
       if (!row.week || !row.ts) return; if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.week))) { const d = new Date(row.week); if (!isNaN(d)) row.week = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); } if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.expiry || ''))) row.expiry = String(row.expiry).slice(0, 10); if (row.ts > (sh.since || '')) sh.since = row.ts; if (row.device && row.device === sh.device) return; applied.push(row);
@@ -2582,7 +2599,7 @@ async function sharePull(full, quiet) {
     if (applied.length > 60) logAdd({ ts: applied[applied.length - 1].ts, user: '(여러 명)', device: '공유 저장소', text: `공유 자료 ${applied.length}건 받음` }); else applied.forEach(row => logAdd({ ts: row.ts, user: row.user || '', device: row.device || '', text: shareRowText(row) }));
     sh.lastPull = new Date().toISOString(); sh.err = ''; save(true); renderSharePill();
     if (inspCh) renderSharePill();
-    if (pcfgCh) { toast('관리자 PC에서 생산일지 설정을 받았습니다'); if (S.ui.menu === 'prod') renderProd(); }
+    if (pcfgCh) { if (pcfgCh !== 'log') toast('관리자 PC에서 생산일지 설정을 받았습니다'); if (S.ui.menu === 'prod' && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#prodNew'))) renderProd(); }
     if (nbCh) { renderNotice(); if (nbNew.length && !full) { const r = nbNew[nbNew.length - 1]; let t = ''; try { t = JSON.parse(r.note || '{}').text || ''; } catch (e) {} toast(`📢 새 전달사항 · ${r.name || ''}: ${String(t).slice(0, 40)}`); } }
     if (changed) { toast(`공유 저장소에서 ${changed}건 반영`); if (S.ui.menu !== 'fin' && ['phys', 'weekly', 'cmp', 'dash', 'trend'].includes(S.ui.tab)) { if (shareTyping()) { sh.pendingRender = true; } else { if (S.ui.tab === 'weekly') wk.rows = []; renderAll(); } } } }
   catch (e) { sh.err = '받기 실패: ' + (e.message || e); save(); }
