@@ -382,7 +382,7 @@ body.briefing{overflow:hidden}
 @media (max-width:640px){.kpistrip.d3{grid-template-columns:repeat(2,1fr)}.ecgrid{grid-template-columns:1fr!important}}
 @media print{.ecbadge{display:none}}
 /* 원료수불부 안에 내장된 경우: 탭·브랜드는 부모 사이드바가 담당 */
-html.embedded #tabs{display:none}html.embedded .appbar .brand{display:none}html.embedded .appbar .in{height:auto;min-height:48px;flex-wrap:wrap;padding:6px 14px}html.embedded main{padding-top:10px}
+html.mode-user #btnSaveJson,html.mode-user #btnSaveHtml{display:none!important}html.embedded #tabs{display:none}html.embedded .appbar .brand{display:none}html.embedded .appbar .in{height:auto;min-height:48px;flex-wrap:wrap;padding:6px 14px}html.embedded main{padding-top:10px}
 
 /* v073 관리 요망 재고(소비기한 경과·임박·비상품) KPI + 발주 품목 소형 카드 */
 .bfkpi{grid-template-columns:1.5fr 1fr 1fr}
@@ -1102,6 +1102,7 @@ function renderEcPanel(sn){
 }
 $('#ecBadge').onclick=()=>ecFetch(true);
 window.addEventListener('message',e=>{const m=e.data;if(!m||typeof m!=='object')return;if(m.type==='wonryo-summary'){finPostSum(true);return;}if(m.type==='wonryo-items-req'&&e.source===window.parent){/* v058: 통합재고관리 생산일지에 품목(코드·이름·단위·EA 환산)만 넘김 */try{e.source.postMessage(finItemsMsg(true),e.origin==='null'?'*':e.origin);}catch(err){}return;}if(m.type==='wonryo-ecount'&&m.data){try{ecApply(m.data);}catch(err){}finPostSum();}
+  if(m.type==='wonryo-mode'){document.documentElement.classList.toggle('mode-user',!m.admin);if(!m.admin&&S&&TAB==='items')go('dash');}   /* v068: 직원 화면 — 설정·백업 버튼 숨김 */
   if(m.type==='wonryo-nav'&&m.tab){if(m.tab==='brief'){$('#btnBrief').click();}else{$$('.modal.on').forEach(x=>x.classList.remove('on'));if($('#brief').classList.contains('on'))$('#bfClose').click();go(m.tab);}}});
 setInterval(()=>{if(document.visibilityState==='visible')ecFetch(false);},60*1000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')ecFetch(false);});
@@ -1737,7 +1738,7 @@ window.WJSG={get S(){return S;},ecFetch,ecApply,item,go,commit,render,renderStoc
     function beg() { try { window.parent.postMessage({ type: 'fin-need-key' }, pOrg()); } catch (e) {} }
     beg();
     var begs = 0, begT = setInterval(function () { if (booted || ++begs > 12) { clearInterval(begT); return; } beg(); }, 500);
-    setTimeout(function () { if (!booted) ask('자료가 잠겨 있습니다', false, blob, done); }, 6000);
+    setTimeout(function () { if (!booted) ask('자료가 잠겨 있습니다', false, blob, done); }, 30000);   /* v068: 통합 재고관리에서 한 번만 묻도록 — 열쇠가 끝내 안 올 때만 */
   } else {
     ask('자료가 잠겨 있습니다', false, blob, done);
   }
