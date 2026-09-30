@@ -541,6 +541,79 @@ body.prod-on #weekSel{display:none}   /* v075: 생산일지·통합 설정에서
 .pchip.pk{border-top:4px solid var(--gc,var(--line))}
 .pchip.pk.on{border-top-width:4px}
 .pgrp+.pgrp{margin-top:14px}
+/* v085: 생산 입력 작업 화면 — 넓은 화면은 왼쪽 고르기 · 오른쪽 담은 품목(고정), 좁은 화면은 아래 담은 품목 막대 */
+.pnw-top{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
+.pnw-top .card{margin-bottom:10px}
+.pbar .field label{font-size:12px}
+.pwkcard h2{font-size:15px}
+.pwkcard .muted{display:none}
+.pwkc{min-height:38px;padding:5px 12px;font-size:14px}
+#pWkAdd{min-height:38px;width:120px;padding:5px 12px}
+.pquick .pchips{display:flex;overflow-x:auto;gap:8px;padding-bottom:4px;scrollbar-width:thin}
+.pquick .pchip.pk{flex:0 0 150px;min-height:78px;padding:8px 10px}
+.pquick .pchip.pk .pk-l{display:none}
+.pquick .pchip.pk .pk-v{font-size:20px}
+.pquick>.muted{display:none}
+.pquick h2{font-size:15px}
+#pSugAll{min-height:40px}
+.pgtabs{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;margin-bottom:4px;scrollbar-width:none;position:sticky;top:0}
+.pgtabs::-webkit-scrollbar{display:none}
+.pgtabs button{flex:0 0 auto;padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:700;color:var(--ink2);white-space:nowrap;border-left:4px solid var(--gc,var(--line))}
+.pgtabs button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.pgtabs button small{font-weight:600;opacity:.75}
+.pnote-btn{margin-top:4px;border:0;background:none;color:var(--ink3);font-size:12px;padding:2px 0;text-decoration:underline}
+.pcart .pline{padding:8px 0}
+.pcart .pq{flex-wrap:wrap;flex:1 1 100%;max-width:100%}
+.pwk-sum{display:none}
+@media (max-width:999px){
+  .pwk-sum{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--ink2);margin-top:4px}
+  .pwk-sum .btn{margin-left:auto}
+  .pwkcard .pwk{display:none;margin-top:8px}
+  .pwkcard .pwk.open{display:flex}
+  .pwkcard h2{font-size:14px}
+  .pwkcard .prow>#pWkReset{display:none}
+  .pnw-top .card{padding:10px 12px}
+  .pbar .pill{font-size:11px}
+  .pquick .pchip.pk{flex:0 0 128px;min-height:70px}
+  .pquick .pchip.pk .pk-s{display:none}
+  .pquick h2{margin-bottom:4px!important}
+}
+.pcart-bar{display:none}
+@media (min-width:1000px){
+  .pnw{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,420px);gap:14px;align-items:start}
+  .pnw-top{grid-template-columns:minmax(0,.9fr) minmax(0,1.4fr);gap:12px}
+  .pnw-cart{position:sticky;top:calc(var(--head-h,62px) + 14px);max-height:calc(100vh - var(--head-h,62px) - 28px);overflow:auto;border-radius:var(--radius)}
+  .pnw-cart .pcart{margin-bottom:0;border:2px solid var(--brand)}
+  .pnw-cart .pline{flex-direction:column;align-items:stretch;gap:6px}
+  .pnw-cart .pname{flex:none}
+  .pbar .prow{flex-wrap:nowrap} .pbar .field{min-width:0}
+  .pnw-cart .pq{flex-wrap:wrap}
+  .pchips{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .pchip.pk{min-height:96px}
+  .pchip.pk .pk-v{font-size:22px}
+}
+@media (max-width:999px){
+  .pnw-main{padding-bottom:76px}
+  .pnw-cart{position:fixed;left:0;right:0;bottom:0;z-index:25;background:var(--paper);box-shadow:0 -6px 18px rgba(0,0,0,.14);border-top:2px solid var(--brand);padding-bottom:env(safe-area-inset-bottom)}
+  .pnw-cart.empty{display:none}
+  .pcart-bar{display:flex;align-items:center;gap:8px;padding:8px 12px}
+  .pcart-bar .pcb-l{flex:1 1 auto;text-align:left;border:0;background:none;font-size:16px;font-weight:800;color:var(--brand);padding:6px 0}
+  .pcart-bar .pcb-l span{font-size:12px;color:var(--ink3);font-weight:700;margin-left:6px}
+  .pcart-bar .btn{min-height:44px;padding:0 22px}
+  .pcart-bar .pcb-l.bump{animation:pcbump .5s}
+  @keyframes pcbump{0%{transform:scale(1)}40%{transform:scale(1.08)}100%{transform:scale(1)}}
+  .pnw-cart .pcart{display:none;margin:0;border:0;border-radius:0;max-height:62vh;overflow:auto;padding-top:0}
+  .pnw-cart.open .pcart{display:block}
+  .pnw-cart .pcart>h2{display:none}
+  .pchip.pk{min-height:92px;padding:9px 10px 8px}
+  .pchip.pk .pk-v{font-size:22px}
+}
+@media (min-width:760px) and (max-width:1100px){ header.top{flex-wrap:wrap;row-gap:8px} .syncpill{order:9;flex:1 1 calc(50% - 4px);margin-left:0!important;min-width:0} .syncpill .sk.mt{display:none} .syncpill .sk{padding:4px 8px} }   /* v085: 태블릿 폭에서 상단 연동 칸이 화면 밖으로 나가지 않게 둘째 줄로 */
+@media (min-width:760px) and (max-width:999px){ .pnw-cart{left:var(--side-w,196px)} .pnw-top{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:10px} }
+@media (max-width:759px){ .pnw-cart{bottom:calc(var(--tab-h) + env(safe-area-inset-bottom))} .pnw-main{padding-bottom:80px}
+  body.prod-on .syncpill .sk:not(.hd){display:none} body.prod-on .syncpill{flex:1 1 calc(50% - 9px)!important;margin-top:0;min-width:0} body.prod-on .syncpill .hd{flex:1 1 auto;min-width:0} body.prod-on .syncpill.share{margin-left:0}
+  body.prod-on .noticebar{display:none}
+  .pbar .prow{flex-wrap:nowrap} .pbar .field{flex:1 1 0!important;min-width:0} .pbar .field input{min-width:0;width:100%;font-size:15px;padding-left:8px;padding-right:6px} }
 .pwk{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .pwkc{min-height:44px;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:#fff;font-size:15px;font-weight:700;color:var(--ink3);text-decoration:line-through}
 .pwkc.on{border:2px solid var(--accent);background:var(--accent-bg);color:var(--accent);text-decoration:none}
@@ -935,7 +1008,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '084';
+const APP_VER  = '085';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1759,7 +1832,10 @@ function prodGrouped(list, st, inDraft, grouped) {
   if (!grouped || list.length <= 4) return `<div class="pchips">${list.map(card).join('')}</div>`;
   const by = {}; list.forEach(i => { const g = prodGroupOf(i); (by[g.id] = by[g.id] || []).push(i); }); Object.values(by).forEach(L => L.sort((a, b) => (a.np || 0) - (b.np || 0)));   /* 비상품은 묶음 끝으로 */
   const tot = id => by[id].reduce((a, i) => a + ((st[i.code] || {}).n || 0), 0);
-  return Object.keys(by).sort((a, b) => (a === 'et') - (b === 'et') || tot(b) - tot(a)).map(id => { const g = PROD_GMAP[id], L = by[id], on = L.filter(i => inDraft.has(i.code)).length;
+  const ids = Object.keys(by).sort((a, b) => (a === 'et') - (b === 'et') || tot(b) - tot(a)); const sel = ids.includes(ui.prodGrp) ? ui.prodGrp : '';
+  /* v085: 묶음 탭 — 한 묶음만 골라 보면 스크롤이 짧아짐 */
+  const tabs = `<div class="pgtabs"><button type="button" data-pgt="" class="${sel ? '' : 'on'}">전체 <small>${list.length}</small></button>${ids.map(id => { const g = PROD_GMAP[id], on = by[id].filter(i => inDraft.has(i.code)).length; return `<button type="button" data-pgt="${esc(id)}" class="${sel === id ? 'on' : ''}" style="--gc:${g.gc}">${esc(g.name)} <small>${by[id].length}${on ? ' · ' + on + '✓' : ''}</small></button>`; }).join('')}</div>`;
+  return tabs + ids.filter(id => !sel || id === sel).map(id => { const g = PROD_GMAP[id], L = by[id], on = L.filter(i => inDraft.has(i.code)).length;
     return `<div class="pgrp" style="--gc:${g.gc};--gb:${g.gb}"><div class="pgh"><b>${esc(g.name)}</b>${g.sub ? `<span class="sub">${esc(g.sub)}</span>` : ''}<span class="cnt">${L.length}품목${on ? ` · <em>${on}개 담음</em>` : ''}</span></div><div class="pchips">${L.map(card).join('')}</div></div>`; }).join('');
 }
 /* v081: 박스 제품 ↔ 낱개(1EA) 제품 짝 — 이카운트에서 낱개는 따로 1EA 제품코드로 생산입고하므로
@@ -1798,9 +1874,9 @@ function renderProdNew() {
   const sug = items.filter(i => st[i.code] && st[i.code].wd[wd] >= 2 && st[i.code].last >= cutS).sort((a, b) => st[b.code].wd[wd] - st[a.code].wd[wd]).slice(0, 6);
   const lastSent = P.log.find(en => en.status === 'sent');
   const todayLog = P.log.filter(en => en.date === P.draft.date && en.status === 'sent');
-  box.innerHTML = `
+  box.innerHTML = `<div class="pnw"><div class="pnw-main">
   ${ready.ok ? '' : `<div class="card" style="border-color:#E8C98E;background:var(--warn-bg)"><b>연동 준비가 필요합니다</b><div class="muted" style="margin:4px 0 8px">${esc(ready.msg)}</div><button class="btn sm" data-pgo="pset">${isAdmin() ? '⚙ 통합 설정 → 생산일지 연동 열기' : '🔒 관리자에게 알려 주세요 (관리자 화면 열기)'}</button></div>`}
-  <div class="card">
+  <div class="pnw-top"><div class="card pbar">
     <div class="prow">
       <div class="field" style="flex:1 1 150px"><label for="pDate">생산일</label><input type="date" id="pDate" value="${esc(P.draft.date)}"></div>
       <div class="field" style="flex:1 1 120px"><label for="pWho">입력자</label><input id="pWho" value="${esc(S.settings.reporter || '')}" placeholder="이름"></div>
@@ -1808,21 +1884,30 @@ function renderProdNew() {
     <div style="margin-top:8px"><span class="pill ${P.cfg.test ? 'warn' : 'ok'}">${P.cfg.test ? '테스트 모드 — 실제 이카운트에는 들어가지 않습니다' : '실제 이카운트로 전송'}</span></div>
   </div>
   ${(() => { const def = prodWorkersDefault(P), cur = P.draft.workers || [], names = [...new Set(def.concat(cur))], same = def.length === cur.length && def.every(n => cur.includes(n));
-    return `<div class="card"><div class="prow" style="align-items:center"><h2 style="margin:0;flex:1 1 auto">작업자 <span class="pill ${cur.length ? 'ok' : 'warn'}">${cur.length}명</span></h2>${def.length && !same ? '<button type="button" class="btn xs" id="pWkReset">기본 작업자로</button>' : ''}</div>
+    return `<div class="card pwkcard"><div class="prow" style="align-items:center"><h2 style="margin:0;flex:1 1 auto">작업자 <span class="pill ${cur.length ? 'ok' : 'warn'}">${cur.length}명</span></h2>${def.length && !same ? '<button type="button" class="btn xs" id="pWkReset">기본 작업자로</button>' : ''}</div>
     <div class="muted" style="font-size:12px;margin:2px 0 8px">${def.length ? '기본 작업자가 들어가 있습니다. 휴가 등으로 빠진 사람은 눌러서 빼고, 다시 누르면 넣습니다.' : '관리자가 「⚙ 통합 설정 → 생산일지 연동 → 기본 작업자」를 정하면 매일 자동으로 채워집니다. 지금은 아래에 이름을 넣으세요.'}</div>
-    <div class="pwk">${names.map(n => { const on = cur.includes(n); return `<button type="button" class="pwkc${on ? ' on' : ''}${def.includes(n) ? '' : ' ex'}" data-pwk="${esc(n)}" aria-pressed="${on}">${on ? '✓ ' : ''}${esc(n)}${def.includes(n) ? '' : ' <small>추가</small>'}</button>`; }).join('')}<input id="pWkAdd" placeholder="＋ 이름 추가" aria-label="작업자 이름 추가" enterkeyhint="done"></div></div>`; })()}
-  ${sug.length || (lastSent && !P.draft.lines.length) ? `<div class="card"><h2 style="margin:0 0 6px">빠른 시작</h2>
+    <div class="pwk-sum">${cur.length ? esc(cur.join('·')) : '<span style="color:var(--warn)">작업자 없음</span>'} <button type="button" class="btn xs" id="pWkOpen">${ui.wkOpen ? '접기' : '변경'}</button></div>
+    <div class="pwk${ui.wkOpen ? ' open' : ''}">${names.map(n => { const on = cur.includes(n); return `<button type="button" class="pwkc${on ? ' on' : ''}${def.includes(n) ? '' : ' ex'}" data-pwk="${esc(n)}" aria-pressed="${on}">${on ? '✓ ' : ''}${esc(n)}${def.includes(n) ? '' : ' <small>추가</small>'}</button>`; }).join('')}<input id="pWkAdd" placeholder="＋ 이름 추가" aria-label="작업자 이름 추가" enterkeyhint="done"></div></div>`; })()}</div>
+  ${sug.length || (lastSent && !P.draft.lines.length) ? `<div class="card pquick"><h2 style="margin:0 0 6px">빠른 시작</h2>
     ${sug.length ? `<div class="muted" style="margin-bottom:8px">${WD[wd]}요일에 자주 만든 품목 — 누르면 담고, 다시 누르면 뺍니다</div><div class="pchips">${sug.map(i => prodKpi(i, st[i.code], inDraft.has(i.code), `${WD[wd]}요일 ${st[i.code].wd[wd]}번 · 최근 ${st[i.code].last ? esc(st[i.code].last.slice(5).replace('-', '/')) : '—'}`, 'sg')).join('')}</div>${sug.some(i => !inDraft.has(i.code)) ? `<div class="prow" style="margin-top:10px"><button class="btn primary" id="pSugAll" style="flex:1 1 auto">${sug.filter(i => !inDraft.has(i.code)).length}품목 모두 담기</button></div>` : ''}` : ''}
     ${lastSent && !P.draft.lines.length ? `<div class="prow" style="margin-top:${sug.length ? 10 : 0}px;align-items:center"><span class="muted" style="flex:1 1 200px">지난 입력 (${esc(lastSent.date)}): ${esc(lastSent.lines.map(l => l.name).join(', '))}</span><button class="btn sm" id="pRepeat">같은 품목으로 시작</button></div>` : ''}
   </div>` : ''}
   <div class="card">
+    <div class="prow" style="align-items:center;margin-bottom:8px"><h2 style="margin:0;flex:1 1 auto">품목 고르기</h2><input class="search" id="pQ" value="${esc(ui.prodQ || '')}" placeholder="품목·코드 검색" aria-label="생산 품목 검색" style="flex:0 1 180px;min-width:0"></div>
+    ${items.length ? (list.length ? prodGrouped(list, st, inDraft, !q) : '<div class="muted">검색에 맞는 품목이 없습니다.</div>')
+      : `<div class="muted">생산 품목이 없습니다. 관리자 PC의 설정을 받는 중이거나, 관리자가 아직 「⚙ 통합 설정 → 생산일지 연동 → 생산 품목」을 정하지 않았습니다.</div>${shareOn() ? '<div class="prow" style="margin-top:8px"><button type="button" class="btn primary" id="pCfgRefetch">관리자 설정 다시 받기</button></div>' : ''}`}
+    ${hiddenN > 0 || ui.prodAll ? `<div style="margin-top:10px"><button type="button" class="btn sm" id="pAll">${ui.prodAll ? '우리가 생산한 품목만 보기' : `처음 만드는 품목 찾기 (생산 이력에 없는 품목 ${hiddenN}개)`}</button></div>` : ''}
+  </div>
+  ${todayLog.length ? `<div class="card"><h2 style="margin:0 0 6px">${esc(P.draft.date)} 보낸 생산</h2>${todayLog.map(en => `<div class="muted" style="padding:3px 0">${esc(hmOf(en.sentAt || en.ts))} · ${esc(en.lines.map(l => l.name + ' ' + fmt(l.qty) + (l.mode === 'ea' ? '개' : '')).join(', '))} <span class="pill ok">${en.test ? '테스트 ' : ''}전표 ${esc(en.slip || '')}</span></div>`).join('')}</div>` : ''}</div>
+  <div class="pnw-cart${P.draft.lines.length ? '' : ' empty'}${ui.cartOpen ? ' open' : ''}"><div class="pcart-bar"><button type="button" class="pcb-l" id="pCartBar">🧺 생산한 품목 <b>${P.draft.lines.length}</b>개 <span>${ui.cartOpen ? '▼ 닫기' : '▲ 수량 넣기'}</span></button>${P.draft.lines.length ? `<button type="button" class="btn primary" id="pSendBar" ${ready.ok ? '' : 'disabled'}>보내기</button>` : ''}</div>
+  <div class="card pcart" id="pCart">
     <h2 style="margin:0 0 4px">생산한 품목${P.draft.lines.length ? ` <span class="pill ok">${P.draft.lines.length}</span>` : ''}</h2>
     ${P.draft.lines.length ? P.draft.lines.map(l => { const it = prodItem(l.code) || { name: l.code, unit: '' }; const pk = prodPack(it); const s = st[l.code];
       const lastMode = prodIsEa(it) ? 'ea' : ''; const ph = s && s.lastQty != null && (l.mode || '') === lastMode ? String(s.lastQty) : '0';
       return `<div class="pline">
         <div class="pname"><b>${esc(it.name)}</b>${(() => { const k = prodEcCheck(it); return `<div style="font-size:12px;${k.ok ? 'color:var(--ink2)' : 'color:var(--minus);font-weight:700'}">이카운트 ${esc(l.code)}${it.ecName ? ' · ' + esc(it.ecName) : ''}${k.ok ? '' : ' — ⚠ ' + esc(k.msg)}</div>`; })()}<div class="muted" style="font-size:12px">${s ? esc(prodHint(s, it)) : ''}</div>
           <div class="muted" style="font-size:12px" data-pconv="${l.id}">${prodConvText(it, l)}</div>
-          <input class="pnote" data-pnote="${l.id}" value="${esc(l.note || '')}" placeholder="비고 (선택)" aria-label="${esc(it.name)} 비고"></div>
+          ${l.note || ui.noteFor === l.id ? `<input class="pnote" data-pnote="${l.id}" value="${esc(l.note || '')}" placeholder="비고 (선택)" aria-label="${esc(it.name)} 비고">` : `<button type="button" class="pnote-btn" data-pnoteopen="${l.id}">✎ 비고</button>`}</div>
         <div class="pq">${(() => { const F = prodFamily(it); if (F) { const btn = (x, label) => x ? `<button type="button" ${x === it ? 'class="on"' : `data-pswap="${l.id}" data-to="${esc(x.code)}"`} title="${esc(x.code)} · ${esc(x.name)}"${label === '비상품' ? ' style="color:var(--minus)"' : ''}>${label}</button>` : '';
             return `<div class="pseg" role="group" aria-label="${esc(it.name)} 박스·낱개·비상품">${btn(F.B, esc((F.B && F.B.unit) || 'BOX'))}${btn(F.E, '낱개')}${btn(F.N, '비상품')}</div>`; }
           return pk > 1 ? `<div class="pseg" role="group" aria-label="${esc(it.name)} 입력 단위"><button type="button" data-pmode="${l.id}" data-m="" class="${l.mode !== 'ea' ? 'on' : ''}">${esc(it.unit || 'BOX')}</button><button type="button" data-pmode="${l.id}" data-m="ea" class="${l.mode === 'ea' ? 'on' : ''}">낱개</button></div>` : ''; })()}
@@ -1830,16 +1915,11 @@ function renderProdNew() {
           ${s && s.lastQty != null && !l.qty ? `<button type="button" class="btn xs" data-plast="${l.id}">지난번 ${fmt(s.lastQty)}</button>` : ''}
           <button type="button" class="btn xs danger" data-pdel="${l.id}" aria-label="${esc(it.name)} 빼기">빼기</button></div>
       </div>`; }).join('')
-    : '<div class="muted" style="padding:6px 0">아래 「품목 고르기」에서 오늘 생산한 품목을 누르세요.</div>'}
+    : '<div class="muted" style="padding:6px 0">「품목 고르기」에서 오늘 생산한 품목을 누르세요.</div>'}
     ${P.draft.lines.length ? `<div class="prow" style="margin-top:12px"><button class="btn primary psend" id="pSend" ${ready.ok ? '' : 'disabled'}>이카운트로 보내기 (${P.draft.lines.length}품목)</button><button class="btn" id="pClear">비우기</button></div>` : ''}
   </div>
-  <div class="card">
-    <div class="prow" style="align-items:center;margin-bottom:8px"><h2 style="margin:0;flex:1 1 auto">품목 고르기</h2><input class="search" id="pQ" value="${esc(ui.prodQ || '')}" placeholder="품목·코드 검색" aria-label="생산 품목 검색" style="flex:0 1 180px;min-width:0"></div>
-    ${items.length ? (list.length ? prodGrouped(list, st, inDraft, !q) : '<div class="muted">검색에 맞는 품목이 없습니다.</div>')
-      : `<div class="muted">생산 품목이 없습니다. 관리자 PC의 설정을 받는 중이거나, 관리자가 아직 「⚙ 통합 설정 → 생산일지 연동 → 생산 품목」을 정하지 않았습니다.</div>${shareOn() ? '<div class="prow" style="margin-top:8px"><button type="button" class="btn primary" id="pCfgRefetch">관리자 설정 다시 받기</button></div>' : ''}`}
-    ${hiddenN > 0 || ui.prodAll ? `<div style="margin-top:10px"><button type="button" class="btn sm" id="pAll">${ui.prodAll ? '우리가 생산한 품목만 보기' : `처음 만드는 품목 찾기 (생산 이력에 없는 품목 ${hiddenN}개)`}</button></div>` : ''}
   </div>
-  ${todayLog.length ? `<div class="card"><h2 style="margin:0 0 6px">${esc(P.draft.date)} 보낸 생산</h2>${todayLog.map(en => `<div class="muted" style="padding:3px 0">${esc(hmOf(en.sentAt || en.ts))} · ${esc(en.lines.map(l => l.name + ' ' + fmt(l.qty) + (l.mode === 'ea' ? '개' : '')).join(', '))} <span class="pill ok">${en.test ? '테스트 ' : ''}전표 ${esc(en.slip || '')}</span></div>`).join('')}</div>` : ''}`;
+</div>`;
   const draftLine = id => P.draft.lines.find(l => l.id === id);
   const refreshConv = l => { const c = document.querySelector(`#prodNew [data-pconv="${l.id}"]`); if (c) c.innerHTML = prodConvText(prodItem(l.code), l); };
   const addCode = (code, focus) => { let l = P.draft.lines.find(x => x.code === code); if (!l) { l = prodNewLine(code); P.draft.lines.push(l); } return l; };
@@ -1858,7 +1938,8 @@ function renderProdNew() {
     const code = b.dataset.padd; const had = P.draft.lines.find(x => x.code === code);
     if (had) { P.draft.lines = P.draft.lines.filter(x => x !== had); save(); renderProdNew(); toast(`${(prodItem(code) || {}).name || code} 뺐습니다`); return; }
     const l = addCode(code); save(); renderProdNew();
-    const inp = document.querySelector(`#prodNew [data-pqty="${l.id}"]`); if (inp) { inp.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => inp.focus(), 250); }
+    if (window.matchMedia('(min-width:1000px)').matches) { const inp = document.querySelector(`#prodNew [data-pqty="${l.id}"]`); if (inp) { inp.scrollIntoView({ block: 'nearest' }); inp.focus({ preventScroll: true }); } }   /* v085: 넓은 화면은 오른쪽 목록에서 바로 수량 입력 */
+    else { const bar = $('#pCartBar'); if (bar) { bar.classList.remove('bump'); void bar.offsetWidth; bar.classList.add('bump'); } toast(`${(prodItem(code) || {}).name || code} 담음 — 아래 「🧺 생산한 품목」에서 수량을 넣으세요`); }
   });
   if ($('#pAll')) $('#pAll').onclick = () => { ui.prodAll = !ui.prodAll; renderProdNew(); };
   $$('#prodNew [data-pqty]').forEach(inp => inp.oninput = () => { const l = draftLine(inp.dataset.pqty); if (!l) return; l.qty = inp.value.replace(/[^0-9.]/g, ''); save(); refreshConv(l); });
@@ -1877,6 +1958,11 @@ function renderProdNew() {
   $$('#prodNew [data-pdel]').forEach(b => b.onclick = () => { P.draft.lines = P.draft.lines.filter(l => l.id !== b.dataset.pdel); save(); renderProdNew(); });
   if ($('#pClear')) $('#pClear').onclick = () => { modal(`<h2>입력한 품목 비우기</h2><p>아직 보내지 않은 ${P.draft.lines.length}품목을 지웁니다.</p><div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px"><button class="btn" onclick="closeModal()">취소</button><button class="btn danger" id="pClearOk">비우기</button></div>`); $('#pClearOk').onclick = () => { P.draft.lines = []; save(); closeModal(); renderProdNew(); }; };
   if ($('#pSend')) $('#pSend').onclick = prodConfirm;
+  if ($('#pSendBar')) $('#pSendBar').onclick = prodConfirm;
+  if ($('#pWkOpen')) $('#pWkOpen').onclick = () => { ui.wkOpen = !ui.wkOpen; renderProdNew(); };
+  if ($('#pCartBar')) $('#pCartBar').onclick = () => { ui.cartOpen = !ui.cartOpen; renderProdNew(); };
+  $$('#prodNew [data-pnoteopen]').forEach(b => b.onclick = () => { ui.noteFor = b.dataset.pnoteopen; renderProdNew(); const i = document.querySelector(`#prodNew [data-pnote="${ui.noteFor}"]`); if (i) i.focus(); });
+  $$('#prodNew [data-pgt]').forEach(b => b.onclick = () => { ui.prodGrp = b.dataset.pgt; renderProdNew(); });
 }
 /* 입력한 수량이 이카운트에 몇으로 들어가는지 한 줄 설명 */
 function prodConvText(it, l) {
