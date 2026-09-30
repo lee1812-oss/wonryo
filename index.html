@@ -580,7 +580,32 @@ body.prod-on #weekSel{display:none}   /* v075: 생산일지·통합 설정에서
 }
 .pcart-bar{display:none}
 @media (min-width:1000px){
-  .pnw{display:grid;grid-template-columns:minmax(0,1fr) minmax(360px,420px);gap:14px;align-items:start}
+  body.prod-on main>section.view{max-width:none}   /* v087: 넓은 화면 전체 사용 */
+  .pnw{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,400px);gap:12px;align-items:start}
+  .pnw .card{padding:10px 12px;margin-bottom:10px}
+  .pnw h2{font-size:15px}
+  /* 작은 KPI 카드 — 한 줄에 많이, 잘림 없이 */
+  .pnw .pchips{grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px}
+  .pnw .pchip.pk{min-height:0;padding:6px 8px 6px;gap:1px;border-top-width:3px;border-radius:9px}
+  .pnw .pchip.pk .pk-n{font-size:12.5px;line-height:1.25}
+  .pnw .pchip.pk .pk-l{display:none}
+  .pnw .pchip.pk .pk-v{font-size:17px;margin-top:auto}
+  .pnw .pchip.pk .pk-v small{font-size:10.5px}
+  .pnw .pchip.pk .pk-s{font-size:10.5px}
+  .pnw .pquick .pchips{display:grid;overflow:visible;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .pnw .pquick .pchip.pk{flex:none;min-height:0}
+  #pSugAll{min-height:34px;padding:4px 14px;font-size:13px}
+  .pnw .pgtabs{flex-wrap:wrap;overflow:visible;position:static;gap:5px;padding-bottom:8px}
+  .pnw .pgtabs button{padding:4px 10px;font-size:12px}
+  .pnw .pgh{padding:4px 10px;margin-bottom:6px}
+  .pnw .pgh b{font-size:13px}
+  .pnw .pgrp+.pgrp{margin-top:10px}
+  .pnw .pwkc{min-height:32px;padding:3px 11px;font-size:13px}
+  .pnw #pWkAdd{min-height:32px;width:110px;padding:3px 10px;font-size:13px}
+  .pnw .pbar .field input{height:36px;padding-top:4px;padding-bottom:4px}
+  .pnw .pq>button:not(.btn){width:38px;height:38px;font-size:19px}
+  .pnw .pq input{width:76px;height:38px;font-size:18px}
+  .pnw .pseg{height:38px}
   .pnw-top{grid-template-columns:minmax(0,.9fr) minmax(0,1.4fr);gap:12px}
   .pnw-cart{position:sticky;top:calc(var(--head-h,62px) + 14px);max-height:calc(100vh - var(--head-h,62px) - 28px);overflow:auto;border-radius:var(--radius)}
   .pnw-cart .pcart{margin-bottom:0;border:2px solid var(--brand)}
@@ -1008,7 +1033,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '086';
+const APP_VER  = '087';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1540,7 +1565,7 @@ function prodEcQty(it, q, mode) {
   if (prodIsEa(it)) return mode === 'ea' ? n : (pk > 0 ? Math.round(n * pk * 1000) / 1000 : n);   /* 이카운트가 낱개(EA)로 관리 */
   return mode === 'ea' && pk > 0 ? prodRound(n / pk) : n;                                          /* 이카운트가 박스로 관리 → 낱개 ÷ 입수 */
 }
-function prodEcUnit(it) { return prodIsEa(it) ? 'EA' : (it && (it.ecSpec || it.unit)) || ''; }
+function prodEcUnit(it) { return prodIsEa(it) ? 'EA' : it && it.ecSrc === 'cons' ? (it.unit || '') : (it && (it.ecSpec || it.unit)) || ''; }   /* v087: 소모현황 품목은 이카운트 단위(EA·BOX) 그대로 표시 */
 function prodExtra(text) { const o = {}; String(text || '').split(/\r?\n/).forEach(l => { const m = l.match(/^\s*([A-Za-z0-9_]+)\s*=\s*(.*?)\s*$/); if (m) o[m[1].toUpperCase()] = m[2]; }); return o; }
 function prodKey() { return (window.WLOCK && WLOCK.shareKey && WLOCK.shareKey()) || ''; }
 function prodReady() {
@@ -1699,7 +1724,7 @@ function prodApplyCons(first) {
     let it = P.items.find(i => i.code === h.code);
     if (!it) { it = { code: h.code, name: h.name, unit: '', ecEa: false, ecDiv: 0, kind: '', on: true, fromHist: true }; P.items.push(it); added++; }
     else if (first) it.on = true;   /* v084: 올해 생산한 품목은 모두 켬 (자주 만드는 순으로 보이고, 필요 없으면 설정에서 끔) */
-    it.name = h.name; it.unit = prodUnitOf(h.name, it.unit); it.ecName = h.name; if (it.unit === 'EA') { it.ecDiv = 0; it.ecEa = false; } it.ecMissing = false; it.ecSrc = 'cons'; it.prodEa = false;   /* 생산수량은 이카운트 단위 그대로 */
+    it.name = h.name; it.unit = prodUnitOf(h.name, it.unit); it.ecName = h.name; delete it.ecSpec; if (it.unit === 'EA') { it.ecDiv = 0; it.ecEa = false; } it.ecMissing = false; it.ecSrc = 'cons'; it.prodEa = false;   /* 생산수량은 이카운트 단위 그대로 */
     it.dough = h.dough || ''; it.doughName = h.doughName || ''; it.ratio = h.ratio || null; it.np = /^\[비상품\]/.test(h.name) ? 1 : 0;
   });
   if (first) prodPruneCons();   /* v084: 소모현황(올해 생산)에 없는 품목은 목록에서 지움 */
