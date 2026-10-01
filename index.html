@@ -1070,7 +1070,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '128';
+const APP_VER  = '129';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2423,7 +2423,7 @@ function renderCcp() {
     <div class="muted" style="font-size:11.5px;margin:-2px 0 8px">${(() => { if (!shareOn()) return '⚠ 공유 저장소가 꺼져 있어 다른 기기의 생산을 받을 수 없습니다'; const sh = shareCfg(), mine = (P.log || []).filter(en => en.ccpSig).length, wait = (sh.outbox || []).filter(r => r.kind === 'pday' || r.kind === 'ccp').length, got = Object.keys(P.pday || {}).length;
       return `🔄 기기 간 공유 — 이 기기(${esc(sh.device || '')}) 생산 ${mine}건 보냄${wait ? ` · <b>보낼 것 ${wait}건 대기</b>` : ''} · 다른 기기 생산 ${got}건 받음 · 마지막 받기 ${esc(sh.lastPull ? hmOf(sh.lastPull) : '—')}${sh.err ? ` · <span style="color:var(--minus)">${esc(sh.err)}</span>` : ''}`; })()}</div>
     <div class="prow" style="gap:6px;margin:0 0 6px"><button class="btn sm" data-ccpfull="1" title="공유 저장소의 자료를 처음부터 다시 받습니다 (다른 기기에서 넣은 일지가 이 기기에 안 보일 때)">📥 다른 기기 일지 전체 다시 받기</button>${isAdmin() ? '<button class="btn sm" data-ccpresend="1" title="달력에 보이는 달의 생산·CCP 일지를 공유 저장소에 다시 올립니다 (다른 기기에 안 보일 때 — 그 기기에서 「전체 다시 받기」)">📤 이 달 일지 다시 보내기</button>' : ''}</div></div>
-    ${(() => { if (!shareOn()) return ''; const sh = shareCfg(), wait = (sh.outbox || []).filter(r => r.kind === 'pday' || r.kind === 'ccp').length; return wait > 20 || sh.err ? `<div class="muted" style="font-size:12px;color:var(--minus);margin-top:4px">⚠ ${sh.err ? esc(sh.err) : `다른 기기로 보낼 일지 ${wait}건이 아직 대기 중입니다 — 인터넷 연결을 확인하세요`}</div>` : ''; })()}
+    ${(() => { if (!shareOn()) return ''; const sh = shareCfg(), wait = (sh.outbox || []).filter(r => r.kind === 'pday' || r.kind === 'ccp').length; const er = sh.pushErr || sh.err; return wait > 20 || er ? `<div class="muted" style="font-size:12px;color:var(--minus);margin-top:4px">⚠ ${wait ? `다른 기기로 보낼 일지 ${wait}건 대기 중` : ''}${er ? ` — ${esc(er)}` : ' — 보내는 중입니다 (1분마다 다시 시도)'}</div>` : ''; })()}
   </div>
   ${V === 'cal' ? ccpCalHtml(D) : V === 'dev' ? ccpDevHtml() : V === 'list' ? ccpListHtml(D) : V === 'map' ? ccpMapHtml() : `<div class="card"><div class="prow" style="align-items:center;gap:8px"><button class="btn sm" data-ccpview="cal">← 달력</button>
       <input type="date" id="ccpPick" value="${esc(D)}" style="width:150px"><b>${esc(D)} (${WD[new Date(D + 'T00:00:00').getDay()]}) 생산</b> <span class="muted" style="flex:1 1 200px">${prods.length ? prods.map(x => `${esc(x.name)} ${fmt(x.ea || x.ec)}`).join(' · ') : '생산 기록 없음'}</span><button class="btn" id="ccpPrint">🖨 이 날짜 인쇄</button></div></div>
@@ -3400,12 +3400,15 @@ async function shareApi(payload) {
   if (!j.ok) throw new Error(j.error || '요청 실패');
   return j;
 }
+/* v129: 보내기 — 실패하면 한 번에 보내는 양을 절반으로 줄여 다시 시도(구글 스크립트 시간 초과·용량 대비), 성공하면 다시 늘림. 실패 이유는 성공할 때까지 남겨 둠 */
 async function sharePush() {
-  if (!shareOn() || shareBusy) return; const sh = shareCfg(); if (!sh.outbox.length) return; shareBusy = true; const batch = sh.outbox.slice(0, 200); renderShareStatus('보내는 중…');
+  if (!shareOn() || shareBusy) return; const sh = shareCfg(); if (!sh.outbox.length) { if (sh.pushErr) { sh.pushErr = ''; save(); } return; } shareBusy = true;
+  const n = Math.max(1, Math.min(200, sh.batchN || 40)); const batch = sh.outbox.slice(0, n); renderShareStatus('보내는 중…');
   try { const j = await shareApi({ rows: batch, user: S.settings.reporter || '', device: sh.device });
-    const sent = new Set(batch.map(b => b.ts + '|' + shareKey(b))); batch.forEach(b => { if (b.kind !== 'phys') return; const p = (S.physical[b.week] || {})[b.code]; if (!p) return; if (b.del) delete p.hadVal; else if (p.ts === b.ts) p.hadVal = 1; }); sh.outbox = sh.outbox.filter(b => !sent.has(b.ts + '|' + shareKey(b))); sh.lastPush = new Date().toISOString(); sh.err = ''; save(true); }
-  catch (e) { sh.err = '보내기 실패: ' + (e.message || e); save(); }
-  shareBusy = false; renderShareStatus(); if (sh.outbox.length && !sh.err) sharePushSoon();
+    const sent = new Set(batch.map(b => b.ts + '|' + shareKey(b))); batch.forEach(b => { if (b.kind !== 'phys') return; const p = (S.physical[b.week] || {})[b.code]; if (!p) return; if (b.del) delete p.hadVal; else if (p.ts === b.ts) p.hadVal = 1; }); sh.outbox = sh.outbox.filter(b => !sent.has(b.ts + '|' + shareKey(b))); sh.lastPush = new Date().toISOString(); sh.err = ''; sh.pushErr = ''; sh.pushFail = 0; sh.batchN = Math.min(200, n * 2); save(true); }
+  catch (e) { const m = String((e && e.message) || e).slice(0, 160); sh.pushFail = (sh.pushFail || 0) + 1; sh.batchN = Math.max(1, Math.floor(n / 2));
+    sh.err = sh.pushErr = `보내기 실패(${n}건씩 ${sh.pushFail}번째): ${m}${n <= 3 ? ` · 맨 앞 자료 ${batch[0].kind || 'phys'} ${batch[0].code || ''}` : ''}`; save(); }
+  shareBusy = false; renderShareStatus(); if (sh.outbox.length) { if (!sh.pushErr) sharePushSoon(); else if (navigator.onLine !== false && sh.pushFail < 8) setTimeout(sharePush, 4000); }
 }
 function shareTyping() { const a = document.activeElement; return !!(a && a.tagName === 'INPUT' && a.closest('[data-pilist]')); }
 /* v128: 받기 기준 시각을 15분 앞당겨 다시 확인 — 다른 기기가 조금 늦게 올린 자료(그 기기 시각이 앞선 자료)도 놓치지 않게. 받는 쪽은 같은 자료를 두 번 받아도 그대로 */
@@ -3433,7 +3436,7 @@ async function sharePull(full, quiet) {
       ph[row.code] = { mode: row.mode || 'packs', packs: row.packs ?? '', gross: row.gross ?? '', direct: row.direct ?? '', expiry: row.expiry || '', note: row.note || '', ts: row.ts, by: row.user || '', hadVal: 1 }; if (row.notare && String(row.notare) !== '0' && String(row.notare).toUpperCase() !== 'FALSE') ph[row.code].noTare = true;
       if (row.expiry) { const m = S.itemMeta[row.code] || (S.itemMeta[row.code] = {}); m.expiry = row.expiry; m.expiryWeek = row.week; } changed++; });
     if (applied.length > 60) logAdd({ ts: applied[applied.length - 1].ts, user: '(여러 명)', device: '공유 저장소', text: `공유 자료 ${applied.length}건 받음` }); else applied.forEach(row => logAdd({ ts: row.ts, user: row.user || '', device: row.device || '', text: shareRowText(row) }));
-    sh.lastPull = new Date().toISOString(); sh.err = ''; save(true); renderSharePill();
+    sh.lastPull = new Date().toISOString(); sh.err = sh.pushErr || ''; save(true); renderSharePill();
     if (!full && S.prod && !(S.prod.hist && S.prod.hist.kind === 'cons') && (!prodOnItems().length || !String((S.prod.cfg || {}).relayUrl || '').trim() || !S.prod.consSrc) && Date.now() - prodRefetchAt >= 10 * 60000) { S.prod.cfgTs = ''; setTimeout(() => prodCfgRefetch(false), 500); }   /* v088: 설정을 못 받았거나 옛 기준이면 처음부터 다시 받음 */   /* v082: 생산 품목이 비어 있으면 처음부터 한 번 다시 받음 (시각 차이로 설정 행을 건너뛴 경우 대비) */
     if (inspCh) renderSharePill();
     if (ccpCh && S.ui.menu === 'prod' && S.ui.prodTab === 'pccp' && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#prodCcp'))) renderCcp();
@@ -3458,7 +3461,7 @@ $('#btnShareSendAll').onclick = () => { if (!shareOn()) return toast('웹 앱 UR
 document.addEventListener('visibilitychange', () => { if (!document.hidden && shareOn()) { sharePush(); sharePull(false, true); } });
 document.addEventListener('focusout', () => { setTimeout(() => { if (S.share && S.share.pendingRender && !shareTyping()) { S.share.pendingRender = false; if (S.ui.tab === 'weekly') wk.rows = []; renderAll(); } }, 300); });
 window.addEventListener('online', () => { if (shareOn()) { sharePush(); sharePull(false, true); } });
-setInterval(() => { if (!document.hidden && shareOn()) { if (S.share && S.share.pendingRender && !shareTyping()) { S.share.pendingRender = false; if (S.ui.tab === 'weekly') wk.rows = []; renderAll(); } sharePull(false, true); } }, 60000);
+setInterval(() => { if (!document.hidden && shareOn()) { if (S.share && S.share.pendingRender && !shareTyping()) { S.share.pendingRender = false; if (S.ui.tab === 'weekly') wk.rows = []; renderAll(); } sharePull(false, true).then(() => { if (S.share && S.share.outbox && S.share.outbox.length) { if (S.share.pushFail >= 8) S.share.pushFail = 4; sharePush(); } }); } }, 60000);   /* v129: 남은 것이 있으면 1분마다 다시 보냄 */
 setTimeout(() => { if (shareOn()) { shareCfg(); renderShareStatus(); sharePull(false, true).then(() => sharePush()); } }, 1500);
 /* v055: 육안검사 화면을 처음부터 뒤에서 열어 둠 — 다른 메뉴에 있어도 이카운트 입고 확인·일지 동기화가 돌도록 */
 setTimeout(() => { try { inspEnsure(); } catch (e) {} }, 4000);
