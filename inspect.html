@@ -455,13 +455,13 @@ table.data-table td.num{text-align:right;font-family:'DM Mono',monospace;font-si
       <div class="page-header">
         <div>
           <div class="page-title">✏️ 일지 입력</div>
-          <div class="page-desc">품목만 고르면 공급업체·규격·단위·보관·성적서·알레르기가 이력에서 자동 반영됩니다 — 수량·기한·온도만 입력하세요</div>
+          <div class="page-desc">품목만 고르면 공급업체·규격·단위·보관·성적서·알레르기가 이력에서 자동 반영됩니다 — 수량·기한·온도만 입력하세요 · <b style="color:#15803d">입력하면 자동 저장 (저장 버튼 없음)</b></div>
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary" onclick="resetEntryForm()">🔄 초기화</button>
           <button class="btn btn-secondary" onclick="printCurrentEntry()" title="지금 입력 중인 내용을 저장하지 않고 인쇄">🖨️ 인쇄</button>
           <span id="autoSaveState" style="align-self:center;font-size:12px;font-weight:700;color:#64748b"></span>
-          <button class="btn btn-success" onclick="saveEntry()" title="입력하면 자동 저장됩니다. 「저장」은 마무리(새 품목 등록·같은 날짜 합치기) 후 일지 목록으로 이동">💾 저장</button>
+          <button class="btn btn-success" onclick="saveEntry()" title="입력하면 자동 저장됩니다 — 누르지 않아도 됩니다. 누르면 일지 목록으로 이동">✓ 완료 · 목록으로</button>
         </div>
       </div>
 
@@ -1813,6 +1813,9 @@ function renderSpecsPage(){
 // ══════════════════════════════════════════════════════════════
 // 🧭 라우터
 function goPage(id, el){
+  if(id!=='entry' && document.getElementById('page-entry')?.classList.contains('active')){
+    try{ if(finalizeEntryEdit()) resetEntryForm(); }catch(e){}
+  }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -2613,7 +2616,13 @@ function autoSaveEntry(){
   if(sig === _autoSaveSig) return;
   const idx = window.__editingEntryId ? entries.findIndex(x=>x.id===window.__editingEntryId) : -1;
   if(idx >= 0){ e.id = entries[idx].id; e.createdAt = entries[idx].createdAt || e.createdAt; if(entries[idx]._ecAuto) e._ecAuto = entries[idx]._ecAuto; }
-  else if(entries.some(x=>x.date===e.date)){ autoSaveState('이 날짜에 이미 일지가 있어 「저장」을 누르면 한 일지로 합쳐집니다', '#b45309'); return; }
+  else if(entries.some(x=>x.date===e.date)){   /* 같은 날짜 일지가 있으면 그 일지에 합치고, 화면도 합친 일지로 */
+    e.updatedAt = new Date().toISOString(); entries.push(e); mergeSameDateEntries(); saveEntries();
+    const m = entries.find(x=>x.date===e.date); if(m){ m.updatedAt = e.updatedAt; saveEntries(); editEntryInForm(m.id, true); }
+    showToast(`${e.date} 일지가 이미 있어 한 일지로 합쳤습니다 — 그 날짜 일지 전체를 보여 드립니다`, 'info');
+    const t0 = new Date(); autoSaveState(`✓ 자동 저장됨 ${String(t0.getHours()).padStart(2,'0')}:${String(t0.getMinutes()).padStart(2,'0')}:${String(t0.getSeconds()).padStart(2,'0')}`, '#15803d');
+    return;
+  }
   e.updatedAt = new Date().toISOString();
   if(idx >= 0) entries[idx] = e; else { entries.push(e); window.__editingEntryId = e.id; }
   saveEntries(); _autoSaveSig = sig;
@@ -2625,95 +2634,42 @@ function autoSaveHook(){
   pg.addEventListener('click', ev=>{ if(ev.target.closest('button, input[type=checkbox], select, [onclick]')) autoSaveSoon(); });
 }
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', autoSaveHook); else autoSaveHook();
-window.addEventListener('pagehide', ()=>{ if(_autoSaveT) autoSaveEntry(); });
+window.addEventListener('pagehide', ()=>{ try{ if(document.getElementById('page-entry')?.classList.contains('active')) finalizeEntryEdit(); }catch(e){} });
+/* 마무리 — 입력 화면을 떠날 때 자동으로: 새 품목 등록 · 이력 학습 · 같은 날짜 합치기 (예전 「저장」 버튼이 하던 일) */
+function finalizeEntryEdit(){
+  if(_autoSaveT) autoSaveEntry();
+  const id = window.__editingEntryId; const entry = id ? entries.find(x=>x.id===id) : null; if(!entry) return null;
+  let autoAdded = 0;
+  (entry.items||[]).forEach(item=>{
+    if(item.id || !item.name) return;
+    const already = itemMaster.find(m=> nameKey(m.name) === nameKey(item.name));
+    if(already){ item.id = already.id; item.name = already.name; return; }
+    const nid = uid();
+    itemMaster.push({ id: nid, name: item.name, supplier: item.supplier || entry.supplier, store: item.store || '냉장', spec: item.spec || 0, unit: item.unit || 'BOX',
+      cert: item.cert || '자가품질성적서', insp: item.insp || '양호', allergen: item.allergen || '' });
+    item.id = nid; autoAdded++;
+  });
+  if(autoAdded) saveItems();
+  try{ learnFromEntry(entry); }catch(e){}
+  const date = entry.date;
+  saveEntries(); mergeSameDateEntries();
+  if(autoAdded) showToast(`새 품목 ${autoAdded}개를 품목 관리에 자동 등록했습니다`, 'success');
+  return date;
+}
+/* 「✓ 완료」 — 저장은 이미 자동으로 됩니다. 눌러도 되고 안 눌러도 됩니다 (목록으로 이동만) */
 function saveEntry(){
   clearTimeout(_autoSaveT); _autoSaveT = null;
-  const date     = document.getElementById('f_date').value;
-  const supplier = deriveEntrySupplier();
-  const vTemp    = document.getElementById('f_vehicleTemp').value.trim();
-  const vStatus  = document.getElementById('f_vehicleStatus').value;
-  const checker  = document.getElementById('f_checker').value.trim();
-  const passResult = document.getElementById('f_passResult').value;
-  const note     = document.getElementById('f_note').value.trim();
-
-  if(!date){ showToast('입고날짜를 입력해 주세요.','error'); return; }
-  if(!entryItems.length){ showToast('품목을 최소 1개 이상 추가해 주세요.','error'); return; }
-  if(!supplier){ showToast('선택한 품목에 공급업체가 없습니다. 품목의 공급업체를 확인해 주세요.','error'); return; }
-  const invalid = entryItems.find(r=>!r.name);
-  if(invalid){ showToast('품목명이 비어있는 항목이 있습니다.','error'); return; }
-
-  // 품목별 vehicleTemp·supplier 보정 (고정값으로 채움)
-  const items = entryItems.map(r=>({
-    ...r,
-    supplier:      r.supplier      || supplier,
-    vehicleTemp:   r.vehicleTemp   || vTemp,
-    vehicleStatus: r.vehicleStatus || vStatus,
-  }));
-
-  const entry = {
-    id: uid(),
-    date,
-    supplier,
-    vehicleTemp: vTemp,
-    vehicleStatus: vStatus,
-    checker,
-    passResult,
-    note,
-    items,
-    createdAt: new Date().toISOString(),
-  };
-  readV2EntryFields(entry);
-
-  if(window.__editingEntryId){
-    const idx = entries.findIndex(x=>x.id===window.__editingEntryId);
-    if(idx>=0){ entry.id = entries[idx].id; entry.createdAt = entries[idx].createdAt || entry.createdAt; entry.updatedAt = new Date().toISOString(); entries[idx] = entry; }
-    else entries.push(entry);
-    window.__editingEntryId = null; window.__editingDate = entry.date;
-  } else {
-    entries.push(entry);
-  }
-  saveEntries();
-  learnFromEntry(entry);
-
-  // ── 직접 입력 품목 → 품목 마스터 자동 등록 (id 없는 행)
-  let autoAdded = 0;
-  items.forEach(item=>{
-    if(item.id) return; // 마스터에서 선택한 품목은 스킵
-    const already = itemMaster.find(m=> nameKey(m.name) === nameKey(item.name));
-    if(already){ item.id = already.id; item.name = already.name; }
-    if(!already){
-      itemMaster.push({
-        id:       uid(),
-        name:     item.name,
-        supplier: item.supplier || supplier,
-        store:    item.store    || '냉장',
-        spec:     item.spec     || 0,
-        unit:     item.unit     || 'BOX',
-        cert:     item.cert     || '자가품질성적서',
-        insp:     item.insp     || '양호',
-        allergen: item.allergen || '',
-      });
-      autoAdded++;
-    }
-  });
-  if(autoAdded > 0){
-    saveItems();
-    showToast(`✅ 저장 완료! ${date} (${dayStr(date)}) · ${items.length}품목 (신규 품목 ${autoAdded}개 자동 등록)`, 'success');
-  } else {
-    showToast(`✅ 저장 완료! ${date} (${dayStr(date)}) · ${items.length}품목`, 'success');
-  }
-
-  learnFromEntry(entry);    // 직접입력 품목이 마스터에 등록된 뒤 한 번 더 학습
-  const savedDate = entry.date;
-  resetEntryForm();
-  mergeSameDateEntries();   // 같은 날짜 다른 거래처면 한 일지로 통합
-  goPage('list', document.getElementById('nav-list'));
-  try{ if(typeof selectDate==='function' && isValidDate(savedDate)) selectDate(savedDate); }catch(e){}
+  const r = entryFromForm(); if(!r.entry){ showToast(r.err, 'error'); return; }
+  _autoSaveSig = ''; autoSaveEntry();
+  const id = window.__editingEntryId; const e = id ? entries.find(x=>x.id===id) : null; const date = e ? e.date : r.entry.date;
+  goPage('list', document.getElementById('nav-list'));   /* 떠날 때 마무리(finalizeEntryEdit)가 자동으로 돎 */
+  showToast(`✅ ${date} (${dayStr(date)}) 일지 저장됨`, 'success');
+  try{ if(typeof selectDate==='function' && isValidDate(date)) selectDate(date); }catch(e){}
 }
 // ── 일지 목록 「수정」 → 일지 입력 화면에 불러와 같은 방식으로 수정 ──
-function editEntryInForm(entryId){
+function editEntryInForm(entryId, quiet){
   const e = entries.find(x=>x.id===entryId); if(!e) return;
-  goPage('entry', document.getElementById('nav-entry'));
+  if(!quiet) goPage('entry', document.getElementById('nav-entry'));
   resetEntryForm();
   window.__editingEntryId = e.id;
   document.getElementById('f_date').value = isValidDate(e.date) ? e.date : today();
@@ -2733,10 +2689,10 @@ function editEntryInForm(entryId){
   renderEntryItems(); renderSupplierCheckboxes(); updateFixedPreview();
   onEntryDateChange();
   const b = document.getElementById('v2FormBadge');
-  if(b) b.insertAdjacentHTML('beforeend', `<span id="editBanner" style="margin-left:8px;color:#b45309;background:#fef3c7;border:1px solid #fcd34d;border-radius:12px;padding:2px 10px">✏️ ${esc(e.date)} 일지 수정 중 — 고치면 자동 저장됩니다 · <a href="#" onclick="cancelEditEntry();return false;" style="color:#b45309;text-decoration:underline">수정 취소</a></span>`);
-  window.scrollTo(0,0);
+  if(b) b.insertAdjacentHTML('beforeend', `<span id="editBanner" style="margin-left:8px;color:#b45309;background:#fef3c7;border:1px solid #fcd34d;border-radius:12px;padding:2px 10px">✏️ ${esc(e.date)} 일지 수정 중 — 고치면 자동 저장됩니다 · <a href="#" onclick="cancelEditEntry();return false;" style="color:#b45309;text-decoration:underline">닫기</a></span>`);
+  if(!quiet) window.scrollTo(0,0);
   { const r0 = entryFromForm(); _autoSaveSig = r0.entry ? JSON.stringify(Object.assign({}, r0.entry, { id:'', createdAt:'' })) : ''; }
-  showToast(`${e.date} 일지를 불러왔습니다. 고치면 자동 저장됩니다.`, 'info');
+  if(!quiet) showToast(`${e.date} 일지를 불러왔습니다. 고치면 자동 저장됩니다.`, 'info');
 }
 function cancelEditEntry(){ window.__editingEntryId = null; resetEntryForm(); goPage('list', document.getElementById('nav-list')); }
 
@@ -5055,7 +5011,7 @@ function init(){
 //   · 신규 입력에서 품목만 고르면 고정값 자동 반영, 수정 가능 / 변동값만 손으로 입력
 //   · 2026-09-14 이후 일지는 신양식(A4 가로, 18열)으로 입력·인쇄, 그 이전 일지는 기존 양식 그대로 조회·인쇄
 // ═══════════════════════════════════════════════════════════════════
-const APP_VER        = 'v098';
+const APP_VER        = 'v099';
 const NEW_FORM_START_DEFAULT = '2026-09-14';
 function NEW_FORM_START_(){ return (typeof cfg==='object' && cfg && isValidDate(cfg.newFormStart)) ? cfg.newFormStart : NEW_FORM_START_DEFAULT; }
 const ALLERGEN_LIST  = ['난류','우유','메밀','땅콩','대두','밀','고등어','게','새우','돼지고기','복숭아','토마토','아황산류','호두','닭고기','쇠고기','오징어','조개류','잣'];
@@ -5836,7 +5792,7 @@ function renderV2Editor(focusRowId, focusField){
   const host = v2edEl(); if(!host) return;
   v2edStyle(); itemNameDatalist();
   host.innerHTML = v2edEntryHTML();
-  const hint = document.getElementById('v2edHint'); if(hint) hint.innerHTML = '표 안에 바로 입력 · 품명을 치면 고정값과 <span style="color:#1d4ed8;font-style:italic">최근값(파란 글씨)</span>이 자동 · Enter 로 다음 칸 · 맨 아래 빈 행에 품명을 치면 행이 계속 늘어남(7품목 초과 시 인쇄는 10행/장으로 자동 분할) · 저장하면 다음 입력에 학습됨';
+  const hint = document.getElementById('v2edHint'); if(hint) hint.innerHTML = '표 안에 바로 입력 · 품명을 치면 고정값과 <span style="color:#1d4ed8;font-style:italic">최근값(파란 글씨)</span>이 자동 · Enter 로 다음 칸 · 맨 아래 빈 행에 품명을 치면 행이 계속 늘어남(7품목 초과 시 인쇄는 10행/장으로 자동 분할) · 자동 저장 · 다음 입력에 학습됨';
   if(!_v2edBound){ host.addEventListener('input', v2edOnInput); host.addEventListener('change', v2edOnChange); host.addEventListener('click', v2edOnClick); host.addEventListener('keydown', v2edOnKey); _v2edBound = true; }
   if(focusRowId!==undefined){
     const sel = focusRowId ? `[data-row="${focusRowId}"] input[data-f="${focusField||'qty'}"]` : `tr.blank input[data-f="name"]`;
