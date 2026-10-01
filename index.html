@@ -1057,7 +1057,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '100';
+const APP_VER  = '101';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2345,64 +2345,83 @@ const CCP_FIX = {
     '○ 제품감도 : 모니터링담당자는 제품 중간에 Test piece를 넣고 기기에 통과시켜 검출여부를 확인하고 일지에 기록한다.',
     '○ 통과량 및 검출량 : 모니터링담당자는 통과된 양과 검출된 양을 일지에 기록하고 HACCP팀장에 보고한다. ※ 금속검출기는 연1회 이상 정상작동 유무 확인']
 };
-const CCP_CSS = `.ccp-sheet{background:#fff;color:#000;max-width:1000px;margin:0 auto;padding:16px 18px 12px;font-family:"Noto Sans KR","Malgun Gothic","맑은 고딕",sans-serif}
-.ccp-sheet table{border-collapse:collapse;width:100%;margin:0}.ccp-sheet th,.ccp-sheet td{border:1px solid #000;padding:5px 6px;text-align:center;font-size:13px;color:#000;background:#fff;font-weight:400;vertical-align:middle}
-.ccp-sheet th,.ccp-sheet td.lb{background:#CEDEEF}.ccp-sheet .ccp-sign th{background:#F2F2F2;font-size:12px;padding:3px 10px}.ccp-sheet .ccp-sign td{height:36px;min-width:86px;font-size:13px}
-.ccp-bar{display:flex;height:11px;border:1px solid #000;border-bottom:0}.ccp-bar i{flex:3;background:#E6B9B8}.ccp-bar b{flex:1;background:#F03F37}
-.ccp-title{background:#CEDEEF;font-size:23px;font-weight:700;text-align:center;padding:12px 6px;border:1px solid #000;border-bottom:0;letter-spacing:-.3px}
-.ccp-sheet table+table{border-top:0}.ccp-sheet table+table tr:first-child>*{border-top:0}
-.ccp-sheet td.txt{text-align:left;font-size:12px;line-height:1.6}.ccp-sheet td.bad{background:#FDECEC;color:#C00000;font-weight:700}
+const CCP_REV = { oven: '2026.3.13. 제품추가(2종) 구운쌀소금빵, 구운통밀소금빵', freeze: '2025.11.11. 한계기준변경(시간변경)' };
+const CCP_OVEN_LIM = [['빅몽블랑', 155, 27], ['몽블랑', 155, 27], ['구운크라상78', 170, 15], ['빅크로와상', 170, 15], ['빵을그리다 K1', 170, 15], ['구운냉동소금빵', 170, 15], ['구운 쌀 소금빵', 170, 15], ['구운 통밀 소금빵', 170, 15]];
+const CCP_CSS = `.ccp-sheet{background:#fff;color:#000;max-width:1000px;margin:0 auto;padding:14px 16px 10px;font-family:"Noto Sans KR","Malgun Gothic","맑은 고딕",sans-serif}
+.ccp-frame{border:1px solid #000}.ccp-sheet table{border-collapse:collapse;width:100%;margin:0}
+.ccp-sheet th,.ccp-sheet td{border:1px solid #000;padding:5px 6px;text-align:center;font-size:13px;color:#000;background:#fff;font-weight:400;vertical-align:middle}
+.ccp-sheet td.lb,.ccp-sheet th.lb{background:#CEDEEF}.ccp-sheet td.txt{text-align:left;font-size:12.5px;line-height:1.65}.ccp-sheet td.yel{background:#FFFF00;text-align:left}
+.ccp-frame>table td:first-child,.ccp-frame>table th:first-child{border-left:0}.ccp-frame>table td:last-child,.ccp-frame>table th:last-child{border-right:0}
+.ccp-sheet table.m th{background:#CEDEEF;color:#555;font-size:11.5px;border-color:#9AA4AE}.ccp-sheet table.m td{border-color:#B9C1C9;font-size:12.5px}
+.ccp-sheet table.m td.nm{font-size:12px}.ccp-band{background:#CEDEEF;text-align:center;font-size:12.5px;padding:5px;border-top:1px solid #000;border-bottom:1px solid #9AA4AE}
+.ccp-sheet .ccp-sign th{background:#F2F2F2;font-size:11.5px;padding:2px 10px;border-color:#666}.ccp-sheet .ccp-sign td{height:40px;min-width:84px;font-size:13px;border-color:#666}.ccp-sheet .ccp-sign td.nm{height:auto;font-size:12px;padding:2px}
+.ccp-bar{display:flex;height:11px;border-bottom:1px solid #000}.ccp-bar i{flex:7;background:#E6B9B8}.ccp-bar b{flex:3;background:#F03F37}
+.ccp-title{background:#CEDEEF;padding:10px 12px 8px;border-bottom:1px solid #000}.ccp-title .t1{font-size:24px;font-weight:700;text-align:center;letter-spacing:-.4px}
+.ccp-title .t2{display:flex;align-items:flex-end;gap:8px;font-size:15px;margin-top:2px}.ccp-title .t2 .sub{flex:1;text-align:right}.ccp-title .t2.c .sub{text-align:center}.ccp-title .rev{color:#E8202A}.ccp-title .dt{font-size:12px}
+.ccp-sp{height:16px;border-bottom:1px solid #000}.ccp-sp.top{border-top:1px solid #000}.ccp-cell-u{display:flex;align-items:center;justify-content:center;gap:4px}
+.ccp-sheet td.bad{background:#FDECEC !important;color:#C00000;font-weight:700}
 .ccp-sheet input,.ccp-sheet select{border:0;background:transparent;width:100%;min-width:0;text-align:center;font:inherit;color:#000;padding:3px 2px;box-shadow:none;border-radius:3px}
 .ccp-sheet input:focus,.ccp-sheet select:focus{outline:2px solid #0075FF;background:#F4F8FF}.ccp-sheet input[type=time]{min-width:92px}
 .ccp-sheet .ccp-mini{border:1px solid #9AA7B4;background:#fff;border-radius:4px;font-size:11px;padding:1px 5px;cursor:pointer;color:#333;margin:1px}
-.ccp-foot{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#555;margin-top:8px}.ccp-foot b{color:#1F6E5A;font-weight:800}
-.ccp-gap{height:10px}`;
+.ccp-foot{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#555;margin-top:8px}`;
 function ccpSheet(g, ed) {
   const T = CCP_TYPES[g.type], k = g.date + '|' + g.type, kid = ccpKid(g), w = WD[new Date(g.date + 'T00:00:00').getDay()];
   const V = (sec, i, f, v, kind) => { if (!ed) return esc(v == null ? '' : v);
     if (kind === 'ox') return `<select data-c="${k}|${sec}|${i}|${f}"><option value=""></option><option${v === 'O' ? ' selected' : ''}>O</option><option${v === 'X' ? ' selected' : ''}>X</option></select>`;
     if (kind === 'time') return `<div style="display:flex;align-items:center;gap:2px"><input type="time" data-c="${k}|${sec}|${i}|${f}" value="${esc(v || '')}"><button class="ccp-mini" data-ccpnow="${k}|${sec}|${i}|${f}" title="지금 시각">⏱</button></div>`;
-    return `<input data-c="${k}|${sec}|${i}|${f}" value="${esc(v == null ? '' : v)}" ${kind === 'txt' ? '' : 'inputmode="decimal"'}>`; };
+    return `<input data-c="${k}|${sec}|${i}|${f}" value="${esc(v == null ? '' : v)}" ${kind === 'txt' ? 'style="text-align:left"' : 'inputmode="decimal"'}>`; };
   const J = (sec, i, r) => { const s = ccpRowState(g.type, sec, r); return `<td id="ccpj-${kid}-${sec}-${i}" class="${s.bad.length ? 'bad' : ''}" title="${esc(s.bad.join(', '))}">${s.bad.length ? 'X' : s.miss ? '' : 'O'}</td>`; };
-  const tdv = (sec, i, f, r, kind) => { const s = ccpRowState(g.type, sec, r); return `<td>${V(sec, i, f, r[f], kind)}</td>`; };
+  const U = (sec, i, f, r, unit) => `<td><div class="ccp-cell-u">${V(sec, i, f, r[f])}${unit ? `<span>${unit}</span>` : ''}</div></td>`;
   const del = (sec, i) => ed ? ` <button class="ccp-mini" data-ccpdel="${k}|${sec}|${i}" title="이 줄 빼기">✕</button>` : '';
   const sign = `<td>${esc(g.who || '')}</td>`;
-  const lbl = (a, b, span) => `<tr><td class="lb" style="width:110px">${a}</td><td class="txt" colspan="${span || 1}">${b}</td></tr>`;
-  let lim = '', body = '';
+  const fixRows = arr => arr.map(x => esc(x).replace(/ (- |\d\. |※ |☆ )/g, '<br>$1')).join('<br>');
+  const row2 = (label, html, cls) => `<tr><td class="lb" style="width:96px">${label}</td><td class="${cls || 'txt'}">${html}</td></tr>`;
+  const headDate = `<table><tr><td class="lb" style="width:96px">작성일자</td><td>${esc(g.date)}</td><td class="lb" style="width:120px">점검자</td><td>${esc(g.who || '')}</td></tr></table>`;
+  const sub = `[${esc(T.name)}]${CCP_REV[g.type] ? ` <span class="rev">${esc(CCP_REV[g.type])}</span>` : ''}`;
+  let title, top = '', mid = '', fix = '';
   if (g.type === 'oven') {
-    lim = `<table><tr><td class="lb" rowspan="3" style="width:110px">한계기준</td><th>제품</th><th>가열온도</th><th>가열시간</th><th>품온</th></tr>
-      <tr><td>빅몽블랑 · 몽블랑</td><td>155±3℃</td><td>27분±3분</td><td>85℃ ∼ 99℃</td></tr>
-      <tr><td>구운크라상78 · 빅크로와상 · 빵을그리다 K1 · 구운냉동소금빵 · 구운 쌀 소금빵 · 구운 통밀 소금빵</td><td>170±3℃</td><td>15분±3분</td><td>85℃ ∼ 99℃</td></tr></table>
-      <table>${lbl('주 기', esc(T.cyc))}${lbl('방 법', '○ 가열온도 · 가열시간 · 품온 : 모니터링 담당자는 육안 확인한 후 일지에 기록한다.<br>※ 가열기 온도계/타이머는 연 1회 검·교정을 실시한다.')}</table>`;
-    body = `<table><thead><tr><th>품명</th><th>측정시간</th><th>가열온도</th><th>가열시간</th><th>가열 후 품온</th><th style="width:56px">판정</th><th style="width:80px">서명</th></tr></thead><tbody>${g.rows.map((r, i) => `<tr><td style="text-align:left">${esc(r.name)}(${ed ? `<input data-c="${k}|rows|${i}|tag" value="${esc(r.tag || '')}" style="width:46px;display:inline-block">` : esc(r.tag || '')})${del('rows', i)}</td><td>${V('rows', i, 'time', r.time, 'time')}</td>${tdv('rows', i, 'temp', r)}${tdv('rows', i, 'min', r)}${tdv('rows', i, 'core', r)}${J('rows', i, r)}${sign}</tr>`).join('')}</tbody></table>`;
+    title = `<div class="t1">중요관리점(${T.no}) 모니터링일지</div><div class="t2"><span class="sub">${sub}</span></div>`;
+    top = headDate + `<table><tr><td class="lb" rowspan="${CCP_OVEN_LIM.length + 1}" style="width:96px">한계기준</td><td style="width:150px">제품</td><td>가열온도</td><td>가열시간</td><td>품온</td></tr>
+      ${CCP_OVEN_LIM.map(x => `<tr><td>${esc(x[0])}</td><td>${x[1]}±3℃</td><td>${x[2]}분±3분</td><td>85℃ ∼ 99℃</td></tr>`).join('')}</table>
+      <table>${row2('주 기', esc(T.cyc), '')}${row2('방 법', '◯ 가열온도 · 가열시간 · 품온 : 모니터링 담당자는 육안 확인한 후 일지에 기록한다.<br><span style="font-size:11.5px">※ 가열기 온도계/타이머는 연 1회 검·교정을 실시한다.</span>')}</table>`;
+    mid = `<table class="m"><thead><tr><th>품명</th><th>측정시간</th><th>가열온도(한계온도)(℃)</th><th>가열시간(분)</th><th>품온 (℃)</th><th style="width:56px">판정</th><th style="width:84px">서명</th></tr></thead><tbody>${g.rows.map((r, i) => `<tr><td class="nm">${esc(r.name)}${ed ? `(<input data-c="${k}|rows|${i}|tag" value="${esc(r.tag || '')}" style="width:42px;display:inline-block">)` : (r.tag ? `(${esc(r.tag)})` : '')}${del('rows', i)}</td><td>${V('rows', i, 'time', r.time, 'time')}</td>${U('rows', i, 'temp', r)}${U('rows', i, 'min', r)}${U('rows', i, 'core', r)}${J('rows', i, r)}${sign}</tr>`).join('')}</tbody></table>`;
+    fix = CCP_FIX.oven;
   }
   if (g.type === 'freeze') {
-    lim = `<table><tr><th rowspan="2" style="width:110px">모니터링방법</th><th>한계기준</th><th colspan="2">대상</th><th>방법</th><th>주기</th></tr>
-      <tr><td>냉동온도 -30℃~-35℃<br>시간 1시간 ~ 24시간 이내</td><td colspan="2">냉동창고 컨트롤 판넬 표시온도<br>타이머 표시 시간</td><td>육안확인</td><td>1) 급속냉동 전<br>2) 급속냉동 후</td></tr></table>`;
-    body = `<table><thead><tr><th rowspan="2">품명</th><th colspan="2">급냉 전</th><th colspan="2">급냉 후</th><th rowspan="2" style="width:70px">판정<br>(적합/부적합)</th><th rowspan="2" style="width:80px">서명</th></tr><tr><th>시작시간</th><th>급냉실 온도(℃)</th><th>종료시간</th><th>급냉실 온도(℃)</th></tr></thead><tbody>${g.rows.map((r, i) => `<tr><td style="text-align:left">${esc(r.name)}${del('rows', i)}</td><td>${V('rows', i, 't1', r.t1, 'time')}</td>${tdv('rows', i, 'v1', r)}<td>${V('rows', i, 't2', r.t2, 'time')}</td>${tdv('rows', i, 'v2', r)}${J('rows', i, r)}${sign}</tr>`).join('')}</tbody></table>`;
-  }
-  if (g.type === 'mix') {
-    lim = `<table><tr><td class="lb" rowspan="2" style="width:110px">한계기준</td><th>배합량</th><th>품온</th><th>소진시간</th><th>작업장온도</th></tr><tr><td>10kg~50kg</td><td>10℃±5~20℃±5</td><td>제조 후 2시간 이내</td><td>24℃ 이하</td></tr></table>
-      <table>${lbl('주 기', esc(T.cyc))}${lbl('모니터링방법', '○ 저울 표시 중량 : 육안 확인<br>○ 탐침 온도계 표시온도 : 육안 확인<br>○ 온도계 표시 온도 : 육안 확인<br>○ 타이머 표시시간 : 육안 확인')}</table>`;
-    body = `<table><thead><tr><th>품명</th><th>보관시작시간</th><th>배합량(kg)</th><th>품온(℃)</th><th>작업장온도(℃)</th><th>소진시간</th><th style="width:56px">판정</th><th style="width:80px">서명</th></tr></thead><tbody>${g.rows.map((r, i) => `<tr><td style="text-align:left">${esc(r.name)}${del('rows', i)}</td><td>${V('rows', i, 'start', r.start, 'time')}</td>${tdv('rows', i, 'kg', r)}${tdv('rows', i, 'temp', r)}${tdv('rows', i, 'room', r)}<td>${V('rows', i, 'end', r.end, 'time')}</td>${J('rows', i, r)}${sign}</tr>`).join('')}</tbody></table>`;
+    title = `<div class="t1">중요관리점(${T.no}) 모니터링일지</div><div class="t2"><span class="dt">${esc(g.date)}</span><span class="sub">${sub}</span></div>`;
+    top = `<table><tr><td class="lb" colspan="2" rowspan="2">한계기준</td><td class="lb" colspan="3">모니터링방법</td></tr><tr><td class="lb">대상</td><td class="lb">방법</td><td class="lb">주기</td></tr>
+      <tr><td class="lb" style="width:96px">냉동온도</td><td>- 30℃~35℃</td><td>냉동창고 컨트롤 판넬 표시온도</td><td>육안확인</td><td rowspan="2" class="txt">1) 급속냉동 전<br>2) 급속냉동 후</td></tr>
+      <tr><td class="lb">시간</td><td>1시간 ~ 24시간 이내</td><td>타이머 표시 시간</td><td>육안확인</td></tr></table>`;
+    mid = `<table class="m"><thead><tr><th rowspan="2">품명</th><th colspan="2">급냉 전</th><th colspan="2">급냉 후</th><th rowspan="2" style="width:76px">판정<br>(적합/부적합)</th><th rowspan="2" style="width:84px">서명</th></tr><tr><th>측정시간</th><th>급냉실 온도</th><th>측정시간</th><th>급냉실 온도</th></tr></thead><tbody>${g.rows.map((r, i) => `<tr><td class="nm">${esc(r.name)}${del('rows', i)}</td><td>${V('rows', i, 't1', r.t1, 'time')}</td>${U('rows', i, 'v1', r, '℃')}<td>${V('rows', i, 't2', r.t2, 'time')}</td>${U('rows', i, 'v2', r, '℃')}${J('rows', i, r)}${sign}</tr>`).join('')}</tbody></table>`;
+    fix = CCP_FIX.freeze;
   }
   if (g.type === 'metal') {
-    lim = `<table>${lbl('한계기준', '○ Fe 2.5mmΦ. STS 3.5mmΦ 이상 금속이물 불검출 [생지 및 완제품 : 감도 150 / 물성 200]')}</table>
-      <table><tr><td class="lb" rowspan="2" style="width:110px">주기</td><td class="txt">금속검출기 정상작동 여부 확인 : 작업 시작전, 작업 후 2시간마다, 작업 종료 후, 품목변경시 마다</td></tr><tr><td class="txt">금속검출기에 의한 공정품 확인 : 작업 중 상시</td></tr></table>
-      <table>${lbl('방법', CCP_FIX.metal.map(esc).join('<br>'))}</table>`;
-    body = `<table><thead><tr><th colspan="9" style="background:#fff;font-weight:700">금속검출기 감도 모니터링(판정 - 검출 : O, 불검출 : X)</th></tr><tr><th>품명</th><th>통과시간</th><th>FE만통과</th><th>SUS만 통과</th><th>제품만 통과</th><th>FE+ 제품통과</th><th>SUS+ 제품통과</th><th style="width:56px">판정</th><th style="width:80px">서명</th></tr></thead><tbody>${g.rows.map((r, i) => `<tr><td style="text-align:left">${esc(r.name)}${ed ? ` <button class="ccp-mini" data-ccpok="${k}|${i}" title="검사 결과가 정상일 때 한 번에 표시">정상</button>` : ''}</td><td>${V('rows', i, 'time', r.time, 'time')}</td><td>${V('rows', i, 'fe', r.fe, 'ox')}</td><td>${V('rows', i, 'sus', r.sus, 'ox')}</td>${r.kind === 'item' ? `<td>${V('rows', i, 'p', r.p, 'ox')}</td><td>${V('rows', i, 'fep', r.fep, 'ox')}</td><td>${V('rows', i, 'susp', r.susp, 'ox')}</td>` : '<td></td><td></td><td></td>'}${J('rows', i, r)}${sign}</tr>`).join('')}</tbody></table>
-      <div class="ccp-gap"></div><table><thead><tr><th>품명</th><th>통과량</th><th>검출량</th><th>특이사항</th><th style="width:56px">판정</th></tr></thead><tbody>${g.pass.map((r, i) => `<tr><td style="text-align:left">${esc(r.name)}</td>${tdv('pass', i, 'passed', r)}${tdv('pass', i, 'det', r)}<td>${V('pass', i, 'note', r.note, 'txt')}</td>${J('pass', i, r)}</tr>`).join('')}</tbody></table>`;
+    title = `<div class="t1">중요관리점(${T.no}) 모니터링일지</div><div class="t2 c"><span class="sub">${sub}</span></div>`;
+    top = headDate + `<table>${row2('한계기준', '◯ Fe 2.5mmΦ. STS 3.5mmΦ 이상 금속이물 불검출 [생지 및 완제품 : 감도 150 / 물성 200]', 'yel')}</table>
+      <table><tr><td class="lb" rowspan="2" style="width:96px">주기</td><td>금속검출기 정상작동 여부 확인</td><td>작업 시작전, 작업 후 2시간마다, 작업 종료 후, 품목변경시 마다</td></tr><tr><td>금속검출기에 의한 공정품 확인</td><td>작업 중 상시</td></tr></table>
+      <table>${row2('방법', fixRows(CCP_FIX.metal.slice(0, 2)) + '<br>' + esc(CCP_FIX.metal[2]).replace(' ※', '<br>※'))}</table>
+      <div class="ccp-band">금속검출기 감도 모니터링(판정 - 검출 : O, 불검출 : X)</div>`;
+    mid = `<table class="m"><thead><tr><th>품명</th><th>통과시간</th><th>FE만 통과</th><th>STS만 통과</th><th>제품만 통과</th><th>FE+제품통과</th><th>STS+제품통과</th><th style="width:56px">판정</th><th style="width:84px">서명</th></tr></thead><tbody>${g.rows.map((r, i) => `<tr><td class="nm">${esc(r.name)}${ed ? ` <button class="ccp-mini" data-ccpok="${k}|${i}" title="검사 결과가 정상일 때 한 번에 표시">정상</button>` : ''}</td><td>${V('rows', i, 'time', r.time, 'time')}</td><td>${V('rows', i, 'fe', r.fe, 'ox')}</td><td>${V('rows', i, 'sus', r.sus, 'ox')}</td>${r.kind === 'item' ? `<td>${V('rows', i, 'p', r.p, 'ox')}</td><td>${V('rows', i, 'fep', r.fep, 'ox')}</td><td>${V('rows', i, 'susp', r.susp, 'ox')}</td>` : '<td></td><td></td><td></td>'}${J('rows', i, r)}${sign}</tr>`).join('')}</tbody></table>
+      <div class="ccp-sp top"></div><table class="m"><thead><tr><th>품명</th><th>통과량</th><th>검출량</th><th>특이사항</th><th style="width:56px">판정</th></tr></thead><tbody>${g.pass.map((r, i) => `<tr><td class="nm">${esc(r.name)}</td>${U('pass', i, 'passed', r)}${U('pass', i, 'det', r)}<td>${V('pass', i, 'note', r.note, 'txt')}</td>${J('pass', i, r)}</tr>`).join('')}</tbody></table>`;
+    fix = CCP_FIX.metal;
   }
-  const fix = g.type === 'metal' ? '' : `<div class="ccp-gap"></div><table>${lbl('개선조치<br>방법', CCP_FIX[g.type].map(esc).join('<br>'))}</table>`;
+  if (g.type === 'mix') {
+    title = `<div class="t1">중요관리점(${T.no}) 모니터링일지</div><div class="t2 c"><span class="sub">${sub}</span></div>`;
+    top = headDate + `<table><tr><td class="lb" rowspan="2" style="width:96px">한계기준</td><td>배합량</td><td>품온</td><td>소진시간</td><td>작업장온도</td></tr><tr><td>10kg~50kg</td><td>10℃±5~20℃±5</td><td>제조 후 2시간 이내</td><td>24℃ 이하</td></tr></table>
+      <table>${row2('주 기', esc(T.cyc), '')}${row2('모니터링<br>방법', '◯ 저울 표시 중량 : 육안 확인<br>◯ 탐침 온도계 표시온도 : 육안 확인<br>◯ 온도계 표시 온도 : 육안 확인<br>◯ 타이머 표시시간 : 육안 확인')}</table>`;
+    mid = `<table class="m"><thead><tr><th>품명</th><th>보관시작시간</th><th>배합량(kg)</th><th>품온(℃)</th><th>작업장온도(℃)</th><th>소진시간</th><th style="width:56px">판정</th><th style="width:84px">서명</th></tr></thead><tbody>${g.rows.map((r, i) => `<tr><td class="nm">${esc(r.name)}${del('rows', i)}</td><td>${V('rows', i, 'start', r.start, 'time')}</td>${U('rows', i, 'kg', r)}${U('rows', i, 'temp', r)}${U('rows', i, 'room', r)}<td>${V('rows', i, 'end', r.end, 'time')}</td>${J('rows', i, r)}${sign}</tr>`).join('')}</tbody></table>`;
+    fix = CCP_FIX.mix;
+  }
+  const done = ccpState(g).done;
   return `<div class="ccp-sheet">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:10px"><table class="ccp-sign" style="width:auto"><tr><th rowspan="3" style="padding:3px 8px">결재</th><th>${g.who ? '작성완료' : '작성'}</th><th>${g.ok ? '승인완료' : '승인'}</th></tr><tr><td>${ed ? `<input data-c="${k}|log|0|who" value="${esc(g.who || '')}" placeholder="이름">` : esc(g.who || '')}</td><td>${ed ? `<input data-c="${k}|log|0|ok" value="${esc(g.ok || '')}" placeholder="이름">` : esc(g.ok || '')}</td></tr><tr><th>작성자</th><th>승인자</th></tr></table></div>
-    <div class="ccp-bar"><i></i><b></b></div>
-    <div class="ccp-title">중요관리점(${T.no}) 모니터링일지 [${esc(T.name)}]</div>
-    <table><tr><td class="lb" style="width:110px">작성일자</td><td>${esc(g.date)} (${w})</td><td class="lb" style="width:110px">점검자</td><td>${esc(g.who || '')}</td></tr></table>
-    ${lim}<div class="ccp-gap"></div>${body}${fix}
-    <div class="ccp-gap"></div><table><tr><th>한계기준 이탈내용</th><th>개선조치 및 결과</th><th style="width:90px">조 치 자</th><th style="width:90px">확 인</th></tr>
-      <tr><td>${V('log', 0, 'dev', g.dev, 'txt')}</td><td>${V('log', 0, 'act', g.act, 'txt')}</td><td>${esc(g.who || '')}</td><td>${esc(g.ok || '')}</td></tr></table>
-    <div class="ccp-foot"><span>${g.ts ? '마지막 입력 ' + esc(hmOf(g.ts)) + (g.by ? ' · ' + esc(g.by) : '') : ''}</span><span><b>K-HACCP</b> 양식 · 빵을그리다 통합 재고관리</span></div></div>`;
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><table class="ccp-sign" style="width:auto"><tr><th rowspan="3" style="padding:2px 9px">결재</th><th>${done && g.who ? '작성완료' : '작성'}</th><th>${g.ok ? '승인완료' : '승인'}</th></tr>
+      <tr><td>${ed ? `<input data-c="${k}|log|0|who" value="${esc(g.who || '')}" placeholder="이름">` : esc(g.who || '')}</td><td>${ed ? `<input data-c="${k}|log|0|ok" value="${esc(g.ok || '')}" placeholder="이름">` : esc(g.ok || '')}</td></tr><tr><th>작성자</th><th>승인자</th></tr></table></div>
+    <div class="ccp-frame"><div class="ccp-bar"><i></i><b></b></div><div class="ccp-title">${title}</div>
+      ${top}<div class="ccp-sp"></div>${mid}<div class="ccp-sp top"></div>
+      <table><tr><td class="lb" style="width:96px">개선조치<br>방법</td><td class="txt">${fixRows(fix)}</td></tr></table>
+      <table><tr><td class="lb">한계기준 이탈내용</td><td class="lb">개선조치 및 결과</td><td class="lb" style="width:110px">조 치 자</td><td class="lb" style="width:110px">확 인</td></tr>
+        <tr><td style="text-align:left">${V('log', 0, 'dev', g.dev, 'txt')}</td><td style="text-align:left">${V('log', 0, 'act', g.act, 'txt')}</td><td style="text-align:left">${esc(g.who || '')}</td><td>${esc(g.ok || '')}</td></tr></table></div>
+    <div class="ccp-foot"><span>${g.ts ? '마지막 입력 ' + esc(hmOf(g.ts)) + (g.by ? ' · ' + esc(g.by) : '') : ''}</span><span>빵을그리다 통합 재고관리</span></div></div>`;
 }
 function ccpCardHtml(g) {
   const k = g.date + '|' + g.type, kid = ccpKid(g), T = CCP_TYPES[g.type], s = ccpState(g);
