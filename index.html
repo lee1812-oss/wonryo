@@ -1070,7 +1070,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '131';
+const APP_VER  = '132';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2746,9 +2746,9 @@ function ccpBind(box) {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.ccpfull) { if (!shareOn()) { toast('공유 저장소가 꺼져 있습니다 (통합 설정)'); return; } b.disabled = true; b.textContent = '받는 중…'; shareCfg().since = ''; sharePull(true).then(() => { ccpEnsureAll(45); renderCcp(); toast('공유 저장소에서 전체 자료를 다시 받았습니다'); }); return; }
     if (b.dataset.ccpresend) { if (!shareOn()) { toast('공유 저장소가 꺼져 있습니다 (통합 설정)'); return; } const M = /^\d{4}-\d{2}$/.test(S.ui.ccpCalM || '') ? S.ui.ccpCalM : today().slice(0, 7); let n = 0;
-      Object.entries(prodS().pday || {}).forEach(([k, e]) => { if (!e || !e.imp || String(e.d || '').slice(0, 7) !== M) return; nbQueue({ ts: e.ts || new Date().toISOString(), week: '', code: k, name: '생산(엑셀 소급)', kind: 'pday', note: JSON.stringify({ d: e.d, imp: 1, l: e.l }) }); n++; });
+      Object.entries(prodS().pday || {}).forEach(([k, e]) => { if (!e || !e.imp || String(e.d || '').slice(0, 7) !== M) return; nbQueue({ ts: new Date().toISOString(), week: '', code: k, name: '생산(엑셀 소급)', kind: 'pday', note: JSON.stringify({ d: e.d, imp: 1, l: e.l }) }); n++; });
       (prodS().log || []).forEach(en => { if (en && String(en.date || '').slice(0, 7) === M) delete en.ccpSig; }); ccpShareDays();
-      Object.entries(ccpS().logs).forEach(([k, g]) => { if (!g || String(g.date || '').slice(0, 7) !== M || !g.ts) return; nbQueue({ ts: g.ts, week: '', code: k, name: CCP_TYPES[g.type].short, kind: 'ccp', note: JSON.stringify(g) }); n++; });
+      Object.entries(ccpS().logs).forEach(([k, g]) => { if (!g || String(g.date || '').slice(0, 7) !== M || !g.ts) return; nbQueue({ ts: new Date().toISOString(), week: '', code: k, name: CCP_TYPES[g.type].short, kind: 'ccp', note: JSON.stringify(g) }); n++; });
       save(); toast(`${M.slice(0, 4)}년 ${Number(M.slice(5))}월 일지 ${n}건을 다시 보냅니다 — 다른 기기에서 「전체 다시 받기」를 누르세요`); renderCcp(); return; }
     if (b.dataset.ccpinfo) { S.ui.ccpInfo = !S.ui.ccpInfo; save(); renderCcp(); return; }
     if (b.dataset.ccpdevm) { const M = b.dataset.ccpdevm, y = +M.slice(0, 4), m = +M.slice(5); S.ui.ccpDevF = M + '-01'; S.ui.ccpDevT = ccpYmd(new Date(y, m, 0)); S.ui.ccpView = 'dev'; save(); renderCcp(); return; }
@@ -3417,10 +3417,14 @@ async function shareApi(payload) {
   return j;
 }
 /* v129: 보내기 — 실패하면 한 번에 보내는 양을 절반으로 줄여 다시 시도(구글 스크립트 시간 초과·용량 대비), 성공하면 다시 늘림. 실패 이유는 성공할 때까지 남겨 둠 */
+/* v132: CCP 일지(ccp)·CCP용 생산(pday)은 공유 저장소에 「생산일지(plog)」 종류로 감싸서 보냄 — 공유 저장소 스크립트가 새 종류를 저장하지 않아도 다른 기기에 전달되게.
+   받는 쪽은 code 앞머리(ccp~ / pday~)를 보고 원래대로 풀어서 처리. 예전 버전 기기는 이 줄을 생산 기록으로 쓰지 않고 그냥 넘김 (note 에 d·l 이 없음) */
+function shareWire(r) { if (!r || (r.kind !== 'ccp' && r.kind !== 'pday')) return r; return Object.assign({}, r, { kind: 'plog', code: r.kind + '~' + r.code, note: JSON.stringify({ x: r.kind, n: r.note || '' }) }); }
+function shareUnwire(r) { const m = r && r.kind === 'plog' && /^(ccp|pday)~(.+)$/.exec(String(r.code || '')); if (!m) return r; let n = ''; try { n = (JSON.parse(r.note || '{}') || {}).n || ''; } catch (e) {} return Object.assign({}, r, { kind: m[1], code: m[2], note: n }); }
 async function sharePush() {
   if (!shareOn() || shareBusy) return; const sh = shareCfg(); if (!sh.outbox.length) { if (sh.pushErr) { sh.pushErr = ''; save(); } return; } shareBusy = true;
   const n = Math.max(1, Math.min(200, sh.batchN || 40)); const batch = sh.outbox.slice(0, n); renderShareStatus('보내는 중…');
-  try { const j = await shareApi({ rows: batch, user: S.settings.reporter || '', device: sh.device });
+  try { const j = await shareApi({ rows: batch.map(shareWire), user: S.settings.reporter || '', device: sh.device });
     const sent = new Set(batch.map(b => b.ts + '|' + shareKey(b))); batch.forEach(b => { if (b.kind !== 'phys') return; const p = (S.physical[b.week] || {})[b.code]; if (!p) return; if (b.del) delete p.hadVal; else if (p.ts === b.ts) p.hadVal = 1; }); sh.outbox = sh.outbox.filter(b => !sent.has(b.ts + '|' + shareKey(b))); sh.lastPush = new Date().toISOString(); sh.err = ''; sh.pushErr = ''; sh.pushFail = 0; sh.batchN = Math.min(200, n * 2); save(true); }
   catch (e) { const m = String((e && e.message) || e).slice(0, 160); sh.pushFail = (sh.pushFail || 0) + 1; sh.batchN = Math.max(1, Math.floor(n / 2));
     sh.err = sh.pushErr = `보내기 실패(${n}건씩 ${sh.pushFail}번째): ${m}${n <= 3 ? ` · 맨 앞 자료 ${batch[0].kind || 'phys'} ${batch[0].code || ''}` : ''}`; save(); }
@@ -3434,7 +3438,7 @@ async function sharePull(full, quiet) {
   try { const j = await shareApi({ action: 'pull', since: full ? '' : shareSinceBack(sh.since) });
     const applied = [];
     let nbCh = 0, pcfgCh = false, inspCh = false, ccpCh = false; const nbNew = [];
-    (j.rows || []).sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0).forEach(row => {
+    (j.rows || []).map(shareUnwire).sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0).forEach(row => {
       if (row.kind === 'insp' || row.kind === 'inspm') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.kind === 'insp' && row.ts && inspLogAdd(row)) inspCh = true; return; }   /* v072: 육안검사 마지막 입력 표시용 */   /* v054: 육안검사일지 행은 그쪽(inspect.html)이 받음 */
       if (row.kind === 'itemw') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.code && row.ts && setItemW(row.code, itemWFromNote(row.note), row.ts, true)) { changed++; if (row.device !== sh.device) applied.push(row); } return; }
       if (row.kind === 'plog') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (prodSlogAdd(row)) pcfgCh = pcfgCh || 'log'; return; }
