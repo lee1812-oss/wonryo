@@ -1066,7 +1066,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '118';
+const APP_VER  = '119';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2268,7 +2268,7 @@ function ccpImportRecords(doc) {
     ['who', 'ok', 'dev', 'act'].forEach(f => { if (r[f]) g[f] = r[f]; });
     g.ts = ts; g.by = 'K-HACCP 기록'; ccpQueueSoon(g); n++; });
   dates.forEach(d => CCP_ORDER.forEach(t => { const g = L[d + '|' + t]; if (g && !doc.logs.some(r => r.date === d && r.type === t)) { g.skip = true; g.ts = ts; g.by = 'K-HACCP 기록'; ccpQueueSoon(g); sk++; } }));
-  S.ui.ccpDate = dates.sort()[dates.length - 1]; save(); closeModal(); renderCcp();
+  S.ui.ccpDate = dates.sort()[dates.length - 1]; S.ui.ccpCalM = S.ui.ccpDate.slice(0, 7); S.ui.ccpView = 'cal'; save(); closeModal(); renderCcp();
   toast(`K-HACCP 기록 ${n}개로 ${dates.length}일의 CCP 일지를 채웠습니다${sk ? ` (기록 없는 공정 ${sk}개는 해당 없음)` : ''}`);
 }
 async function ccpImportXlsx(file) {
@@ -2294,7 +2294,7 @@ async function ccpImportXlsx(file) {
       CCP_ORDER.forEach(type => { const g = L[d + '|' + type]; if (g && !g.ts) delete L[d + '|' + type]; });   /* 아직 손대지 않은 일지는 새 자료로 다시 만듦 */
       n++; });
     const byD = ccpProdByDate(); pick.forEach(d => ccpEnsure(d, byD[d]));
-    S.ui.ccpDate = pick[pick.length - 1]; S.ui.ccpMonth = pick[pick.length - 1].slice(0, 7); save(); closeModal(); renderCcp();
+    S.ui.ccpDate = pick[pick.length - 1]; S.ui.ccpMonth = S.ui.ccpCalM = pick[pick.length - 1].slice(0, 7); S.ui.ccpView = 'cal'; save(); closeModal(); renderCcp();
     toast(`${pick[0]} ~ ${pick[pick.length - 1]} 생산 ${n}일을 불러와 CCP 일지를 만들었습니다`);
   };
 }
@@ -2402,20 +2402,41 @@ function renderCcp() {
   const chip = d => { const gs = CCP_ORDER.map(t => L[d + '|' + t]).filter(g => g && !g.skip); const st = gs.map(ccpState); const bad = st.some(s => s.bad), miss = st.reduce((a, s) => a + s.miss, 0);
     return `<button class="btn sm${d === D ? ' primary' : ''}" data-ccpdate="${d}" style="${d === D ? '' : bad ? 'border-color:var(--minus);color:var(--minus)' : miss ? 'border-color:#E8C98E' : ''}">${esc(d.slice(5))} (${WD[new Date(d + 'T00:00:00').getDay()]}) ${gs.length ? (bad ? '⚠' : miss ? '✎' : '✓') : ''}</button>`; };
   const prods = Object.values(ccpProdByDate()[D] || {});
-  box.innerHTML = `<div class="card"><div class="prow" style="align-items:center"><h2 style="margin:0;flex:1 1 auto">🛡 CCP 일지 <span class="muted" style="font-size:12px;font-weight:600">v${APP_VER}</span></h2>
-      <input type="date" id="ccpPick" value="${esc(D)}" style="width:150px"><button class="btn" id="ccpPrint">🖨 이 날짜 인쇄</button>${isAdmin() ? '<label class="btn" title="K-HACCP 생산일지 엑셀(.xlsx) → 지난 생산 소급 · CCP 기록 파일(.json) → 측정값 채우기">📥 K-HACCP 불러오기<input type="file" id="ccpImp" accept=".xlsx,.xls,.json" hidden></label>' : ''}</div>
-    <div class="muted" style="margin:6px 0 8px">생산을 입력하면 그 품목에 연결된 CCP 일지가 <b>자동으로 만들어집니다</b>. 품목·통과량은 생산에서 채우고, <b>온도·시간·검출 결과는 현장에서 재서</b> 넣으세요. 한계기준을 벗어나면 붉게 표시됩니다. 입력하면 자동 저장·공유됩니다.</div>
+  const V = ['cal', 'list', 'day', 'map'].includes(S.ui.ccpView) ? S.ui.ccpView : 'cal'; if (V === 'map' && !isAdmin()) S.ui.ccpView = 'cal';
+  const vb = (v, t) => `<button class="btn sm${V === v ? ' primary' : ''}" data-ccpview="${v}">${t}</button>`;
+  box.innerHTML = `<div class="card"><div class="prow" style="align-items:center;gap:8px"><h2 style="margin:0;flex:1 1 auto">🛡 생산 · CCP 일지 <span class="muted" style="font-size:12px;font-weight:600">v${APP_VER}</span></h2>
+      <div class="prow" style="gap:4px">${vb('cal', '📅 달력')}${vb('list', '📋 목록')}${vb('day', '📝 일지')}${isAdmin() ? vb('map', '⚙ 품목 연결') : ''}</div>
+      <button class="btn" id="ccpRange">🖨 기간 인쇄</button>${isAdmin() ? '<label class="btn" title="K-HACCP 생산일지 엑셀(.xlsx) → 지난 생산 소급 · CCP 기록 파일(.json) → 측정값 채우기">📥 K-HACCP 불러오기<input type="file" id="ccpImp" accept=".xlsx,.xls,.json" hidden></label>' : ''}</div>
+    <div class="muted" style="margin:6px 0 4px">생산을 입력하면 그 품목에 연결된 CCP 일지가 <b>자동으로 만들어집니다</b>. 품목·통과량은 생산에서 채우고, <b>온도·시간·검출 결과는 현장에서 재서</b> 넣으세요. 한계기준을 벗어나면 붉게 표시됩니다. 입력하면 자동 저장·공유됩니다.</div>
     <div class="muted" style="font-size:11.5px;margin:-2px 0 8px">${(() => { if (!shareOn()) return '⚠ 공유 저장소가 꺼져 있어 다른 기기의 생산을 받을 수 없습니다'; const sh = shareCfg(), mine = (P.log || []).filter(en => en.ccpSig).length, wait = (sh.outbox || []).filter(r => r.kind === 'pday' || r.kind === 'ccp').length, got = Object.keys(P.pday || {}).length;
       return `🔄 기기 간 공유 — 이 기기(${esc(sh.device || '')}) 생산 ${mine}건 보냄${wait ? ` · <b>보낼 것 ${wait}건 대기</b>` : ''} · 다른 기기 생산 ${got}건 받음 · 마지막 받기 ${esc(sh.lastPull ? hmOf(sh.lastPull) : '—')}${sh.err ? ` · <span style="color:var(--minus)">${esc(sh.err)}</span>` : ''}`; })()}</div>
-    <div class="prow" style="gap:6px">${dates.slice(0, 21).map(chip).join('') || '<span class="muted">아직 생산 기록이 없습니다 — 「생산 입력」으로 보내면 여기에 생깁니다.</span>'}</div></div>
-  <div class="card"><b>${esc(D)} (${WD[new Date(D + 'T00:00:00').getDay()]}) 생산</b> <span class="muted">${prods.length ? prods.map(x => `${esc(x.name)} ${fmt(x.ec)}`).join(' · ') : '생산 기록 없음'}</span></div>
+  </div>
+  ${V === 'cal' ? ccpCalHtml(D) : V === 'list' ? ccpListHtml(D) : V === 'map' ? ccpMapHtml() : `<div class="card"><div class="prow" style="align-items:center;gap:8px"><button class="btn sm" data-ccpview="cal">← 달력</button>
+      <input type="date" id="ccpPick" value="${esc(D)}" style="width:150px"><b>${esc(D)} (${WD[new Date(D + 'T00:00:00').getDay()]}) 생산</b> <span class="muted" style="flex:1 1 200px">${prods.length ? prods.map(x => `${esc(x.name)} ${fmt(x.ea || x.ec)}`).join(' · ') : '생산 기록 없음'}</span><button class="btn" id="ccpPrint">🖨 이 날짜 인쇄</button></div></div>
   ${logs.length ? (() => { const cur = logs.find(g => g.type === S.ui.ccpTab) || logs[0];
       const tabs = logs.map(g => { const st = ccpState(g), on = g === cur, T = CCP_TYPES[g.type]; const dot = st.bad ? 'var(--minus)' : st.miss ? '#E0A030' : '#2E9E6A';
         return `<button class="ccp-tab${on ? ' on' : ''}" data-ccptab="${g.type}"><span>${T.ico}</span>${esc(T.short)}<i style="background:${dot}" title="${st.bad ? '한계기준 이탈' : st.miss ? '입력 필요 ' + st.miss : '작성 완료'}"></i></button>`; }).join('');
-      return `<div class="ccp-tabs">${tabs}</div>${ccpCardHtml(cur)}`; })() : '<div class="card muted">이 날짜에는 만들어진 CCP 일지가 없습니다.</div>'}
-  ${ccpListHtml(D)}
-  ${isAdmin() ? ccpMapHtml() : ''}`;
+      return `<div class="ccp-tabs">${tabs}</div>${ccpCardHtml(cur)}`; })() : '<div class="card muted">이 날짜에는 만들어진 CCP 일지가 없습니다.</div>'}`}`;
   ccpBind(box); try { renderSharePill(); } catch (e) {}
+}
+/* v119: 달력 — 날마다 생산 품목과 공정별 CCP 일지 상태 표시, 누르면 그날 일지 */
+function ccpCalHtml(D) {
+  const by = ccpProdByDate(), L = ccpS().logs; const M = /^\d{4}-\d{2}$/.test(S.ui.ccpCalM || '') ? S.ui.ccpCalM : D.slice(0, 7);
+  const y = Number(M.slice(0, 4)), m = Number(M.slice(5, 7)); const first = new Date(y, m - 1, 1), days = new Date(y, m, 0).getDate(), td = today();
+  const ymd = n => `${M}-${String(n).padStart(2, '0')}`; const mv = k => { const d = new Date(y, m - 1 + k, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+  let mProd = 0, mLogs = 0, mDone = 0, mBad = 0; const cells = [];
+  for (let i = 0; i < first.getDay(); i++) cells.push('<td class="ccal-x"></td>');
+  for (let n = 1; n <= days; n++) { const d = ymd(n), its = Object.values(by[d] || {}), gs = CCP_ORDER.map(t => L[d + '|' + t]).filter(g => g && !g.skip), wd = new Date(d + 'T00:00:00').getDay();
+    if (its.length) mProd++; mLogs += gs.length;
+    const chips = gs.map(g => { const st = ccpState(g); if (st.done) mDone++; if (st.bad) mBad++; const c = st.bad ? 'bad' : st.miss ? 'miss' : 'ok'; return `<span class="ccal-c ${c}" title="${esc(CCP_TYPES[g.type].short)} · ${st.bad ? '한계기준 이탈' : st.miss ? '입력 필요 ' + st.miss : '작성 완료'}">${CCP_TYPES[g.type].ico}${st.bad ? '⚠' : st.miss ? '✎' : '✓'}</span>`; }).join('');
+    const pn = its.map(x => String(x.name).replace(/^(D|DB|Db)\./, '')); 
+    cells.push(`<td class="ccal-d${d === td ? ' today' : ''}${d === D ? ' sel' : ''}${its.length || gs.length ? ' has' : ''}" data-ccpdate="${d}"><div class="ccal-n${wd === 0 ? ' sun' : wd === 6 ? ' sat' : ''}">${n}</div>${pn.length ? `<div class="ccal-p" title="${esc(pn.join(', '))}">${esc(pn.slice(0, 2).join(' · '))}${pn.length > 2 ? ` <b>+${pn.length - 2}</b>` : ''}</div>` : ''}<div class="ccal-cs">${chips}</div></td>`); }
+  while (cells.length % 7) cells.push('<td class="ccal-x"></td>');
+  const rows = []; for (let i = 0; i < cells.length; i += 7) rows.push('<tr>' + cells.slice(i, i + 7).join('') + '</tr>');
+  return `<div class="card"><div class="prow" style="align-items:center;gap:8px;margin-bottom:8px"><button class="btn sm" data-ccpcal="${mv(-1)}">‹</button><h2 style="margin:0">${y}년 ${m}월</h2><button class="btn sm" data-ccpcal="${mv(1)}">›</button><button class="btn sm" data-ccpcal="${td.slice(0, 7)}">이번 달</button>
+      <span class="muted" style="flex:1 1 auto;text-align:right;font-size:12.5px">생산 ${mProd}일 · CCP 일지 ${mLogs}개 · 완료 ${mDone}${mBad ? ` · <b style="color:var(--minus)">이탈 ${mBad}</b>` : ''}</span><button class="btn sm" data-ccprange="${M}">🖨 이 달 인쇄</button></div>
+    <div class="tablewrap"><table class="ccal"><thead><tr>${['일', '월', '화', '수', '목', '금', '토'].map((w, i) => `<th class="${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${w}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>
+    <div class="muted" style="font-size:12px;margin-top:6px">날짜를 누르면 그날 일지가 열립니다 · 🥣크림배합 🔥오븐가열 ❄️급속냉동 🧲금속검출 · ✓ 작성 완료 · ✎ 입력 필요 · ⚠ 한계기준 이탈</div></div>`;
 }
 function ccpListHtml(D) {
   const by = ccpProdByDate(), L = ccpS().logs; const all = [...new Set([...Object.keys(by), ...Object.values(L).map(g => g.date)])].sort().reverse();
@@ -2471,7 +2492,13 @@ const CCP_CSS = `.ccp-sheet{background:#fff;color:#000;max-width:1000px;margin:0
 .ccp-tabs{display:flex;gap:2px;align-items:flex-end;border-bottom:2px solid #1F6E5A;margin:4px 0 0;overflow-x:auto;padding-top:6px}
 .ccp-tab{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:1px solid #C5CDD4;border-bottom:0;border-radius:8px 8px 0 0;background:#E4E9ED;color:#3A4A55;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;font-family:inherit}
 .ccp-tab:hover{background:#F2F5F7}.ccp-tab.on{background:#fff;color:#1F6E5A;border-color:#1F6E5A;position:relative;top:2px;padding-bottom:11px}.ccp-tab i{width:9px;height:9px;border-radius:50%;display:inline-block}
-.ccp-tabs+.card{border-top-left-radius:0;margin-top:0}`;
+.ccp-tabs+.card{border-top-left-radius:0;margin-top:0}
+table.ccal{width:100%;border-collapse:collapse;table-layout:fixed}table.ccal th{font-size:12.5px;padding:6px;color:var(--ink2);background:var(--line2,#F4F6F8);border:1px solid var(--line)}table.ccal th.sun,.ccal-n.sun{color:#C0392B}table.ccal th.sat,.ccal-n.sat{color:#2563EB}
+table.ccal td{border:1px solid var(--line);vertical-align:top;height:92px;padding:4px 5px;cursor:pointer;background:var(--paper,#fff)}table.ccal td.ccal-x{background:transparent;cursor:default}
+table.ccal td.has{background:#F7FBF9}table.ccal td:hover{outline:2px solid #1F6E5A;outline-offset:-2px}table.ccal td.sel{outline:2px solid #1F6E5A;outline-offset:-2px}table.ccal td.today .ccal-n{background:#1F6E5A;color:#fff;border-radius:10px;padding:0 7px;display:inline-block}
+.ccal-n{font-weight:800;font-size:13px}.ccal-p{font-size:11px;color:var(--ink2);margin-top:2px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.ccal-cs{display:flex;flex-wrap:wrap;gap:2px;margin-top:3px}.ccal-c{font-size:10.5px;padding:0 4px;border-radius:6px;white-space:nowrap;font-weight:700}.ccal-c.ok{background:#E3F4EC;color:#1F6E4A}.ccal-c.miss{background:#FBF1DF;color:#A86A12}.ccal-c.bad{background:#FBE9E9;color:#B23A3A}
+@media (max-width:759px){table.ccal td{height:70px;padding:2px}.ccal-p{display:none}.ccal-c{font-size:9.5px;padding:0 2px}}`;
 /* 결재 도장 — 이름(또는 설정한 도장 글자)을 빨간 원 안에. 작성자 도장은 측정값을 다 넣었을 때, 승인자 도장은 승인자 이름을 넣었을 때 찍힘 */
 function ccpStamp(name) { const t = String(name || '').trim(); if (!t) return ''; const n = [...t].length; return `<span class="ccp-stamp" style="font-size:${n <= 2 ? 12 : n === 3 ? 10 : 8}px">${esc(t)}</span>`; }
 function ccpSheet(g, ed) {
@@ -2541,8 +2568,22 @@ function ccpCardHtml(g) {
     <div class="prow" style="align-items:center;margin-bottom:8px"><b style="flex:1 1 auto">${T.ico} ${esc(T.short)}</b>${adds}<span id="ccps-${kid}">${ccpPill(g)}</span></div>
     <div style="overflow-x:auto">${ccpSheet(g, true)}</div></div>`;
 }
-function ccpPrint(D) {
-  const L = ccpS().logs, logs = CCP_ORDER.map(t => L[D + '|' + t]).filter(g => g && !g.skip); if (!logs.length) { toast('인쇄할 일지가 없습니다'); return; }
+function ccpPrint(D) { ccpPrintRange(D, D); }
+function ccpRangeAsk(month) {
+  const M = month || (S.ui.ccpCalM || S.ui.ccpDate || today()).slice(0, 7); const last = new Date(Number(M.slice(0, 4)), Number(M.slice(5, 7)), 0).getDate();
+  modal(`<h2>🖨 기간 인쇄</h2><p class="muted" style="margin:4px 0 10px">고른 기간의 CCP 일지를 날짜 순서로 한 장(A4)에 하나씩 인쇄합니다. 공정을 골라 인쇄할 수도 있습니다.</p>
+    <div class="row" style="gap:10px;align-items:flex-end;flex-wrap:wrap"><div class="field"><label>시작일</label><input type="date" id="ccpRF" value="${M}-01"></div><div class="field"><label>종료일</label><input type="date" id="ccpRT" value="${M}-${String(last).padStart(2, '0')}"></div></div>
+    <div class="row" style="gap:12px;margin-top:10px;flex-wrap:wrap">${CCP_ORDER.map(t => `<label class="chk"><input type="checkbox" class="ccpRTy" value="${t}" checked> ${CCP_TYPES[t].ico} ${CCP_TYPES[t].short}</label>`).join('')}</div>
+    <div class="muted" id="ccpRN" style="margin-top:8px"></div>
+    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px"><button class="btn" onclick="closeModal()">취소</button><button class="btn primary" id="ccpRGo">인쇄</button></div>`);
+  const pick = () => { const f = $('#ccpRF').value, t = $('#ccpRT').value, ty = [...document.querySelectorAll('.ccpRTy:checked')].map(x => x.value);
+    return Object.values(ccpS().logs).filter(g => g && !g.skip && g.date >= f && g.date <= t && ty.includes(g.type)).sort((a, b) => a.date.localeCompare(b.date) || CCP_ORDER.indexOf(a.type) - CCP_ORDER.indexOf(b.type)); };
+  const cnt = () => { const L = pick(); $('#ccpRN').textContent = L.length ? `${new Set(L.map(g => g.date)).size}일 · 일지 ${L.length}장` : '이 기간에는 일지가 없습니다'; };
+  ['#ccpRF', '#ccpRT'].forEach(id => $(id).onchange = cnt); document.querySelectorAll('.ccpRTy').forEach(x => x.onchange = cnt); cnt();
+  $('#ccpRGo').onclick = () => { const L = pick(); if (!L.length) { toast('인쇄할 일지가 없습니다'); return; } closeModal(); ccpPrintLogs(L, `${$('#ccpRF').value}~${$('#ccpRT').value}`); };
+}
+function ccpPrintRange(f, t) { const logs = Object.values(ccpS().logs).filter(g => g && !g.skip && g.date >= f && g.date <= t).sort((a, b) => a.date.localeCompare(b.date) || CCP_ORDER.indexOf(a.type) - CCP_ORDER.indexOf(b.type)); if (!logs.length) { toast('인쇄할 일지가 없습니다'); return; } ccpPrintLogs(logs, f === t ? f : f + '~' + t); }
+function ccpPrintLogs(logs, D) {
   const w = window.open('', '_blank'); if (!w) { toast('팝업이 막혀 인쇄 창을 열 수 없습니다'); return; }
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>CCP 일지 ${esc(D)}</title><style>${CCP_CSS}
     body{margin:0;background:#fff}.pg{width:198mm;height:284mm;overflow:hidden;page-break-after:always;break-after:page}.pg:last-child{page-break-after:auto;break-after:auto}.ccp-sheet{max-width:none;width:198mm;box-sizing:border-box;padding:4mm 3mm;transform-origin:top left}.ccp-foot{display:none}@page{size:A4;margin:6mm}</style></head>
@@ -2581,13 +2622,18 @@ function ccpBind(box) {
     if (el.dataset.c && el.tagName === 'SELECT') ccpSet(el.dataset.c, el.value);
     if (el.id === 'ccpImp' && el.files && el.files[0]) { ccpImportXlsx(el.files[0]); el.value = ''; return; }
     if (el.id === 'ccpMonth') { S.ui.ccpMonth = el.value; save(); renderCcp(); return; }
-    if (el.id === 'ccpPick') { S.ui.ccpDate = el.value; const by = ccpProdByDate(); if (by[el.value]) ccpEnsure(el.value, by[el.value]); save(); renderCcp(); }
+    if (el.id === 'ccpPick') { S.ui.ccpDate = el.value; S.ui.ccpCalM = el.value.slice(0, 7); const by = ccpProdByDate(); if (by[el.value]) ccpEnsure(el.value, by[el.value]); save(); renderCcp(); }
     if (el.id === 'ccpWho' || el.id === 'ccpOk') { prodS().cfg[el.id === 'ccpWho' ? 'ccpWho' : 'ccpOk'] = el.value.trim(); save(); toast('기본 점검자·승인자를 저장했습니다 (새로 만드는 일지부터)'); }
     if (el.dataset.ccpmap) { const [code, t] = el.dataset.ccpmap.split('|'); const it = prodItem(code); if (!it) return; let v = ccpCode(it).replace(CCP_SUFFIX[t], ''); if (el.checked) v += CCP_SUFFIX[t]; it.ccp = v; save(); toast(`${it.name}: ${CCP_TYPES[t].short} ${el.checked ? '연결' : '해제'} — 다음 생산부터 반영`); }
   };
-  box.onclick = e => { const b = e.target.closest('button'); if (!b) return;
+  box.onclick = e => { const cd = e.target.closest('td[data-ccpdate]'); if (cd) { S.ui.ccpDate = cd.dataset.ccpdate; S.ui.ccpView = 'day'; save(); renderCcp(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.ccpview) { S.ui.ccpView = b.dataset.ccpview; save(); renderCcp(); return; }
+    if (b.dataset.ccpcal) { S.ui.ccpCalM = b.dataset.ccpcal; save(); renderCcp(); return; }
+    if (b.dataset.ccprange != null) { ccpRangeAsk(b.dataset.ccprange); return; }
+    if (b.id === 'ccpRange') { ccpRangeAsk(); return; }
     if (b.dataset.ccptab) { S.ui.ccpTab = b.dataset.ccptab; save(); renderCcp(); const t = document.querySelector('.ccp-tabs'); if (t && t.getBoundingClientRect().top < 60) t.scrollIntoView({ block: 'start' }); return; }
-    if (b.dataset.ccpdate) { S.ui.ccpDate = b.dataset.ccpdate; save(); renderCcp(); if (b.closest('table')) window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    if (b.dataset.ccpdate) { S.ui.ccpDate = b.dataset.ccpdate; S.ui.ccpView = 'day'; save(); renderCcp(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     if (b.id === 'ccpPrint') { ccpPrint(S.ui.ccpDate); return; }
     if (b.dataset.ccpnow) { const n = new Date(), v = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0'); const inp = box.querySelector(`[data-c="${b.dataset.ccpnow}"]`); if (inp) inp.value = v; ccpSet(b.dataset.ccpnow, v); return; }
     if (b.dataset.ccpok) { const [d, t, i] = b.dataset.ccpok.split('|'); const g = ccpGet(d + '|' + t); const r = g && g.rows[Number(i)]; if (!r) return; Object.assign(r, { fe: 'O', sus: 'O' }, r.kind === 'item' ? { p: 'X', fep: 'O', susp: 'O' } : {}); if (!r.time) { const n = new Date(); r.time = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0'); } ccpTouch(g); renderCcp(); return; }
