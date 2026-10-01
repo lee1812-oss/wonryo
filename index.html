@@ -423,6 +423,10 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
 @media (min-width:760px) and (max-width:1400px){.noticebar{margin-left:10px}.nb-row .tm,.nb-row .ak{display:none}}
 @media (max-width:759px){.noticebar{order:7;flex:1 1 100%;margin:2px 0 0;min-height:40px;border-radius:10px}.nb-head{flex-direction:row;gap:0;padding:0 8px;border-right:0}.nb-ic{font-size:17px}.nb-lb{display:none}.nb-cnt{position:absolute;top:2px;right:0;min-width:15px;height:15px;line-height:15px;font-size:10px;padding:0 3px}.nb-list{padding:0 2px 0 0}.nb-list .nb-row:nth-child(n+2){display:none}.nb-row{padding:2px 4px;gap:5px;font-size:13px}.nb-row .dot{display:none}.nb-row .who{font-size:11.5px;max-width:4.2em;overflow:hidden;text-overflow:ellipsis}.nb-row .tm,.nb-row .ak{display:none}.nb-add{margin:5px;padding:0;width:30px;border-radius:8px;font-size:16px}.nb-addt{display:none}}
 @media print{.noticebar{display:none!important}}
+/* v112: 전달사항을 상단 메뉴줄 바로 아래 한 줄(전체 폭)로 — 잘리지 않게. 헤더 안이라 함께 고정됨 */
+@media (min-width:760px){header.top{flex-wrap:wrap;row-gap:8px}.noticebar{order:99;flex:1 1 100%;margin:0;min-height:40px;border-radius:10px}
+  .nb-head{flex-direction:row;gap:6px;padding:0 16px}.nb-cnt{position:static;margin-left:2px}.nb-list{flex-direction:row;align-items:center;gap:8px;padding:3px 8px}
+  .nb-row{flex:1 1 0;min-width:0}.nb-add{margin:5px 6px;padding:0 16px}.nb-row .tm,.nb-row .ak{display:inline}.noticebar ~ #weekSel{margin-left:0}}
 
 /* v044: 전달사항 줄 — 최대 2줄(글마다 한 줄), 넘치는 글은 오른쪽→왼쪽으로 흐름 */
 .nb-list{gap:1px}
@@ -1057,7 +1061,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '111';
+const APP_VER  = '112';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
