@@ -1057,7 +1057,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '110';
+const APP_VER  = '111';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2288,6 +2288,8 @@ function ccpEnsure(date, prods) {
     const k = date + '|' + type; let g = L[k]; if (!g) { g = L[k] = ccpBlank(type, date); n++; }
     its.forEach(x => ccpAddItem(g, x));
   });
+  /* v111: 생산이 있는 날은 크림배합 일지를 기본으로 만듦 (크림배합·마늘배합 줄) — 기기마다 받은 생산이 달라도 똑같이 보이게 */
+  if (items.length) { const k = date + '|mix'; let g = L[k]; if (!g) { g = L[k] = ccpBlank('mix', date); n++; } if (!(g.items || []).includes('mix:auto')) ccpAddItem(g, { code: 'mix:auto', name: '기본', ec: 0 }); }
   return n;
 }
 function ccpEnsureAll(days) {
