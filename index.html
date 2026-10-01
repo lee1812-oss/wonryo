@@ -1057,7 +1057,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '106';
+const APP_VER  = '107';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2223,7 +2223,8 @@ const CCP_TYPES = {
 const CCP_ORDER = ['mix', 'oven', 'freeze', 'metal'];
 const CCP_SUFFIX = { mix: 'x', oven: 'o', freeze: 'f', metal: 'm' };
 /* 기본 연결 (2026-09 K-HACCP 실제 기록): 배합 → 크림배합공정 / 굽는 품목(몽블랑·크로와상·소금빵) → 오븐+급냉+금속 / 마늘빵·바게트·생지 → 급냉+금속 */
-function ccpDefault(it) { const n = String((it && it.name) || ''); if (/배합/.test(n)) return 'x'; return (/몽블랑|크로와상|크라상|소금빵|K1/i.test(n) && !/마늘/.test(n) ? 'o' : '') + 'fm'; }
+function ccpDefault(it) { const n = String((it && it.name) || ''); if (/배합/.test(n)) return 'x'; if (/마늘/.test(n)) return 'fmx';   /* v107: 마늘빵류 생산일엔 크림·마늘 배합도 함 → 크림배합 일지 */
+  return (/몽블랑|크로와상|크라상|소금빵|K1/i.test(n) ? 'o' : '') + 'fm'; }
 function ccpCode(it) { return it && it.ccp != null ? String(it.ccp) : ccpDefault(it); }
 function ccpOf(it) { const v = ccpCode(it); return { oven: v.includes('o'), freeze: v.includes('f'), metal: v.includes('m'), mix: v.includes('x') }; }
 function ccpOvenLimit(name) { return /몽블랑/.test(String(name || '')) ? { t: 155, tt: 3, m: 27, mt: 3 } : { t: 170, tt: 3, m: 15, mt: 3 }; }
@@ -2248,7 +2249,11 @@ function ccpAddItem(g, x) {
   g.items.push(x.code); const b = { code: x.code, name: x.name };
   if (g.type === 'oven') { g.rows.push(Object.assign({ id: ccpRid(), tag: '시작', time: '', temp: '', min: '', core: '' }, b), Object.assign({ id: ccpRid(), tag: '종료', time: '', temp: '', min: '', core: '' }, b)); }
   else if (g.type === 'freeze') g.rows.push(Object.assign({ id: ccpRid(), t1: '', v1: '', t2: '', v2: '' }, b));
-  else if (g.type === 'mix') { const n = Math.max(1, Math.ceil((Number(x.ec) || 0) / 30)); for (let i = 0; i < n; i++) g.rows.push(Object.assign({ id: ccpRid(), start: '', kg: '', temp: '', room: '', end: '' }, b)); }
+  else if (g.type === 'mix') {
+    if (!/배합/.test(x.name)) {   /* 마늘빵류 → 그날 만드는 크림배합·마늘배합 배치 줄 (이미 있으면 그대로) */
+      ['크림배합', '마늘배합'].forEach(nm => { if (!g.rows.some(r => r.name === nm)) g.rows.push({ id: ccpRid(), code: 'mix:' + nm, name: nm, start: '', kg: '', temp: '', room: '', end: '' }); });
+    } else if (!g.rows.some(r => r.name === x.name && r.code !== x.code)) { const n = Math.max(1, Math.ceil((Number(x.ec) || 0) / 30)); for (let i = 0; i < n; i++) g.rows.push(Object.assign({ id: ccpRid(), start: '', kg: '', temp: '', room: '', end: '' }, b)); }
+  }
   else if (g.type === 'metal') {
     if (!g.rows.some(r => r.kind === 'pre')) g.rows.unshift({ id: ccpRid(), kind: 'pre', name: '작업 전', time: '', fe: '', sus: '' });
     let post = g.rows.findIndex(r => r.kind === 'post'); if (post < 0) { g.rows.push({ id: ccpRid(), kind: 'post', name: '작업 후', time: '', fe: '', sus: '' }); post = g.rows.length - 1; }
