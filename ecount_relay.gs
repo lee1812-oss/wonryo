@@ -3,6 +3,8 @@
  *
  * v3: 같은 날짜의 생산을 정해진 시각(holdUntil)까지 모아 두었다가 한 전표로 합쳐 전송기에 넘깁니다.
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
+ * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
+ *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
  *
  * 이카운트 OAPI는 등록된 IP에서만 받습니다. 구글 서버 IP는 계속 바뀌어 등록할 수 없으므로,
  *   휴대폰·태블릿 「생산일지」 → 이 중계(대기열) → 사무실 PC 「이카운트 전송기」(등록된 IP) → 이카운트
@@ -23,7 +25,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3.1 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -57,7 +59,17 @@ function handle_(req) {
   if (!key) return { ok: false, error: '중계의 스크립트 속성 API_KEY가 비어 있습니다' };
   if (req.key !== key) return { ok: false, error: '열쇠가 맞지 않습니다 — 「공유 저장소 열쇠 복사」 값을 중계의 API_KEY에 넣었는지 확인하세요' };
 
-  if (req.action === 'ping') return { ok: true, version: 3, agentSeen: agentSeen_() };
+  if (req.action === 'ping') return { ok: true, version: 3.1, agentSeen: agentSeen_() };
+  // 생산일지 설정 받기 (모든 기기)
+  if (req.action === 'getCfg') { var meta = props_().getProperty('cfg:meta'); if (!meta) return { ok: true, cfg: null };
+    var mm = JSON.parse(meta), parts = []; for (var ci = 0; ci < mm.n; ci++) parts.push(props_().getProperty('cfg:' + ci) || '');
+    return { ok: true, cfg: { ts: mm.ts, user: mm.user || '', device: mm.device || '', note: parts.join('') } }; }
+  // 최근 이카운트에 들어간 생산 (테스트 제외, 합친 전표는 원래 건 기준) — 다른 기기의 지난번 수량 맞추기
+  if (req.action === 'recent') { var ra = props_().getProperties(), out2 = [];
+    Object.keys(ra).forEach(function (k) { if (k.indexOf(JOB_) !== 0) return; var q; try { q = JSON.parse(ra[k]); } catch (e) { return; }
+      if (q.status !== 'sent' || q.test || q.members) return;
+      out2.push({ id: q.id, date: q.date || ((q.rows && q.rows[0] && q.rows[0].IO_DATE) || ''), at: q.doneAt || q.ts, l: (q.rows || []).map(function (r) { return [r.PROD_CD, num_(r.QTY)]; }) }); });
+    return { ok: true, jobs: out2.slice(-300) }; }
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -79,6 +91,14 @@ function handle_(req) {
     if (req.action === 'status') {
       var out = {}; (req.ids || []).slice(0, 50).forEach(function (x) { out[x] = view_(getJob_(String(x))); });
       return { ok: true, jobs: out, agentSeen: agentSeen_() };
+    }
+    // 관리자 PC: 생산일지 설정 올리기 (속성 하나에 9KB까지라 나눠 저장)
+    if (req.action === 'putCfg') {
+      var note = String(req.note || ''), ts = String(req.ts || new Date().toISOString()); if (!note) return { ok: false, error: '설정이 비어 있습니다' };
+      var old = props_().getProperty('cfg:meta'); if (old) { var om = JSON.parse(old); if (om.ts && om.ts > ts) return { ok: true, skipped: true }; for (var oi = 0; oi < om.n; oi++) props_().deleteProperty('cfg:' + oi); }
+      var n = 0; for (var pi = 0; pi < note.length; pi += 8000) { props_().setProperty('cfg:' + n, note.slice(pi, pi + 8000)); n++; }
+      props_().setProperty('cfg:meta', JSON.stringify({ ts: ts, n: n, user: String(req.user || '').slice(0, 30), device: String(req.device || '').slice(0, 40) }));
+      return { ok: true };
     }
     // 휴대폰: 모아 둔 날짜 건을 지금 보내기 (holdUntil 해제)
     if (req.action === 'release') {
