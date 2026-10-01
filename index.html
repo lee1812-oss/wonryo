@@ -423,6 +423,10 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
 @media (min-width:760px) and (max-width:1400px){.noticebar{margin-left:10px}.nb-row .tm,.nb-row .ak{display:none}}
 @media (max-width:759px){.noticebar{order:7;flex:1 1 100%;margin:2px 0 0;min-height:40px;border-radius:10px}.nb-head{flex-direction:row;gap:0;padding:0 8px;border-right:0}.nb-ic{font-size:17px}.nb-lb{display:none}.nb-cnt{position:absolute;top:2px;right:0;min-width:15px;height:15px;line-height:15px;font-size:10px;padding:0 3px}.nb-list{padding:0 2px 0 0}.nb-list .nb-row:nth-child(n+2){display:none}.nb-row{padding:2px 4px;gap:5px;font-size:13px}.nb-row .dot{display:none}.nb-row .who{font-size:11.5px;max-width:4.2em;overflow:hidden;text-overflow:ellipsis}.nb-row .tm,.nb-row .ak{display:none}.nb-add{margin:5px;padding:0;width:30px;border-radius:8px;font-size:16px}.nb-addt{display:none}}
 @media print{.noticebar{display:none!important}}
+/* v122: 상단 연동 칸을 깔끔하게 — 설명 글(작은 줄)·이카운트 칸 제목·매칭은 숨기고, 칸을 누르면 잠깐 보임 */
+header.top .syncpill small,header.top .syncpill.ec .sk:not(.hd) .lb{display:none}header.top .syncpill.ec .sk.mt{display:none}
+header.top .syncpill.reveal small,header.top .syncpill.reveal.ec .sk:not(.hd) .lb{display:block}header.top .syncpill.reveal.ec .sk.mt{display:flex}
+header.top .syncpill.share .sk.mt small{display:block}header.top .syncpill .sk:not(.hd):not(.mt){cursor:help}header.top .syncpill .sk:not(.hd):hover{background:rgba(255,255,255,.08)}
 @media (max-width:1099px){.syncpill .sk-x{display:none}}
 /* v114: 넓은 화면에서 이카운트·작업자 연동 칸을 남은 폭에 맞춰 늘림 (오른쪽 빈 공간 없이) */
 @media (min-width:1100px){header.top .syncpill.share{flex:1 1 0;max-width:none}header.top .syncpill.share .sk{flex:1 1 auto}header.top .syncpill .sk.hd{flex:0 0 auto}header.top .syncpill .sk.mt{flex:0 0 auto}}
@@ -1066,7 +1070,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '121';
+const APP_VER  = '122';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -3409,7 +3413,7 @@ function renderSharePill() {
   /* v070: 작업자 입력 연동(공유 저장소) 접속 상태 — 1분마다 받기가 되고 있는지, 못 보낸 입력이 있는지 */
   const sh = S.share || {}, on = shareOn(), out = (sh.outbox || []).length; const lp = Date.parse(sh.lastPull || sh.lastPush || ''); const pm = lp ? Math.round((Date.now() - lp) / 60000) : null;
   const st = !on ? ['off', '꺼짐', '공유 저장소 주소가 없습니다 — 입력이 이 기기에만 저장됩니다'] : sh.err ? ['bad', '연결 오류', sh.err] : pm == null ? ['warn', '연결 중', '공유 저장소에 처음 연결하는 중입니다'] : pm > 5 ? ['warn', '응답 지연', `${pm}분째 공유 저장소에서 받지 못했습니다 — 인터넷 연결을 확인하세요`] : out ? ['warn', `보내는 중 ${out}건`, `이 기기 입력 ${out}건을 공유 저장소로 보내는 중입니다`] : ['ok', '정상', `${pm < 1 ? '방금' : pm + '분 전'} 공유 저장소와 맞춤 — 다른 작업자의 입력이 1분마다 들어옵니다`];
-  p.className = 'syncpill share ' + st[0]; const e = $('#spShState'); if (e) e.textContent = st[1];
+  p.className = 'syncpill share ' + st[0] + (p.classList.contains('reveal') ? ' reveal' : ''); const e = $('#spShState'); if (e) e.textContent = st[1];
   p.title = `작업자 입력 연동: ${st[2]}\n원료·완제품 담당자가 휴대폰·PC에서 넣은 실물재고·소비기한·메모를 공유 저장소(구글 시트)로 주고받습니다.\n클릭하면 누가 언제 무엇을 바꿨는지 목록으로 봅니다`;
 }
 let clF = { src: 'all', user: 'all', range: 'today', q: '' };
@@ -3440,6 +3444,10 @@ function drawChangeLog() {
   $('#clXlsx').onclick = () => aoaXlsx([['변동내역', [['시각', '구분', '사람', '기기', '내용'], ...rows.map(e => [hmOf(e.ts), SRC_LBL[e.src], e.user || '', e.device || '', e.text || ''])], [16, 10, 12, 12, 70]]], `${fileStem()}_변동내역.xlsx`);
 }
 $('#sharePill').onclick = () => openChangeLog();
+/* v122: 연동 칸의 숫자 칸을 누르면 숨긴 설명을 8초 동안 보여 줌 (제목 칸·「내역」은 원래 동작) */
+['#syncPill', '#sharePill'].forEach(id => { const p = $(id); if (!p) return; let t = null;
+  p.addEventListener('click', e => { const sk = e.target.closest('.sk'); if (!sk || sk.classList.contains('hd') || (id === '#sharePill' && sk.classList.contains('mt'))) return;
+    e.stopImmediatePropagation(); e.preventDefault(); const on = !p.classList.contains('reveal'); p.classList.toggle('reveal', on); clearTimeout(t); if (on) t = setTimeout(() => { p.classList.remove('reveal'); try { measureHead(); } catch (er) {} }, 8000); try { measureHead(); } catch (er) {} }, true); });
 window.addEventListener('message', e => { if (!fromFin(e)) return; const m = e.data; if (!m || typeof m !== 'object' || m.type !== 'fin-sync-log' || !Array.isArray(m.log)) return; S.finLog = m.log.slice(-300); save(); renderSharePill(); });
 
 /* ── report text ── */
@@ -4140,12 +4148,12 @@ function renderSyncPill() {
   const p = $('#syncPill'); if (!p) return; const s = S.ecountSync;
   const set = (id, v) => { const el = $('#' + id); if (el) el.textContent = v; };
   const hmT = d => (d.toDateString() === new Date().toDateString()) ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : hmOf(d);
-  if (!s) { p.className = 'syncpill ec bad'; set('spState', '자료 없음'); set('spChk', '—'); set('spAgo', '사무실 PC 확인'); set('spChg', '—'); set('spChgN', ''); set('spMatch', '—'); p.title = '이카운트 자료를 받지 못했습니다 — 사무실 PC 동기화 프로그램을 확인하세요'; return; }
+  if (!s) { p.className = 'syncpill ec bad' + (p.classList.contains('reveal') ? ' reveal' : ''); set('spState', '자료 없음'); set('spChk', '—'); set('spAgo', '사무실 PC 확인'); set('spChg', '—'); set('spChgN', ''); set('spMatch', '—'); p.title = '이카운트 자료를 받지 못했습니다 — 사무실 PC 동기화 프로그램을 확인하세요'; return; }
   const chk = new Date(s.checkedAt || s.updatedAt), chg = new Date(s.changedAt || s.updatedAt);
   const min = Math.max(0, Math.round((Date.now() - chk.getTime()) / 60000)); const E = ecOffice(s);
   const stale = E.stale;
   const ago = min <= 1 ? '방금' : min >= 120 ? Math.floor(min / 60) + '시간 전' : min + '분 전';
-  p.className = 'syncpill ec ' + (stale ? 'warn' : 'ok');
+  p.className = 'syncpill ec ' + (stale ? 'warn' : 'ok') + (p.classList.contains('reveal') ? ' reveal' : '');
   set('spState', stale ? '확인 지연 ⚠' : '정상'); set('spChk', hmT(chk)); set('spAgo', E.pc === 'on' ? 'PC 5분마다 확인 중' : stale ? ago + ' · 사무실 PC 확인' : ago);
   set('spChg', hmT(chg)); const last = (S.ecountChanges || [])[0]; set('spChgN', last && (last.ts === s.changedAt) ? `${last.items.length}품목 변동` : (chg.toDateString() === new Date().toDateString() ? '오늘' : hmOf(chg).split(' ')[0]));
   set('spMatch', `${s.matched}/${s.known}`);
