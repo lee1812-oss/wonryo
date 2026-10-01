@@ -1057,7 +1057,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '101';
+const APP_VER  = '102';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2337,10 +2337,10 @@ const CCP_FIX = {
     '○ 급냉온도 또는 급냉시간 초과 시 - 모니터링 담당자는 한계기준 이탈시 즉시 작업을 중지한다. - 제품검사(관능 등)를 실시하여 이상이 없는 경우 다음공정을 진행한다. - 한계기준 이탈내용과 개선조치 내용을 모니터링 일지에 기록한다.',
     '○ 기계고장 시 - 모니터링 담당자는 가열기 등 기계고장 시 즉시 작업을 중지한다. - 수리 후 정상적으로 작동 시 재가동한다. ※ 즉각적인 수리가 불가능할 경우 교차오염이 되지 않도록 보호조치하여 냉동창고에 보관한 후, 수리가 끝나면 제품 생산을 계속한다.',
     '○ 공통 : 개선조치 시 - 문제 발생 시 HACCP팀장에게 보고 후 조치하며, 개선조치 후 모니터링 일지에 기록 후 HACCP팀장에게 승인을 받는다.'],
-  mix: ['◌ 시간 미달 시 1. 모니터링 담당자는 한계기준 이탈시 즉시 작업을 중지한다. 2. 배합을 재실시하고 제품검사(관능) 이상이 없을 시 다음공정을 진행하고, 이상이 있을 경우 전량 폐기한다 3. 이전 모니터링 이후 생산된 제품에 대하여 제품(관능)검사를 실시하여 이상이 있을 시 전량 폐기한다. 4. 한계기준 이탈내용과 개선조치 내용을 모니터링 일지에 기록',
-    '◌ 배합 온도, 시간 초과 시 1. 모니터링 담당자는 한계기준 이탈시 즉시 작업을 중지한다. 2. 제품(관능)검사를 실시하여 이상이 없을 시 다음 공정을 진행하며 한다. 3. 한계기준 이탈내용과 개선조치 내용을 모니터링 일지에 기록',
-    '◌ 기계고장 시 1. 모니터링 담당자는 가열기 등 기계고장 시 즉시 작업을 중지한다. 2. 수리 후 정상적으로 작동 시 재가동한다. ☆ 즉각적인 수리가 불가능할 경우 교차오염이 되지 않도록 보호 조치하여 즉시 생산을 중단한다.',
-    '◌ 공통 : 개선조치 시 1. 문제 발생 시 HACCP팀장에게 보고 후 조치하며, 개선조치 후 모니터링 일지에 기록 후 HACCP팀장에게 승인을 받는다.'],
+  mix: ['◯ 시간 미달 시 1. 모니터링 담당자는 한계기준 이탈시 즉시 작업을 중지한다. 2. 배합을 재실시하고 제품검사(관능) 이상이 없을 시 다음공정을 진행하고, 이상이 있을 경우 전량 폐기한다 3. 이전 모니터링 이후 생산된 제품에 대하여 제품(관능)검사를 실시하여 이상이 있을 시 전량 폐기한다. 4. 한계기준 이탈내용과 개선조치 내용을 모니터링 일지에 기록',
+    '◯ 배합 온도, 시간 초과 시 1. 모니터링 담당자는 한계기준 이탈시 즉시 작업을 중지한다. 2. 제품(관능)검사를 실시하여 이상이 없을 시 다음 공정을 진행하며 한다. 3. 한계기준 이탈내용과 개선조치 내용을 모니터링 일지에 기록',
+    '◯ 기계고장 시 1. 모니터링 담당자는 가열기 등 기계고장 시 즉시 작업을 중지한다. 2. 수리 후 정상적으로 작동 시 재가동한다. ☆ 즉각적인 수리가 불가능할 경우 교차오염이 되지 않도록 보호 조치하여 즉시 생산을 중단한다.',
+    '◯ 공통 : 개선조치 시 1. 문제 발생 시 HACCP팀장에게 보고 후 조치하며, 개선조치 후 모니터링 일지에 기록 후 HACCP팀장에게 승인을 받는다.'],
   metal: ['○ 기기감도 : 모니터링담당자는 기기 중간에 Test piece를 통과시켜 검출여부를 확인하고 일지에 기록한다.',
     '○ 제품감도 : 모니터링담당자는 제품 중간에 Test piece를 넣고 기기에 통과시켜 검출여부를 확인하고 일지에 기록한다.',
     '○ 통과량 및 검출량 : 모니터링담당자는 통과된 양과 검출된 양을 일지에 기록하고 HACCP팀장에 보고한다. ※ 금속검출기는 연1회 이상 정상작동 유무 확인']
@@ -2383,7 +2383,7 @@ function ccpSheet(g, ed) {
     title = `<div class="t1">중요관리점(${T.no}) 모니터링일지</div><div class="t2"><span class="sub">${sub}</span></div>`;
     top = headDate + `<table><tr><td class="lb" rowspan="${CCP_OVEN_LIM.length + 1}" style="width:96px">한계기준</td><td style="width:150px">제품</td><td>가열온도</td><td>가열시간</td><td>품온</td></tr>
       ${CCP_OVEN_LIM.map(x => `<tr><td>${esc(x[0])}</td><td>${x[1]}±3℃</td><td>${x[2]}분±3분</td><td>85℃ ∼ 99℃</td></tr>`).join('')}</table>
-      <table>${row2('주 기', esc(T.cyc), '')}${row2('방 법', '◯ 가열온도 · 가열시간 · 품온 : 모니터링 담당자는 육안 확인한 후 일지에 기록한다.<br><span style="font-size:11.5px">※ 가열기 온도계/타이머는 연 1회 검·교정을 실시한다.</span>')}</table>`;
+      <table>${row2('주 기', esc(T.cyc), 'ctr')}${row2('방 법', '◯ 가열온도 · 가열시간 · 품온 : 모니터링 담당자는 육안 확인한 후 일지에 기록한다.<br><span style="font-size:11.5px">※ 가열기 온도계/타이머는 연 1회 검·교정을 실시한다.</span>')}</table>`;
     mid = `<table class="m"><thead><tr><th>품명</th><th>측정시간</th><th>가열온도(한계온도)(℃)</th><th>가열시간(분)</th><th>품온 (℃)</th><th style="width:56px">판정</th><th style="width:84px">서명</th></tr></thead><tbody>${g.rows.map((r, i) => `<tr><td class="nm">${esc(r.name)}${ed ? `(<input data-c="${k}|rows|${i}|tag" value="${esc(r.tag || '')}" style="width:42px;display:inline-block">)` : (r.tag ? `(${esc(r.tag)})` : '')}${del('rows', i)}</td><td>${V('rows', i, 'time', r.time, 'time')}</td>${U('rows', i, 'temp', r)}${U('rows', i, 'min', r)}${U('rows', i, 'core', r)}${J('rows', i, r)}${sign}</tr>`).join('')}</tbody></table>`;
     fix = CCP_FIX.oven;
   }
@@ -2407,9 +2407,9 @@ function ccpSheet(g, ed) {
   }
   if (g.type === 'mix') {
     title = `<div class="t1">중요관리점(${T.no}) 모니터링일지</div><div class="t2 c"><span class="sub">${sub}</span></div>`;
-    top = headDate + `<table><tr><td class="lb" rowspan="2" style="width:96px">한계기준</td><td>배합량</td><td>품온</td><td>소진시간</td><td>작업장온도</td></tr><tr><td>10kg~50kg</td><td>10℃±5~20℃±5</td><td>제조 후 2시간 이내</td><td>24℃ 이하</td></tr></table>
-      <table>${row2('주 기', esc(T.cyc), '')}${row2('모니터링<br>방법', '◯ 저울 표시 중량 : 육안 확인<br>◯ 탐침 온도계 표시온도 : 육안 확인<br>◯ 온도계 표시 온도 : 육안 확인<br>◯ 타이머 표시시간 : 육안 확인')}</table>`;
-    mid = `<table class="m"><thead><tr><th>품명</th><th>보관시작시간</th><th>배합량(kg)</th><th>품온(℃)</th><th>작업장온도(℃)</th><th>소진시간</th><th style="width:56px">판정</th><th style="width:84px">서명</th></tr></thead><tbody>${g.rows.map((r, i) => `<tr><td class="nm">${esc(r.name)}${del('rows', i)}</td><td>${V('rows', i, 'start', r.start, 'time')}</td>${U('rows', i, 'kg', r)}${U('rows', i, 'temp', r)}${U('rows', i, 'room', r)}<td>${V('rows', i, 'end', r.end, 'time')}</td>${J('rows', i, r)}${sign}</tr>`).join('')}</tbody></table>`;
+    top = headDate + `<table><tr><td class="lb" rowspan="2" style="width:96px">한계기준</td><td>배합량</td><td>품온</td><td>소진시간</td><td>작업장온도</td></tr><tr><td class="yel" style="text-align:center">10kg~50kg</td><td class="yel" style="text-align:center">10℃±5~20℃±5</td><td class="yel" style="text-align:center">제조 후 2시간 이내</td><td class="yel" style="text-align:center">24℃ 이하</td></tr></table>
+      <table>${row2('주 기', esc(T.cyc), 'ctr')}${row2('모니터링방법', '◯ 저울 표시 중량 : 육안 확인<br>◯ 탐침 온도계 표시온도 : 육안 확인<br>◯ 온도계 표시 온도 : 육안 확인<br>◯ 타이머 표시시간 : 육안 확인')}</table>`;
+    mid = `<table class="m"><thead><tr><th>품명</th><th>보관시작<br>시간</th><th>배합량(kg)</th><th>품온(℃)</th><th>작업장온도(℃)</th><th>소진시간</th><th style="width:56px">판정</th><th style="width:84px">서명</th></tr></thead><tbody>${g.rows.map((r, i) => `<tr><td class="nm">${esc(r.name)}${del('rows', i)}</td><td>${V('rows', i, 'start', r.start, 'time')}</td>${U('rows', i, 'kg', r)}${U('rows', i, 'temp', r)}${U('rows', i, 'room', r)}<td>${V('rows', i, 'end', r.end, 'time')}</td>${J('rows', i, r)}${sign}</tr>`).join('')}</tbody></table>`;
     fix = CCP_FIX.mix;
   }
   const done = ccpState(g).done;
