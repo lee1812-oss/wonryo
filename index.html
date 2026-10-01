@@ -1057,7 +1057,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '109';
+const APP_VER  = '110';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2343,6 +2343,8 @@ function renderCcp() {
   box.innerHTML = `<div class="card"><div class="prow" style="align-items:center"><h2 style="margin:0;flex:1 1 auto">🛡 CCP 일지 <span class="muted" style="font-size:12px;font-weight:600">v${APP_VER}</span></h2>
       <input type="date" id="ccpPick" value="${esc(D)}" style="width:150px"><button class="btn" id="ccpPrint">🖨 이 날짜 인쇄</button></div>
     <div class="muted" style="margin:6px 0 8px">생산을 입력하면 그 품목에 연결된 CCP 일지가 <b>자동으로 만들어집니다</b>. 품목·통과량은 생산에서 채우고, <b>온도·시간·검출 결과는 현장에서 재서</b> 넣으세요. 한계기준을 벗어나면 붉게 표시됩니다. 입력하면 자동 저장·공유됩니다.</div>
+    <div class="muted" style="font-size:11.5px;margin:-2px 0 8px">${(() => { if (!shareOn()) return '⚠ 공유 저장소가 꺼져 있어 다른 기기의 생산을 받을 수 없습니다'; const sh = shareCfg(), mine = (P.log || []).filter(en => en.ccpSig).length, wait = (sh.outbox || []).filter(r => r.kind === 'pday' || r.kind === 'ccp').length, got = Object.keys(P.pday || {}).length;
+      return `🔄 기기 간 공유 — 이 기기(${esc(sh.device || '')}) 생산 ${mine}건 보냄${wait ? ` · <b>보낼 것 ${wait}건 대기</b>` : ''} · 다른 기기 생산 ${got}건 받음 · 마지막 받기 ${esc(sh.lastPull ? hmOf(sh.lastPull) : '—')}${sh.err ? ` · <span style="color:var(--minus)">${esc(sh.err)}</span>` : ''}`; })()}</div>
     <div class="prow" style="gap:6px">${dates.slice(0, 21).map(chip).join('') || '<span class="muted">아직 생산 기록이 없습니다 — 「생산 입력」으로 보내면 여기에 생깁니다.</span>'}</div></div>
   <div class="card"><b>${esc(D)} (${WD[new Date(D + 'T00:00:00').getDay()]}) 생산</b> <span class="muted">${prods.length ? prods.map(x => `${esc(x.name)} ${fmt(x.ec)}`).join(' · ') : '생산 기록 없음'}</span></div>
   ${logs.length ? (() => { const cur = logs.find(g => g.type === S.ui.ccpTab) || logs[0];
