@@ -1070,7 +1070,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '129';
+const APP_VER  = '130';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2363,6 +2363,9 @@ function ccpEnsure(date, prods) {
   if (items.length) { const k = date + '|mix'; let g = L[k]; if (!g) { g = L[k] = ccpBlank('mix', date); n++; } if (!(g.items || []).includes('mix:auto')) ccpAddItem(g, { code: 'mix:auto', name: '기본', ec: 0 }); }
   return n;
 }
+/* v130: 점검자·승인자가 비어 있는 일지는 기본값으로 채움 (일지마다 고칠 수 있음, 이미 적힌 이름은 그대로) */
+function ccpFillDefaults() { const c = prodS().cfg, w = String(c.ccpWho || '').trim(), o = String(c.ccpOk || '').trim(); let n = 0; if (!w && !o) return 0;
+  Object.values(ccpS().logs).forEach(g => { if (!g || g.skip) return; let ch = false; if (w && !String(g.who || '').trim()) { g.who = w; ch = true; } if (o && !String(g.ok || '').trim()) { g.ok = o; ch = true; } if (ch) n++; }); if (n) save(); return n; }
 function ccpEnsureAll(days) {
   const by = ccpProdByDate(), from = (() => { const t = new Date(today() + 'T00:00:00'); t.setDate(t.getDate() - (days || 45)); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); })(); let n = 0;
   const impD = new Set(Object.values(prodS().pday || {}).filter(e => e && e.imp).map(e => e.d));
@@ -2408,7 +2411,7 @@ function ccpApplyRow(row) {
 function ccpDates() { const by = ccpProdByDate(), L = ccpS().logs, s = new Set(Object.keys(by)); Object.values(L).forEach(g => s.add(g.date)); return [...s].sort().reverse(); }
 function renderCcp() {
   const box = $('#prodCcp'); if (!box) return; const P = prodS();
-  ccpEnsureAll(45);
+  ccpEnsureAll(45); ccpFillDefaults();
   const dates = ccpDates(); if (!S.ui.ccpDate || !dates.includes(S.ui.ccpDate)) S.ui.ccpDate = dates[0] || today();
   const D = S.ui.ccpDate, L = ccpS().logs, logs = CCP_ORDER.map(t => L[D + '|' + t]).filter(g => g && !g.skip);
   const chip = d => { const gs = CCP_ORDER.map(t => L[d + '|' + t]).filter(g => g && !g.skip); const st = gs.map(ccpState); const bad = st.some(s => s.bad), miss = st.reduce((a, s) => a + s.miss, 0);
@@ -2426,7 +2429,8 @@ function renderCcp() {
     ${(() => { if (!shareOn()) return ''; const sh = shareCfg(), wait = (sh.outbox || []).filter(r => r.kind === 'pday' || r.kind === 'ccp').length; const er = sh.pushErr || sh.err; return wait > 20 || er ? `<div class="muted" style="font-size:12px;color:var(--minus);margin-top:4px">⚠ ${wait ? `다른 기기로 보낼 일지 ${wait}건 대기 중` : ''}${er ? ` — ${esc(er)}` : ' — 보내는 중입니다 (1분마다 다시 시도)'}</div>` : ''; })()}
   </div>
   ${V === 'cal' ? ccpCalHtml(D) : V === 'dev' ? ccpDevHtml() : V === 'list' ? ccpListHtml(D) : V === 'map' ? ccpMapHtml() : `<div class="card"><div class="prow" style="align-items:center;gap:8px"><button class="btn sm" data-ccpview="cal">← 달력</button>
-      <input type="date" id="ccpPick" value="${esc(D)}" style="width:150px"><b>${esc(D)} (${WD[new Date(D + 'T00:00:00').getDay()]}) 생산</b> <span class="muted" style="flex:1 1 200px">${prods.length ? prods.map(x => `${esc(x.name)} ${fmt(x.ea || x.ec)}`).join(' · ') : '생산 기록 없음'}</span><button class="btn" id="ccpPrint">🖨 이 날짜 인쇄</button></div></div>
+      <input type="date" id="ccpPick" value="${esc(D)}" style="width:150px"><b>${esc(D)} (${WD[new Date(D + 'T00:00:00').getDay()]}) 생산</b> <span class="muted" style="flex:1 1 200px">${prods.length ? prods.map(x => `${esc(x.name)} ${fmt(x.ea || x.ec)}`).join(' · ') : '생산 기록 없음'}</span><button class="btn" id="ccpPrint">🖨 이 날짜 인쇄</button></div>
+    <div class="prow" style="align-items:center;gap:8px;margin-top:8px;font-size:12.5px"><span class="muted">기본값 —</span><label class="muted">점검자 <input id="ccpWho" value="${esc(P.cfg.ccpWho || '')}" placeholder="이름" style="width:110px;padding:4px 8px"></label><label class="muted">승인자 <input id="ccpOk" value="${esc(P.cfg.ccpOk || '')}" placeholder="이름" style="width:110px;padding:4px 8px"></label><span class="muted" style="font-size:11.5px">비어 있는 일지에 자동으로 들어갑니다 · 일지마다 아래 결재란에서 고칠 수 있습니다</span></div></div>
   ${logs.length ? (() => { const cur = logs.find(g => g.type === S.ui.ccpTab) || logs[0];
       const tabs = logs.map(g => { const st = ccpState(g), on = g === cur, T = CCP_TYPES[g.type]; const dot = st.bad ? 'var(--minus)' : st.miss ? '#E0A030' : '#2E9E6A';
         return `<button class="ccp-tab${on ? ' on' : ''}" data-ccptab="${g.type}"><span>${T.ico}</span>${esc(T.short)}<i style="background:${dot}" title="${st.bad ? '한계기준 이탈' : st.miss ? '입력 필요 ' + st.miss : '작성 완료'}"></i></button>`; }).join('');
@@ -2723,7 +2727,7 @@ function ccpBind(box) {
     if (el.dataset.ccprev) { const R = ccpS(); R.rev = R.rev || {}; if (el.checked) R.rev[el.dataset.ccprev] = { ts: new Date().toISOString(), by: S.settings.reporter || '' }; else delete R.rev[el.dataset.ccprev]; save(); renderCcp(); return; }
     if (el.id === 'ccpMonth') { S.ui.ccpMonth = el.value; save(); renderCcp(); return; }
     if (el.id === 'ccpPick') { S.ui.ccpDate = el.value; S.ui.ccpCalM = el.value.slice(0, 7); const by = ccpProdByDate(); if (by[el.value]) ccpEnsure(el.value, by[el.value]); save(); renderCcp(); }
-    if (el.id === 'ccpWho' || el.id === 'ccpOk') { prodS().cfg[el.id === 'ccpWho' ? 'ccpWho' : 'ccpOk'] = el.value.trim(); save(); toast('기본 점검자·승인자를 저장했습니다 (새로 만드는 일지부터)'); }
+    if (el.id === 'ccpWho' || el.id === 'ccpOk') { prodS().cfg[el.id === 'ccpWho' ? 'ccpWho' : 'ccpOk'] = el.value.trim(); save(); const n = ccpFillDefaults(); toast(`기본 점검자·승인자를 저장했습니다${n ? ` — 비어 있던 일지 ${n}개에도 넣었습니다` : ''} (이미 적힌 이름은 그대로)`); if (S.ui.ccpView === 'day') renderCcp(); }
     if (el.dataset.ccpmap) { const [code, t] = el.dataset.ccpmap.split('|'); const it = prodItem(code); if (!it) return; let v = ccpCode(it).replace(CCP_SUFFIX[t], ''); if (el.checked) v += CCP_SUFFIX[t]; it.ccp = v; save(); toast(`${it.name}: ${CCP_TYPES[t].short} ${el.checked ? '연결' : '해제'} — 다음 생산부터 반영`); }
   };
   box.onclick = e => { const cd = e.target.closest('td[data-ccpdate]'); if (cd) { S.ui.ccpDate = cd.dataset.ccpdate; S.ui.ccpView = 'day'; save(); renderCcp(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
