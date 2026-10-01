@@ -460,7 +460,8 @@ table.data-table td.num{text-align:right;font-family:'DM Mono',monospace;font-si
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary" onclick="resetEntryForm()">🔄 초기화</button>
           <button class="btn btn-secondary" onclick="printCurrentEntry()" title="지금 입력 중인 내용을 저장하지 않고 인쇄">🖨️ 인쇄</button>
-          <button class="btn btn-success" onclick="saveEntry()">💾 저장</button>
+          <span id="autoSaveState" style="align-self:center;font-size:12px;font-weight:700;color:#64748b"></span>
+          <button class="btn btn-success" onclick="saveEntry()" title="입력하면 자동 저장됩니다. 「저장」은 마무리(새 품목 등록·같은 날짜 합치기) 후 일지 목록으로 이동">💾 저장</button>
         </div>
       </div>
 
@@ -2567,6 +2568,7 @@ function setEntryRowField(rowId, field, value){
 }
 
 function resetEntryForm(){
+  clearTimeout(_autoSaveT); _autoSaveT = null; _autoSaveSig = ''; autoSaveState('');
   entryItems = [];
   window.__editingEntryId = null;
   const eb = document.getElementById('editBanner'); if(eb) eb.remove();
@@ -2582,7 +2584,50 @@ function resetEntryForm(){
   resetV2Fields();
 }
 
+/* 입력 화면 → 일지 한 건 (검사만, 저장하지 않음). 잘못된 곳이 있으면 { err } */
+function entryFromForm(){
+  const date     = document.getElementById('f_date').value;
+  const supplier = deriveEntrySupplier();
+  const vTemp    = document.getElementById('f_vehicleTemp').value.trim();
+  const vStatus  = document.getElementById('f_vehicleStatus').value;
+  if(!date) return { err:'입고날짜를 입력해 주세요.' };
+  if(!entryItems.length) return { err:'품목을 최소 1개 이상 추가해 주세요.' };
+  if(!supplier) return { err:'선택한 품목에 공급업체가 없습니다. 품목의 공급업체를 확인해 주세요.' };
+  if(entryItems.find(r=>!r.name)) return { err:'품목명이 비어있는 항목이 있습니다.' };
+  const items = entryItems.map(r=>({ ...r, supplier: r.supplier || supplier, vehicleTemp: r.vehicleTemp || vTemp, vehicleStatus: r.vehicleStatus || vStatus }));
+  const entry = { id: uid(), date, supplier, vehicleTemp: vTemp, vehicleStatus: vStatus, checker: document.getElementById('f_checker').value.trim(),
+    passResult: document.getElementById('f_passResult').value, note: document.getElementById('f_note').value.trim(), items, createdAt: new Date().toISOString() };
+  readV2EntryFields(entry);
+  return { entry };
+}
+/* ── 자동 저장: 입력하면 잠시 뒤 일지에 바로 반영 (수정 중인 일지는 그 일지를, 새 일지는 처음 저장한 뒤부터 같은 일지를 갱신) ── */
+let _autoSaveT = null, _autoSaveSig = '';
+function autoSaveState(t, c){ const el = document.getElementById('autoSaveState'); if(el){ el.textContent = t; el.style.color = c || '#64748b'; } }
+function autoSaveSoon(){ clearTimeout(_autoSaveT); _autoSaveT = setTimeout(autoSaveEntry, 1500); }
+function autoSaveEntry(){
+  clearTimeout(_autoSaveT); _autoSaveT = null;
+  if(!document.getElementById('page-entry')?.classList.contains('active')) return;
+  const r = entryFromForm();
+  if(!r.entry){ if(entryItems.length) autoSaveState('자동 저장 대기 — ' + r.err, '#b45309'); else autoSaveState(''); return; }
+  const e = r.entry; const sig = JSON.stringify(Object.assign({}, e, { id:'', createdAt:'' }));
+  if(sig === _autoSaveSig) return;
+  const idx = window.__editingEntryId ? entries.findIndex(x=>x.id===window.__editingEntryId) : -1;
+  if(idx >= 0){ e.id = entries[idx].id; e.createdAt = entries[idx].createdAt || e.createdAt; if(entries[idx]._ecAuto) e._ecAuto = entries[idx]._ecAuto; }
+  else if(entries.some(x=>x.date===e.date)){ autoSaveState('이 날짜에 이미 일지가 있어 「저장」을 누르면 한 일지로 합쳐집니다', '#b45309'); return; }
+  e.updatedAt = new Date().toISOString();
+  if(idx >= 0) entries[idx] = e; else { entries.push(e); window.__editingEntryId = e.id; }
+  saveEntries(); _autoSaveSig = sig;
+  const t = new Date(); autoSaveState(`✓ 자동 저장됨 ${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`, '#15803d');
+}
+function autoSaveHook(){
+  const pg = document.getElementById('page-entry'); if(!pg || pg._autoHook) return; pg._autoHook = true;
+  ['input','change'].forEach(ev=>pg.addEventListener(ev, autoSaveSoon));
+  pg.addEventListener('click', ev=>{ if(ev.target.closest('button, input[type=checkbox], select, [onclick]')) autoSaveSoon(); });
+}
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', autoSaveHook); else autoSaveHook();
+window.addEventListener('pagehide', ()=>{ if(_autoSaveT) autoSaveEntry(); });
 function saveEntry(){
+  clearTimeout(_autoSaveT); _autoSaveT = null;
   const date     = document.getElementById('f_date').value;
   const supplier = deriveEntrySupplier();
   const vTemp    = document.getElementById('f_vehicleTemp').value.trim();
@@ -2688,9 +2733,10 @@ function editEntryInForm(entryId){
   renderEntryItems(); renderSupplierCheckboxes(); updateFixedPreview();
   onEntryDateChange();
   const b = document.getElementById('v2FormBadge');
-  if(b) b.insertAdjacentHTML('beforeend', `<span id="editBanner" style="margin-left:8px;color:#b45309;background:#fef3c7;border:1px solid #fcd34d;border-radius:12px;padding:2px 10px">✏️ ${esc(e.date)} 일지 수정 중 — 저장하면 기존 일지가 갱신됩니다 · <a href="#" onclick="cancelEditEntry();return false;" style="color:#b45309;text-decoration:underline">수정 취소</a></span>`);
+  if(b) b.insertAdjacentHTML('beforeend', `<span id="editBanner" style="margin-left:8px;color:#b45309;background:#fef3c7;border:1px solid #fcd34d;border-radius:12px;padding:2px 10px">✏️ ${esc(e.date)} 일지 수정 중 — 고치면 자동 저장됩니다 · <a href="#" onclick="cancelEditEntry();return false;" style="color:#b45309;text-decoration:underline">수정 취소</a></span>`);
   window.scrollTo(0,0);
-  showToast(`${e.date} 일지를 불러왔습니다. 수정 후 저장하세요.`, 'info');
+  { const r0 = entryFromForm(); _autoSaveSig = r0.entry ? JSON.stringify(Object.assign({}, r0.entry, { id:'', createdAt:'' })) : ''; }
+  showToast(`${e.date} 일지를 불러왔습니다. 고치면 자동 저장됩니다.`, 'info');
 }
 function cancelEditEntry(){ window.__editingEntryId = null; resetEntryForm(); goPage('list', document.getElementById('nav-list')); }
 
@@ -5009,7 +5055,7 @@ function init(){
 //   · 신규 입력에서 품목만 고르면 고정값 자동 반영, 수정 가능 / 변동값만 손으로 입력
 //   · 2026-09-14 이후 일지는 신양식(A4 가로, 18열)으로 입력·인쇄, 그 이전 일지는 기존 양식 그대로 조회·인쇄
 // ═══════════════════════════════════════════════════════════════════
-const APP_VER        = 'v097';
+const APP_VER        = 'v098';
 const NEW_FORM_START_DEFAULT = '2026-09-14';
 function NEW_FORM_START_(){ return (typeof cfg==='object' && cfg && isValidDate(cfg.newFormStart)) ? cfg.newFormStart : NEW_FORM_START_DEFAULT; }
 const ALLERGEN_LIST  = ['난류','우유','메밀','땅콩','대두','밀','고등어','게','새우','돼지고기','복숭아','토마토','아황산류','호두','닭고기','쇠고기','오징어','조개류','잣'];
@@ -7543,6 +7589,7 @@ function ecRcvStatus(r, x){
   if(row && row._ecPending) return { t:'자동 입력 · 확인 필요', c:'#C2410C', has:true };
   if(row && row._ec) return { t:'자동 입력 · 확인 완료', c:'#15803d', has:true };
   if(row) return { t:'일지 입력됨', c:'#15803d', has:true };
+  if(ecState.excl && ecState.excl[r.key]) return { t:'체크 해제 — 일지 안 만듦', c:'#64748b', has:false, skip:true, off:true };
   if(r.kind && r.kind!=='buy') return { t: EC_KIND[r.kind]+' — 일지 안 만듦', c:'#64748b', has:false, skip:true };
   return { t: x && x.on ? '일지 없음' : '일지 없음 (생성 체크 안 됨)', c:'#b91c1c', has:false };
 }
@@ -7551,6 +7598,53 @@ function ecAddRcv(key){
   if(!x){ showToast('연결된 품목이 없습니다 — 품목 연결 표에서 이카운트 코드를 확인하세요', 'error'); return; }
   const n = ecApply([{ code:r.code, inc:r.inc, at:r.at, key:r.key }], { [r.code]: x }); ecSave();
   showToast(n ? `${r.date} ${x.m.name} 일지에 넣었습니다 (확인 필요)` : '이미 일지에 연결된 입고입니다', n ? 'success' : 'info'); ecRender();
+}
+/* 재고 증가 행의 체크 — 기본은 체크(일지에 넣음). 풀면 그 입고로 자동 입력된 일지 행을 빼고 다시 넣지 않음 */
+function ecUnlinkRcv(r, map){
+  let changed = 0;
+  entries.forEach(e=>{
+    e.items = (e.items||[]).filter(it=>{
+      if(Array.isArray(it._ecLinked) && it._ecLinked.includes(r.key)){ it._ecLinked = it._ecLinked.filter(k=>k!==r.key); changed++; }
+      if(!it._ec || !Array.isArray(it._ec.keys) || !it._ec.keys.includes(r.key)) return true;
+      it._ec.keys = it._ec.keys.filter(k=>k!==r.key); it._ec.inc = Math.round((it._ec.inc - r.inc)*1000)/1000; changed++;
+      if(!it._ec.keys.length || it._ec.inc <= 0) return false;
+      const x = map[it._ec.code]; if(x){ const q = ecQtyFor(x, it._ec.inc, it.unit, it.spec); it.qty = q.qty; it.unit = q.unit; }
+      return true;
+    });
+  });
+  const before = entries.length; entries = entries.filter(e=>(e.items||[]).length || !e._ecAuto);
+  if(changed || before !== entries.length){
+    entries.forEach(e=>{ const sups = [...new Set((e.items||[]).map(it=>it.supplier).filter(Boolean))]; if(sups.length) e.supplier = sups.join(' / '); });
+    saveEntries();
+  }
+  return changed;
+}
+function ecToggleRcv(key, on, quiet){
+  ecLoad(); const r = (ecState.rcv||[]).find(v=>v.key===key); if(!r) return 0; const map = ecActiveMap(); const x = map[r.code];
+  ecState.excl = ecState.excl || {};
+  if(on){
+    delete ecState.excl[key]; ecState.applied = (ecState.applied||[]).filter(k=>k!==key);
+    if(!x){ ecSave(); if(!quiet){ showToast('연결된 품목이 없어 일지에 넣을 수 없습니다', 'error'); ecRender(); } return 0; }
+    const st = ecRcvStatus(r, x); let n = 0;
+    if(!st.has){ n = ecApply([{ code:r.code, inc:r.inc, at:r.at, key:r.key }], { [r.code]: x }); }
+    ecLog(`${r.date} ${x.m.name}: 체크 — 일지에 넣음`); ecSave();
+    if(!quiet){ showToast(n ? `${r.date} ${x.m.name} 일지에 넣었습니다 (확인 필요)` : `${r.date} ${x.m.name} 체크했습니다`, 'success'); ecRender(); ecRefreshViews(); }
+    return n;
+  }
+  ecState.excl[key] = true; if((ecState.applied||[]).indexOf(key) < 0) (ecState.applied = ecState.applied || []).push(key);
+  const n = ecUnlinkRcv(r, map); ecLog(`${r.date} ${x ? x.m.name : r.code}: 체크 해제 — 일지에 넣지 않음${n ? ' (자동 입력 행 뺌)' : ''}`); ecSave();
+  if(!quiet){ showToast(`${r.date} ${x ? x.m.name : r.code} — 체크를 풀어 일지에서 뺐습니다${n ? '' : ' (직접 입력한 행은 그대로)'}`, 'info'); ecRender(); ecRefreshViews(); }
+  return n;
+}
+function ecToggleDate(date, on){
+  ecLoad(); const map = ecActiveMap(); const L = (ecState.rcv||[]).filter(r=>r.date===date && map[r.code] && (!r.kind || r.kind==='buy'));
+  L.forEach(r=>ecToggleRcv(r.key, on, true)); ecSave();
+  showToast(`${date} ${L.length}건 ${on ? '모두 체크 — 일지에 넣음' : '모두 체크 해제 — 일지에서 뺌'}`, on ? 'success' : 'info'); ecRender(); ecRefreshViews();
+}
+function ecRefreshViews(){
+  try{ if(document.getElementById('page-list')?.classList.contains('active')){ renderDateList(); if(selectedDate) renderRightPanel(selectedDate); } }catch(e){}
+  try{ if(document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard(); }catch(e){}
+  try{ ecDashBanner(); }catch(e){}
 }
 function ecAddDate(date){
   ecLoad(); const map = ecActiveMap(); const list = (ecState.rcv||[]).filter(r=>r.date===date && map[r.code] && (st=>!st.has && !st.skip)(ecRcvStatus(r, map[r.code])));
@@ -7707,6 +7801,7 @@ function ecApply(found, map){
   const done = new Set();
   entries.forEach(e=>(e.items||[]).forEach(it=>{ ((it._ec&&it._ec.keys)||[]).forEach(k=>done.add(k)); (it._ecLinked||[]).forEach(k=>done.add(k)); }));
   ecLoad(); const AP = ecState.applied = Array.isArray(ecState.applied) ? ecState.applied : []; done.forEach(k=>{ if(AP.indexOf(k)<0) AP.push(k); }); AP.forEach(k=>done.add(k));   /* v095: 한 번 넣은 입고는 행을 지워도 다시 넣지 않음 */
+  Object.keys(ecState.excl||{}).forEach(k=>done.add(k));   /* 체크를 푼 입고는 일지에 넣지 않음 */
   found.filter(f=>!done.has(f.key)).forEach(f=>AP.push(f.key)); if(AP.length > 3000) AP.splice(0, AP.length - 3000);
   const groups = {};
   found.filter(f=>!done.has(f.key)).forEach(f=>{ const date = localISO(new Date(f.at)); const k = date+'|'+f.code; (groups[k]=groups[k]||{ date, code:f.code, list:[] }).list.push(f); });
@@ -7924,11 +8019,12 @@ function ecRender(){
     ${rcv.length ? Object.keys(rByDate).sort().reverse().map(d=>{ const L = rByDate[d]; const miss = L.filter(r=>amap[r.code] && (st=>!st.has && !st.skip)(ecRcvStatus(r, amap[r.code]))).length;
       return `<div style="padding:8px 14px;border-top:1px solid #e2e8f0;${miss?'background:#FEF2F2':''}"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:14px">${esc(d)} (${esc(dayStr(d))})</b><span style="font-size:12px;color:${miss?'#b91c1c':'#15803d'};font-weight:700">${miss ? '일지 없는 입고 '+miss+'건' : '일지 입력됨'}</span><span style="flex:1"></span>
         <button class="btn btn-secondary btn-sm" onclick="ecOpenDate('${d}')">일지 보기</button>${miss ? `<button class="btn btn-primary btn-sm" onclick="ecAddDate('${d}')">이 날짜 일지에 모두 넣기</button>` : ''}</div>
-        <table class="data-table" style="margin-top:6px"><thead><tr><th>품목</th><th>공급업체</th><th class="num">이카운트 증가</th><th class="num">일지 수량</th><th>시각</th><th>상태</th><th></th></tr></thead><tbody>
+        <table class="data-table" style="margin-top:6px"><thead><tr><th style="width:34px;text-align:center"><input type="checkbox" title="이 날짜 모두 체크 / 해제 — 체크한 입고만 육안검사일지에 넣습니다" style="width:17px;height:17px;cursor:pointer;accent-color:#173F4B" ${L.some(r=>ecState.excl&&ecState.excl[r.key])?'':'checked'} onchange="ecToggleDate('${d}', this.checked)"></th><th>품목</th><th>공급업체</th><th class="num">이카운트 증가</th><th class="num">일지 수량</th><th>시각</th><th>상태</th><th></th></tr></thead><tbody>
         ${L.map(r=>{ const x = amap[r.code]; const st = ecRcvStatus(r, x); const q = x ? ecQtyFor(x, r.inc, x.m.unit, x.m.spec) : null; const t = new Date(r.at);
-          return `<tr><td style="font-weight:600">${x ? esc(x.m.name) : esc(r.code)}</td><td>${x ? esc(x.m.supplier||'') : ''}</td><td class="num">+${fmtNum(r.inc)}${r.gBased?' g':''}</td><td class="num">${q ? esc(q.qty)+' '+esc(q.unit||'') : '—'}</td><td>${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}</td><td style="color:${st.c};font-weight:700;font-size:12px">${esc(st.t)}</td><td>${!st.has && x ? `<button class="btn btn-secondary btn-sm" onclick="ecAddRcv('${esc(r.key)}')">일지에 넣기</button>` : ''}</td></tr>`; }).join('')}
+          const on = st.has || (!st.off && !(r.kind && r.kind!=='buy'));
+          return `<tr style="${st.off?'color:#94a3b8':''}"><td style="text-align:center"><input type="checkbox" title="체크: 육안검사일지에 넣음 · 해제: 넣지 않음" style="width:17px;height:17px;cursor:pointer;accent-color:#173F4B" ${on?'checked':''} ${x?'':'disabled'} onchange="ecToggleRcv('${esc(r.key)}', this.checked)"></td><td style="font-weight:600;${st.off?'text-decoration:line-through':''}">${x ? esc(x.m.name) : esc(r.code)}</td><td>${x ? esc(x.m.supplier||'') : ''}</td><td class="num">+${fmtNum(r.inc)}${r.gBased?' g':''}</td><td class="num">${q ? esc(q.qty)+' '+esc(q.unit||'') : '—'}</td><td>${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}</td><td style="color:${st.c};font-weight:700;font-size:12px">${esc(st.t)}</td><td>${!st.has && !st.off && x ? `<button class="btn btn-secondary btn-sm" onclick="ecAddRcv('${esc(r.key)}')">일지에 넣기</button>` : ''}</td></tr>`; }).join('')}
         </tbody></table></div>`; }).join('') : `<div style="padding:14px;color:#64748b;font-size:13px">아직 찾은 재고 증가가 없습니다. 연결 이후 이카운트에서 관리 품목의 재고가 늘면 여기에 날짜별로 나옵니다. 지난 입고를 다시 찾으려면 위 「이력 처음부터 다시 훑기」를 누르세요.</div>`}
-    <div style="padding:8px 14px;color:#64748b;font-size:11.5px">연결된 품목의 이카운트 재고가 늘어난 날짜입니다. 붉은 날짜는 그 입고에 해당하는 일지 행이 아직 없습니다 — 「일지에 넣기」로 만들거나 일지 입력에서 직접 입력하세요.</div></div>
+    <div style="padding:8px 14px;color:#64748b;font-size:11.5px">연결된 품목의 이카운트 재고가 늘어난 날짜입니다. 붉은 날짜는 그 입고에 해당하는 일지 행이 아직 없습니다 — 「일지에 넣기」로 만들거나 일지 입력에서 직접 입력하세요. <b>왼쪽 체크</b>는 기본으로 모두 켜져 있고, 풀면 그 입고는 육안검사일지에 넣지 않습니다(자동 입력된 행도 빠짐). 다시 체크하면 다시 넣습니다.</div></div>
 
   ${(()=>{ const Q = (typeof qcRows==='function') ? qcRows() : []; if(!Q.length) return ''; return `<div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">🔎 수량 확인 필요 ${Q.length}건 — 구매전표와 일지 수량이 다름 (일지 값은 그대로)</div></div>
     <div class="table-wrap" style="border:none;border-radius:0"><table class="data-table"><thead><tr><th>일지 날짜</th><th>품목</th><th class="num">일지 수량</th><th>구매전표</th><th></th></tr></thead><tbody>
