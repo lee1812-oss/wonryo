@@ -1070,7 +1070,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '130';
+const APP_VER  = '131';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2596,17 +2596,29 @@ table.ccal td{border:1px solid var(--line);vertical-align:top;height:92px;paddin
 table.ccal td.has{background:#F7FBF9}table.ccal td:hover{outline:2px solid #1F6E5A;outline-offset:-2px}table.ccal td.sel{outline:2px solid #1F6E5A;outline-offset:-2px}table.ccal td.today .ccal-n{background:#1F6E5A;color:#fff;border-radius:10px;padding:0 7px;display:inline-block}
 .ccal-n{font-weight:800;font-size:13px}.ccal-p{font-size:11px;color:var(--ink2);margin-top:2px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .ccal-cs{display:flex;flex-wrap:wrap;gap:2px;margin-top:3px}.ccal-c{font-size:10.5px;padding:0 4px;border-radius:6px;white-space:nowrap;font-weight:700}.ccal-c.ok{background:#E3F4EC;color:#1F6E4A}.ccal-c.miss{background:#FBF1DF;color:#A86A12}.ccal-c.bad{background:#FBE9E9;color:#B23A3A}
+.ccp-sheet input::placeholder{color:#B5BEC6;font-weight:400;font-size:11px;opacity:1}
 @media (max-width:759px){table.ccal td{height:70px;padding:2px}.ccal-p{display:none}.ccal-c{font-size:9.5px;padding:0 2px}}`;
 /* 결재 도장 — 이름(또는 설정한 도장 글자)을 빨간 원 안에. 작성자 도장은 측정값을 다 넣었을 때, 승인자 도장은 승인자 이름을 넣었을 때 찍힘 */
 function ccpStamp(name) { const t = String(name || '').trim(); if (!t) return ''; const n = [...t].length; return `<span class="ccp-stamp" style="font-size:${n <= 2 ? 12 : n === 3 ? 10 : 8}px">${esc(t)}</span>`; }
+/* v131: 측정칸에 지난 기록의 평소 값(중앙값)을 흐린 글씨로만 보여 줌 — 저장되지 않으며 직접 재서 입력해야 함 */
+const CCP_HINT_F = { oven: ['temp', 'min', 'core'], freeze: ['v1', 'v2'], mix: ['kg', 'temp', 'room'], metal: ['det'] };
+let ccpHintC = null, ccpHintT = 0;
+function ccpHints() {
+  if (ccpHintC && Date.now() - ccpHintT < 30000) return ccpHintC; const acc = {}; const put = (k, v) => (acc[k] = acc[k] || []).push(v);
+  Object.values(ccpS().logs).forEach(g => { if (!g || g.skip || !CCP_HINT_F[g.type]) return;
+    [...(g.rows || []), ...(g.pass || [])].forEach(r => CCP_HINT_F[g.type].forEach(f => { const v = ccpNum(r[f]); if (v == null) return; put(g.type + '|' + f, v); if (r.name) put(g.type + '|' + f + '|' + String(r.name).replace(/\s/g, ''), v); })); });
+  const out = {}; Object.entries(acc).forEach(([k, a]) => { if (a.length < 3) return; a.sort((x, y) => x - y); const m = a[Math.floor(a.length / 2)]; out[k] = Math.round(m * 10) / 10; });
+  ccpHintT = Date.now(); return (ccpHintC = out);
+}
+function ccpHint(type, f, name) { if (!(CCP_HINT_F[type] || []).includes(f)) return ''; const H = ccpHints(); const v = H[type + '|' + f + '|' + String(name || '').replace(/\s/g, '')] ?? H[type + '|' + f]; return v == null ? '' : '평소 ' + v; }
 function ccpSheet(g, ed) {
   const T = CCP_TYPES[g.type], k = g.date + '|' + g.type, kid = ccpKid(g), w = WD[new Date(g.date + 'T00:00:00').getDay()];
-  const V = (sec, i, f, v, kind) => { if (!ed) return esc(v == null ? '' : v);
+  const V = (sec, i, f, v, kind, ph) => { if (!ed) return esc(v == null ? '' : v);
     if (kind === 'ox') return `<select data-c="${k}|${sec}|${i}|${f}"><option value=""></option><option${v === 'O' ? ' selected' : ''}>O</option><option${v === 'X' ? ' selected' : ''}>X</option></select>`;
     if (kind === 'time') return `<div style="display:flex;align-items:center;gap:2px"><input type="time" data-c="${k}|${sec}|${i}|${f}" value="${esc(v || '')}"><button class="ccp-mini" data-ccpnow="${k}|${sec}|${i}|${f}" title="지금 시각">⏱</button></div>`;
-    return `<input data-c="${k}|${sec}|${i}|${f}" value="${esc(v == null ? '' : v)}" ${kind === 'txt' ? 'style="text-align:left"' : 'inputmode="decimal"'}>`; };
+    return `<input data-c="${k}|${sec}|${i}|${f}" value="${esc(v == null ? '' : v)}" ${kind === 'txt' ? 'style="text-align:left"' : 'inputmode="decimal"'}${ph ? ` placeholder="${esc(ph)}" title="지난 기록의 평소 값(참고용) — 저장되지 않습니다. 실제로 잰 값을 입력하세요"` : ''}>`; };
   const J = (sec, i, r) => { const s = ccpRowState(g.type, sec, r); return `<td id="ccpj-${kid}-${sec}-${i}" class="${s.bad.length ? 'bad' : ''}" title="${esc(s.bad.join(', '))}">${s.bad.length ? 'X' : s.miss ? '' : 'O'}</td>`; };
-  const U = (sec, i, f, r, unit) => `<td><div class="ccp-cell-u">${V(sec, i, f, r[f])}${unit ? `<span>${unit}</span>` : ''}</div></td>`;
+  const U = (sec, i, f, r, unit) => `<td><div class="ccp-cell-u">${V(sec, i, f, r[f], '', ccpHint(g.type, f, r.name))}${unit ? `<span>${unit}</span>` : ''}</div></td>`;
   const del = (sec, i) => ed ? ` <button class="ccp-mini" data-ccpdel="${k}|${sec}|${i}" title="이 줄 빼기">✕</button>` : '';
   const sign = `<td>${esc(g.who || '')}</td>`;
   const fixRows = arr => arr.map(x => esc(x).replace(/ (- |\d\. |※ |☆ )/g, '<br>$1')).join('<br>');
