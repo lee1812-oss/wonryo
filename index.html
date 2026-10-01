@@ -972,6 +972,7 @@ body.sys-sub .finwrap{height:calc(100vh - var(--head-h,62px) - 60px)!important}
       <div class="row" style="gap:8px;flex-wrap:wrap">
         <button class="btn" id="btnPwChange">비밀번호 변경</button>
         <button class="btn" id="btnPwForget">이 기기에서 잠그기</button>
+        <button class="btn" id="btnLogout">로그아웃</button>
         <button class="btn" id="btnShareKey">공유 저장소 열쇠 복사</button>
         <span class="muted" id="pwState" style="align-self:center"></span>
       </div>
@@ -1033,7 +1034,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '091';
+const APP_VER  = '092';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2332,7 +2333,7 @@ function finSendKey() {
 window.addEventListener('message', e => {
   const f = $('#finFrame');
   if (!f || !f.contentWindow || e.source !== f.contentWindow) return;
-  const m = e.data; if (m && typeof m === 'object' && m.type === 'fin-need-key') finSendKey();
+  const m = e.data; if (m && typeof m === 'object' && m.type === 'fin-need-key') { if (m.salt && window.WLOCK && WLOCK.finSalt) WLOCK.finSalt(m.salt, m.iter, !!m.failed).then(() => finSendKey()); else finSendKey(); }   /* v092: 완제품·생지 소금에 맞는 열쇠로 */
 });
 function finNav(tab) { const f = $('#finFrame'); if (!f || !f.contentWindow || !finLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-nav', tab }, finTargetOrigin()); } catch (e) {} }
 window.addEventListener('message', e => { if (!fromFin(e)) return; const m = e.data; if (!m || typeof m !== 'object') return; if (m.type === 'fin-tab' && m.tab) { finShown = m.tab; if (S.ui.menu === 'fin' && S.ui.finTab !== m.tab && menuItems('fin').some(t => t[0] === m.tab)) { S.ui.finTab = m.tab; save(); renderTabs(); } } });
@@ -3723,6 +3724,7 @@ $('#btnTrendXlsx').onclick = exportTrend;
 $('#btnSaveHtml').onclick = saveHtml;
 /* v050 */
 $('#btnPwChange').onclick = async () => { if (await WLOCK.askChange()) { pwStateText(); try { finSendKey(); } catch (e) {} toast('비밀번호가 바뀌었습니다 — ①「데이터 포함 HTML 저장」 ②「공유 저장소 열쇠 복사」 후 Apps Script 새 버전 배포'); } };
+$('#btnLogout').onclick = () => { if (confirm('로그아웃할까요? 다시 로그인 화면이 나옵니다 (저장한 아이디·비밀번호는 그대로).')) WLOCK.logout(); };   /* v092 */
 $('#btnPwForget').onclick = () => { WLOCK.forget(); pwStateText(); toast('이 기기에 기억된 비밀번호를 지웠습니다'); };
 /* v052: 공유 저장소 열쇠 — 화면에 띄우지 않고 클립보드에만 담습니다 (캡처·어깨너머 유출 방지) */
 $('#btnShareKey').onclick = async () => {
@@ -3911,7 +3913,9 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
   var SHARE_SALT = 'wonryo-share-v1';   /* 공유 저장소 열쇠용 고정 소금 — 자료 잠금 열쇠와 다른 값이 나오게 */
   var TE = new TextEncoder(), TD = new TextDecoder();
   var DATA_SALT = 'wonryo-data-v1';     /* data.json 열쇠용 고정 소금 — 사무실 PC(ecount_sync v002)와 같은 규칙 */
-  var ST = { key: null, salt: null, iter: ITER, on: false, share: '', dkey: '' };
+  var ST = { key: null, salt: null, iter: ITER, on: false, share: '', dkey: '', fkey: null, fsalt: null, fiter: ITER, pw: '' };
+  /* v092: 로그인 — 창(세션)마다 한 번, 아이디·비밀번호 저장 선택. 완제품·생지는 소금이 달라 로그인 때 그쪽 열쇠도 함께 만듭니다 */
+  var SSK = 'wonryo_sess_v1', IDK = 'wonryo_login_id', LOGIN_ID = '빵을그리다';
 
   /* 본문 코드가 돌기 전의 「깨끗한 원본」을 붙잡아 둡니다.
      화면에 표가 그려진 뒤의 DOM을 저장하면, 잠근 자료와 별개로
@@ -3958,20 +3962,37 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
       .then(function (base) { return crypto.subtle.deriveBits({ name: 'PBKDF2', salt: TE.encode(DATA_SALT), iterations: ITER, hash: 'SHA-256' }, base, 256); })
       .then(function (bits) { return b64e(bits); });
   }
-  function rememberKey() {
-    return crypto.subtle.exportKey('raw', ST.key).then(function (raw) {
-      try { localStorage.setItem(LSK, JSON.stringify({ k: b64e(raw), s: b64e(ST.salt), i: ST.iter, sh: ST.share || '', dk: ST.dkey || '' })); } catch (e) {}
-    }).catch(function () {});
+  function exportState() {
+    return Promise.all([crypto.subtle.exportKey('raw', ST.key), ST.fkey ? crypto.subtle.exportKey('raw', ST.fkey) : Promise.resolve(null)]).then(function (r) {
+      return { k: b64e(r[0]), s: b64e(ST.salt), i: ST.iter, sh: ST.share || '', dk: ST.dkey || '', fk: r[1] ? b64e(r[1]) : '', fs: ST.fsalt ? b64e(ST.fsalt) : '', fi: ST.fiter || ITER };
+    });
   }
+  function rememberKey() { return exportState().then(function (o) { try { localStorage.setItem(LSK, JSON.stringify(o)); } catch (e) {} }).catch(function () {}); }
+  function saveSession() { return exportState().then(function (o) { try { sessionStorage.setItem(SSK, JSON.stringify(o)); } catch (e) {} }).catch(function () {}); }
   function forgetKey() { try { localStorage.removeItem(LSK); } catch (e) {} }
+  function clearSession() { try { sessionStorage.removeItem(SSK); } catch (e) {} }
   function isRemembered() { try { return !!localStorage.getItem(LSK); } catch (e) { return false; } }
-  function loadRemembered() {
+  function imp(b) { return crypto.subtle.importKey('raw', b64d(b), { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']); }
+  function loadStored(store, name) {
     var o = null;
-    try { o = JSON.parse(localStorage.getItem(LSK) || 'null'); } catch (e) {}
+    try { o = JSON.parse(store.getItem(name) || 'null'); } catch (e) {}
     if (!o || !o.k || !o.s) return Promise.resolve(null);
-    return crypto.subtle.importKey('raw', b64d(o.k), { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'])
-      .then(function (key) { return { key: key, salt: b64d(o.s), iter: o.i || ITER, share: o.sh || '', dkey: o.dk || '' }; })
+    return Promise.all([imp(o.k), o.fk ? imp(o.fk) : Promise.resolve(null)])
+      .then(function (r) { return { key: r[0], salt: b64d(o.s), iter: o.i || ITER, share: o.sh || '', dkey: o.dk || '', fkey: r[1], fsalt: o.fs ? b64d(o.fs) : null, fiter: o.fi || ITER }; })
       .catch(function () { return null; });
+  }
+  function loadRemembered() { try { return loadStored(localStorage, LSK); } catch (e) { return Promise.resolve(null); } }
+  function loadSession() { try { return loadStored(sessionStorage, SSK); } catch (e) { return Promise.resolve(null); } }
+  function applyStored(r) { ST.key = r.key; ST.salt = r.salt; ST.iter = r.iter; ST.share = r.share || ''; ST.dkey = r.dkey || ''; ST.fkey = r.fkey || null; ST.fsalt = r.fsalt || null; ST.fiter = r.fiter || ITER; ST.on = true; }
+  /* 완제품·생지(finished.html) 자료의 소금 — 같은 폴더 파일에서 읽음 */
+  function finSaltFetch() {
+    return fetch('./finished.html?salt=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+      var m = /<script id="ed" type="application\/json">([^<]*)<\/script>/.exec(t || ''); if (!m) return null; var o = JSON.parse(m[1]); return o && o.salt ? { salt: o.salt, iter: o.iter || ITER } : null;
+    }).catch(function () { return null; });
+  }
+  function deriveFin(pw, fs) {
+    return (fs ? Promise.resolve(fs) : finSaltFetch()).then(function (x) { if (!x) return false;
+      return derive(pw, b64d(x.salt), x.iter || ITER).then(function (k) { ST.fkey = k; ST.fsalt = b64d(x.salt); ST.fiter = x.iter || ITER; return true; }); }).catch(function () { return false; });
   }
 
   /* ── 화면 ── */
@@ -3996,47 +4017,69 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
   function showErr(ov, msg) { var e = ov.querySelector('.wl-err'); e.textContent = msg; e.style.display = 'block'; }
   function hideErr(ov) { var e = ov.querySelector('.wl-err'); if (e) e.style.display = 'none'; }
 
-  /* ── 열기 화면: 몇 번이든 다시 넣을 수 있고, 자료는 건드리지 않습니다 ── */
-  function askUnlock(blob, onDone) {
+  /* ── v092 로그인 화면: 창을 새로 열 때마다. 아이디·비밀번호 저장은 선택. 틀려도 자료는 그대로 ── */
+  function askLogin(blob, rem, onDone) {
+    var savedId = ''; try { savedId = localStorage.getItem(IDK) || ''; } catch (e) {}
     var ov = shell(
-      head('🔒 자료가 잠겨 있습니다', '빵을그리다 통합 재고관리입니다.<br>비밀번호를 넣으면 자료가 열립니다.') +
-      '<label style="display:block;font-size:13px;font-weight:700;margin-top:18px">비밀번호' +
-      '<input type="password" class="wl-pw" autocomplete="current-password" style="' + INP + '"></label>' +
-      '<label style="display:flex;align-items:center;gap:7px;font-size:13px;color:#4A5A65;margin-top:11px;cursor:pointer">' +
-      '<input type="checkbox" class="wl-rem" checked style="width:16px;height:16px;accent-color:#173F4B">이 기기에서는 다음부터 묻지 않기</label>' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><div style="font-size:21px;font-weight:800;letter-spacing:-.3px">빵을그리다 통합 재고관리</div></div>' +
+      '<div style="font-size:13px;color:#4A5A65;line-height:1.55">로그인하면 원료수불부 · 완제품·생지 · 육안검사 · 생산일지가 모두 열립니다.</div>' +
+      '<label style="display:block;font-size:13px;font-weight:700;margin-top:18px">아이디' +
+      '<input type="text" class="wl-id" autocomplete="username" value="' + savedId.replace(/"/g, '&quot;') + '" placeholder="아이디" style="' + INP + '"></label>' +
+      '<label style="display:block;font-size:13px;font-weight:700;margin-top:12px">비밀번호' +
+      '<input type="password" class="wl-pw" autocomplete="current-password" placeholder="' + (rem ? '●●●● 저장된 비밀번호로 로그인 (바꾸려면 입력)' : '비밀번호') + '" style="' + INP + '"></label>' +
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:11px">' +
+      '<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#4A5A65;cursor:pointer"><input type="checkbox" class="wl-sid"' + (savedId ? ' checked' : '') + ' style="width:16px;height:16px;accent-color:#173F4B">아이디 저장</label>' +
+      '<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#4A5A65;cursor:pointer"><input type="checkbox" class="wl-rem"' + (rem ? ' checked' : '') + ' style="width:16px;height:16px;accent-color:#173F4B">비밀번호 저장</label></div>' +
       errBox() +
-      '<button class="wl-go" style="' + BTN + '">열기</button>' +
-      '<div style="font-size:12px;color:#8291A0;margin-top:13px;line-height:1.55">비밀번호를 여러 번 틀려도 자료는 지워지지 않습니다. 천천히 다시 넣으셔도 됩니다.</div>'
+      '<button class="wl-go" style="' + BTN + '">로그인</button>' +
+      '<div style="font-size:12px;color:#8291A0;margin-top:13px;line-height:1.55">창을 닫았다 다시 열면 로그인 화면이 나옵니다. 「비밀번호 저장」을 켜 두면 「로그인」만 누르면 됩니다. 비밀번호를 여러 번 틀려도 자료는 지워지지 않습니다.</div>'
     );
-    var pw = ov.querySelector('.wl-pw'), rem = ov.querySelector('.wl-rem'), go = ov.querySelector('.wl-go');
+    var idI = ov.querySelector('.wl-id'), pw = ov.querySelector('.wl-pw'), sid = ov.querySelector('.wl-sid'), remC = ov.querySelector('.wl-rem'), go = ov.querySelector('.wl-go');
     var busy = false;
-    setTimeout(function () { pw.focus(); }, 40);
-
+    setTimeout(function () { (idI.value ? (rem ? go : pw) : idI).focus(); }, 40);
+    function fail(m) { busy = false; go.textContent = '로그인'; go.disabled = false; showErr(ov, m); }
+    function finishLogin(txt) {
+      try { if (sid.checked) localStorage.setItem(IDK, LOGIN_ID); else localStorage.removeItem(IDK); } catch (e) {}
+      return saveSession().then(function () { return remC.checked ? rememberKey() : forgetKey(); }).then(function () { ov.remove(); onDone(txt); });
+    }
     function attempt() {
-      if (busy) return;
+      if (busy) return; hideErr(ov);
+      if (idI.value.replace(/\s/g, '') !== LOGIN_ID) { showErr(ov, '아이디가 맞지 않습니다. (지금은 테스트 기간이라 아이디는 「' + LOGIN_ID + '」입니다)'); idI.focus(); return; }
       var val = pw.value;
-      if (!val) { showErr(ov, '비밀번호를 넣어 주세요.'); pw.focus(); return; }
-      busy = true; hideErr(ov); go.textContent = '여는 중…'; go.disabled = true;
+      if (!val && !rem) { showErr(ov, '비밀번호를 넣어 주세요.'); pw.focus(); return; }
+      busy = true; go.textContent = '로그인 중…'; go.disabled = true;
+      if (!val) {   /* 저장된 비밀번호(열쇠)로 */
+        decryptWith(rem.key, blob).then(function (txt) { applyStored(rem); return finishLogin(txt); })
+          .catch(function () { forgetKey(); rem = null; pw.placeholder = '비밀번호'; fail('저장된 비밀번호가 바뀌었습니다. 비밀번호를 넣어 주세요.'); pw.focus(); });
+        return;
+      }
       var salt = b64d(blob.salt), iter = blob.iter || ITER;
       derive(val, salt, iter)
         .then(function (key) { return decryptWith(key, blob).then(function (txt) { return { key: key, txt: txt }; }); })
         .then(function (r) {
-          ST.key = r.key; ST.salt = salt; ST.iter = iter; ST.on = true;
-          return Promise.all([deriveShare(val), deriveData(val)]).then(function (x) {   /* 공유 저장소·data.json 열쇠도 함께 */
-            ST.share = x[0]; ST.dkey = x[1];
-            var p = rem.checked ? rememberKey() : Promise.resolve(forgetKey());
-            return p.then(function () { ov.remove(); onDone(r.txt); });
-          });
+          ST.key = r.key; ST.salt = salt; ST.iter = iter; ST.on = true; ST.pw = val;
+          return Promise.all([deriveShare(val), deriveData(val), deriveFin(val)]).then(function (x) { ST.share = x[0]; ST.dkey = x[1]; return finishLogin(r.txt); });
         })
-        .catch(function () {
-          /* 실패해도 자료·기억된 열쇠를 건드리지 않습니다 */
-          busy = false; go.textContent = '열기'; go.disabled = false;
-          showErr(ov, '비밀번호가 맞지 않습니다. 다시 넣어 주세요.');
-          pw.value = ''; pw.focus();
-        });
+        .catch(function () { fail('비밀번호가 맞지 않습니다. 다시 넣어 주세요.'); pw.value = ''; pw.focus(); });
     }
     go.addEventListener('click', attempt);
-    pw.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); attempt(); } });
+    [idI, pw].forEach(function (el) { el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); attempt(); } }); });
+  }
+  /* 완제품·생지 열쇠가 없거나(소금이 바뀜) 맞지 않을 때만 비밀번호를 한 번 더 — 통합 재고관리 화면에서 */
+  var finAsking = null;
+  function askFinPw(fs) {
+    if (finAsking) return finAsking;
+    finAsking = new Promise(function (resolve) {
+      var ov = shell(head('🔒 완제품·생지 자료 열기', '완제품·생지 자료가 다른 비밀번호 설정으로 잠겨 있습니다.<br>비밀번호를 한 번 더 넣어 주세요. (이 창에서 한 번만)') +
+        '<label style="display:block;font-size:13px;font-weight:700;margin-top:18px">비밀번호<input type="password" class="wl-pw" autocomplete="current-password" style="' + INP + '"></label>' + errBox() +
+        '<button class="wl-go" style="' + BTN + '">열기</button><button class="wl-x" style="' + SUB + '">나중에</button>');
+      var pw = ov.querySelector('.wl-pw'), go = ov.querySelector('.wl-go'); setTimeout(function () { pw.focus(); }, 40);
+      function run() { if (!pw.value) return showErr(ov, '비밀번호를 넣어 주세요.'); go.disabled = true; ST.pw = pw.value;
+        deriveFin(pw.value, fs).then(function () { return saveSession(); }).then(function () { return isRemembered() ? rememberKey() : null; }).then(function () { ov.remove(); finAsking = null; resolve(true); }); }
+      go.addEventListener('click', run); pw.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); run(); } });
+      ov.querySelector('.wl-x').addEventListener('click', function () { ov.remove(); finAsking = null; resolve(false); });
+    });
+    return finAsking;
   }
 
   /* ── 비밀번호 처음 정하기 / 바꾸기 ── */
@@ -4135,10 +4178,20 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
     /* 완제품·생지 화면에 건네줄 잠금 열쇠. 비밀번호 자체는 보내지 않습니다 */
     lockMaterial: function () {
       if (!ST.on) return Promise.resolve(null);
-      return crypto.subtle.exportKey('raw', ST.key)
-        .then(function (raw) { return { k: b64e(raw), s: b64e(ST.salt), i: ST.iter, dk: ST.dkey || '' }; })
+      var fk = ST.fkey || ST.key, fs = ST.fsalt || ST.salt, fi = ST.fkey ? ST.fiter : ST.iter;   /* v092: 완제품·생지 자료의 소금으로 만든 열쇠 */
+      return crypto.subtle.exportKey('raw', fk)
+        .then(function (raw) { return { k: b64e(raw), s: b64e(fs), i: fi, dk: ST.dkey || '' }; })
         .catch(function () { return null; });
-    }
+    },
+    /* 완제품·생지가 알려 준 자기 소금 — 지금 열쇠와 다르면 (비밀번호를 아는 동안은 바로, 아니면 한 번 더 물어) 새로 만듦 */
+    finSalt: function (saltB64, iter, failed) {
+      if (!ST.on || !saltB64) return Promise.resolve(false);
+      if (!failed && b64e(ST.fsalt || ST.salt) === saltB64) return Promise.resolve(true);
+      var fs = { salt: saltB64, iter: iter || ITER };
+      if (ST.pw && !failed) return deriveFin(ST.pw, fs).then(function () { return saveSession(); }).then(function () { return isRemembered() ? rememberKey() : null; }).then(function () { return true; });
+      return askFinPw(fs);
+    },
+    logout: function () { clearSession(); location.reload(); }
   };
 
   /* ── 시작 ── */
@@ -4155,14 +4208,17 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 
   function finish(txt) { tag.textContent = txt; boot(); }
 
-  loadRemembered().then(function (r) {
-    if (!r) { askUnlock(blob, finish); return; }
-    decryptWith(r.key, blob).then(function (txt) {    /* 기억된 비밀번호로 조용히 열기 */
-      ST.key = r.key; ST.salt = r.salt; ST.iter = r.iter; ST.share = r.share || ''; ST.dkey = r.dkey || ''; ST.on = true;
-      finish(txt);
-    }).catch(function () {                            /* 비밀번호가 바뀐 경우 — 다시 물어봅니다 */
-      forgetKey(); askUnlock(blob, finish);
+  function showLogin() {
+    loadRemembered().then(function (r) {
+      if (!r) { askLogin(blob, null, finish); return; }
+      decryptWith(r.key, blob).then(function () { askLogin(blob, r, finish); })   /* 저장된 비밀번호가 아직 맞으면 「로그인」만 누르면 됨 */
+        .catch(function () { forgetKey(); askLogin(blob, null, finish); });
     });
+  }
+  /* 같은 창(새로고침)에서는 다시 묻지 않고, 창을 새로 열면 로그인 화면 */
+  loadSession().then(function (r) {
+    if (!r) { showLogin(); return; }
+    decryptWith(r.key, blob).then(function (txt) { applyStored(r); finish(txt); }).catch(function () { clearSession(); showLogin(); });
   });
 })();
 </script></body></html>
