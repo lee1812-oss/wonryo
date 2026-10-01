@@ -1070,7 +1070,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '125';
+const APP_VER  = '126';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2517,8 +2517,8 @@ function ccpDevReport(f, t, print) {
     return `<div class="dev-wk${xs.length ? ' has' : ''}"><div class="dev-wh"><b>${pd(w)} ~ ${pd(e)}</b> <span class="${xs.length ? 'bad' : 'ok'}">${xs.length ? `이탈 ${xs.length}줄` : '이탈 없음'}</span>
         ${xs.length ? (print ? (rv ? `<span class="muted">✔ 확인 ${esc(rv.by || '')} ${esc(String(rv.ts || '').slice(5, 10))}</span>` : '<span class="muted">□ 미확인</span>') : `<label class="dev-rv"><input type="checkbox" data-ccprev="${w}"${rv ? ' checked' : ''}> 내부 확인 완료${rv ? ` <span class="muted">${esc(rv.by || '')} ${esc(String(rv.ts || '').slice(5, 10))}</span>` : ''}</label>`) : ''}</div>
       ${xs.length ? `<div class="tablewrap" style="overflow-x:auto"><table class="dev-t"><thead><tr><th>날짜</th><th>공정</th><th>품목</th><th>측정값</th><th>벗어난 정도</th><th>일지 기록</th>${print ? '' : '<th></th>'}</tr></thead><tbody>${xs.map(x => { const c = ccpDevRec(x.g);
-        return `<tr><td style="white-space:nowrap">${pd(x.g.date)}</td><td style="white-space:nowrap">${CCP_TYPES[x.g.type].ico} ${esc(CCP_TYPES[x.g.type].short)}</td><td>${esc(x.r.name || '')}</td><td>${esc(x.val)}<div class="muted" style="font-size:11px">기준 ${esc(x.lim)}</div></td><td class="bad">${x.gap.map(esc).join('<br>') || esc(x.bad.join(', '))}</td>
-          <td style="font-size:12px">${c.dev ? `이탈: ${esc(x.g.dev)}` : '<span class="bad">이탈내용 미기록</span>'}<br>${c.act ? `조치: ${esc(x.g.act)}` : '<span class="bad">개선조치 미기록</span>'}</td>${print ? '' : `<td><button class="btn sm" data-ccpopen="${x.g.date}|${x.g.type}">열기</button></td>`}</tr>`; }).join('')}</tbody></table></div>` : ''}</div>`; }).join('');
+        return `<tr><td style="white-space:nowrap">${pd(x.g.date)}</td><td style="white-space:nowrap">${CCP_TYPES[x.g.type].ico} ${esc(CCP_TYPES[x.g.type].short)}</td><td>${esc(x.r.name || '')}</td><td>${esc(x.val)}<div class="muted" style="font-size:11px">기준 ${esc(x.lim)}</div></td><td class="bad" style="white-space:nowrap">${x.gap.map(z => esc(z).replace(' (', '<br>(')).join('<br>') || esc(x.bad.join(', '))}</td>
+          <td style="font-size:12px;white-space:nowrap">${c.dev ? `이탈: ${esc(x.g.dev)}` : '<span class="bad">이탈내용 미기록</span>'}<br>${c.act ? `조치: ${esc(x.g.act)}` : '<span class="bad">개선조치 미기록</span>'}</td>${print ? '' : `<td><button class="btn sm" data-ccpopen="${x.g.date}|${x.g.type}">열기</button></td>`}</tr>`; }).join('')}</tbody></table></div>` : ''}</div>`; }).join('');
   return { n: L.length, html: `${summary}<h3 style="margin:14px 0 6px">주별 이탈 내역</h3>${wkHtml}` };
 }
 function ccpDevHtml() {
@@ -2532,14 +2532,14 @@ function ccpDevHtml() {
 function ccpDevPrint() {
   const [f, t] = ccpDevRange(), R = ccpDevReport(f, t, true); const w = window.open('', '_blank'); if (!w) { toast('팝업이 막혀 인쇄 창을 열 수 없습니다'); return; }
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>CCP 이탈 보고서 ${f}~${t}</title><style>body{font-family:'Noto Sans KR',sans-serif;font-size:12px;color:#111;margin:0}h1{font-size:18px;margin:0 0 4px}h3{font-size:14px}.muted{color:#666}
-    ${CCP_DEV_CSS}@page{size:A4;margin:10mm}.dev-wk{break-inside:avoid}</style></head><body><h1>CCP 한계기준 이탈 보고서</h1><div class="muted">기간 ${f} ~ ${t} · 출력 ${new Date().toLocaleString('ko-KR')}</div>${R.html}
+    ${CCP_DEV_CSS}@page{size:A4;margin:10mm}.dev-wk{break-inside:avoid}.tablewrap{overflow:visible!important}table.dev-t{min-width:0!important;font-size:11px}</style></head><body><h1>CCP 한계기준 이탈 보고서</h1><div class="muted">기간 ${f} ~ ${t} · 출력 ${new Date().toLocaleString('ko-KR')}</div>${R.html}
     <script>setTimeout(function(){window.print()},300)<\/script></body></html>`); w.document.close();
 }
 const CCP_DEV_CSS = `.dev-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:4px 0 10px}.dev-k{border:1px solid #E3E6EA;border-radius:10px;padding:8px 10px}.dev-k span{display:block;font-size:11.5px;color:#667}.dev-k b{font-size:22px;margin-right:2px}.dev-k.warn{border-color:#E8B4B4;background:#FDF3F3}.dev-k.warn b{color:#B23A3A}
 .dev-an{border:1px solid #E3E6EA;border-radius:10px;padding:8px 12px;background:#FAFBFC}.dev-an ul{margin:4px 0 8px;padding-left:18px}.dev-an li{margin:2px 0}.dev-ok{padding:14px;border-radius:10px;background:#E3F4EC;color:#1F6E4A;font-weight:700}
 .dev-wk{border:1px solid #E3E6EA;border-radius:10px;padding:8px 10px;margin-bottom:8px}.dev-wk.has{border-color:#E8B4B4}.dev-wh{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.dev-wh .bad{color:#B23A3A;font-weight:700}.dev-wh .ok{color:#1F6E4A;font-weight:700}.dev-rv{margin-left:auto;font-size:12.5px;display:flex;align-items:center;gap:4px;cursor:pointer}.dev-rv input{width:17px;height:17px}
 table.dev-t{width:100%;border-collapse:collapse;margin-top:6px;font-size:12.5px}table.dev-t th,table.dev-t td{border:1px solid #DDE1E6;padding:4px 6px;vertical-align:top;text-align:left}table.dev-t th{background:#F4F6F8;font-size:12px}table.dev-t .bad,.dev-wk .bad{color:#B23A3A;font-weight:600}
-@media (max-width:759px){.dev-sum{grid-template-columns:repeat(2,minmax(0,1fr))}table.dev-t{font-size:11.5px;min-width:720px}}`;
+@media screen and (max-width:759px){.dev-sum{grid-template-columns:repeat(2,minmax(0,1fr))}table.dev-t{font-size:11.5px;min-width:720px}}`;
 (() => { try { const st = document.createElement('style'); st.textContent = CCP_DEV_CSS; document.head.appendChild(st); } catch (e) {} })();
 function ccpKid(g) { return g.date.replace(/-/g, '') + g.type; }
 /* v100: K-HACCP 모니터링일지와 같은 모양·색 (연파랑 #CEDEEF 칸 · 검은 선 · 분홍/빨강 띠 · 결재란) — 화면과 인쇄가 같은 틀 */
