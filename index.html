@@ -1066,7 +1066,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '119';
+const APP_VER  = '120';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1477,7 +1477,8 @@ function renderTabs() {
   const modeBox = `<div class="modebox">${A ? `<button data-menu="sys" class="${menu === 'sys' ? 'on' : ''}">${ICO.sys}<span>통합 설정</span></button>` : ''}${!A ? '<button class="lockbtn" data-lock="1">🔒<span>관리자</span></button>' : modeDevUser() ? '<button class="lockbtn" data-leave="1">↩<span>직원 화면으로</span></button>' : ''}</div>`;
   weekSelHome(); /* v043: 사이드바를 다시 그리기 전에 주차 선택을 헤더로 돌려놓음 */
   $('#sideNav').innerHTML = `<button class="homebtn${menu === 'home' ? ' on' : ''}" data-menu="home">${ICO.home}<span>통합 대시보드</span></button><div class="menusw">${menuBtns}</div>` + (menu === 'raw' || menu === 'home' ? `<div class="sidewk" id="sideWeek"><label>원료 기준 주차</label></div>` : '') + (menu === 'home' ? '' : `<div class="grp">${M.name}</div>` + items) + modeBox; $('#tabsBottom').innerHTML = items;
-  $$('#topMenu [data-menu], #sideNav [data-menu]').forEach(b => b.onclick = () => { if (S.ui.menu === b.dataset.menu) return; S.ui.menu = b.dataset.menu; save(); renderAll(); window.scrollTo(0, 0); if (S.ui.menu === 'home') finAskSum(); });
+  $$('#topMenu [data-menu], #sideNav [data-menu]').forEach(b => b.onclick = () => { if (S.ui.menu === b.dataset.menu) return; S.ui.menu = b.dataset.menu; if (S.ui.menu === 'prod') { S.ui.prodTab = 'pccp'; S.ui.ccpView = 'cal'; }   /* v120: 생산일지를 누르면 달력부터 */
+    save(); renderAll(); window.scrollTo(0, 0); if (S.ui.menu === 'home') finAskSum(); });
   $$('#topMenu [data-lock], #sideNav [data-lock]').forEach(b => b.onclick = adminEnter);
   $$('#sideNav [data-leave]').forEach(b => b.onclick = adminLeave);
   weekSelPlace();
@@ -2256,6 +2257,13 @@ function ccpSrcOf(d) { const P = prodS(); if (Object.values(P.pday || {}).some(e
 /* v118: K-HACCP CCP 기록(측정값) 불러오기 — 실제 기록한 값으로 그날 일지를 채움. 기록에 없는 공정(예: 배합 안 한 날의 크림배합)은 「해당 없음」으로 숨김 */
 function ccpImportRecords(doc) {
   if (!doc || doc.kind !== 'wonryo-ccp-records' || !Array.isArray(doc.logs)) { toast('CCP 기록 파일이 아닙니다'); return; }
+  const ts0 = new Date().toISOString();
+  if (Array.isArray(doc.prod) && doc.prod.length) {   /* v120: 한 파일에 그달 생산(K-HACCP 생산일지)도 들어 있으면 먼저 소급 */
+    const P = prodS(); P.pday = P.pday || {}; const L0 = ccpS().logs;
+    doc.prod.forEach(x => { if (!x || !x.d || !Array.isArray(x.l)) return; P.pday['imp:' + x.d] = { ts: ts0, d: x.d, imp: 1, l: x.l };
+      try { if (shareOn()) nbQueue({ ts: ts0, week: '', code: 'imp:' + x.d, name: '생산(엑셀 소급)', kind: 'pday', note: JSON.stringify({ d: x.d, imp: 1, l: x.l }) }); } catch (e) {}
+      CCP_ORDER.forEach(t => { const g = L0[x.d + '|' + t]; if (g && !g.ts) delete L0[x.d + '|' + t]; }); });
+  }
   const L = ccpS().logs, ts = new Date().toISOString(), by = ccpProdByDate(), dates = [...new Set(doc.logs.map(g => g.date))];
   const nk = x => String(x || '').replace(/…|\.\.\./g, '').replace(/\s/g, '');
   const codeOf = (d, name) => { const its = Object.values(by[d] || {}); const n = nk(name); const it = its.find(x => nk(x.name) === n) || its.find(x => n && nk(x.name).startsWith(n)) || its.find(x => n && n.startsWith(nk(x.name))); return it ? { code: it.code, name: it.name } : { code: 'k:' + n, name: String(name || '').replace(/…$/, '') }; };
@@ -2269,7 +2277,7 @@ function ccpImportRecords(doc) {
     g.ts = ts; g.by = 'K-HACCP 기록'; ccpQueueSoon(g); n++; });
   dates.forEach(d => CCP_ORDER.forEach(t => { const g = L[d + '|' + t]; if (g && !doc.logs.some(r => r.date === d && r.type === t)) { g.skip = true; g.ts = ts; g.by = 'K-HACCP 기록'; ccpQueueSoon(g); sk++; } }));
   S.ui.ccpDate = dates.sort()[dates.length - 1]; S.ui.ccpCalM = S.ui.ccpDate.slice(0, 7); S.ui.ccpView = 'cal'; save(); closeModal(); renderCcp();
-  toast(`K-HACCP 기록 ${n}개로 ${dates.length}일의 CCP 일지를 채웠습니다${sk ? ` (기록 없는 공정 ${sk}개는 해당 없음)` : ''}`);
+  toast(`${Array.isArray(doc.prod) && doc.prod.length ? `생산 ${doc.prod.length}일 · ` : ''}K-HACCP 기록 ${n}개로 ${dates.length}일의 CCP 일지를 채웠습니다${sk ? ` (기록 없는 공정 ${sk}개는 해당 없음)` : ''}`);
 }
 async function ccpImportXlsx(file) {
   if (/\.json$/i.test(file.name)) { try { ccpImportRecords(JSON.parse(await file.text())); } catch (e) { toast('CCP 기록 파일을 읽지 못했습니다'); } return; }
