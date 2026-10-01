@@ -1057,7 +1057,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '107';
+const APP_VER  = '108';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2322,7 +2322,7 @@ function renderCcp() {
   const chip = d => { const gs = CCP_ORDER.map(t => L[d + '|' + t]).filter(Boolean); const st = gs.map(ccpState); const bad = st.some(s => s.bad), miss = st.reduce((a, s) => a + s.miss, 0);
     return `<button class="btn sm${d === D ? ' primary' : ''}" data-ccpdate="${d}" style="${d === D ? '' : bad ? 'border-color:var(--minus);color:var(--minus)' : miss ? 'border-color:#E8C98E' : ''}">${esc(d.slice(5))} (${WD[new Date(d + 'T00:00:00').getDay()]}) ${gs.length ? (bad ? '⚠' : miss ? '✎' : '✓') : ''}</button>`; };
   const prods = Object.values(ccpProdByDate()[D] || {});
-  box.innerHTML = `<div class="card"><div class="prow" style="align-items:center"><h2 style="margin:0;flex:1 1 auto">🛡 CCP 일지</h2>
+  box.innerHTML = `<div class="card"><div class="prow" style="align-items:center"><h2 style="margin:0;flex:1 1 auto">🛡 CCP 일지 <span class="muted" style="font-size:12px;font-weight:600">v${APP_VER}</span></h2>
       <input type="date" id="ccpPick" value="${esc(D)}" style="width:150px"><button class="btn" id="ccpPrint">🖨 이 날짜 인쇄</button></div>
     <div class="muted" style="margin:6px 0 8px">생산을 입력하면 그 품목에 연결된 CCP 일지가 <b>자동으로 만들어집니다</b>. 품목·통과량은 생산에서 채우고, <b>온도·시간·검출 결과는 현장에서 재서</b> 넣으세요. 한계기준을 벗어나면 붉게 표시됩니다. 입력하면 자동 저장·공유됩니다.</div>
     <div class="prow" style="gap:6px">${dates.slice(0, 21).map(chip).join('') || '<span class="muted">아직 생산 기록이 없습니다 — 「생산 입력」으로 보내면 여기에 생깁니다.</span>'}</div></div>
