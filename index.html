@@ -1066,7 +1066,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '120';
+const APP_VER  = '121';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2597,7 +2597,11 @@ function ccpPrintLogs(logs, D) {
     body{margin:0;background:#fff}.pg{width:198mm;height:284mm;overflow:hidden;page-break-after:always;break-after:page}.pg:last-child{page-break-after:auto;break-after:auto}.ccp-sheet{max-width:none;width:198mm;box-sizing:border-box;padding:4mm 3mm;transform-origin:top left}.ccp-foot{display:none}@page{size:A4;margin:6mm}</style></head>
     <body>${logs.map(g => `<div class="pg">${ccpSheet(g, false)}</div>`).join('')}
     <script>/* 한 장(A4)에 들어가도록 일지마다 줄임 — 2쪽으로 넘어가지 않게 */
-    function fit(){ document.querySelectorAll('.pg').forEach(function(p){ var s=p.firstElementChild; s.style.transform=''; var r=Math.min(1,(p.clientHeight-2)/s.scrollHeight); if(r<1) s.style.transform='scale('+r+')'; }); }
+    function fit(){ document.querySelectorAll('.pg').forEach(function(p){ var s=p.firstElementChild, W=p.clientWidth, H=p.clientHeight-2, r=1;
+      /* 줄일 때는 그만큼 먼저 넓혀서, 줄인 뒤에도 다른 일지와 같은 너비·여백이 되게 */
+      s.style.transform=''; s.style.width=W+'px';
+      for (var k=0;k<10;k++){ var h=s.scrollHeight; if (h*r<=H) break; r=Math.max(0.3,H/h-0.002); s.style.width=(W/r)+'px'; }
+      s.style.transform = r<1 ? 'scale('+r+')' : ''; }); }
     window.onbeforeprint=fit; setTimeout(function(){ fit(); window.print(); },400);<\/script></body></html>`);
   w.document.close();
 }
