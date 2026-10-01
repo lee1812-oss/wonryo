@@ -1066,7 +1066,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '115';
+const APP_VER  = '116';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1100,7 +1100,7 @@ const INSP_TABS = [
 ICO.prod = '<svg viewBox="0 0 24 24"><path d="M4 20V10l5 3V10l5 3V6l6 4v10z"/><path d="M4 20h16"/></svg>';
 const HOME_MENU = { name: '통합 대시보드', items: [['home', '통합', '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>'], ['@raw', '원료수불부', ICO.raw], ['@fin', '완제품·생지', ICO.fin], ['@insp', '육안검사', ICO.insp], ['@prod', '생산일지', ICO.prod]] };
 const MENUS = { raw: { name: '원료수불부', ico: ICO.raw, items: TABS }, fin: { name: '완제품·생지', ico: ICO.fin, items: FIN_TABS }, insp: { name: '육안검사', ico: ICO.insp, items: INSP_TABS } };
-const PROD_TABS = [['pnew', '생산 입력', '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>'], ['plog', '전송 기록', ICO.ledger], ['pccp', 'CCP 일지', '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>'], ['pset', '연동 설정', ICO.items]];
+const PROD_TABS = [['pnew', '생산 입력', '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>'], ['pccp', 'CCP 일지', '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>'], ['plog', '전송 기록', ICO.ledger], ['pset', '연동 설정', ICO.items]];
 MENUS.prod = { name: '생산일지', ico: ICO.prod, items: PROD_TABS };
 /* ── v068: 관리자 / 직원 화면 분리 + 통합 설정
    · 연동·설정·백업 화면은 「⚙ 통합 설정」 한 곳에 모읍니다 (원료수불부 · 완제품·생지 · 육안검사 · 생산일지).
