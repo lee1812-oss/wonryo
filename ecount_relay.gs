@@ -5,6 +5,8 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v3.2: 로그인 계정(acct · putAcct · delAcct · listAcct)과 접속 이력(logLogin · logins)
+ *       계정에는 「재고 비밀번호」를 그 사람 비밀번호로 잠근 값만 보관합니다 (이 중계는 비밀번호를 모름)
  *
  * 이카운트 OAPI는 등록된 IP에서만 받습니다. 구글 서버 IP는 계속 바뀌어 등록할 수 없으므로,
  *   휴대폰·태블릿 「생산일지」 → 이 중계(대기열) → 사무실 PC 「이카운트 전송기」(등록된 IP) → 이카운트
@@ -25,10 +27,24 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3.1 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3.2 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+var ACCT_ = 'acct:', LOG_ = 'login:', LOG_KEEP_DAYS_ = 120;
+function acctId_(v) { return String(v == null ? '' : v).replace(/\s/g, '').slice(0, 30); }
+function ymd_(d) { return Utilities.formatDate(d, 'Asia/Seoul', 'yyyyMMdd'); }
+function logAdd_(en) {
+  en = en || {}; var t = String(en.t || new Date().toISOString()), d = new Date(t); if (isNaN(d.getTime())) d = new Date();
+  var row = [t.slice(0, 25), acctId_(en.id), String(en.dev || '').slice(0, 40), String(en.ua || '').slice(0, 40), String(en.how || '').slice(0, 10)];
+  var k = LOG_ + ymd_(d), arr = []; try { arr = JSON.parse(props_().getProperty(k) || '[]'); } catch (e) {}
+  if (arr.some(function (r) { return r[0] === row[0] && r[1] === row[1]; })) return;   // 같은 건 두 번 받지 않음
+  arr.push(row); arr.sort(function (a, b) { return String(a[0]).localeCompare(String(b[0])); });
+  while (JSON.stringify(arr).length > 8500) arr.shift();
+  props_().setProperty(k, JSON.stringify(arr));
+  var cut = ymd_(new Date(Date.now() - LOG_KEEP_DAYS_ * 86400000)), all = props_().getKeys();
+  all.forEach(function (x) { if (x.indexOf(LOG_) === 0 && x.slice(LOG_.length) < cut) props_().deleteProperty(x); });
+}
 var JOB_ = 'job:', KEEP_MS_ = 3 * 24 * 3600 * 1000, TAKE_MS_ = 3 * 60 * 1000;
 function props_() { return PropertiesService.getScriptProperties(); }
 function getJob_(id) { var v = props_().getProperty(JOB_ + id); return v ? JSON.parse(v) : null; }
@@ -55,11 +71,31 @@ function prune_() {
 }
 
 function handle_(req) {
+  // v3.2: 로그인 화면 — 아이디 하나의 잠긴 계정 값만 돌려줌 (열쇠 없이, 목록은 주지 않음)
+  if (req.action === 'acct') { var aid = acctId_(req.id); if (!aid) return { ok: true, acct: null };
+    var av = props_().getProperty(ACCT_ + aid); return { ok: true, acct: av ? JSON.parse(av) : null }; }
   var key = props_().getProperty('API_KEY');
   if (!key) return { ok: false, error: '중계의 스크립트 속성 API_KEY가 비어 있습니다' };
   if (req.key !== key) return { ok: false, error: '열쇠가 맞지 않습니다 — 「공유 저장소 열쇠 복사」 값을 중계의 API_KEY에 넣었는지 확인하세요' };
 
-  if (req.action === 'ping') return { ok: true, version: 3.1, agentSeen: agentSeen_() };
+  // v3.2: 계정 관리 (관리자 화면)
+  if (req.action === 'listAcct') { var al = props_().getProperties(), outA = [];
+    Object.keys(al).forEach(function (k) { if (k.indexOf(ACCT_) !== 0) return; try { var a = JSON.parse(al[k]); outA.push({ id: a.id, role: a.role || 'staff', at: a.at || '', by: a.by || '' }); } catch (e) {} });
+    return { ok: true, accts: outA }; }
+  if (req.action === 'putAcct') { var a2 = req.acct || {}, id2 = acctId_(a2.id);
+    if (!id2 || !a2.s || !a2.iv || !a2.ct) return { ok: false, error: '계정 정보가 비어 있습니다' };
+    props_().setProperty(ACCT_ + id2, JSON.stringify({ id: id2, role: a2.role === 'admin' ? 'admin' : 'staff', s: String(a2.s), i: Number(a2.i) || 600000, iv: String(a2.iv), ct: String(a2.ct), at: new Date().toISOString(), by: acctId_(req.by) }));
+    return { ok: true }; }
+  if (req.action === 'delAcct') { var id3 = acctId_(req.id); if (id3) props_().deleteProperty(ACCT_ + id3); return { ok: true }; }
+  // v3.2: 접속 이력 — 날짜별로 보관 (최근 120일)
+  if (req.action === 'logLogin') { var lk = LockService.getScriptLock(); lk.waitLock(10000);
+    try { (req.entries || []).slice(0, 50).forEach(function (en) { logAdd_(en); }); } finally { lk.releaseLock(); }
+    return { ok: true }; }
+  if (req.action === 'logins') { var days = Math.min(Math.max(Number(req.days) || 30, 1), 120), lg = [], now2 = Date.now();
+    for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
+    return { ok: true, logins: lg }; }
+
+  if (req.action === 'ping') return { ok: true, version: 3.2, agentSeen: agentSeen_() };
   // 생산일지 설정 받기 (모든 기기)
   if (req.action === 'getCfg') { var meta = props_().getProperty('cfg:meta'); if (!meta) return { ok: true, cfg: null };
     var mm = JSON.parse(meta), parts = []; for (var ci = 0; ci < mm.n; ci++) parts.push(props_().getProperty('cfg:' + ci) || '');
