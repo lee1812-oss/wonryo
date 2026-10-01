@@ -1056,7 +1056,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '097';
+const APP_VER  = '098';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1890,7 +1890,7 @@ async function acctLoad() {
   box.innerHTML = '<div class="muted">계정 목록을 받는 중…</div>';
   try { const j = await prodRelayCall({ action: 'listAcct' });
     if (!j || !j.ok) throw new Error((j && j.error) || '받지 못했습니다');
-    const L = (j.accts || []).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+    const L = (j.accts || []).filter(a => String(a.id).slice(0, 2) !== '__').sort((a, b) => String(a.id).localeCompare(String(b.id)));
     box.innerHTML = L.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>아이디</th><th>만든·바꾼 때</th><th>만든 사람</th><th></th></tr></thead><tbody>${L.map(a => `<tr><td><b>${esc(a.id)}</b></td><td>${esc(String(a.at || '').slice(0, 16).replace('T', ' '))}</td><td>${esc(a.by || '')}</td><td><button class="btn sm" data-acct-del="${esc(a.id)}">삭제</button></td></tr>`).join('')}</tbody></table></div>`
       : '<div class="muted">아직 만든 계정이 없습니다. 지금은 대표 아이디 「빵을그리다」 + 재고 비밀번호로만 들어옵니다.</div>';
     box.querySelectorAll('[data-acct-del]').forEach(b => b.onclick = async () => { const id = b.dataset.acctDel;
@@ -1900,7 +1900,7 @@ async function acctLoad() {
 }
 async function acctSave() {
   const id = WLOCK.normId($('#acctId').value), a = $('#acctPw').value, b = $('#acctPw2').value;
-  if (!id) return acctMsg('아이디를 넣어 주세요.', true);
+  if (!id || id.slice(0, 2) === '__') return acctMsg('아이디를 넣어 주세요. (밑줄 두 개로 시작하는 아이디는 쓸 수 없습니다)', true);
   if (a.length < 4) return acctMsg('비밀번호는 4자 이상으로 넣어 주세요.', true);
   if (a !== b) return acctMsg('비밀번호 확인이 다릅니다.', true);
   if (!WLOCK.hasMaster()) { const m = $('#acctMaster').value; if (!m) return acctMsg('처음 한 번은 지금의 재고 비밀번호가 필요합니다.', true);
@@ -2411,7 +2411,8 @@ function finSendKey() {
 window.addEventListener('message', e => {
   const f = $('#finFrame');
   if (!f || !f.contentWindow || e.source !== f.contentWindow) return;
-  const m = e.data; if (m && typeof m === 'object' && m.type === 'fin-need-key') { if (m.salt && window.WLOCK && WLOCK.finSalt) WLOCK.finSalt(m.salt, m.iter, !!m.failed).then(() => finSendKey()); else finSendKey(); }   /* v092: 완제품·생지 소금에 맞는 열쇠로 */
+  const m = e.data; if (m && typeof m === 'object' && m.type === 'fin-need-key') { if (m.salt && window.WLOCK && WLOCK.finSalt) WLOCK.finSalt(m.salt, m.iter, !!m.failed).then(() => finSendKey()); else finSendKey(); }
+  if (m && typeof m === 'object' && m.type === 'fin-unlocked' && window.WLOCK && WLOCK.finKeyUpload) WLOCK.finKeyUpload();   /* v098: 열린 열쇠를 다른 기기와 나눠 씀 */   /* v092: 완제품·생지 소금에 맞는 열쇠로 */
 });
 function finNav(tab) { const f = $('#finFrame'); if (!f || !f.contentWindow || !finLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-nav', tab }, finTargetOrigin()); } catch (e) {} }
 window.addEventListener('message', e => { if (!fromFin(e)) return; const m = e.data; if (!m || typeof m !== 'object') return; if (m.type === 'fin-tab' && m.tab) { finShown = m.tab; if (S.ui.menu === 'fin' && S.ui.finTab !== m.tab && menuItems('fin').some(t => t[0] === m.tab)) { S.ui.finTab = m.tab; save(); renderTabs(); } } });
@@ -4015,6 +4016,35 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
       .catch(function () { clearTimeout(tm); return undefined; });
   }
   function getAcct(id) { return fetchAcct(id).then(function (a) { return a === undefined ? (acctCache()[id] || null) : a; }); }
+  /* v098: 완제품·생지 열쇠 나눠 쓰기 — 완제품·생지 자료는 따로 잠겨 있어(다른 비밀번호일 수 있음) 로그인 비밀번호로 만든 열쇠가 안 맞을 수 있습니다.
+     한 기기에서 열리면 그 열쇠를 「재고 자료 열쇠」로 잠가 중계에 올려 두고(__fin), 다른 기기는 그걸 받아 씁니다. 비밀번호 자체는 올리지 않습니다. */
+  var FIN_ID = '__fin', FIN_UP = 'wonryo_finkey_up';
+  function finKeyUpload() {
+    if (!ST.on || !ST.fkey || !ST.fsalt || !ST.share) return Promise.resolve(false);
+    var fs = b64e(ST.fsalt); try { if (localStorage.getItem(FIN_UP) === fs) return Promise.resolve(true); } catch (e) {}
+    var url = relayUrl(); if (!url) return Promise.resolve(false);
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    return crypto.subtle.exportKey('raw', ST.fkey)
+      .then(function (raw) { return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, ST.key, raw); })
+      .then(function (ct) {
+        var who = ''; try { who = sessionStorage.getItem(WHO) || ''; } catch (e) {}
+        return fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ key: ST.share, action: 'putAcct', by: who, acct: { id: FIN_ID, s: fs, i: ST.fiter || ITER, iv: b64e(iv), ct: b64e(ct) } }) });
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.ok) { try { localStorage.setItem(FIN_UP, fs); } catch (e) {} return true; } return false; })
+      .catch(function () { return false; });
+  }
+  function finKeyFetch(saltB64) {
+    if (!ST.on || !ST.key) return Promise.resolve(false);
+    return getAcct(FIN_ID).then(function (a) {
+      if (!a || a.s !== saltB64 || !a.iv || !a.ct) return false;
+      return crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64d(a.iv) }, ST.key, b64d(a.ct))
+        .then(function (raw) { return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']); })
+        .then(function (k) { ST.fkey = k; ST.fsalt = b64d(saltB64); ST.fiter = a.i || ITER; try { localStorage.setItem(FIN_UP, saltB64); } catch (e) {}
+          return saveSession().then(function () { return isRemembered() ? rememberKey() : null; }).then(function () { return true; }); });
+    }).catch(function () { return false; });
+  }
   function uaShort() {
     var u = navigator.userAgent || '', dev = /iPad|Tablet/i.test(u) || (/Android/i.test(u) && !/Mobile/i.test(u)) ? '태블릿' : /Mobi|iPhone|Android/i.test(u) ? '휴대폰' : 'PC';
     var os = /Windows/i.test(u) ? 'Windows' : /iPhone|iPad/i.test(u) ? 'iOS' : /Mac OS/i.test(u) ? 'Mac' : /Android/i.test(u) ? 'Android' : '';
@@ -4177,7 +4207,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
     function attempt() {
       if (busy) return; hideErr(ov);
       who = normId(idI.value);
-      if (!who) { showErr(ov, '아이디를 넣어 주세요.'); idI.focus(); return; }
+      if (!who || who.slice(0, 2) === '__') { showErr(ov, '아이디를 넣어 주세요.'); idI.focus(); return; }
       var val = pw.value;
       var useSaved = !val && rem && (!remId || remId === who);
       if (!val && !useSaved) { showErr(ov, '비밀번호를 넣어 주세요.'); pw.focus(); return; }
@@ -4240,6 +4270,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
         toMaster(pw.value).then(function (m) {
           if (!m) { go.disabled = false; showErr(ov, '비밀번호가 맞지 않습니다. 로그인할 때 넣은 비밀번호를 넣어 주세요.'); pw.value = ''; pw.focus(); return; }
           if (!own) ST.pw = m;
+          try { localStorage.removeItem(FIN_UP); } catch (e) {}   /* 새 열쇠 — 열리면 다시 올림 */
           return deriveFin(m, fs).then(function () { return saveSession(); }).then(function () { return isRemembered() ? rememberKey() : null; }).then(function () { ov.remove(); finAsking = null; resolve(true); });
         }); }
       go.addEventListener('click', run); pw.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); run(); } });
@@ -4358,7 +4389,11 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
       if (!failed && match) return Promise.resolve(true);
       var fs = { salt: saltB64, iter: iter || ITER };
       if (ST.pw && !failed) return deriveFin(ST.pw, fs).then(function () { return saveSession(); }).then(function () { return isRemembered() ? rememberKey() : null; }).then(function () { return true; });
-      return askFinPw(fs, !!(failed && ST.pw));
+      var own = !!(failed && ST.pw), tried = ST.fkey && ST.fsalt && b64e(ST.fsalt) === saltB64 ? ST.fkey : null;
+      return finKeyFetch(saltB64).then(function (ok) {
+        if (ok && ST.fkey !== tried) return true;   /* 다른 기기가 올려 둔 맞는 열쇠로 — 비밀번호 창 없이 */
+        return askFinPw(fs, own);
+      });
     },
     logout: function () { clearSession(); try { sessionStorage.removeItem(WHO); } catch (e) {} location.reload(); },
     /* v093: 계정·접속 이력 */
@@ -4370,7 +4405,8 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
     /* 재고 비밀번호가 맞는지 (공유 열쇠로 비교) — 맞으면 이 창에서 기억 */
     checkMaster: function (pw) { return deriveShare(pw).then(function (sh) { if (sh !== ST.share) return false; ST.pw = pw; return true; }); },
     makeAcct: function (id, userPw) { if (!ST.pw) return Promise.reject(new Error('재고 비밀번호가 필요합니다')); return makeAcct(normId(id), userPw, ST.pw); },
-    acctCacheSet: acctCacheSet
+    acctCacheSet: acctCacheSet,
+    finKeyUpload: finKeyUpload
   };
 
   /* ── 시작 ── */
