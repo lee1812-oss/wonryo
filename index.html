@@ -978,6 +978,28 @@ body.sys-sub .finwrap{height:calc(100vh - var(--head-h,62px) - 60px)!important}
       </div>
       <div id="modeBox" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"></div>
     </div>
+    <div class="card" id="acctCard">
+      <h2>👤 로그인 계정 · 접속 이력 <span class="muted" id="acctWho" style="font-size:13px;font-weight:600;margin-left:6px"></span></h2>
+      <div class="sysnote">직원마다 <b>아이디·비밀번호</b>를 따로 만들 수 있습니다. 계정은 이카운트 중계에 잠긴 채로 보관되고(비밀번호 자체는 어디에도 저장하지 않음), 지우면 그 아이디로는 더 이상 로그인할 수 없습니다. 대표 아이디 「빵을그리다」는 지금의 재고 비밀번호로도 들어올 수 있습니다.</div>
+      <div class="row" style="gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div class="field" style="width:160px"><label>아이디</label><input id="acctId" placeholder="예: 빵을그리다" autocomplete="off"></div>
+        <div class="field" style="width:160px"><label>비밀번호</label><input id="acctPw" type="password" autocomplete="new-password"></div>
+        <div class="field" style="width:160px"><label>비밀번호 확인</label><input id="acctPw2" type="password" autocomplete="new-password"></div>
+        <div class="field" style="width:180px" id="acctMasterRow"><label>지금의 재고 비밀번호 (처음 한 번)</label><input id="acctMaster" type="password" autocomplete="off"></div>
+        <button class="btn primary" id="acctSave">계정 저장 (없으면 만들고, 있으면 비밀번호 변경)</button>
+      </div>
+      <div class="muted" id="acctMsg" style="margin-top:6px"></div>
+      <div id="acctList" style="margin-top:10px"></div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+        <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+          <b>접속 이력</b>
+          <select id="loginDays"><option value="7">최근 7일</option><option value="30" selected>최근 30일</option><option value="90">최근 90일</option><option value="120">최근 120일</option></select>
+          <input id="loginFilter" placeholder="아이디로 찾기" style="width:140px">
+          <button class="btn sm" id="loginHistBtn">불러오기</button>
+        </div>
+        <div id="loginHist" style="margin-top:8px"><div class="muted">「불러오기」를 누르면 모든 기기의 로그인 기록이 나옵니다. (창을 새로 열어 로그인할 때마다 1건, 새로고침은 기록하지 않음)</div></div>
+      </div>
+    </div>
     <div class="card">
       <h2>기본 정보</h2>
       <div class="row" style="gap:10px">
@@ -1034,7 +1056,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '092';
+const APP_VER  = '093';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1844,6 +1866,62 @@ async function prodRelaySync(force) {
   return got;
 }
 setTimeout(() => prodRelaySync(true), 6000); setInterval(() => prodRelaySync(false), 60 * 1000);
+/* v093: 접속 이력 — 로그인할 때 이 기기에 쌓아 둔 것을 중계로 보냄 (인터넷이 끊겼으면 다음에) */
+let loginFlushing = false;
+async function loginLogFlush() {
+  if (loginFlushing || !window.WLOCK || !WLOCK.loginQueue) return;
+  const url = String(prodS().cfg.relayUrl || '').trim(); if (url) try { localStorage.setItem('wonryo_relay_url', url); } catch (e) {}   /* 로그인 화면이 계정을 찾을 중계 주소 */
+  const q = WLOCK.loginQueue(); if (!q.length || !url || !prodKey()) return; loginFlushing = true;
+  const dev = (() => { try { return shareCfg().device || ''; } catch (e) { return ''; } })();
+  try { const j = await prodRelayCall({ action: 'logLogin', entries: q.map(x => Object.assign({ dev }, x)) }); if (j && j.ok) WLOCK.loginQueueDone(q.length); } catch (e) {}
+  loginFlushing = false;
+}
+setTimeout(loginLogFlush, 4000); setInterval(loginLogFlush, 5 * 60 * 1000);
+/* v093: 계정 관리 · 접속 이력 (관리자 화면 「공통·보안」) */
+const ACCT_HOW = { pw: '비밀번호', acct: '비밀번호', saved: '저장된 비밀번호' };
+function acctMsg(t, bad) { const el = $('#acctMsg'); if (el) { el.textContent = t; el.style.color = bad ? 'var(--bad, #B4232A)' : ''; } }
+let acctLoadAt = 0;
+async function acctLoad() {
+  acctLoadAt = Date.now();
+  const box = $('#acctList'); if (!box) return; const who = WLOCK.who ? WLOCK.who() : '';
+  if ($('#acctWho')) $('#acctWho').textContent = who ? `지금 로그인: ${who}` : '';
+  if ($('#acctMasterRow')) $('#acctMasterRow').style.display = WLOCK.hasMaster && WLOCK.hasMaster() ? 'none' : '';
+  if (!prodKey()) { box.innerHTML = '<div class="muted">재고 비밀번호가 정해져 있어야 계정을 만들 수 있습니다.</div>'; return; }
+  box.innerHTML = '<div class="muted">계정 목록을 받는 중…</div>';
+  try { const j = await prodRelayCall({ action: 'listAcct' });
+    if (!j || !j.ok) throw new Error((j && j.error) || '받지 못했습니다');
+    const L = (j.accts || []).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+    box.innerHTML = L.length ? `<div class="tablewrap"><table class="t"><thead><tr><th>아이디</th><th>만든·바꾼 때</th><th>만든 사람</th><th></th></tr></thead><tbody>${L.map(a => `<tr><td><b>${esc(a.id)}</b></td><td>${esc(String(a.at || '').slice(0, 16).replace('T', ' '))}</td><td>${esc(a.by || '')}</td><td><button class="btn sm" data-acct-del="${esc(a.id)}">삭제</button></td></tr>`).join('')}</tbody></table></div>`
+      : '<div class="muted">아직 만든 계정이 없습니다. 지금은 대표 아이디 「빵을그리다」 + 재고 비밀번호로만 들어옵니다.</div>';
+    box.querySelectorAll('[data-acct-del]').forEach(b => b.onclick = async () => { const id = b.dataset.acctDel;
+      if (!confirm(`「${id}」 계정을 지울까요? 이 아이디로는 더 이상 로그인할 수 없습니다.`)) return;
+      try { const r = await prodRelayCall({ action: 'delAcct', id }); if (!r || !r.ok) throw new Error((r && r.error) || '실패'); WLOCK.acctCacheSet(id, null); toast(`「${id}」 계정을 지웠습니다`); acctLoad(); } catch (e) { toast('지우지 못했습니다 — ' + e.message); } });
+  } catch (e) { box.innerHTML = `<div class="muted">계정 목록을 받지 못했습니다 — ${esc(e.message)} (중계를 v3.2로 새 버전 배포했는지 확인)</div>`; }
+}
+async function acctSave() {
+  const id = WLOCK.normId($('#acctId').value), a = $('#acctPw').value, b = $('#acctPw2').value;
+  if (!id) return acctMsg('아이디를 넣어 주세요.', true);
+  if (a.length < 4) return acctMsg('비밀번호는 4자 이상으로 넣어 주세요.', true);
+  if (a !== b) return acctMsg('비밀번호 확인이 다릅니다.', true);
+  if (!WLOCK.hasMaster()) { const m = $('#acctMaster').value; if (!m) return acctMsg('처음 한 번은 지금의 재고 비밀번호가 필요합니다.', true);
+    if (!(await WLOCK.checkMaster(m))) return acctMsg('재고 비밀번호가 맞지 않습니다.', true); }
+  const btn = $('#acctSave'); btn.disabled = true; acctMsg('계정을 만드는 중… (몇 초 걸립니다)');
+  try { const acct = await WLOCK.makeAcct(id, a); const r = await prodRelayCall({ action: 'putAcct', acct, by: WLOCK.who() || '' });
+    if (!r || !r.ok) throw new Error((r && r.error) || '실패');
+    WLOCK.acctCacheSet(id, acct); $('#acctPw').value = $('#acctPw2').value = ''; $('#acctMaster').value = ''; acctMsg(`「${id}」 계정을 저장했습니다. 이제 이 아이디·비밀번호로 로그인합니다.`); acctLoad();
+  } catch (e) { acctMsg('저장하지 못했습니다 — ' + e.message, true); }
+  btn.disabled = false;
+}
+async function loginHistLoad() {
+  const box = $('#loginHist'); if (!box) return; await loginLogFlush(); box.innerHTML = '<div class="muted">접속 이력을 받는 중…</div>';
+  try { const j = await prodRelayCall({ action: 'logins', days: Number($('#loginDays').value) || 30 });
+    if (!j || !j.ok) throw new Error((j && j.error) || '받지 못했습니다');
+    const L = j.logins || []; const f = WLOCK.normId($('#loginFilter').value || ''); const R = f ? L.filter(r => String(r[1]).includes(f)) : L;
+    const tm = t => { const d = new Date(t); return isNaN(d) ? esc(t) : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+    box.innerHTML = R.length ? `<div class="muted" style="margin-bottom:6px">${R.length}건 (최근 순)</div><div class="tablewrap" style="max-height:360px;overflow:auto"><table class="t"><thead><tr><th>접속 시각</th><th>아이디</th><th>기기 이름</th><th>기기</th><th>방식</th></tr></thead><tbody>${R.map(r => `<tr><td>${tm(r[0])}</td><td><b>${esc(r[1])}</b></td><td>${esc(r[2] || '-')}</td><td>${esc(r[3] || '')}</td><td>${esc(ACCT_HOW[r[4]] || r[4] || '')}</td></tr>`).join('')}</tbody></table></div>`
+      : '<div class="muted">이 기간의 접속 이력이 없습니다.</div>';
+  } catch (e) { box.innerHTML = `<div class="muted">접속 이력을 받지 못했습니다 — ${esc(e.message)} (중계를 v3.2로 새 버전 배포했는지 확인)</div>`; }
+}
 async function prodCfgRefetch(force) { if (!shareOn() || (!force && Date.now() - prodRefetchAt < 10 * 60000)) return; prodRefetchAt = Date.now(); try { await sharePull(true, true); } catch (e) {} }
 
 /* v074: 품목 묶음 — 같은 생지·같은 계열끼리. 이름으로 자동 분류하고, 관리자가 「생산일지 연동 → 생산 품목」에서 바꿀 수 있음 */
@@ -2981,6 +3059,7 @@ function itemDetail(code) {
 
 /* ── render: 설정 ── */
 function renderSet() {
+  try { if (Date.now() - acctLoadAt > 60000) acctLoad(); } catch (e) {}
   $('#setCompany').value = S.settings.company || ''; $('#setReporter').value = S.settings.reporter || '';
   $('#setTol').value = S.settings.tolG || 0; $('#setTolPct').value = S.settings.tolPct || 0; $('#setNet').checked = !!S.settings.netWeight;
   renderMaster();
@@ -3724,6 +3803,7 @@ $('#btnTrendXlsx').onclick = exportTrend;
 $('#btnSaveHtml').onclick = saveHtml;
 /* v050 */
 $('#btnPwChange').onclick = async () => { if (await WLOCK.askChange()) { pwStateText(); try { finSendKey(); } catch (e) {} toast('비밀번호가 바뀌었습니다 — ①「데이터 포함 HTML 저장」 ②「공유 저장소 열쇠 복사」 후 Apps Script 새 버전 배포'); } };
+$('#acctSave').onclick = acctSave; $('#loginHistBtn').onclick = loginHistLoad; $('#loginDays').onchange = loginHistLoad; $('#loginFilter').onkeydown = e => { if (e.key === 'Enter') loginHistLoad(); };
 $('#btnLogout').onclick = () => { if (confirm('로그아웃할까요? 다시 로그인 화면이 나옵니다 (저장한 아이디·비밀번호는 그대로).')) WLOCK.logout(); };   /* v092 */
 $('#btnPwForget').onclick = () => { WLOCK.forget(); pwStateText(); toast('이 기기에 기억된 비밀번호를 지웠습니다'); };
 /* v052: 공유 저장소 열쇠 — 화면에 띄우지 않고 클립보드에만 담습니다 (캡처·어깨너머 유출 방지) */
@@ -3916,6 +3996,46 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
   var ST = { key: null, salt: null, iter: ITER, on: false, share: '', dkey: '', fkey: null, fsalt: null, fiter: ITER, pw: '' };
   /* v092: 로그인 — 창(세션)마다 한 번, 아이디·비밀번호 저장 선택. 완제품·생지는 소금이 달라 로그인 때 그쪽 열쇠도 함께 만듭니다 */
   var SSK = 'wonryo_sess_v1', IDK = 'wonryo_login_id', LOGIN_ID = '빵을그리다';
+  /* v093: 계정 — 사람마다 아이디·비밀번호. 계정에는 「재고 비밀번호」를 그 사람 비밀번호로 잠근 값만 있습니다(중계에 보관).
+     접속 이력은 로그인할 때 쌓아 두었다가 중계로 보냅니다(관리자 화면에서 봄). */
+  var ACK = 'wonryo_accts_v1', WHO = 'wonryo_who', LOGQ = 'wonryo_loginq_v1', PREF = 'wonryo_login_pref', REMID = 'wonryo_login_remid', ACCT_ITER = 600000;
+  function normId(v) { return String(v == null ? '' : v).replace(/\s/g, '').slice(0, 30); }
+  /* 로그인 전에는 본문 코드가 아직 없어, 마지막으로 쓴 중계 주소(이 기기) 또는 기본 주소를 씀 */
+  var RELAY_DEFAULT = 'https://script.google.com/macros/s/AKfycbwc4iYf-iUXLIkw_9mENM2nRyX5BNdz4TveLP5cKE-5CXd2hiTQ34kDxSanQFJk9O8S3g/exec';
+  function relayUrl() { try { var u = localStorage.getItem('wonryo_relay_url'); if (u) return u; } catch (e) {} return RELAY_DEFAULT; }
+  function acctCache() { try { return JSON.parse(localStorage.getItem(ACK) || '{}') || {}; } catch (e) { return {}; } }
+  function acctCacheSet(id, a) { var c = acctCache(); if (a) c[id] = a; else delete c[id]; try { localStorage.setItem(ACK, JSON.stringify(c)); } catch (e) {} }
+  /* 중계에서 그 아이디의 계정을 받음 — 받으면 이 기기에도 보관(인터넷이 끊겨도 로그인). 실패하면 undefined */
+  function fetchAcct(id) {
+    var url = relayUrl(); if (!url) return Promise.resolve(undefined);
+    var ac = window.AbortController ? new AbortController() : null, tm = setTimeout(function () { if (ac) ac.abort(); }, 6000);
+    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'acct', id: id }), signal: ac ? ac.signal : undefined })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { clearTimeout(tm); if (!j || !j.ok || !('acct' in j)) return undefined; acctCacheSet(id, j.acct || null); return j.acct || null; })
+      .catch(function () { clearTimeout(tm); return undefined; });
+  }
+  function getAcct(id) { return fetchAcct(id).then(function (a) { return a === undefined ? (acctCache()[id] || null) : a; }); }
+  function uaShort() {
+    var u = navigator.userAgent || '', dev = /iPad|Tablet/i.test(u) || (/Android/i.test(u) && !/Mobile/i.test(u)) ? '태블릿' : /Mobi|iPhone|Android/i.test(u) ? '휴대폰' : 'PC';
+    var os = /Windows/i.test(u) ? 'Windows' : /iPhone|iPad/i.test(u) ? 'iOS' : /Mac OS/i.test(u) ? 'Mac' : /Android/i.test(u) ? 'Android' : '';
+    var br = /Edg\//.test(u) ? 'Edge' : /SamsungBrowser/.test(u) ? '삼성인터넷' : /Whale/.test(u) ? '웨일' : /Chrome\//.test(u) ? '크롬' : /Safari\//.test(u) ? '사파리' : '';
+    return [dev, os, br].filter(Boolean).join(' · ');
+  }
+  function loginQueue() { try { return JSON.parse(localStorage.getItem(LOGQ) || '[]') || []; } catch (e) { return []; } }
+  function queueLogin(id, how) {
+    var q = loginQueue(); q.push({ t: new Date().toISOString(), id: id, ua: uaShort(), how: how }); while (q.length > 50) q.shift();
+    try { localStorage.setItem(LOGQ, JSON.stringify(q)); sessionStorage.setItem(WHO, id); } catch (e) {}
+  }
+  function prefGet() { try { return JSON.parse(localStorage.getItem(PREF) || '{}') || {}; } catch (e) { return {}; } }
+  /* 계정 값 만들기: 재고 비밀번호(master)를 그 사람 비밀번호로 잠금 */
+  function makeAcct(id, userPw, master) {
+    var salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+    return derive(userPw, salt, ACCT_ITER).then(function (k) { return crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, k, TE.encode(master)); })
+      .then(function (ct) { return { id: id, s: b64e(salt), i: ACCT_ITER, iv: b64e(iv), ct: b64e(ct) }; });
+  }
+  function openAcct(a, userPw) {
+    return derive(userPw, b64d(a.s), a.i || ACCT_ITER).then(function (k) { return decryptWith(k, a); });
+  }
 
   /* 본문 코드가 돌기 전의 「깨끗한 원본」을 붙잡아 둡니다.
      화면에 표가 그려진 뒤의 DOM을 저장하면, 잠근 자료와 별개로
@@ -4019,17 +4139,21 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 
   /* ── v092 로그인 화면: 창을 새로 열 때마다. 아이디·비밀번호 저장은 선택. 틀려도 자료는 그대로 ── */
   function askLogin(blob, rem, onDone) {
-    var savedId = ''; try { savedId = localStorage.getItem(IDK) || ''; } catch (e) {}
+    var pref = prefGet(), savedId = ''; try { savedId = localStorage.getItem(IDK) || ''; } catch (e) {}
+    if (!savedId && !pref.noId) savedId = LOGIN_ID;   /* v093: 기본 아이디 */
+    var remId = ''; try { remId = localStorage.getItem(REMID) || ''; } catch (e) {}
+    if (rem && remId && !pref.noId) savedId = remId;
     var ov = shell(
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><div style="font-size:21px;font-weight:800;letter-spacing:-.3px">빵을그리다 통합 재고관리</div></div>' +
-      '<div style="font-size:13px;color:#4A5A65;line-height:1.55">로그인하면 원료수불부 · 완제품·생지 · 육안검사 · 생산일지가 모두 열립니다.</div>' +
+      '<div style="text-align:center;margin:-6px 0 10px"><img src="./brand_logo.png" alt="빵그리다" onerror="this.parentNode.style.display=\'none\'" style="width:112px;height:112px;object-fit:contain;border-radius:22px"></div>' +
+      '<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px"><div style="font-size:21px;font-weight:800;letter-spacing:-.3px">빵을그리다 통합 재고관리</div></div>' +
+      '<div style="font-size:13px;color:#4A5A65;line-height:1.55;text-align:center">로그인하면 원료수불부 · 완제품·생지 · 육안검사 · 생산일지가 모두 열립니다.</div>' +
       '<label style="display:block;font-size:13px;font-weight:700;margin-top:18px">아이디' +
       '<input type="text" class="wl-id" autocomplete="username" value="' + savedId.replace(/"/g, '&quot;') + '" placeholder="아이디" style="' + INP + '"></label>' +
       '<label style="display:block;font-size:13px;font-weight:700;margin-top:12px">비밀번호' +
       '<input type="password" class="wl-pw" autocomplete="current-password" placeholder="' + (rem ? '●●●● 저장된 비밀번호로 로그인 (바꾸려면 입력)' : '비밀번호') + '" style="' + INP + '"></label>' +
       '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:11px">' +
-      '<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#4A5A65;cursor:pointer"><input type="checkbox" class="wl-sid"' + (savedId ? ' checked' : '') + ' style="width:16px;height:16px;accent-color:#173F4B">아이디 저장</label>' +
-      '<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#4A5A65;cursor:pointer"><input type="checkbox" class="wl-rem"' + (rem ? ' checked' : '') + ' style="width:16px;height:16px;accent-color:#173F4B">비밀번호 저장</label></div>' +
+      '<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#4A5A65;cursor:pointer"><input type="checkbox" class="wl-sid"' + (pref.noId ? '' : ' checked') + ' style="width:16px;height:16px;accent-color:#173F4B">아이디 저장</label>' +
+      '<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#4A5A65;cursor:pointer"><input type="checkbox" class="wl-rem"' + (rem || !pref.noPw ? ' checked' : '') + ' style="width:16px;height:16px;accent-color:#173F4B">비밀번호 저장</label></div>' +
       errBox() +
       '<button class="wl-go" style="' + BTN + '">로그인</button>' +
       '<div style="font-size:12px;color:#8291A0;margin-top:13px;line-height:1.55">창을 닫았다 다시 열면 로그인 화면이 나옵니다. 「비밀번호 저장」을 켜 두면 「로그인」만 누르면 됩니다. 비밀번호를 여러 번 틀려도 자료는 지워지지 않습니다.</div>'
@@ -4038,29 +4162,53 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
     var busy = false;
     setTimeout(function () { (idI.value ? (rem ? go : pw) : idI).focus(); }, 40);
     function fail(m) { busy = false; go.textContent = '로그인'; go.disabled = false; showErr(ov, m); }
+    var who = '', how = 'pw';
     function finishLogin(txt) {
-      try { if (sid.checked) localStorage.setItem(IDK, LOGIN_ID); else localStorage.removeItem(IDK); } catch (e) {}
+      try {
+        if (sid.checked) localStorage.setItem(IDK, who); else localStorage.removeItem(IDK);
+        localStorage.setItem(PREF, JSON.stringify({ noId: !sid.checked, noPw: !remC.checked }));
+        if (remC.checked) localStorage.setItem(REMID, who); else localStorage.removeItem(REMID);
+      } catch (e) {}
+      queueLogin(who, how);
       return saveSession().then(function () { return remC.checked ? rememberKey() : forgetKey(); }).then(function () { ov.remove(); onDone(txt); });
     }
     function attempt() {
       if (busy) return; hideErr(ov);
-      if (idI.value.replace(/\s/g, '') !== LOGIN_ID) { showErr(ov, '아이디가 맞지 않습니다. (지금은 테스트 기간이라 아이디는 「' + LOGIN_ID + '」입니다)'); idI.focus(); return; }
+      who = normId(idI.value);
+      if (!who) { showErr(ov, '아이디를 넣어 주세요.'); idI.focus(); return; }
       var val = pw.value;
-      if (!val && !rem) { showErr(ov, '비밀번호를 넣어 주세요.'); pw.focus(); return; }
+      var useSaved = !val && rem && (!remId || remId === who);
+      if (!val && !useSaved) { showErr(ov, '비밀번호를 넣어 주세요.'); pw.focus(); return; }
       busy = true; go.textContent = '로그인 중…'; go.disabled = true;
-      if (!val) {   /* 저장된 비밀번호(열쇠)로 */
-        decryptWith(rem.key, blob).then(function (txt) { applyStored(rem); return finishLogin(txt); })
-          .catch(function () { forgetKey(); rem = null; pw.placeholder = '비밀번호'; fail('저장된 비밀번호가 바뀌었습니다. 비밀번호를 넣어 주세요.'); pw.focus(); });
+      if (useSaved) {   /* 저장된 비밀번호(열쇠)로 — 그 사이 계정이 지워졌으면 막음 */
+        how = 'saved';
+        (who === LOGIN_ID ? Promise.resolve(true) : fetchAcct(who).then(function (a) { return a !== null; }))
+          .then(function (okAcct) {
+            if (!okAcct) { forgetKey(); rem = null; pw.placeholder = '비밀번호'; fail('등록되지 않은 아이디입니다. 관리자에게 문의해 주세요.'); return; }
+            return decryptWith(rem.key, blob).then(function (txt) { applyStored(rem); return finishLogin(txt); })
+              .catch(function () { forgetKey(); rem = null; pw.placeholder = '비밀번호'; fail('저장된 비밀번호가 바뀌었습니다. 비밀번호를 넣어 주세요.'); pw.focus(); });
+          });
         return;
       }
+      /* 계정이 있으면 그 사람 비밀번호로 재고 비밀번호를 꺼내고, 없으면(대표 아이디만) 재고 비밀번호를 그대로 */
       var salt = b64d(blob.salt), iter = blob.iter || ITER;
-      derive(val, salt, iter)
+      getAcct(who).then(function (a) {
+        if (a) return openAcct(a, val).then(function (m) { how = 'acct'; return m; }, function () {
+          if (who === LOGIN_ID) { how = 'pw'; return val; }   /* 대표 아이디는 재고 비밀번호로도 */
+          throw new Error('pw'); });
+        if (who !== LOGIN_ID) throw new Error('id');
+        how = 'pw'; return val;
+      })
+        .then(function (m) { val = m; return derive(val, salt, iter); })
         .then(function (key) { return decryptWith(key, blob).then(function (txt) { return { key: key, txt: txt }; }); })
         .then(function (r) {
           ST.key = r.key; ST.salt = salt; ST.iter = iter; ST.on = true; ST.pw = val;
           return Promise.all([deriveShare(val), deriveData(val), deriveFin(val)]).then(function (x) { ST.share = x[0]; ST.dkey = x[1]; return finishLogin(r.txt); });
         })
-        .catch(function () { fail('비밀번호가 맞지 않습니다. 다시 넣어 주세요.'); pw.value = ''; pw.focus(); });
+        .catch(function (e) {
+          if (e && e.message === 'id') { fail('등록되지 않은 아이디입니다. 관리자에게 문의해 주세요.'); idI.focus(); return; }
+          fail('비밀번호가 맞지 않습니다. 다시 넣어 주세요.'); pw.value = ''; pw.focus();
+        });
     }
     go.addEventListener('click', attempt);
     [idI, pw].forEach(function (el) { el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); attempt(); } }); });
@@ -4191,7 +4339,17 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
       if (ST.pw && !failed) return deriveFin(ST.pw, fs).then(function () { return saveSession(); }).then(function () { return isRemembered() ? rememberKey() : null; }).then(function () { return true; });
       return askFinPw(fs);
     },
-    logout: function () { clearSession(); location.reload(); }
+    logout: function () { clearSession(); try { sessionStorage.removeItem(WHO); } catch (e) {} location.reload(); },
+    /* v093: 계정·접속 이력 */
+    who: function () { try { return sessionStorage.getItem(WHO) || ''; } catch (e) { return ''; } },
+    loginQueue: loginQueue,
+    loginQueueDone: function (n) { var q = loginQueue().slice(n); try { localStorage.setItem(LOGQ, JSON.stringify(q)); } catch (e) {} },
+    normId: normId,
+    hasMaster: function () { return !!ST.pw; },
+    /* 재고 비밀번호가 맞는지 (공유 열쇠로 비교) — 맞으면 이 창에서 기억 */
+    checkMaster: function (pw) { return deriveShare(pw).then(function (sh) { if (sh !== ST.share) return false; ST.pw = pw; return true; }); },
+    makeAcct: function (id, userPw) { if (!ST.pw) return Promise.reject(new Error('재고 비밀번호가 필요합니다')); return makeAcct(normId(id), userPw, ST.pw); },
+    acctCacheSet: acctCacheSet
   };
 
   /* ── 시작 ── */
