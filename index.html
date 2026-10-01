@@ -423,8 +423,9 @@ body.fin-tab main{max-width:none;padding:8px 8px calc(var(--tab-h) + 8px)}
 @media (min-width:760px) and (max-width:1400px){.noticebar{margin-left:10px}.nb-row .tm,.nb-row .ak{display:none}}
 @media (max-width:759px){.noticebar{order:7;flex:1 1 100%;margin:2px 0 0;min-height:40px;border-radius:10px}.nb-head{flex-direction:row;gap:0;padding:0 8px;border-right:0}.nb-ic{font-size:17px}.nb-lb{display:none}.nb-cnt{position:absolute;top:2px;right:0;min-width:15px;height:15px;line-height:15px;font-size:10px;padding:0 3px}.nb-list{padding:0 2px 0 0}.nb-list .nb-row:nth-child(n+2){display:none}.nb-row{padding:2px 4px;gap:5px;font-size:13px}.nb-row .dot{display:none}.nb-row .who{font-size:11.5px;max-width:4.2em;overflow:hidden;text-overflow:ellipsis}.nb-row .tm,.nb-row .ak{display:none}.nb-add{margin:5px;padding:0;width:30px;border-radius:8px;font-size:16px}.nb-addt{display:none}}
 @media print{.noticebar{display:none!important}}
+@media (max-width:1099px){.syncpill .sk-x{display:none}}
 /* v114: 넓은 화면에서 이카운트·작업자 연동 칸을 남은 폭에 맞춰 늘림 (오른쪽 빈 공간 없이) */
-@media (min-width:1100px){header.top .syncpill{flex:1 1 0;max-width:none}header.top .syncpill .sk{flex:1 1 auto}header.top .syncpill .sk.hd{flex:0 0 auto}header.top .syncpill .sk.mt{flex:0 0 auto}}
+@media (min-width:1100px){header.top .syncpill.share{flex:1 1 0;max-width:none}header.top .syncpill.share .sk{flex:1 1 auto}header.top .syncpill .sk.hd{flex:0 0 auto}header.top .syncpill .sk.mt{flex:0 0 auto}}
 /* v112: 전달사항을 상단 메뉴줄 바로 아래 한 줄(전체 폭)로 — 잘리지 않게. 헤더 안이라 함께 고정됨 */
 @media (min-width:760px){header.top{flex-wrap:wrap;row-gap:8px}.noticebar{order:99;flex:1 1 100%;margin:0;min-height:40px;border-radius:10px}
   .nb-head{flex-direction:row;gap:6px;padding:0 16px}.nb-cnt{position:static;margin-left:2px}.nb-list{flex-direction:row;align-items:center;gap:8px;padding:3px 8px}
@@ -703,6 +704,8 @@ body.sys-sub .finwrap{height:calc(100vh - var(--head-h,62px) - 60px)!important}
     <span class="sk"><span class="lb">원료 입력</span><b id="spRaw">—</b><small id="spRawN"></small></span>
     <span class="sk"><span class="lb">완제품 입력</span><b id="spFin">—</b><small id="spFinN"></small></span>
     <span class="sk"><span class="lb">육안검사 입력</span><b id="spInsp">—</b><small id="spInspN"></small></span>
+    <span class="sk sk-x"><span class="lb">생산일지 입력</span><b id="spProd">—</b><small id="spProdN"></small></span>
+    <span class="sk sk-x"><span class="lb">CCP 일지 (오늘)</span><b id="spCcp">—</b><small id="spCcpN"></small></span>
     <span class="sk mt" style="justify-content:center"><small style="opacity:1;font-weight:700">내역 ▸</small></span>
   </button>
 </header>
@@ -1063,7 +1066,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '114';
+const APP_VER  = '115';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2331,7 +2334,7 @@ function ccpState(g) {
 }
 function ccpPill(g) { const s = ccpState(g); return s.bad ? `<span class="pill bad">한계기준 이탈 ${s.bad}</span>` : s.miss ? `<span class="pill warn">입력 필요 ${s.miss}</span>` : '<span class="pill ok">작성 완료</span>'; }
 /* ── 저장 · 공유 ── */
-function ccpTouch(g) { g.ts = new Date().toISOString(); g.by = S.settings.reporter || ''; save(); ccpQueueSoon(g); }
+function ccpTouch(g) { g.ts = new Date().toISOString(); g.by = S.settings.reporter || ''; save(); ccpQueueSoon(g); clearTimeout(ccpTouch.t); ccpTouch.t = setTimeout(() => { try { renderSharePill(); } catch (e) {} }, 800); }
 const ccpQT = {};
 function ccpQueueSoon(g) { const k = g.date + '|' + g.type; clearTimeout(ccpQT[k]); ccpQT[k] = setTimeout(() => { try { nbQueue({ ts: g.ts, week: '', code: k, name: CCP_TYPES[g.type].short, kind: 'ccp', note: JSON.stringify(g) }); } catch (e) {} }, 1200); }
 function ccpApplyRow(row) {
@@ -2360,7 +2363,7 @@ function renderCcp() {
         return `<button class="ccp-tab${on ? ' on' : ''}" data-ccptab="${g.type}"><span>${T.ico}</span>${esc(T.short)}<i style="background:${dot}" title="${st.bad ? '한계기준 이탈' : st.miss ? '입력 필요 ' + st.miss : '작성 완료'}"></i></button>`; }).join('');
       return `<div class="ccp-tabs">${tabs}</div>${ccpCardHtml(cur)}`; })() : '<div class="card muted">이 날짜에는 만들어진 CCP 일지가 없습니다.</div>'}
   ${isAdmin() ? ccpMapHtml() : ''}`;
-  ccpBind(box);
+  ccpBind(box); try { renderSharePill(); } catch (e) {}
 }
 function ccpKid(g) { return g.date.replace(/-/g, '') + g.type; }
 /* v100: K-HACCP 모니터링일지와 같은 모양·색 (연파랑 #CEDEEF 칸 · 검은 선 · 분홍/빨강 띠 · 결재란) — 화면과 인쇄가 같은 틀 */
@@ -3272,6 +3275,14 @@ function renderSharePill() {
   const ld = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const fill = (src, idB, idS) => { const L = src === 'raw' ? (S.changeLog || []) : src === 'insp' ? (S.inspLog || []) : finLogRead(); const last = L[L.length - 1]; const n = L.filter(e => ld(e.ts) === td).length; const b = $('#' + idB), s = $('#' + idS); if (!b) return; b.textContent = last ? hmT(last.ts) : '—'; s.textContent = last ? `${last.user || (last.code === 'local' ? '이 기기' : '(이름 없음)')} · 오늘 ${n}건` : '기록 없음'; };
   fill('raw', 'spRaw', 'spRawN'); fill('fin', 'spFin', 'spFinN'); fill('insp', 'spInsp', 'spInspN');
+  /* v115: 생산일지 입력 · 오늘 CCP 일지 */
+  try { const P = prodS(); const L = [...(P.log || []).filter(en => en.status !== 'cancel').map(en => ({ ts: en.ts, who: en.who || '이 기기' })), ...Object.values(P.pday || {}).map(e => ({ ts: e.ts, who: '다른 기기' })), ...Object.values(P.slog || {}).map(e => ({ ts: e.ts, who: '다른 기기' }))].filter(x => x.ts && !isNaN(Date.parse(x.ts)));
+    L.sort((a, b) => a.ts < b.ts ? -1 : 1); const last = L[L.length - 1], n = L.filter(x => ld(x.ts) === td).length; const b = $('#spProd'), s2 = $('#spProdN');
+    if (b) { b.textContent = last ? hmT(last.ts) : '—'; s2.textContent = last ? `${last.who} · 오늘 ${n}건` : '기록 없음'; }
+    const gs = (typeof CCP_ORDER !== 'undefined') ? CCP_ORDER.map(t => ccpS().logs[td + '|' + t]).filter(Boolean) : []; const cb = $('#spCcp'), cs = $('#spCcpN');
+    if (cb) { if (!gs.length) { cb.textContent = '—'; cs.textContent = '오늘 생산 없음'; } else { const st = gs.map(ccpState); const done = st.filter(x => x.done).length, bad = st.reduce((a, x) => a + x.bad, 0), miss = st.reduce((a, x) => a + x.miss, 0);
+      cb.textContent = `${done}/${gs.length} 완료`; cs.textContent = bad ? `⚠ 한계기준 이탈 ${bad}` : miss ? `입력 필요 ${miss}칸` : '모두 작성 완료'; } }
+  } catch (e) {}
   /* v070: 작업자 입력 연동(공유 저장소) 접속 상태 — 1분마다 받기가 되고 있는지, 못 보낸 입력이 있는지 */
   const sh = S.share || {}, on = shareOn(), out = (sh.outbox || []).length; const lp = Date.parse(sh.lastPull || sh.lastPush || ''); const pm = lp ? Math.round((Date.now() - lp) / 60000) : null;
   const st = !on ? ['off', '꺼짐', '공유 저장소 주소가 없습니다 — 입력이 이 기기에만 저장됩니다'] : sh.err ? ['bad', '연결 오류', sh.err] : pm == null ? ['warn', '연결 중', '공유 저장소에 처음 연결하는 중입니다'] : pm > 5 ? ['warn', '응답 지연', `${pm}분째 공유 저장소에서 받지 못했습니다 — 인터넷 연결을 확인하세요`] : out ? ['warn', `보내는 중 ${out}건`, `이 기기 입력 ${out}건을 공유 저장소로 보내는 중입니다`] : ['ok', '정상', `${pm < 1 ? '방금' : pm + '분 전'} 공유 저장소와 맞춤 — 다른 작업자의 입력이 1분마다 들어옵니다`];
