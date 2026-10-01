@@ -1057,7 +1057,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '108';
+const APP_VER  = '109';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2127,7 +2127,7 @@ function prodConfirm() {
       cfg: { emp: P.cfg.emp, whF: P.cfg.whF, whT: P.cfg.whT, extra: P.cfg.extra, wkRem: P.cfg.wkRem !== false } };
     P.log.unshift(entry); P.log = P.log.slice(0, 500); P.draft.lines = [];
     try { const by = ccpProdByDate(); ccpEnsure(entry.date, by[entry.date]); const kinds = CCP_ORDER.filter(t => ccpS().logs[entry.date + '|' + t]).map(t => CCP_TYPES[t].short); if (kinds.length) setTimeout(() => toast(`🛡 CCP 일지 준비됨: ${kinds.join(' · ')} — 「CCP 일지」에서 측정값을 넣으세요`), 2500); } catch (e) {}   /* v099 */
-    save(true); renderProd();
+    save(true); renderProd(); setTimeout(ccpShareDays, 500);
     prodSubmit(entry);
   };
 }
@@ -2235,9 +2235,27 @@ function ccpProdByDate() {
   const P = prodS(), out = {}, seen = new Set();
   const add = (d, code, ec, name) => { if (!d || !code) return; const it = prodItem(code); const D = out[d] = out[d] || {}; const x = D[code] = D[code] || { code, name: (it && it.name) || name || code, ec: 0, ea: 0 }; x.ec += ec; x.ea += ccpEa(it, ec); };
   (P.log || []).forEach(en => { if (en.status === 'cancel') return; if (en.cid) seen.add(en.cid); seen.add(en.id); (en.lines || []).forEach(l => add(en.date, l.code, Number(l.ecQty || l.qty) || 0, l.name)); });
+  Object.entries(P.pday || {}).forEach(([k, e]) => { if (!e || seen.has(k)) return; seen.add(k); if (e.cid) seen.add(e.cid); (e.l || []).forEach(x => add(e.d, x[0], Number(x[1]) || 0, x[2] || '')); });   /* v109: 다른 기기의 생산(테스트 포함) */
   Object.entries(P.slog || {}).forEach(([k, e]) => { if (seen.has(k) || !e) return; (e.l || []).forEach(x => add(e.d, x[0], Number(x[1]) || 0, '')); });
   return out;
 }
+/* v109: CCP 일지용 생산 공유 — 테스트 모드로 보낸 생산도 모든 기기가 같은 날짜별 생산을 보도록 (kind 'pday', 통계에는 안 씀) */
+function ccpShareDays() {
+  try { if (!shareOn()) return; const P = prodS(); const from = (() => { const t = new Date(); t.setDate(t.getDate() - 45); return t.toISOString().slice(0, 10); })(); let n = 0;
+    (P.log || []).forEach(en => { if (!en || !en.date || en.date < from) return; const del = en.status === 'cancel';
+      const sig = [del ? 'x' : 'o', en.cid || '', en.date, (en.lines || []).map(l => l.code + ':' + (Number(l.ecQty || l.qty) || 0)).join(',')].join('|'); if (en.ccpSig === sig) return; en.ccpSig = sig; n++;
+      nbQueue(Object.assign({ ts: new Date().toISOString(), week: '', code: en.id, name: '생산(CCP)', kind: 'pday', note: JSON.stringify({ d: en.date, cid: en.cid || '', l: (en.lines || []).map(l => [l.code, Number(l.ecQty || l.qty) || 0, l.name || '']) }) }, del ? { del: true } : {})); });
+    if (n) save();
+  } catch (e) {}
+}
+function ccpPdayAdd(row) {
+  const P = prodS(); P.pday = P.pday || {}; if (row.del) { if (P.pday[row.code]) { delete P.pday[row.code]; return true; } return false; }
+  let o; try { o = JSON.parse(row.note || '{}'); } catch (e) { return false; } if (!o || !o.d || !Array.isArray(o.l)) return false;
+  if (P.pday[row.code] && (P.pday[row.code].ts || '') >= row.ts) return false; P.pday[row.code] = { ts: row.ts, d: o.d, cid: o.cid || '', l: o.l };
+  const ks = Object.keys(P.pday); if (ks.length > 800) ks.sort((a, b) => (P.pday[a].d || '').localeCompare(P.pday[b].d || '')).slice(0, ks.length - 800).forEach(k => delete P.pday[k]);
+  return true;
+}
+setTimeout(ccpShareDays, 9000); setInterval(ccpShareDays, 60 * 1000);
 const ccpRid = () => 'r' + Math.random().toString(36).slice(2, 8);
 function ccpBlank(type, date) { const c = prodS().cfg; return { date, type, ts: '', by: '', who: c.ccpWho || '', ok: c.ccpOk || '', dev: '이탈내용 없음', act: '특이 사항 없음', rows: [], pass: [], items: [] }; }
 function ccpAddItem(g, x) {
@@ -3163,7 +3181,8 @@ async function sharePull(full, quiet) {
       if (row.kind === 'insp' || row.kind === 'inspm') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.kind === 'insp' && row.ts && inspLogAdd(row)) inspCh = true; return; }   /* v072: 육안검사 마지막 입력 표시용 */   /* v054: 육안검사일지 행은 그쪽(inspect.html)이 받음 */
       if (row.kind === 'itemw') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.code && row.ts && setItemW(row.code, itemWFromNote(row.note), row.ts, true)) { changed++; if (row.device !== sh.device) applied.push(row); } return; }
       if (row.kind === 'plog') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (prodSlogAdd(row)) pcfgCh = pcfgCh || 'log'; return; }
-      if (row.kind === 'ccp') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (ccpApplyRow(row)) ccpCh = true; return; }   /* v099: CCP 일지 */   /* v080: 다른 기기에서 보낸 생산 기록 */
+      if (row.kind === 'ccp') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (ccpApplyRow(row)) ccpCh = true; return; }
+      if (row.kind === 'pday') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.device !== shareCfg().device && ccpPdayAdd(row)) ccpCh = true; return; }   /* v099: CCP 일지 */   /* v080: 다른 기기에서 보낸 생산 기록 */
       if (row.kind === 'pcfg') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.code === 'prod' && prodCfgApply(row)) pcfgCh = true; return; }   /* v068: 생산일지 설정 */
       if (row.kind === 'notice' || row.kind === 'noticeack') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; const r = nbApply(row); if (r) nbCh++; if (r === 2) nbNew.push(row); return; }
       if (!row.week || !row.ts) return; if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.week))) { const d = new Date(row.week); if (!isNaN(d)) row.week = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); } if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.expiry || ''))) row.expiry = String(row.expiry).slice(0, 10); if (row.ts > (sh.since || '')) sh.since = row.ts; if (row.device && row.device === sh.device) return; applied.push(row);
@@ -3211,6 +3230,7 @@ setTimeout(() => { try { inspEnsure(); } catch (e) {} }, 4000);
 /* ── v037: 변동 내역(누가·언제·무엇을) — 이카운트 변동 + 원료 담당자 입력 + 완제품 담당자 입력 ── */
 function logAdd(e) { S.changeLog = S.changeLog || []; S.changeLog.push(e); if (S.changeLog.length > 600) S.changeLog = S.changeLog.slice(-600); }
 function shareRowText(row) {
+  if (row.kind === 'pday') return `생산 기록(CCP용) ${row.del ? '취소' : '받음'}`;
   if (row.kind === 'ccp') return `CCP 일지 ${String(row.code || '').replace('|', ' ')} 입력`;
   if (row.kind === 'memo') return `${row.week} 비고: ${row.note || '(비움)'}`;
   if (row.kind === 'itemw') { const c = itemWFromNote(row.note); return `${row.name || row.code} · ${c.specs ? '다중 규격 ' + c.specs.map(x => x.n + ' ' + fmt(x.w) + 'g').join(' · ') : '1포 실중량 ' + (c.w ? fmt(c.w) + ' g' : '해제(규격 사용)')}`; }
