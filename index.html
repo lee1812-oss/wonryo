@@ -682,7 +682,7 @@ body.sys-sub .finwrap{height:calc(100vh - var(--head-h,62px) - 60px)!important}
 </head>
 <body>
 <header class="top">
-  <div class="brand" id="brandHome" role="button" tabindex="0" title="통합 대시보드 (원료수불부 + 완제품·생지 핵심 요약)"><img id="brandLogo" alt="" src=""><div><h1 id="hSub">빵을그리다(주)</h1><div class="sub" id="hTitle">통합 재고관리</div></div></div>
+  <div class="brand" id="brandHome" role="button" tabindex="0" title="통합 대시보드 (원료수불부 + 완제품·생지 핵심 요약)"><img id="brandLogo" alt="" src=""><div><h1 id="hSub">빵을그리다 주식회사</h1><div class="sub" id="hTitle">☎ 031-762-1533</div></div></div>
   <nav class="topmenu" id="topMenu"></nav>
   <div class="noticebar" id="noticeBar">
     <button class="nb-head" id="nbOpen" title="전달사항 전체 보기"><span class="nb-ic">📢</span><span class="nb-lb">전달사항</span><b class="nb-cnt" id="nbCnt"></b></button>
@@ -1061,7 +1061,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '112';
+const APP_VER  = '113';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2805,7 +2805,8 @@ function renderHome() {
   $$('#homeBox [data-hgo]').forEach(b => b.onclick = () => homeGo(b.dataset.hgo));
 }
 function renderHeader() {
-  $('#hSub').textContent = S.settings.company || '빵을그리다(주)'; const lg = $('#brandLogo'); if (lg && !lg.getAttribute('src')) { lg.src = LOGO_DATA; }
+  $('#hSub').textContent = '빵을그리다 주식회사'; /* v113: 머리 글자 고정 (설정의 회사명은 보고서용) */
+  const lg = $('#brandLogo'); if (lg && !lg.getAttribute('src')) { lg.src = LOGO_DATA; }
   const ws = weeks(); const phOnly = Object.keys(S.physical).filter(w => !S.snapshots[w] && Object.keys(S.physical[w]).length);
   const all = [...new Set([...ws, ...phOnly, S.ui.week].filter(w => w && (S.snapshots[w] || S.physical[w])))].sort();
   const cw = curWeek();
@@ -3400,7 +3401,7 @@ function renderSet() {
   $('#verInfo').textContent = `${APP_NAME} v${APP_VER} · 마지막 저장 ${S.savedAt ? S.savedAt.replace('T', ' ').slice(0, 19) : '—'} · 브라우저 저장 ${Math.round((localStorage.getItem(STORE_KEY) || '').length / 1024)} KB`;
 }
 $('#setShareUrl').value = S.settings.shareUrl || '';
-['setCompany', 'setReporter'].forEach(id => $('#' + id).addEventListener('input', e => { S.settings[id === 'setCompany' ? 'company' : 'reporter'] = e.target.value; $('#hSub').textContent = S.settings.company; save(); }));
+['setCompany', 'setReporter'].forEach(id => $('#' + id).addEventListener('input', e => { S.settings[id === 'setCompany' ? 'company' : 'reporter'] = e.target.value;  save(); }));
 $('#setTol').addEventListener('input', e => { S.settings.tolG = Number(e.target.value) || 0; save(); });
 $('#setTolPct').addEventListener('input', e => { S.settings.tolPct = Number(e.target.value) || 0; save(); });
 $('#setNet').addEventListener('change', e => { S.settings.netWeight = e.target.checked; save(); });
