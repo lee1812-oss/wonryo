@@ -1057,7 +1057,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '104';
+const APP_VER  = '105';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2322,7 +2322,10 @@ function renderCcp() {
     <div class="muted" style="margin:6px 0 8px">생산을 입력하면 그 품목에 연결된 CCP 일지가 <b>자동으로 만들어집니다</b>. 품목·통과량은 생산에서 채우고, <b>온도·시간·검출 결과는 현장에서 재서</b> 넣으세요. 한계기준을 벗어나면 붉게 표시됩니다. 입력하면 자동 저장·공유됩니다.</div>
     <div class="prow" style="gap:6px">${dates.slice(0, 21).map(chip).join('') || '<span class="muted">아직 생산 기록이 없습니다 — 「생산 입력」으로 보내면 여기에 생깁니다.</span>'}</div></div>
   <div class="card"><b>${esc(D)} (${WD[new Date(D + 'T00:00:00').getDay()]}) 생산</b> <span class="muted">${prods.length ? prods.map(x => `${esc(x.name)} ${fmt(x.ec)}`).join(' · ') : '생산 기록 없음'}</span></div>
-  ${logs.length ? logs.map(ccpCardHtml).join('') : '<div class="card muted">이 날짜에는 만들어진 CCP 일지가 없습니다.</div>'}
+  ${logs.length ? (() => { const cur = logs.find(g => g.type === S.ui.ccpTab) || logs[0];
+      const tabs = logs.map(g => { const st = ccpState(g), on = g === cur, T = CCP_TYPES[g.type]; const dot = st.bad ? 'var(--minus)' : st.miss ? '#E0A030' : '#2E9E6A';
+        return `<button class="ccp-tab${on ? ' on' : ''}" data-ccptab="${g.type}"><span>${T.ico}</span>${esc(T.short)}<i style="background:${dot}" title="${st.bad ? '한계기준 이탈' : st.miss ? '입력 필요 ' + st.miss : '작성 완료'}"></i></button>`; }).join('');
+      return `<div class="ccp-tabs">${tabs}</div>${ccpCardHtml(cur)}`; })() : '<div class="card muted">이 날짜에는 만들어진 CCP 일지가 없습니다.</div>'}
   ${isAdmin() ? ccpMapHtml() : ''}`;
   ccpBind(box);
 }
@@ -2365,7 +2368,11 @@ const CCP_CSS = `.ccp-sheet{background:#fff;color:#000;max-width:1000px;margin:0
 .ccp-sheet input,.ccp-sheet select{border:0;background:transparent;width:100%;min-width:0;text-align:center;font:inherit;color:#000;padding:3px 2px;box-shadow:none;border-radius:3px}
 .ccp-sheet input:focus,.ccp-sheet select:focus{outline:2px solid #0075FF;background:#F4F8FF}.ccp-sheet input[type=time]{min-width:92px}
 .ccp-sheet .ccp-mini{border:1px solid #9AA7B4;background:#fff;border-radius:4px;font-size:11px;padding:1px 5px;cursor:pointer;color:#333;margin:1px}
-.ccp-foot{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#555;margin-top:8px}`;
+.ccp-foot{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#555;margin-top:8px}
+.ccp-tabs{display:flex;gap:2px;align-items:flex-end;border-bottom:2px solid #1F6E5A;margin:4px 0 0;overflow-x:auto;padding-top:6px}
+.ccp-tab{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:1px solid #C5CDD4;border-bottom:0;border-radius:8px 8px 0 0;background:#E4E9ED;color:#3A4A55;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.ccp-tab:hover{background:#F2F5F7}.ccp-tab.on{background:#fff;color:#1F6E5A;border-color:#1F6E5A;position:relative;top:2px;padding-bottom:11px}.ccp-tab i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.ccp-tabs+.card{border-top-left-radius:0;margin-top:0}`;
 /* 결재 도장 — 이름(또는 설정한 도장 글자)을 빨간 원 안에. 작성자 도장은 측정값을 다 넣었을 때, 승인자 도장은 승인자 이름을 넣었을 때 찍힘 */
 function ccpStamp(name) { const t = String(name || '').trim(); if (!t) return ''; const n = [...t].length; return `<span class="ccp-stamp" style="font-size:${n <= 2 ? 12 : n === 3 ? 10 : 8}px">${esc(t)}</span>`; }
 function ccpSheet(g, ed) {
@@ -2478,6 +2485,7 @@ function ccpBind(box) {
     if (el.dataset.ccpmap) { const [code, t] = el.dataset.ccpmap.split('|'); const it = prodItem(code); if (!it) return; let v = ccpCode(it).replace(CCP_SUFFIX[t], ''); if (el.checked) v += CCP_SUFFIX[t]; it.ccp = v; save(); toast(`${it.name}: ${CCP_TYPES[t].short} ${el.checked ? '연결' : '해제'} — 다음 생산부터 반영`); }
   };
   box.onclick = e => { const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.ccptab) { S.ui.ccpTab = b.dataset.ccptab; save(); renderCcp(); const t = document.querySelector('.ccp-tabs'); if (t && t.getBoundingClientRect().top < 60) t.scrollIntoView({ block: 'start' }); return; }
     if (b.dataset.ccpdate) { S.ui.ccpDate = b.dataset.ccpdate; save(); renderCcp(); return; }
     if (b.id === 'ccpPrint') { ccpPrint(S.ui.ccpDate); return; }
     if (b.dataset.ccpnow) { const n = new Date(), v = String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0'); const inp = box.querySelector(`[data-c="${b.dataset.ccpnow}"]`); if (inp) inp.value = v; ccpSet(b.dataset.ccpnow, v); return; }
