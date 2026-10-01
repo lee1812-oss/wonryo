@@ -1070,7 +1070,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '124';
+const APP_VER  = '125';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2414,16 +2414,16 @@ function renderCcp() {
   const chip = d => { const gs = CCP_ORDER.map(t => L[d + '|' + t]).filter(g => g && !g.skip); const st = gs.map(ccpState); const bad = st.some(s => s.bad), miss = st.reduce((a, s) => a + s.miss, 0);
     return `<button class="btn sm${d === D ? ' primary' : ''}" data-ccpdate="${d}" style="${d === D ? '' : bad ? 'border-color:var(--minus);color:var(--minus)' : miss ? 'border-color:#E8C98E' : ''}">${esc(d.slice(5))} (${WD[new Date(d + 'T00:00:00').getDay()]}) ${gs.length ? (bad ? '⚠' : miss ? '✎' : '✓') : ''}</button>`; };
   const prods = Object.values(ccpProdByDate()[D] || {});
-  const V = ['cal', 'list', 'day', 'map'].includes(S.ui.ccpView) ? S.ui.ccpView : 'cal'; if (V === 'map' && !isAdmin()) S.ui.ccpView = 'cal';
+  const V = ['cal', 'list', 'day', 'map', 'dev'].includes(S.ui.ccpView) ? S.ui.ccpView : 'cal'; if (V === 'map' && !isAdmin()) S.ui.ccpView = 'cal';
   const vb = (v, t) => `<button class="btn sm${V === v ? ' primary' : ''}" data-ccpview="${v}">${t}</button>`;
   box.innerHTML = `<div class="card"><div class="prow" style="align-items:center;gap:8px"><h2 style="margin:0;flex:1 1 auto">🛡 생산 · CCP 일지 <span class="muted" style="font-size:12px;font-weight:600">v${APP_VER}</span> <button class="btn sm" data-ccpinfo="1" title="설명·기기 간 공유 상태 보기" style="padding:2px 9px;font-size:12px;vertical-align:middle">${S.ui.ccpInfo ? '설명 닫기' : 'ⓘ 설명'}</button></h2>
-      <div class="prow" style="gap:4px">${vb('cal', '📅 달력')}${vb('list', '📋 목록')}${vb('day', '📝 일지')}${isAdmin() ? vb('map', '⚙ 품목 연결') : ''}</div>
+      <div class="prow" style="gap:4px">${vb('cal', '📅 달력')}${vb('list', '📋 목록')}${vb('day', '📝 일지')}${vb('dev', '⚠ 이탈 보고서')}${isAdmin() ? vb('map', '⚙ 품목 연결') : ''}</div>
       <button class="btn" id="ccpRange">🖨 기간 인쇄</button>${isAdmin() ? '<label class="btn" title="K-HACCP 생산일지 엑셀(.xlsx) → 지난 생산 소급 · CCP 기록 파일(.json) → 측정값 채우기">📥 K-HACCP 불러오기<input type="file" id="ccpImp" accept=".xlsx,.xls,.json" hidden></label>' : ''}</div>
     <div id="ccpInfo" style="${S.ui.ccpInfo ? '' : 'display:none'}"><div class="muted" style="margin:6px 0 4px">생산을 입력하면 그 품목에 연결된 CCP 일지가 <b>자동으로 만들어집니다</b>. 품목·통과량은 생산에서 채우고, <b>온도·시간·검출 결과는 현장에서 재서</b> 넣으세요. 한계기준을 벗어나면 붉게 표시됩니다. 입력하면 자동 저장·공유됩니다.</div>
     <div class="muted" style="font-size:11.5px;margin:-2px 0 8px">${(() => { if (!shareOn()) return '⚠ 공유 저장소가 꺼져 있어 다른 기기의 생산을 받을 수 없습니다'; const sh = shareCfg(), mine = (P.log || []).filter(en => en.ccpSig).length, wait = (sh.outbox || []).filter(r => r.kind === 'pday' || r.kind === 'ccp').length, got = Object.keys(P.pday || {}).length;
       return `🔄 기기 간 공유 — 이 기기(${esc(sh.device || '')}) 생산 ${mine}건 보냄${wait ? ` · <b>보낼 것 ${wait}건 대기</b>` : ''} · 다른 기기 생산 ${got}건 받음 · 마지막 받기 ${esc(sh.lastPull ? hmOf(sh.lastPull) : '—')}${sh.err ? ` · <span style="color:var(--minus)">${esc(sh.err)}</span>` : ''}`; })()}</div></div>
   </div>
-  ${V === 'cal' ? ccpCalHtml(D) : V === 'list' ? ccpListHtml(D) : V === 'map' ? ccpMapHtml() : `<div class="card"><div class="prow" style="align-items:center;gap:8px"><button class="btn sm" data-ccpview="cal">← 달력</button>
+  ${V === 'cal' ? ccpCalHtml(D) : V === 'dev' ? ccpDevHtml() : V === 'list' ? ccpListHtml(D) : V === 'map' ? ccpMapHtml() : `<div class="card"><div class="prow" style="align-items:center;gap:8px"><button class="btn sm" data-ccpview="cal">← 달력</button>
       <input type="date" id="ccpPick" value="${esc(D)}" style="width:150px"><b>${esc(D)} (${WD[new Date(D + 'T00:00:00').getDay()]}) 생산</b> <span class="muted" style="flex:1 1 200px">${prods.length ? prods.map(x => `${esc(x.name)} ${fmt(x.ea || x.ec)}`).join(' · ') : '생산 기록 없음'}</span><button class="btn" id="ccpPrint">🖨 이 날짜 인쇄</button></div></div>
   ${logs.length ? (() => { const cur = logs.find(g => g.type === S.ui.ccpTab) || logs[0];
       const tabs = logs.map(g => { const st = ccpState(g), on = g === cur, T = CCP_TYPES[g.type]; const dot = st.bad ? 'var(--minus)' : st.miss ? '#E0A030' : '#2E9E6A';
@@ -2446,7 +2446,7 @@ function ccpCalHtml(D) {
   while (cells.length % 7) cells.push('<td class="ccal-x"></td>');
   const rows = []; for (let i = 0; i < cells.length; i += 7) rows.push('<tr>' + cells.slice(i, i + 7).join('') + '</tr>');
   return `<div class="card"><div class="prow" style="align-items:center;gap:8px;margin-bottom:8px"><button class="btn sm" data-ccpcal="${mv(-1)}">‹</button><h2 style="margin:0">${y}년 ${m}월</h2><button class="btn sm" data-ccpcal="${mv(1)}">›</button><button class="btn sm" data-ccpcal="${td.slice(0, 7)}">이번 달</button>
-      <span class="muted" style="flex:1 1 auto;text-align:right;font-size:12.5px">생산 ${mProd}일 · CCP 일지 ${mLogs}개 · 완료 ${mDone}${mBad ? ` · <b style="color:var(--minus)">이탈 ${mBad}</b>` : ''}</span><button class="btn sm" data-ccprange="${M}">🖨 이 달 인쇄</button></div>
+      <span class="muted" style="flex:1 1 auto;text-align:right;font-size:12.5px">생산 ${mProd}일 · CCP 일지 ${mLogs}개 · 완료 ${mDone}${mBad ? ` · <button class="btn sm" data-ccpdevm="${M}" title="이탈 보고서 보기" style="color:var(--minus);border-color:var(--minus);font-weight:800;padding:2px 9px">⚠ 이탈 ${mBad} ▸</button>` : ''}</span><button class="btn sm" data-ccprange="${M}">🖨 이 달 인쇄</button></div>
     <div class="tablewrap"><table class="ccal"><thead><tr>${['일', '월', '화', '수', '목', '금', '토'].map((w, i) => `<th class="${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${w}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>
     <div class="muted" style="font-size:12px;margin-top:6px">날짜를 누르면 그날 일지가 열립니다 · 🥣크림배합 🔥오븐가열 ❄️급속냉동 🧲금속검출 · ✓ 작성 완료 · ✎ 입력 필요 · ⚠ 한계기준 이탈</div></div>`;
 }
@@ -2461,6 +2461,86 @@ function ccpListHtml(D) {
     ${ds.map(d => { const its = Object.values(by[d] || {}); return `<tr${d === D ? ' style="background:var(--accent-bg)"' : ''}><td style="white-space:nowrap"><b>${esc(d.slice(5))}</b> (${WD[new Date(d + 'T00:00:00').getDay()]})</td><td style="font-size:12.5px">${its.map(x => `${esc(x.name)} <span class="muted">${fmt(x.ea || x.ec)}</span>`).join(' · ') || '<span class="muted">—</span>'}</td><td class="muted" style="font-size:12px;white-space:nowrap">${ccpSrcOf(d)}</td>${CCP_ORDER.map(t => cell(d, t)).join('')}<td><button class="btn sm" data-ccpdate="${d}">열기</button></td></tr>`; }).join('') || '<tr><td colspan="8" class="muted">이 달에는 기록이 없습니다</td></tr>'}</tbody></table></div>
     <div class="muted" style="font-size:12px;margin-top:6px">✓ 작성 완료 · ✎ 숫자 = 남은 칸 · ⚠ 한계기준 이탈 · 「열기」를 누르면 그 날짜 일지로 이동합니다.</div></div>`;
 }
+/* v125: 한계기준 이탈 보고서 — 기간 안의 이탈을 주(월~일)별로 모아 측정값·벗어난 정도·일지 기록 상태를 보여 줌 */
+const ccpYmd = t => t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+const ccpMon = d => { const t = new Date(d + 'T00:00:00'); t.setDate(t.getDate() - (t.getDay() + 6) % 7); return ccpYmd(t); };
+const ccpAddD = (d, k) => { const t = new Date(d + 'T00:00:00'); t.setDate(t.getDate() + k); return ccpYmd(t); };
+function ccpHm(m) { return m == null ? '—' : m >= 60 ? `${Math.floor(m / 60)}시간${m % 60 ? ' ' + (m % 60) + '분' : ''}` : m + '분'; }
+/* 줄 하나의 측정값 글과, 기준을 얼마나 벗어났는지 */
+function ccpDevInfo(type, sec, r) {
+  const n = ccpNum, gap = [], sg = x => (x > 0 ? '+' : '') + Math.round(x * 10) / 10; let val = '', lim = '';
+  const out = (lab, v, lo, hi, u) => { if (v == null) return; if (lo != null && v < lo) gap.push(`${lab} ${v}${u} (하한 ${lo}${u}보다 ${sg(v - lo)}${u})`); else if (hi != null && v > hi) gap.push(`${lab} ${v}${u} (상한 ${hi}${u}보다 ${sg(v - hi)}${u})`); };
+  if (type === 'oven') { const L = ccpOvenLimit(r.name); val = `${r.tag || ''} ${r.time || ''} · 온도 ${r.temp || '—'}℃ · ${r.min || '—'}분 · 품온 ${r.core || '—'}℃`; lim = `${L.t}±${L.tt}℃ · ${L.m}±${L.mt}분 · 품온 85~99℃`;
+    out('가열온도', n(r.temp), L.t - L.tt, L.t + L.tt, '℃'); out('가열시간', n(r.min), L.m - L.mt, L.m + L.mt, '분'); out('품온', n(r.core), 85, 99, '℃'); }
+  else if (type === 'freeze') { const d = ccpDur(r.t1, r.t2); val = `${r.t1 || '—'} ${r.v1 || '—'}℃ → ${r.t2 || '—'} ${r.v2 || '—'}℃ · ${ccpHm(d)}`; lim = '-30~-35℃ · 1~24시간';
+    out('냉동 전 온도', n(r.v1), -35, -30, '℃'); out('냉동 후 온도', n(r.v2), -35, -30, '℃'); if (d != null && d < 60) gap.push(`냉동시간 ${ccpHm(d)} (1시간보다 ${60 - d}분 짧음)`); else if (d != null && d > 1440) gap.push(`냉동시간 ${ccpHm(d)} (24시간 초과)`); }
+  else if (type === 'mix') { const d = ccpDur(r.start, r.end); val = `${r.start || '—'}~${r.end || '—'} (${ccpHm(d)}) · ${r.kg || '—'}kg · 품온 ${r.temp || '—'}℃ · 작업장 ${r.room || '—'}℃`; lim = '10~50kg · 품온 5~25℃ · 작업장 24℃ 이하 · 2시간 이내';
+    out('배합량', n(r.kg), 10, 50, 'kg'); out('품온', n(r.temp), 5, 25, '℃'); out('작업장', n(r.room), null, 24, '℃'); if (d != null && d > 120) gap.push(`소진 ${ccpHm(d)} (2시간보다 ${d - 120}분 김)`); }
+  else if (type === 'metal' && sec === 'pass') { val = `통과 ${r.passed || '—'} · 검출 ${r.det || '—'}`; lim = '검출 0'; if (n(r.det) > 0) gap.push(`금속 검출 ${r.det}`); }
+  else if (type === 'metal') { val = `${r.time || '—'} · 기기 Fe ${r.fe || '—'} / SUS ${r.sus || '—'}` + (r.kind === 'item' ? ` · 제품만 ${r.p || '—'} · 제품+Fe ${r.fep || '—'} / SUS ${r.susp || '—'}` : ''); lim = '기기·제품감도 O(검출) · 제품만 X';
+    ccpRowState(type, sec, r).bad.forEach(b => gap.push(b)); }
+  return { val, lim, gap };
+}
+function ccpDevList(f, t) {
+  const out = []; Object.values(ccpS().logs).filter(g => g && !g.skip && g.date >= f && g.date <= t).forEach(g => {
+    [['rows', g.rows || []], ['pass', g.pass || []]].forEach(([sec, rs]) => rs.forEach((r, i) => { const s = ccpRowState(g.type, sec, r); if (!s.bad.length) return;
+      out.push(Object.assign({ g, sec, i, r, bad: s.bad }, ccpDevInfo(g.type, sec, r))); })); });
+  return out.sort((a, b) => a.g.date.localeCompare(b.g.date) || CCP_ORDER.indexOf(a.g.type) - CCP_ORDER.indexOf(b.g.type));
+}
+const CCP_DEV_TIP = { '가열온도': '오븐 설정온도·표시온도와 입력값(오타)을 확인', '가열시간': '타이머 설정과 입력한 분을 확인', '품온': '탐침 온도계 측정 위치·시점 확인',
+  '냉동온도': '냉동창고 판넬 표시온도와 입력값 확인', '냉동시간': '급냉 시작·종료 시각 입력 확인 (1시간 미만이면 대부분 시각 입력 실수)', '배합량': '배치 중량 확인', '작업장': '작업장 온도 관리',
+  '소진': '배합 후 소진 시각 확인', '금속': '검출 제품 격리·원인 확인 후 HACCP팀장 보고', '기기감도': '금속검출기 감도 점검', '제품감도': '금속검출기 감도 점검', '제품만': '제품 단독 통과 시 오검출 원인 확인' };
+const ccpDevKey = b => /^시간/.test(b) ? '냉동시간' : b.split(' ')[0];
+function ccpDevRec(g) { const d = String(g.dev || '').replace(/\s/g, ''), a = String(g.act || '').replace(/\s/g, ''); return { dev: !!d && !/^(이탈내용)?없음$/.test(d), act: !!a && !/^(특이사항)?없음$/.test(a) }; }
+function ccpDevRange() { const M = /^\d{4}-\d{2}$/.test(S.ui.ccpCalM || '') ? S.ui.ccpCalM : today().slice(0, 7); const y = +M.slice(0, 4), m = +M.slice(5);
+  let f = S.ui.ccpDevF, t = S.ui.ccpDevT; if (!/^\d{4}-\d{2}-\d{2}$/.test(f || '') || !/^\d{4}-\d{2}-\d{2}$/.test(t || '') || f > t) { f = M + '-01'; t = ccpYmd(new Date(y, m, 0)); } return [f, t]; }
+function ccpDevReport(f, t, print) {
+  const L = ccpDevList(f, t), rev = ccpS().rev || {}; const logs = [...new Set(L.map(x => x.g))];
+  const cnt = (arr, k) => arr.reduce((o, x) => { const v = k(x); o[v] = (o[v] || 0) + 1; return o; }, {}); const top = o => Object.entries(o).sort((a, b) => b[1] - a[1]);
+  const byT = cnt(logs, g => CCP_TYPES[g.type].short), byC = {}; L.forEach(x => x.bad.forEach(b => { const k = ccpDevKey(b); byC[k] = (byC[k] || 0) + 1; }));
+  const byI = cnt(L, x => x.r.name || ''), noRec = logs.filter(g => { const c = ccpDevRec(g); return !c.dev || !c.act; });
+  const wk = {}; L.forEach(x => { const w = ccpMon(x.g.date); (wk[w] = wk[w] || []).push(x); });
+  const weeks = []; for (let w = ccpMon(f); w <= t; w = ccpAddD(w, 7)) weeks.push(w);
+  const pd = d => `${Number(d.slice(5, 7))}/${Number(d.slice(8))}(${WD[new Date(d + 'T00:00:00').getDay()]})`;
+  const tips = top(byC).map(([k]) => { const tk = Object.keys(CCP_DEV_TIP).find(z => k.indexOf(z) === 0 || z.indexOf(k) === 0); return tk ? `<li><b>${esc(k)}</b> — ${esc(CCP_DEV_TIP[tk])}</li>` : ''; }).join('');
+  const rep = top(byI).filter(([, n]) => n > 1);
+  const summary = L.length ? `<div class="dev-sum">
+      <div class="dev-k"><span>이탈 일지</span><b>${logs.length}</b>개</div><div class="dev-k"><span>이탈 줄</span><b>${L.length}</b>줄</div><div class="dev-k"><span>이탈 있는 날</span><b>${new Set(logs.map(g => g.date)).size}</b>일</div><div class="dev-k${noRec.length ? ' warn' : ''}"><span>조치 기록 빠짐</span><b>${noRec.length}</b>개</div></div>
+    <div class="dev-an"><b>📊 분석</b><ul>
+      <li>공정별: ${top(byT).map(([k, n]) => `${esc(k)} ${n}개`).join(' · ')}</li>
+      <li>기준별: ${top(byC).map(([k, n]) => `${esc(k)} ${n}건`).join(' · ')}</li>
+      ${rep.length ? `<li>되풀이된 품목: ${rep.map(([k, n]) => `${esc(k)} ${n}번`).join(' · ')}</li>` : ''}
+      <li>주별: ${weeks.map(w => `${pd(w).replace(/\(.*/, '')}주 ${(wk[w] || []).length}줄`).join(' · ')}</li>
+      ${noRec.length ? `<li style="color:var(--minus,#C0392B)">이탈이 있는데 일지의 이탈내용·개선조치가 기본 문구 그대로인 일지 ${noRec.length}개 — 실제 이탈이면 내용과 조치를 적고, 잘못 입력한 값이면 측정값을 고쳐 주세요.</li>` : ''}
+    </ul>${tips ? `<b>🔎 확인할 점</b><ul>${tips}</ul>` : ''}</div>` : '<div class="dev-ok">✅ 이 기간에는 한계기준 이탈이 없습니다.</div>';
+  const wkHtml = weeks.map(w => { const xs = wk[w] || [], e = ccpAddD(w, 6), rv = rev[w];
+    return `<div class="dev-wk${xs.length ? ' has' : ''}"><div class="dev-wh"><b>${pd(w)} ~ ${pd(e)}</b> <span class="${xs.length ? 'bad' : 'ok'}">${xs.length ? `이탈 ${xs.length}줄` : '이탈 없음'}</span>
+        ${xs.length ? (print ? (rv ? `<span class="muted">✔ 확인 ${esc(rv.by || '')} ${esc(String(rv.ts || '').slice(5, 10))}</span>` : '<span class="muted">□ 미확인</span>') : `<label class="dev-rv"><input type="checkbox" data-ccprev="${w}"${rv ? ' checked' : ''}> 내부 확인 완료${rv ? ` <span class="muted">${esc(rv.by || '')} ${esc(String(rv.ts || '').slice(5, 10))}</span>` : ''}</label>`) : ''}</div>
+      ${xs.length ? `<div class="tablewrap" style="overflow-x:auto"><table class="dev-t"><thead><tr><th>날짜</th><th>공정</th><th>품목</th><th>측정값</th><th>벗어난 정도</th><th>일지 기록</th>${print ? '' : '<th></th>'}</tr></thead><tbody>${xs.map(x => { const c = ccpDevRec(x.g);
+        return `<tr><td style="white-space:nowrap">${pd(x.g.date)}</td><td style="white-space:nowrap">${CCP_TYPES[x.g.type].ico} ${esc(CCP_TYPES[x.g.type].short)}</td><td>${esc(x.r.name || '')}</td><td>${esc(x.val)}<div class="muted" style="font-size:11px">기준 ${esc(x.lim)}</div></td><td class="bad">${x.gap.map(esc).join('<br>') || esc(x.bad.join(', '))}</td>
+          <td style="font-size:12px">${c.dev ? `이탈: ${esc(x.g.dev)}` : '<span class="bad">이탈내용 미기록</span>'}<br>${c.act ? `조치: ${esc(x.g.act)}` : '<span class="bad">개선조치 미기록</span>'}</td>${print ? '' : `<td><button class="btn sm" data-ccpopen="${x.g.date}|${x.g.type}">열기</button></td>`}</tr>`; }).join('')}</tbody></table></div>` : ''}</div>`; }).join('');
+  return { n: L.length, html: `${summary}<h3 style="margin:14px 0 6px">주별 이탈 내역</h3>${wkHtml}` };
+}
+function ccpDevHtml() {
+  const [f, t] = ccpDevRange(), R = ccpDevReport(f, t, false), td = today(), mon = ccpMon(td);
+  const q = (a, b, l) => `<button class="btn sm${f === a && t === b ? ' primary' : ''}" data-ccpdevr="${a}|${b}">${l}</button>`;
+  return `<div class="card"><div class="prow" style="align-items:center;gap:8px;margin-bottom:8px"><button class="btn sm" data-ccpview="cal">← 달력</button><h2 style="margin:0;flex:1 1 auto">⚠ 한계기준 이탈 보고서</h2>
+      ${q(mon, ccpAddD(mon, 6), '이번 주')}${q(ccpAddD(mon, -7), ccpAddD(mon, -1), '지난 주')}<input type="date" id="ccpDevF" value="${f}" style="width:140px">~<input type="date" id="ccpDevT" value="${t}" style="width:140px"><button class="btn sm" id="ccpDevPrint">🖨 보고서 인쇄</button></div>
+    <div class="muted" style="font-size:12px;margin-bottom:8px">주(월~일)마다 이탈을 확인하고, 잘못 입력한 값은 「열기」로 일지를 열어 고치거나 이탈내용·개선조치를 적으세요. 고친 줄은 보고서에서 바로 빠집니다. 「내부 확인 완료」 표시는 이 기기에 저장됩니다.</div>
+    ${R.html}</div>`;
+}
+function ccpDevPrint() {
+  const [f, t] = ccpDevRange(), R = ccpDevReport(f, t, true); const w = window.open('', '_blank'); if (!w) { toast('팝업이 막혀 인쇄 창을 열 수 없습니다'); return; }
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>CCP 이탈 보고서 ${f}~${t}</title><style>body{font-family:'Noto Sans KR',sans-serif;font-size:12px;color:#111;margin:0}h1{font-size:18px;margin:0 0 4px}h3{font-size:14px}.muted{color:#666}
+    ${CCP_DEV_CSS}@page{size:A4;margin:10mm}.dev-wk{break-inside:avoid}</style></head><body><h1>CCP 한계기준 이탈 보고서</h1><div class="muted">기간 ${f} ~ ${t} · 출력 ${new Date().toLocaleString('ko-KR')}</div>${R.html}
+    <script>setTimeout(function(){window.print()},300)<\/script></body></html>`); w.document.close();
+}
+const CCP_DEV_CSS = `.dev-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:4px 0 10px}.dev-k{border:1px solid #E3E6EA;border-radius:10px;padding:8px 10px}.dev-k span{display:block;font-size:11.5px;color:#667}.dev-k b{font-size:22px;margin-right:2px}.dev-k.warn{border-color:#E8B4B4;background:#FDF3F3}.dev-k.warn b{color:#B23A3A}
+.dev-an{border:1px solid #E3E6EA;border-radius:10px;padding:8px 12px;background:#FAFBFC}.dev-an ul{margin:4px 0 8px;padding-left:18px}.dev-an li{margin:2px 0}.dev-ok{padding:14px;border-radius:10px;background:#E3F4EC;color:#1F6E4A;font-weight:700}
+.dev-wk{border:1px solid #E3E6EA;border-radius:10px;padding:8px 10px;margin-bottom:8px}.dev-wk.has{border-color:#E8B4B4}.dev-wh{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.dev-wh .bad{color:#B23A3A;font-weight:700}.dev-wh .ok{color:#1F6E4A;font-weight:700}.dev-rv{margin-left:auto;font-size:12.5px;display:flex;align-items:center;gap:4px;cursor:pointer}.dev-rv input{width:17px;height:17px}
+table.dev-t{width:100%;border-collapse:collapse;margin-top:6px;font-size:12.5px}table.dev-t th,table.dev-t td{border:1px solid #DDE1E6;padding:4px 6px;vertical-align:top;text-align:left}table.dev-t th{background:#F4F6F8;font-size:12px}table.dev-t .bad,.dev-wk .bad{color:#B23A3A;font-weight:600}
+@media (max-width:759px){.dev-sum{grid-template-columns:repeat(2,minmax(0,1fr))}table.dev-t{font-size:11.5px;min-width:720px}}`;
+(() => { try { const st = document.createElement('style'); st.textContent = CCP_DEV_CSS; document.head.appendChild(st); } catch (e) {} })();
 function ccpKid(g) { return g.date.replace(/-/g, '') + g.type; }
 /* v100: K-HACCP 모니터링일지와 같은 모양·색 (연파랑 #CEDEEF 칸 · 검은 선 · 분홍/빨강 띠 · 결재란) — 화면과 인쇄가 같은 틀 */
 const CCP_FIX = {
@@ -2637,6 +2717,8 @@ function ccpBind(box) {
   box.onchange = e => { const el = e.target;
     if (el.dataset.c && el.tagName === 'SELECT') ccpSet(el.dataset.c, el.value);
     if (el.id === 'ccpImp' && el.files && el.files[0]) { ccpImportXlsx(el.files[0]); el.value = ''; return; }
+    if (el.id === 'ccpDevF' || el.id === 'ccpDevT') { const [f, t] = ccpDevRange(); S.ui.ccpDevF = el.id === 'ccpDevF' ? el.value : f; S.ui.ccpDevT = el.id === 'ccpDevT' ? el.value : t; save(); renderCcp(); return; }
+    if (el.dataset.ccprev) { const R = ccpS(); R.rev = R.rev || {}; if (el.checked) R.rev[el.dataset.ccprev] = { ts: new Date().toISOString(), by: S.settings.reporter || '' }; else delete R.rev[el.dataset.ccprev]; save(); renderCcp(); return; }
     if (el.id === 'ccpMonth') { S.ui.ccpMonth = el.value; save(); renderCcp(); return; }
     if (el.id === 'ccpPick') { S.ui.ccpDate = el.value; S.ui.ccpCalM = el.value.slice(0, 7); const by = ccpProdByDate(); if (by[el.value]) ccpEnsure(el.value, by[el.value]); save(); renderCcp(); }
     if (el.id === 'ccpWho' || el.id === 'ccpOk') { prodS().cfg[el.id === 'ccpWho' ? 'ccpWho' : 'ccpOk'] = el.value.trim(); save(); toast('기본 점검자·승인자를 저장했습니다 (새로 만드는 일지부터)'); }
@@ -2645,6 +2727,10 @@ function ccpBind(box) {
   box.onclick = e => { const cd = e.target.closest('td[data-ccpdate]'); if (cd) { S.ui.ccpDate = cd.dataset.ccpdate; S.ui.ccpView = 'day'; save(); renderCcp(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.ccpinfo) { S.ui.ccpInfo = !S.ui.ccpInfo; save(); renderCcp(); return; }
+    if (b.dataset.ccpdevm) { const M = b.dataset.ccpdevm, y = +M.slice(0, 4), m = +M.slice(5); S.ui.ccpDevF = M + '-01'; S.ui.ccpDevT = ccpYmd(new Date(y, m, 0)); S.ui.ccpView = 'dev'; save(); renderCcp(); return; }
+    if (b.dataset.ccpdevr) { [S.ui.ccpDevF, S.ui.ccpDevT] = b.dataset.ccpdevr.split('|'); save(); renderCcp(); return; }
+    if (b.id === 'ccpDevPrint') { ccpDevPrint(); return; }
+    if (b.dataset.ccpopen) { const [d, t] = b.dataset.ccpopen.split('|'); S.ui.ccpDate = d; S.ui.ccpTab = t; S.ui.ccpCalM = d.slice(0, 7); S.ui.ccpView = 'day'; save(); renderCcp(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     if (b.dataset.ccpview) { S.ui.ccpView = b.dataset.ccpview; save(); renderCcp(); return; }
     if (b.dataset.ccpcal) { S.ui.ccpCalM = b.dataset.ccpcal; save(); renderCcp(); return; }
     if (b.dataset.ccprange != null) { ccpRangeAsk(b.dataset.ccprange); return; }
