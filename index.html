@@ -1033,7 +1033,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '089';
+const APP_VER  = '090';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1501,10 +1501,13 @@ window.addEventListener('message', e => {
 /* ── v058·v060: 생산일지 — 휴대폰·태블릿에서 간단히 입력하면 이카운트 「생산입고I」(OAPI SaveGoodsReceipt)로 전표를 만듭니다.
    이카운트 인증키는 공개 사이트에 두지 않고 구글 Apps Script 중계(ecount_relay.gs)의 스크립트 속성에만 둡니다.
    중계는 「공유 저장소 열쇠」(재고 비밀번호로 만든 것)가 맞는 요청만 받습니다. ── */
+/* v090: 기본 이카운트 중계 주소 — 새 기기도 주소를 넣지 않고 바로 연결 (중계는 비밀번호로 만든 열쇠가 있어야만 응답) */
+const DEFAULT_RELAY_URL = 'https://script.google.com/macros/s/AKfycbwc4iYf-iUXLIkw_9mENM2nRyX5BNdz4TveLP5cKE-5CXd2hiTQ34kDxSanQFJk9O8S3g/exec';
 function prodS() {
   S.prod = S.prod || {};
   const P = S.prod;
   P.cfg = Object.assign({ relayUrl: '', test: true, emp: '', whF: '', whT: '', extra: '', dec: 1, workers: '', wkRem: true, batch: true, cutoff: '17:30' }, P.cfg || {});
+  if (!String(P.cfg.relayUrl || '').trim() && !P.cfg.relayCleared) P.cfg.relayUrl = DEFAULT_RELAY_URL;
   P.items = Array.isArray(P.items) ? P.items : [];   /* {code,name,unit,ecEa,ecDiv,kind,on,manual} */
   P.log = Array.isArray(P.log) ? P.log : [];
   if (!P.draft || !Array.isArray(P.draft.lines)) P.draft = { date: today(), lines: [] };
@@ -2218,7 +2221,7 @@ function renderProdSet() {
     <div class="muted" style="margin-top:8px;font-size:12px">인증키는 사무실 PC의 설정 파일(ecount_relay_pc.json)에만 저장됩니다. 비밀번호를 바꾸면 공유 저장소 열쇠도 바뀌니 중계의 API_KEY와 전송기 설정 파일을 다시 맞춰 주세요 (설정 파일을 지우고 전송기를 다시 실행하면 처음부터 묻습니다).</div>
   </div>`;
   const setv = (k, v) => { P.cfg[k] = v; save(); };
-  $('#pRelay').onchange = e => { setv('relayUrl', e.target.value.trim()); P.pingMsg = ''; };
+  $('#pRelay').onchange = e => { setv('relayUrl', e.target.value.trim()); P.cfg.relayCleared = !e.target.value.trim(); P.pingMsg = ''; save(); };
   $('#pBatch').onchange = e => { setv('batch', e.target.checked); toast(e.target.checked ? `같은 날짜 생산은 ${P.cfg.cutoff || '17:30'}에 한 전표로 보냅니다` : '보낼 때마다 바로 전표를 만듭니다'); };
   $('#pCutoff').onchange = e => { if (/^\d{2}:\d{2}$/.test(e.target.value)) { setv('cutoff', e.target.value); toast(`마감 시각 ${e.target.value}`); } };
   $('#pTest').onchange = e => { setv('test', e.target.checked); toast(e.target.checked ? '테스트 모드 — 실제 전표가 생기지 않습니다' : '실제 이카운트로 전송합니다'); };
