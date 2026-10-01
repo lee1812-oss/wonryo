@@ -1057,7 +1057,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '102';
+const APP_VER  = '103';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1831,7 +1831,7 @@ function prodCfgPack() {
   const items = prodOnItems().map(i => { const o = {}; ['code', 'name', 'unit', 'ecEa', 'ecDiv', 'ecSpec', 'kind', 'manual', 'prodEa', 'grp', 'ecName', 'ecMissing', 'ecSrc', 'dough', 'doughName', 'ratio', 'np', 'ccp'].forEach(k => { if (i[k] != null && i[k] !== '' && i[k] !== false) o[k] = i[k]; }); return o; });
   const stats = {}; items.forEach(i => { const x = st[i.code]; if (x) stats[i.code] = { n: x.n, last: x.last, lastQty: x.lastQty, med: x.med, wd: x.wd }; });
   const asOf = [...Object.values(P.slog || {}).map(e => e.ts || ''), ...P.log.filter(en => en.status === 'sent' && !en.test).map(en => en.sentAt || en.ts || '')].reduce((a, b) => b > a ? b : a, '');
-  const c = P.cfg; return { v: 1, src: P.hist && P.hist.kind === 'cons' ? 'cons' : '', asOf, cfg: { relayUrl: c.relayUrl, test: !!c.test, emp: c.emp, whF: c.whF, whT: c.whT, extra: c.extra, dec: c.dec, workers: c.workers || '', wkRem: c.wkRem !== false, batch: c.batch !== false, cutoff: c.cutoff || '17:30', ccpWho: c.ccpWho || '', ccpOk: c.ccpOk || '' }, items, stats };
+  const c = P.cfg; return { v: 1, src: P.hist && P.hist.kind === 'cons' ? 'cons' : '', asOf, cfg: { relayUrl: c.relayUrl, test: !!c.test, emp: c.emp, whF: c.whF, whT: c.whT, extra: c.extra, dec: c.dec, workers: c.workers || '', wkRem: c.wkRem !== false, batch: c.batch !== false, cutoff: c.cutoff || '17:30', ccpWho: c.ccpWho || '', ccpOk: c.ccpOk || '', ccpStamp: c.ccpStamp || '' }, items, stats };
 }
 function prodCfgShare() {
   try {
@@ -2354,7 +2354,9 @@ const CCP_CSS = `.ccp-sheet{background:#fff;color:#000;max-width:1000px;margin:0
 .ccp-frame>table td:first-child,.ccp-frame>table th:first-child{border-left:0}.ccp-frame>table td:last-child,.ccp-frame>table th:last-child{border-right:0}
 .ccp-sheet table.m th{background:#CEDEEF;color:#555;font-size:11.5px;border-color:#9AA4AE}.ccp-sheet table.m td{border-color:#B9C1C9;font-size:12.5px}
 .ccp-sheet table.m td.nm{font-size:12px}.ccp-band{background:#CEDEEF;text-align:center;font-size:12.5px;padding:5px;border-top:1px solid #000;border-bottom:1px solid #9AA4AE}
-.ccp-sheet .ccp-sign th{background:#F2F2F2;font-size:11.5px;padding:2px 10px;border-color:#666}.ccp-sheet .ccp-sign td{height:40px;min-width:84px;font-size:13px;border-color:#666}.ccp-sheet .ccp-sign td.nm{height:auto;font-size:12px;padding:2px}
+.ccp-sheet .ccp-sign{width:auto;border-collapse:collapse}.ccp-sheet .ccp-sign th,.ccp-sheet .ccp-sign td{border:1px solid #777;padding:0 2px;font-size:10.5px;line-height:1.35;height:auto}.ccp-sheet .ccp-sign th{background:#F2F2F2;width:58px}.ccp-sheet .ccp-sign th.gl{width:30px;font-size:11.5px}
+.ccp-sheet .ccp-sign td.st{height:42px;width:58px;padding:2px}.ccp-sheet .ccp-sign td.nm{background:#fff;font-size:10.5px}.ccp-sheet .ccp-sign td.nm input{font-size:10.5px;padding:0;height:15px}
+.ccp-stamp{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:2px solid #E0201B;border-radius:50%;color:#E0201B;font-weight:800;line-height:1;letter-spacing:-1px;box-sizing:border-box;transform:rotate(-4deg);font-family:"Batang","바탕","Noto Serif KR",serif}
 .ccp-bar{display:flex;height:11px;border-bottom:1px solid #000}.ccp-bar i{flex:7;background:#E6B9B8}.ccp-bar b{flex:3;background:#F03F37}
 .ccp-title{background:#CEDEEF;padding:10px 12px 8px;border-bottom:1px solid #000}.ccp-title .t1{font-size:24px;font-weight:700;text-align:center;letter-spacing:-.4px}
 .ccp-title .t2{display:flex;align-items:flex-end;gap:8px;font-size:15px;margin-top:2px}.ccp-title .t2 .sub{flex:1;text-align:right}.ccp-title .t2.c .sub{text-align:center}.ccp-title .rev{color:#E8202A}.ccp-title .dt{font-size:12px}
@@ -2364,6 +2366,9 @@ const CCP_CSS = `.ccp-sheet{background:#fff;color:#000;max-width:1000px;margin:0
 .ccp-sheet input:focus,.ccp-sheet select:focus{outline:2px solid #0075FF;background:#F4F8FF}.ccp-sheet input[type=time]{min-width:92px}
 .ccp-sheet .ccp-mini{border:1px solid #9AA7B4;background:#fff;border-radius:4px;font-size:11px;padding:1px 5px;cursor:pointer;color:#333;margin:1px}
 .ccp-foot{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#555;margin-top:8px}`;
+/* 결재 도장 — 이름(또는 설정한 도장 글자)을 빨간 원 안에. 작성자 도장은 측정값을 다 넣었을 때, 승인자 도장은 승인자 이름을 넣었을 때 찍힘 */
+function ccpStampText(name) { const m = {}; String(prodS().cfg.ccpStamp || '').split(/[,，\n]+/).forEach(x => { const [a, b] = x.split('='); if (a && b) m[a.trim()] = b.trim(); }); return m[String(name).trim()] || String(name).trim(); }
+function ccpStamp(name) { const t = ccpStampText(name); if (!t) return ''; const n = [...t].length; return `<span class="ccp-stamp" style="font-size:${n <= 1 ? 19 : n === 2 ? 13 : n === 3 ? 10.5 : 8.5}px">${esc(t)}</span>`; }
 function ccpSheet(g, ed) {
   const T = CCP_TYPES[g.type], k = g.date + '|' + g.type, kid = ccpKid(g), w = WD[new Date(g.date + 'T00:00:00').getDay()];
   const V = (sec, i, f, v, kind) => { if (!ed) return esc(v == null ? '' : v);
@@ -2414,8 +2419,9 @@ function ccpSheet(g, ed) {
   }
   const done = ccpState(g).done;
   return `<div class="ccp-sheet">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><table class="ccp-sign" style="width:auto"><tr><th rowspan="3" style="padding:2px 9px">결재</th><th>${done && g.who ? '작성완료' : '작성'}</th><th>${g.ok ? '승인완료' : '승인'}</th></tr>
-      <tr><td>${ed ? `<input data-c="${k}|log|0|who" value="${esc(g.who || '')}" placeholder="이름">` : esc(g.who || '')}</td><td>${ed ? `<input data-c="${k}|log|0|ok" value="${esc(g.ok || '')}" placeholder="이름">` : esc(g.ok || '')}</td></tr><tr><th>작성자</th><th>승인자</th></tr></table></div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><table class="ccp-sign"><tr><th rowspan="4" class="gl">결재</th><th>작성완료</th><th>승인완료</th></tr>
+      <tr><td class="st">${g.who && !ccpState(g).miss ? ccpStamp(g.who) : ''}</td><td class="st">${g.ok ? ccpStamp(g.ok) : ''}</td></tr>
+      <tr><td class="nm">${ed ? `<input data-c="${k}|log|0|who" value="${esc(g.who || '')}" placeholder="작성자">` : esc(g.who || '')}</td><td class="nm">${ed ? `<input data-c="${k}|log|0|ok" value="${esc(g.ok || '')}" placeholder="승인자">` : esc(g.ok || '')}</td></tr><tr><th>작성자</th><th>승인자</th></tr></table></div>
     <div class="ccp-frame"><div class="ccp-bar"><i></i><b></b></div><div class="ccp-title">${title}</div>
       ${top}<div class="ccp-sp"></div>${mid}<div class="ccp-sp top"></div>
       <table><tr><td class="lb" style="width:96px">개선조치<br>방법</td><td class="txt">${fixRows(fix)}</td></tr></table>
@@ -2434,7 +2440,11 @@ function ccpPrint(D) {
   const L = ccpS().logs, logs = CCP_ORDER.map(t => L[D + '|' + t]).filter(Boolean); if (!logs.length) { toast('인쇄할 일지가 없습니다'); return; }
   const w = window.open('', '_blank'); if (!w) { toast('팝업이 막혀 인쇄 창을 열 수 없습니다'); return; }
   w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>CCP 일지 ${esc(D)}</title><style>${CCP_CSS}
-    body{margin:0;background:#fff}.ccp-sheet{page-break-after:always;max-width:none;padding:10mm 8mm}@page{size:A4;margin:6mm}</style></head><body>${logs.map(g => ccpSheet(g, false)).join('')}<script>setTimeout(function(){window.print()},300)<\/script></body></html>`);
+    body{margin:0;background:#fff}.pg{width:198mm;height:284mm;overflow:hidden;page-break-after:always;break-after:page}.pg:last-child{page-break-after:auto;break-after:auto}.ccp-sheet{max-width:none;width:198mm;box-sizing:border-box;padding:4mm 3mm;transform-origin:top left}.ccp-foot{display:none}@page{size:A4;margin:6mm}</style></head>
+    <body>${logs.map(g => `<div class="pg">${ccpSheet(g, false)}</div>`).join('')}
+    <script>/* 한 장(A4)에 들어가도록 일지마다 줄임 — 2쪽으로 넘어가지 않게 */
+    function fit(){ document.querySelectorAll('.pg').forEach(function(p){ var s=p.firstElementChild; s.style.transform=''; var r=Math.min(1,(p.clientHeight-2)/s.scrollHeight); if(r<1) s.style.transform='scale('+r+')'; }); }
+    window.onbeforeprint=fit; setTimeout(function(){ fit(); window.print(); },400);<\/script></body></html>`);
   w.document.close();
 }
 
@@ -2443,7 +2453,7 @@ function ccpMapHtml() {
   const its = prodOnItems(), c = prodS().cfg;
   return `<div class="card"><h2>⚙ 품목별 CCP 연결 <span class="muted" style="font-size:12px;font-weight:600">(관리자)</span></h2>
     <div class="muted" style="margin-bottom:8px">생산한 품목마다 어떤 CCP 일지를 만들지 정합니다. 처음에는 2026-09 K-HACCP 기록대로 맞춰 두었습니다 (굽는 품목 → 오븐·급냉·금속, 마늘빵류 → 급냉·금속, 배합 → 크림배합). 바꾸면 다른 기기에도 전달됩니다.</div>
-    <div class="prow" style="gap:10px;margin-bottom:8px"><div class="field" style="width:160px"><label>기본 점검자</label><input id="ccpWho" value="${esc(c.ccpWho || '')}" placeholder="이름"></div><div class="field" style="width:160px"><label>기본 승인자</label><input id="ccpOk" value="${esc(c.ccpOk || '')}" placeholder="이름"></div></div>
+    <div class="prow" style="gap:10px;margin-bottom:8px"><div class="field" style="width:160px"><label>기본 점검자</label><input id="ccpWho" value="${esc(c.ccpWho || '')}" placeholder="이름"></div><div class="field" style="width:160px"><label>기본 승인자</label><input id="ccpOk" value="${esc(c.ccpOk || '')}" placeholder="이름"></div><div class="field" style="flex:1 1 260px"><label>도장 글자 (선택 · 이름=글자, 쉼표로 구분)</label><input id="ccpStamp" value="${esc(c.ccpStamp || '')}" placeholder="예: 홍길동=洪, 김철수=金 — 비우면 이름 그대로"></div></div>
     <div class="tablewrap"><table class="t"><thead><tr><th>품목</th>${CCP_ORDER.map(t => `<th style="text-align:center">${CCP_TYPES[t].ico} ${CCP_TYPES[t].short}</th>`).join('')}</tr></thead><tbody>
     ${its.map(it => { const o = ccpOf(it); return `<tr><td>${esc(it.name)} <span class="muted" style="font-size:11px">${esc(it.code)}</span></td>${CCP_ORDER.map(t => `<td style="text-align:center"><input type="checkbox" data-ccpmap="${esc(it.code)}|${t}" ${o[t] ? 'checked' : ''} style="width:18px;height:18px"></td>`).join('')}</tr>`; }).join('') || '<tr><td colspan="5" class="muted">생산 품목이 없습니다</td></tr>'}</tbody></table></div></div>`;
 }
@@ -2465,6 +2475,7 @@ function ccpBind(box) {
   box.onchange = e => { const el = e.target;
     if (el.dataset.c && el.tagName === 'SELECT') ccpSet(el.dataset.c, el.value);
     if (el.id === 'ccpPick') { S.ui.ccpDate = el.value; const by = ccpProdByDate(); if (by[el.value]) ccpEnsure(el.value, by[el.value]); save(); renderCcp(); }
+    if (el.id === 'ccpStamp') { prodS().cfg.ccpStamp = el.value.trim(); save(); toast('도장 글자를 저장했습니다'); renderCcp(); return; }
     if (el.id === 'ccpWho' || el.id === 'ccpOk') { prodS().cfg[el.id === 'ccpWho' ? 'ccpWho' : 'ccpOk'] = el.value.trim(); save(); toast('기본 점검자·승인자를 저장했습니다 (새로 만드는 일지부터)'); }
     if (el.dataset.ccpmap) { const [code, t] = el.dataset.ccpmap.split('|'); const it = prodItem(code); if (!it) return; let v = ccpCode(it).replace(CCP_SUFFIX[t], ''); if (el.checked) v += CCP_SUFFIX[t]; it.ccp = v; save(); toast(`${it.name}: ${CCP_TYPES[t].short} ${el.checked ? '연결' : '해제'} — 다음 생산부터 반영`); }
   };
