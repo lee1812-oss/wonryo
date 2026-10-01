@@ -1056,7 +1056,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '095';
+const APP_VER  = '096';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -4150,7 +4150,8 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
       '<label style="display:block;font-size:13px;font-weight:700;margin-top:18px">아이디' +
       '<input type="text" class="wl-id" autocomplete="username" value="' + savedId.replace(/"/g, '&quot;') + '" placeholder="아이디" style="' + INP + '"></label>' +
       '<label style="display:block;font-size:13px;font-weight:700;margin-top:12px">비밀번호' +
-      '<input type="password" class="wl-pw" autocomplete="current-password" placeholder="' + (rem ? '●●●● 저장된 비밀번호로 로그인 (바꾸려면 입력)' : '비밀번호') + '" style="' + INP + '"></label>' +
+      '<input type="password" class="wl-pw" autocomplete="current-password" placeholder="' + (rem ? '●●●● 저장된 비밀번호 사용' : '비밀번호') + '" style="' + INP + '"></label>' +
+      '<div class="wl-pwhint" style="' + (rem ? '' : 'display:none;') + 'font-size:12px;color:#8291A0;margin-top:5px;line-height:1.5">비워 두고 「로그인」을 누르면 됩니다. 다른 비밀번호로 들어가려면 새로 입력하세요.</div>' +
       '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:11px">' +
       '<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#4A5A65;cursor:pointer"><input type="checkbox" class="wl-sid"' + (pref.noId ? '' : ' checked') + ' style="width:16px;height:16px;accent-color:#173F4B">아이디 저장</label>' +
       '<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#4A5A65;cursor:pointer"><input type="checkbox" class="wl-rem"' + (rem || !pref.noPw ? ' checked' : '') + ' style="width:16px;height:16px;accent-color:#173F4B">비밀번호 저장</label></div>' +
@@ -4184,9 +4185,9 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
         how = 'saved';
         (who === LOGIN_ID ? Promise.resolve(true) : fetchAcct(who).then(function (a) { return a !== null; }))
           .then(function (okAcct) {
-            if (!okAcct) { forgetKey(); rem = null; pw.placeholder = '비밀번호'; fail('등록되지 않은 아이디입니다. 관리자에게 문의해 주세요.'); return; }
+            if (!okAcct) { forgetKey(); rem = null; pw.placeholder = '비밀번호'; ov.querySelector('.wl-pwhint').style.display = 'none'; fail('등록되지 않은 아이디입니다. 관리자에게 문의해 주세요.'); return; }
             return decryptWith(rem.key, blob).then(function (txt) { applyStored(rem); return finishLogin(txt); })
-              .catch(function () { forgetKey(); rem = null; pw.placeholder = '비밀번호'; fail('저장된 비밀번호가 바뀌었습니다. 비밀번호를 넣어 주세요.'); pw.focus(); });
+              .catch(function () { forgetKey(); rem = null; pw.placeholder = '비밀번호'; ov.querySelector('.wl-pwhint').style.display = 'none'; fail('저장된 비밀번호가 바뀌었습니다. 비밀번호를 넣어 주세요.'); pw.focus(); });
           });
         return;
       }
