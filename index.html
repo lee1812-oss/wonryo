@@ -1033,7 +1033,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '087';
+const APP_VER  = '088';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1600,7 +1600,7 @@ window.addEventListener('message', e => {
   if (m.locked) { prodLocked = true; return; }   /* 완제품·생지가 아직 잠겨 있음 — 풀리면 스스로 다시 보냄 */
   const wanted = prodWait > 0; prodWait = 0;
   const P = prodS();
-  if (P.hist && P.hist.kind === 'cons') { if (wanted) toast('생산 품목은 「생산입고 소모현황」에 있는 품목만 씁니다 — 완제품·생지 품목은 추가하지 않습니다'); return; }   /* v084: 소모현황 기준일 때는 완제품·생지 목록으로 덮어쓰거나 늘리지 않음 */
+  if ((P.hist && P.hist.kind === 'cons') || P.consSrc) { if (wanted) toast('생산 품목은 「생산입고 소모현황」에 있는 품목만 씁니다 — 완제품·생지 품목은 추가하지 않습니다'); return; }   /* v084: 소모현황 기준일 때는 완제품·생지 목록으로 덮어쓰거나 늘리지 않음 */
   const by = new Map(P.items.map(i => [i.code, i])); let add = 0, changed = false;
   m.items.forEach(x => {
     if (!x || !x.code) return; const code = String(x.code).trim(); if (!code) return;
@@ -1804,12 +1804,13 @@ function prodCfgPack() {
   const items = prodOnItems().map(i => { const o = {}; ['code', 'name', 'unit', 'ecEa', 'ecDiv', 'ecSpec', 'kind', 'manual', 'prodEa', 'grp', 'ecName', 'ecMissing', 'ecSrc', 'dough', 'doughName', 'ratio', 'np'].forEach(k => { if (i[k] != null && i[k] !== '' && i[k] !== false) o[k] = i[k]; }); return o; });
   const stats = {}; items.forEach(i => { const x = st[i.code]; if (x) stats[i.code] = { n: x.n, last: x.last, lastQty: x.lastQty, med: x.med, wd: x.wd }; });
   const asOf = [...Object.values(P.slog || {}).map(e => e.ts || ''), ...P.log.filter(en => en.status === 'sent' && !en.test).map(en => en.sentAt || en.ts || '')].reduce((a, b) => b > a ? b : a, '');
-  const c = P.cfg; return { v: 1, asOf, cfg: { relayUrl: c.relayUrl, test: !!c.test, emp: c.emp, whF: c.whF, whT: c.whT, extra: c.extra, dec: c.dec, workers: c.workers || '', wkRem: c.wkRem !== false, batch: c.batch !== false, cutoff: c.cutoff || '17:30' }, items, stats };
+  const c = P.cfg; return { v: 1, src: P.hist && P.hist.kind === 'cons' ? 'cons' : '', asOf, cfg: { relayUrl: c.relayUrl, test: !!c.test, emp: c.emp, whF: c.whF, whT: c.whT, extra: c.extra, dec: c.dec, workers: c.workers || '', wkRem: c.wkRem !== false, batch: c.batch !== false, cutoff: c.cutoff || '17:30' }, items, stats };
 }
 function prodCfgShare() {
   try {
     if (!isAdmin() || !shareOn() || !S.prod || !(window.WLOCK && WLOCK.shareKey && WLOCK.shareKey())) return; const P = prodS();
-    if (!String(P.cfg.relayUrl || '').trim() || !prodOnItems().length || !(P.hist || !P.cfgTs)) return;   /* 이력을 불러온 기기(또는 처음 정한 기기)만 올림 */
+    const src = !!(P.hist && P.hist.kind === 'cons');   /* v088: 「생산입고 소모현황」을 넣은 기기가 기준 — 옛 이력만 있는 기기는 올리지 않음 */
+    if (!String(P.cfg.relayUrl || '').trim() || !prodOnItems().length || (!src && (P.hist || P.cfgTs))) return;
     const note = JSON.stringify(prodCfgPack()); if (note === P.cfgSent) return;
     const ts = new Date().toISOString(); P.cfgSent = note; P.cfgTs = ts;
     nbQueue({ ts, week: '', code: 'prod', name: '생산일지 설정', kind: 'pcfg', note });
@@ -1817,8 +1818,11 @@ function prodCfgShare() {
 }
 function prodCfgApply(row) {
   const P = prodS(); if (!row.note || row.del) return false; if ((P.cfgTs || '') >= row.ts) return false;
-  if (P.hist) return false;   /* 생산 이력을 가진 기기(관리자 PC)는 자기 설정이 기준 */
+  if (P.hist && P.hist.kind === 'cons') return false;   /* 소모현황을 가진 기기(관리자 PC)는 자기 설정이 기준 */
   let pk; try { pk = JSON.parse(row.note); } catch (e) { return false; } if (!pk || !pk.cfg || !Array.isArray(pk.items)) return false;
+  if (P.hist && pk.src !== 'cons') return false;
+  if (P.hist) { P.hist = null; P.histMap = {}; }   /* v088: 예전 생산입고조회 이력만 있던 기기는 관리자 PC의 소모현황 기준 설정을 따름 */
+  P.consSrc = pk.src === 'cons';
   Object.assign(P.cfg, pk.cfg); const old = {}; P.items.forEach(i => { old[i.code] = i; });
   P.items = pk.items.map(i => Object.assign({}, i, { on: true }));
   P.shStats = pk.stats || {}; P.shAsOf = pk.asOf || ''; P.cfgTs = row.ts; P.cfgSent = row.note; P.cfgFrom = [row.user, row.device].filter(Boolean).join(' · ');
@@ -1900,7 +1904,7 @@ function renderProdNew() {
   const lastSent = P.log.find(en => en.status === 'sent');
   const todayLog = P.log.filter(en => en.date === P.draft.date && en.status === 'sent');
   box.innerHTML = `<div class="pnw"><div class="pnw-main">
-  ${ready.ok ? '' : `<div class="card" style="border-color:#E8C98E;background:var(--warn-bg)"><b>연동 준비가 필요합니다</b><div class="muted" style="margin:4px 0 8px">${esc(ready.msg)}</div><button class="btn sm" data-pgo="pset">${isAdmin() ? '⚙ 통합 설정 → 생산일지 연동 열기' : '🔒 관리자에게 알려 주세요 (관리자 화면 열기)'}</button></div>`}
+  ${ready.ok ? '' : `<div class="card" style="border-color:#E8C98E;background:var(--warn-bg)"><b>연동 준비가 필요합니다</b><div class="muted" style="margin:4px 0 8px">${esc(ready.msg)}</div><div class="prow">${shareOn() && !(P.hist && P.hist.kind === 'cons') ? '<button class="btn sm primary" id="pCfgRefetch2">관리자 PC 설정 다시 받기</button>' : ''}<button class="btn sm" data-pgo="pset">${isAdmin() ? '⚙ 통합 설정 → 생산일지 연동 열기' : '🔒 관리자에게 알려 주세요 (관리자 화면 열기)'}</button></div></div>`}
   <div class="pnw-top"><div class="card pbar">
     <div class="prow">
       <div class="field" style="flex:1 1 150px"><label for="pDate">생산일</label><input type="date" id="pDate" value="${esc(P.draft.date)}"></div>
@@ -1949,6 +1953,7 @@ function renderProdNew() {
   const refreshConv = l => { const c = document.querySelector(`#prodNew [data-pconv="${l.id}"]`); if (c) c.innerHTML = prodConvText(prodItem(l.code), l); };
   const addCode = (code, focus) => { let l = P.draft.lines.find(x => x.code === code); if (!l) { l = prodNewLine(code); P.draft.lines.push(l); } return l; };
   $('#pDate').onchange = e => { P.draft.date = e.target.value || today(); save(); renderProdNew(); };
+  if ($('#pCfgRefetch2')) $('#pCfgRefetch2').onclick = async () => { const b = $('#pCfgRefetch2'); b.disabled = true; b.textContent = '받는 중…'; const P0 = prodS(); P0.cfgTs = ''; await prodCfgRefetch(true); renderProdNew(); toast(prodReady().ok ? '관리자 PC의 생산일지 설정을 받았습니다' : '아직 받지 못했습니다 — 관리자 PC에서 통합 재고관리를 열어 두고 1~2분 뒤 다시 눌러 주세요'); };
   if ($('#pCfgRefetch')) $('#pCfgRefetch').onclick = async () => { const b = $('#pCfgRefetch'); b.disabled = true; b.textContent = '받는 중…'; prodS().cfgTs = ''; await prodCfgRefetch(true); renderProdNew(); toast(prodOnItems().length ? `생산 품목 ${prodOnItems().length}개를 받았습니다` : '아직 관리자 설정이 없습니다 — 관리자 PC에서 통합 재고관리를 열어 두세요'); };
   $$('#prodNew [data-pwk]').forEach(b => b.onclick = () => { const n = b.dataset.pwk, W = P.draft.workers; const i = W.indexOf(n); if (i >= 0) W.splice(i, 1); else W.push(n); save(); renderProdNew(); });
   const wkAdd = () => { const el = $('#pWkAdd'); const v = el ? el.value.trim() : ''; if (!v) return; v.split(/[,，、·]+/).map(x => x.trim()).filter(Boolean).forEach(n => { if (!P.draft.workers.includes(n)) P.draft.workers.push(n); }); save(); renderProdNew(); };
@@ -2776,7 +2781,7 @@ async function sharePull(full, quiet) {
       if (row.expiry) { const m = S.itemMeta[row.code] || (S.itemMeta[row.code] = {}); m.expiry = row.expiry; m.expiryWeek = row.week; } changed++; });
     if (applied.length > 60) logAdd({ ts: applied[applied.length - 1].ts, user: '(여러 명)', device: '공유 저장소', text: `공유 자료 ${applied.length}건 받음` }); else applied.forEach(row => logAdd({ ts: row.ts, user: row.user || '', device: row.device || '', text: shareRowText(row) }));
     sh.lastPull = new Date().toISOString(); sh.err = ''; save(true); renderSharePill();
-    if (!full && S.prod && !S.prod.hist && !prodOnItems().length && Date.now() - prodRefetchAt >= 10 * 60000) { S.prod.cfgTs = ''; setTimeout(() => prodCfgRefetch(false), 500); }   /* v082: 생산 품목이 비어 있으면 처음부터 한 번 다시 받음 (시각 차이로 설정 행을 건너뛴 경우 대비) */
+    if (!full && S.prod && !(S.prod.hist && S.prod.hist.kind === 'cons') && (!prodOnItems().length || !String((S.prod.cfg || {}).relayUrl || '').trim() || !S.prod.consSrc) && Date.now() - prodRefetchAt >= 10 * 60000) { S.prod.cfgTs = ''; setTimeout(() => prodCfgRefetch(false), 500); }   /* v088: 설정을 못 받았거나 옛 기준이면 처음부터 다시 받음 */   /* v082: 생산 품목이 비어 있으면 처음부터 한 번 다시 받음 (시각 차이로 설정 행을 건너뛴 경우 대비) */
     if (inspCh) renderSharePill();
     if (pcfgCh) { if (pcfgCh !== 'log') toast('관리자 PC에서 생산일지 설정을 받았습니다'); if (S.ui.menu === 'prod' && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#prodNew'))) renderProd(); }
     if (nbCh) { renderNotice(); if (nbNew.length && !full) { const r = nbNew[nbNew.length - 1]; let t = ''; try { t = JSON.parse(r.note || '{}').text || ''; } catch (e) {} toast(`📢 새 전달사항 · ${r.name || ''}: ${String(t).slice(0, 40)}`); } }
