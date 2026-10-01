@@ -1716,6 +1716,8 @@ window.WJSG={get S(){return S;},ecFetch,ecApply,item,go,commit,render,renderStoc
     if (booted) return; booted = true;
     var el = document.querySelector('.fin-lock-ov');   /* 늦게 온 열쇠라도 비밀번호 창을 치웁니다 */
     if (el) el.remove();
+    /* v098: 부모에게 「열렸음」을 알림 — 부모는 이 열쇠를 다른 기기와 나눠 씀 */
+    if (inFrame) { try { window.parent.postMessage({ type: 'fin-unlocked', salt: blob.salt }, (location.protocol === 'file:' || !location.origin || location.origin === 'null') ? '*' : location.origin); } catch (e) {} }
     finish(txt);
   }
   if (inFrame) {
