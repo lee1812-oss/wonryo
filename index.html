@@ -1087,7 +1087,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '144';
+const APP_VER  = '145';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2545,7 +2545,7 @@ function ccpDates() { const by = ccpProdByDate(), L = ccpS().logs, s = new Set(O
 function renderCcp() {
   const box = $('#prodCcp'); if (!box) return; const P = prodS();
   ccpEnsureAll(45); ccpFillDefaults();
-  const dates = ccpDates(); if (!S.ui.ccpDate || !dates.includes(S.ui.ccpDate)) S.ui.ccpDate = dates[0] || today();
+  const dates = ccpDates(); if (!/^\d{4}-\d{2}-\d{2}$/.test(S.ui.ccpDate || '')) S.ui.ccpDate = dates[0] || today();   /* v145: 일지가 없는 날짜도 고를 수 있게 (전일·익일 이동) */
   const D = S.ui.ccpDate, L = ccpS().logs, logs = [L[D + '|prod'], ...Object.keys(L).filter(k => k.startsWith(D + '|lot~')).sort((a, b) => String(L[a].name).localeCompare(String(L[b].name), 'ko')).map(k => L[k]), ...CCP_ORDER.map(t => L[D + '|' + t])].filter(g => g && !g.skip);
   const chip = d => { const gs = CCP_ALL.map(t => L[d + '|' + t]).filter(g => g && !g.skip); const st = gs.map(ccpState); const bad = st.some(s => s.bad), miss = st.reduce((a, s) => a + s.miss, 0);
     return `<button class="btn sm${d === D ? ' primary' : ''}" data-ccpdate="${d}" style="${d === D ? '' : bad ? 'border-color:var(--minus);color:var(--minus)' : miss ? 'border-color:#E8C98E' : ''}">${esc(d.slice(5))} (${WD[new Date(d + 'T00:00:00').getDay()]}) ${gs.length ? (bad ? '⚠' : miss ? '✎' : '✓') : ''}</button>`; };
@@ -2562,7 +2562,7 @@ function renderCcp() {
     ${(() => { if (!shareOn()) return ''; const sh = shareCfg(), wait = (sh.outbox || []).filter(r => r.kind === 'pday' || r.kind === 'ccp').length; const er = sh.pushErr || sh.err; return wait > 20 || er ? `<div class="muted" style="font-size:12px;color:var(--minus);margin-top:4px">⚠ ${wait ? `다른 기기로 보낼 일지 ${wait}건 대기 중` : ''}${er ? ` — ${esc(er)}` : ' — 보내는 중입니다 (1분마다 다시 시도)'}</div>` : ''; })()}
   </div>
   ${V === 'cal' ? ccpCalHtml(D) : V === 'dev' ? ccpDevHtml() : V === 'list' ? ccpListHtml(D) : V === 'map' ? ccpMapHtml() : `<div class="card"><div class="prow" style="align-items:center;gap:8px"><button class="btn sm" data-ccpview="cal">← 달력</button>
-      <input type="date" id="ccpPick" value="${esc(D)}" style="width:150px"><b>${esc(D)} (${WD[new Date(D + 'T00:00:00').getDay()]}) 생산</b> <span class="muted" style="flex:1 1 200px">${prods.length ? prods.map(x => `${esc(x.name)} ${fmt(x.ea || x.ec)}`).join(' · ') : '생산 기록 없음'}</span><button class="btn" id="ccpPrint">🖨 이 날짜 인쇄</button></div>
+      <input type="date" id="ccpPick" value="${esc(D)}" style="width:150px"><span class="pday-nav" style="margin:0" role="group" aria-label="일지 날짜 바꾸기"><button type="button" class="btn sm" data-ccpday="-1">‹ 전일</button><button type="button" class="btn sm${D === today() ? ' primary' : ''}" data-ccpday="0">오늘</button><button type="button" class="btn sm" data-ccpday="1">익일 ›</button></span><b>${esc(D)} (${WD[new Date(D + 'T00:00:00').getDay()]}) 생산</b> <span class="muted" style="flex:1 1 200px">${prods.length ? prods.map(x => `${esc(x.name)} ${fmt(x.ea || x.ec)}`).join(' · ') : '생산 기록 없음'}</span><button class="btn" id="ccpPrint">🖨 이 날짜 인쇄</button></div>
     <div class="prow" style="align-items:center;gap:8px;margin-top:8px;font-size:12.5px"><span class="muted">기본값 —</span><label class="muted">점검자 <input id="ccpWho" value="${esc(P.cfg.ccpWho || '')}" placeholder="이름" style="width:110px;padding:4px 8px"></label><label class="muted">검토자 <input id="ccpRev" value="${esc(P.cfg.ccpRev || '')}" placeholder="이름" style="width:110px;padding:4px 8px"></label><label class="muted">승인자 <input id="ccpOk" value="${esc(P.cfg.ccpOk || '')}" placeholder="이름" style="width:110px;padding:4px 8px"></label><span class="muted" style="font-size:11.5px">비어 있는 일지에 자동으로 들어갑니다 · 일지마다 아래 결재란에서 고칠 수 있습니다</span></div></div>
   ${logs.length ? (() => { const tid = g => g.type + (g.sub ? '~' + g.sub : ''); const cur = logs.find(g => tid(g) === S.ui.ccpTab) || logs[0];
       const tabs = logs.map(g => { const st = ccpState(g), on = g === cur, T = CCP_TYPES[g.type]; const dot = st.bad ? 'var(--minus)' : st.miss ? '#E0A030' : '#2E9E6A';
@@ -2996,6 +2996,7 @@ function ccpBind(box) {
     if (b.dataset.ccphalf) { const ps = b.dataset.ccphalf.split('|'), ix = Number(ps.pop()), g = ccpGet(ps.join('|')), r = g && g.rows[ix]; if (!r) return; r.half = (r.half || 'am') === 'am' ? 'pm' : 'am'; ccpTouch(g); renderCcp(); return; }
     if (b.dataset.ccprmlog) { const g = ccpGet(b.dataset.ccprmlog); if (!g) return; const T = CCP_TYPES[g.type];   /* v140: 일지 삭제 = 숨김(skip) — 다른 기기에도 전달 */
       if (!confirm(`${g.date} ${T.name}${g.type === 'lot' ? ' (' + g.name + ')' : ''} 일지를 삭제할까요?\n목록·달력·인쇄에서 빠지고 다른 기기에도 전달됩니다.`)) return; g.skip = true; ccpTouch(g); S.ui.ccpTab = ''; renderCcp(); toast('일지를 삭제했습니다'); return; }
+    if (b.dataset.ccpday != null) { const k = Number(b.dataset.ccpday), d = k ? ccpAddD(S.ui.ccpDate || today(), k) : today(); S.ui.ccpDate = d; S.ui.ccpCalM = d.slice(0, 7); const by = ccpProdByDate(); if (by[d]) ccpEnsure(d, by[d]); save(); renderCcp(); return; }   /* v145: 전일·오늘·익일 */
     if (b.dataset.ccpinfo) { S.ui.ccpInfo = !S.ui.ccpInfo; save(); renderCcp(); return; }
     if (b.dataset.ccpdevm) { const M = b.dataset.ccpdevm, y = +M.slice(0, 4), m = +M.slice(5); S.ui.ccpDevF = M + '-01'; S.ui.ccpDevT = ccpYmd(new Date(y, m, 0)); S.ui.ccpView = 'dev'; save(); renderCcp(); return; }
     if (b.dataset.ccpdevr) { [S.ui.ccpDevF, S.ui.ccpDevT] = b.dataset.ccpdevr.split('|'); save(); renderCcp(); return; }
