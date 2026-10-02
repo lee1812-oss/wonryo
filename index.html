@@ -1086,7 +1086,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '141';
+const APP_VER  = '142';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1565,7 +1565,7 @@ function prodS() {
   P.items = Array.isArray(P.items) ? P.items : [];   /* {code,name,unit,ecEa,ecDiv,kind,on,manual} */
   P.log = Array.isArray(P.log) ? P.log : [];
   if (!P.draft || !Array.isArray(P.draft.lines)) P.draft = { date: today(), lines: [] };
-  if (!P.draft.lines.length && P.draft.date !== today()) P.draft.date = today();
+  if (!P.draft.lines.length && P.draft.date !== today() && P.draft.dateOn !== today()) P.draft.date = today();   /* v142: 오늘 직접 고른 생산일은 품목을 담기 전에도 그대로 (다음 날 열면 오늘로) */
   if (P.hist && P.hist.kind === 'cons' && P.prunedCons !== (P.hist.importedAt || '1')) prodPruneCons();   /* v084: 이미 불러온 기기도 한 번 정리 */
   /* v076: 작업자 — 날마다 기본 작업자로 시작, 그날 안에서는 고친 대로 유지 (휴가 등) */
   if (!Array.isArray(P.draft.workers) || P.draft.wkDay !== today()) { P.draft.workers = prodWorkersDefault(P); P.draft.wkDay = today(); }
@@ -2120,7 +2120,7 @@ function renderProdNew() {
   const refreshConv = l => { const c = document.querySelector(`#prodNew [data-pconv="${l.id}"]`); if (c) c.innerHTML = prodConvText(prodItem(l.code), l); };
   const addCode = (code, focus) => { let l = P.draft.lines.find(x => x.code === code); if (!l) { l = prodNewLine(code); P.draft.lines.push(l); } return l; };
   if ($('#pModCancel')) $('#pModCancel').onclick = () => { P.draft = { date: today(), lines: [], workers: P.draft.workers || [] }; save(); renderProdNew(); };
-  $('#pDate').onchange = e => { P.draft.date = e.target.value || today(); save(); renderProdNew(); };
+  $('#pDate').onchange = e => { P.draft.date = e.target.value || today(); P.draft.dateOn = today(); save(); renderProdNew(); };
   if ($('#pCfgRefetch2')) $('#pCfgRefetch2').onclick = async () => { const b = $('#pCfgRefetch2'); b.disabled = true; b.textContent = '받는 중…'; const P0 = prodS(); P0.cfgTs = ''; await prodCfgRefetch(true); await prodRelaySync(true); renderProdNew(); toast(prodReady().ok ? '관리자 PC의 생산일지 설정을 받았습니다' : '아직 받지 못했습니다 — 관리자 PC에서 통합 재고관리를 열어 두고 1~2분 뒤 다시 눌러 주세요'); };
   if ($('#pCfgRefetch')) $('#pCfgRefetch').onclick = async () => { const b = $('#pCfgRefetch'); b.disabled = true; b.textContent = '받는 중…'; prodS().cfgTs = ''; await prodCfgRefetch(true); await prodRelaySync(true); renderProdNew(); toast(prodOnItems().length ? `생산 품목 ${prodOnItems().length}개를 받았습니다` : '아직 관리자 설정이 없습니다 — 관리자 PC에서 통합 재고관리를 열어 두세요'); };
   $$('#prodNew [data-pwk]').forEach(b => b.onclick = () => { const n = b.dataset.pwk, W = P.draft.workers; const i = W.indexOf(n); if (i >= 0) W.splice(i, 1); else W.push(n); save(); renderProdNew(); });
