@@ -1087,7 +1087,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '146';
+const APP_VER  = '147';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2664,7 +2664,7 @@ function ccpDevHtml() {
   const [f, t] = ccpDevRange(), R = ccpDevReport(f, t, false), td = today(), mon = ccpMon(td);
   const q = (a, b, l) => `<button class="btn sm${f === a && t === b ? ' primary' : ''}" data-ccpdevr="${a}|${b}">${l}</button>`;
   return `<div class="card"><div class="prow" style="align-items:center;gap:8px;margin-bottom:8px"><button class="btn sm" data-ccpview="cal">← 달력</button><h2 style="margin:0;flex:1 1 auto">⚠ 한계기준 이탈 보고서</h2>
-      ${q(mon, ccpAddD(mon, 6), '이번 주')}${q(ccpAddD(mon, -7), ccpAddD(mon, -1), '지난 주')}<input type="date" id="ccpDevF" value="${f}" style="width:140px">~<input type="date" id="ccpDevT" value="${t}" style="width:140px"><button class="btn sm" id="ccpDevPrint">🖨 보고서 인쇄</button><button class="btn sm primary" id="ccpWeekly" title="이 기간의 이탈·미작성·점검 포인트를 HACCP 인력·교육 통합관리의 「주간 HACCP 점검 미팅」 발표 자료로 보냅니다 (파일 저장 + 복사)">📤 주간 HACCP 회의 자료</button></div>
+      ${q(mon, ccpAddD(mon, 6), '이번 주')}${q(ccpAddD(mon, -7), ccpAddD(mon, -1), '지난 주')}<input type="date" id="ccpDevF" value="${f}" style="width:140px">~<input type="date" id="ccpDevT" value="${t}" style="width:140px"><button class="btn sm" id="ccpDevPrint">🖨 보고서 인쇄</button><button class="btn sm" id="ccpLink" title="HACCP 인력·교육 통합관리의 주간 점검 미팅이 이 자료를 자동으로 받도록 연결 코드를 복사합니다 (처음 한 번)">🔗 HACCP 연결 코드</button><button class="btn sm primary" id="ccpWeekly" title="이 기간의 이탈·미작성·점검 포인트를 HACCP 인력·교육 통합관리의 「주간 HACCP 점검 미팅」 발표 자료로 보냅니다 (파일 저장 + 복사)">📤 주간 HACCP 회의 자료</button></div>
     <div class="muted" style="font-size:12px;margin-bottom:8px">주(월~일)마다 이탈을 확인하고, 잘못 입력한 값은 「열기」로 일지를 열어 고치거나 이탈내용·개선조치를 적으세요. 고친 줄은 보고서에서 바로 빠집니다. 「내부 확인 완료」 표시는 이 기기에 저장됩니다.</div>
     ${R.html}</div>`;
 }
@@ -2687,6 +2687,24 @@ function ccpWeeklyData(f, t) {
   return { kind: 'wonryo-weekly-haccp', v: 1, made: new Date().toISOString(), from: f, to: t,
     summary: { prodDays: pdays.length, logs: ccpLogs.length, done: st.filter(([, s]) => s.done).length, bad: new Set(devs.map(x => x.g)).size, badRows: devs.length, noRec: dv.filter(x => !x.rec).length, miss: miss.length, sus: sus.length },
     prod: pdays.map(d => ({ d, items: Object.values(by[d]).map(x => nm(x)) })), devs: dv, miss, sus, noSign: noSign.slice(0, 30) };
+}
+/* v147: 주간 HACCP 회의 자료 자동 전달 — 관리자 기기가 이번 주·지난 주 자료를 공유 저장소에 올려 두면
+   HACCP 인력·교육 통합관리 「주간 HACCP 점검 미팅」이 열릴 때 바로 받아 감 (내려받기·올리기 없이) */
+function ccpHash(t) { let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return String(h); }
+function ccpWeeklyTrim(D) { D.devs = (D.devs || []).slice(0, 40); D.sus = (D.sus || []).slice(0, 20); D.miss = (D.miss || []).slice(0, 30); D.noSign = (D.noSign || []).slice(0, 20); D.prod = (D.prod || []).map(p => ({ d: p.d, items: p.items.slice(0, 8) })); return D; }
+function ccpWeeklyPublish(force) {
+  if (!shareOn() || !isAdmin() || !prodKey()) return 0; const C = ccpS(); C.wkSig = C.wkSig || {}; let n = 0;
+  [0, -7].forEach(k => { const mon = ccpAddD(ccpMon(today()), k), sun = ccpAddD(mon, 6), fri = ccpAddD(mon, 4);
+    const D = ccpWeeklyTrim(ccpWeeklyData(mon, sun)); D.made = ''; const sig = ccpHash(JSON.stringify(D)); if (!force && C.wkSig[fri] === sig) return;
+    D.made = new Date().toISOString(); D.fri = fri; nbQueue({ ts: D.made, week: '', code: 'wkhaccp~' + fri, name: '주간 HACCP 회의 자료', kind: 'plog', note: JSON.stringify(D) }); C.wkSig[fri] = sig; n++; });
+  if (n) save(); return n;
+}
+setTimeout(() => { try { ccpWeeklyPublish(false); } catch (e) {} }, 25000); setInterval(() => { try { ccpWeeklyPublish(false); } catch (e) {} }, 10 * 60000);
+function ccpLinkCode() {
+  if (!shareOn() || !prodKey()) { toast('공유 저장소가 연결된 기기에서 만들 수 있습니다 (통합 설정)'); return; }
+  const code = 'BGGD-LINK:' + btoa(unescape(encodeURIComponent(JSON.stringify({ u: String(S.settings.shareUrl || '').trim(), k: prodKey() }))));
+  const ok = () => toast('연결 코드를 복사했습니다 — HACCP 통합관리 「주간 HACCP 점검 미팅」 → 「🔗 자동 연결」에 한 번만 붙여넣으세요 (회사 밖으로 보내지 마세요)');
+  try { navigator.clipboard.writeText(code).then(ok, () => prompt('아래 연결 코드를 복사하세요', code)); } catch (e) { prompt('아래 연결 코드를 복사하세요', code); }
 }
 function ccpWeeklyExport() {
   const [f, t] = ccpDevRange(), D = ccpWeeklyData(f, t), txt = JSON.stringify(D);
@@ -3027,7 +3045,8 @@ function ccpBind(box) {
     if (b.dataset.ccpdevm) { const M = b.dataset.ccpdevm, y = +M.slice(0, 4), m = +M.slice(5); S.ui.ccpDevF = M + '-01'; S.ui.ccpDevT = ccpYmd(new Date(y, m, 0)); S.ui.ccpView = 'dev'; save(); renderCcp(); return; }
     if (b.dataset.ccpdevr) { [S.ui.ccpDevF, S.ui.ccpDevT] = b.dataset.ccpdevr.split('|'); save(); renderCcp(); return; }
     if (b.id === 'ccpDevPrint') { ccpDevPrint(); return; }
-    if (b.id === 'ccpWeekly') { ccpWeeklyExport(); return; }
+    if (b.id === 'ccpWeekly') { try { ccpWeeklyPublish(true); } catch (e) {} ccpWeeklyExport(); return; }
+    if (b.id === 'ccpLink') { ccpLinkCode(); return; }
     if (b.dataset.ccpopen) { const [d, t] = b.dataset.ccpopen.split('|'); S.ui.ccpDate = d; S.ui.ccpTab = t; S.ui.ccpCalM = d.slice(0, 7); S.ui.ccpView = 'day'; save(); renderCcp(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     if (b.dataset.ccpview) { S.ui.ccpView = b.dataset.ccpview; save(); renderCcp(); return; }
     if (b.dataset.ccpcal) { S.ui.ccpCalM = b.dataset.ccpcal; save(); renderCcp(); return; }
