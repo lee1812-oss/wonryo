@@ -1070,7 +1070,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '132';
+const APP_VER  = '133';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1995,6 +1995,28 @@ function prodFamily(it) {
 }
 /* ── 입력 화면 ── */
 function prodNewLine(code) { return { id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), code, qty: '', note: '', mode: '' }; }
+/* v133: 생산 입력 화면 — 담은 품목으로 그날 CCP 일지가 어떻게 만들어지는지 바로 보여 줌 (보내기 전에는 미리보기, 보낸 뒤에는 실제 일지) */
+function ccpPreviewHtml(D, lines) {
+  const L = ccpS().logs, items = (lines || []).map(l => { const it = prodItem(l.code) || { name: l.code }; const q = Number(l.qty) || 0, pk = prodPack(it) || 1, ea = l.mode === 'ea';
+    const ec = ea && pk > 1 ? q / pk : q; return { code: l.code, name: it.name || l.code, ec, ea: ea ? q : ccpEa(it, ec), it }; });
+  const sent = Object.values(ccpProdByDate()[D] || {});
+  if (!items.length && !sent.length) return '';
+  const cards = CCP_ORDER.map(type => {
+    const its = items.filter(x => ccpOf(x.it)[type]), cur = L[D + '|' + type], live = cur && !cur.skip;
+    if (!its.length && !live && !(type === 'mix' && items.length)) return '';
+    const g = JSON.parse(JSON.stringify(live ? cur : ccpBlank(type, D))), old = new Set([...(g.rows || []), ...(g.pass || [])].map(r => r.id));
+    its.forEach(x => ccpAddItem(g, x)); if (type === 'mix' && !(g.items || []).includes('mix:auto')) ccpAddItem(g, { code: 'mix:auto', name: '기본', ec: 0 });
+    const T = CCP_TYPES[type], rows = (g.rows || []).filter(r => r.kind !== 'pre' && r.kind !== 'post');
+    const nNew = rows.filter(r => !old.has(r.id)).length, st = live ? ccpState(cur) : null;
+    const chip = r => { const s = ccpRowState(type, 'rows', r), isNew = !old.has(r.id); return `<span class="pcc-r${isNew ? ' new' : s.bad.length ? ' bad' : s.miss ? '' : ' ok'}">${esc(String(r.name || '').replace(/^(D|DB|Db)\./, ''))}${r.tag ? ` <i>${esc(r.tag)}</i>` : ''}${isNew ? ' <b>＋</b>' : s.bad.length ? ' ⚠' : s.miss ? '' : ' ✓'}</span>`; };
+    const pass = type === 'metal' ? (g.pass || []).map(r => `<span class="pcc-p">${esc(String(r.name || '').replace(/^(D|DB|Db)\./, ''))} 통과 <b>${fmt(Number(r.passed) || 0)}</b></span>`).join('') : '';
+    const fields = { oven: '측정시간 · 가열온도 · 가열시간 · 품온', freeze: '급냉 전·후 시각 · 급냉실 온도', mix: '보관시작 · 배합량 · 품온 · 작업장온도 · 소진시간', metal: '통과시간 · Fe/STS 감도 · 검출량' }[type];
+    return `<div class="pcc-c"><div class="pcc-h"><span>${T.ico} <b>${esc(T.short)}</b></span><span class="pcc-s ${live ? (st.bad ? 'bad' : st.miss ? 'miss' : 'ok') : 'new'}">${live ? (nNew ? `일지에 ${nNew}줄 더함` : st.bad ? '이탈 있음' : st.miss ? `입력 필요 ${st.miss}` : '작성 완료') : '새 일지'}</span></div>
+      <div class="pcc-rs">${rows.map(chip).join('')}</div>${pass ? `<div class="pcc-rs">${pass}</div>` : ''}<div class="pcc-f">현장 입력: ${fields}</div></div>`; }).filter(Boolean);
+  const anyNew = items.length > 0;
+  return `<div class="pcc"><div class="pcc-t"><b>🛡 ${esc(D.slice(5).replace('-', '/'))} CCP 일지</b> <span class="muted">${cards.length}개 공정</span>${Object.keys(L).some(k => k.startsWith(D + '|')) ? `<button type="button" class="btn xs" data-pccopen="${D}">일지 열기 ▸</button>` : ''}</div>
+    ${cards.join('')}<div class="muted" style="font-size:11.5px;margin-top:4px">${anyNew ? '<b class="pcc-k">＋</b> 표시는 담은 품목으로 새로 생길 줄입니다 — 이카운트로 보내면 그날 CCP 일지에 바로 들어갑니다. 측정값은 현장에서 재서 「CCP 일지」에 입력하세요.' : '이 날짜에 보낸 생산으로 만들어진 CCP 일지입니다.'}</div></div>`;
+}
 function renderProdNew() {
   const P = prodS(), box = $('#prodNew'); if (!box) return;
   const ready = prodReady(); const st = prodStats();
@@ -2010,6 +2032,7 @@ function renderProdNew() {
   const sug = items.filter(i => st[i.code] && st[i.code].wd[wd] >= 2 && st[i.code].last >= cutS).sort((a, b) => st[b.code].wd[wd] - st[a.code].wd[wd]).slice(0, 6);
   const lastSent = P.log.find(en => en.status === 'sent');
   const todayLog = P.log.filter(en => en.date === P.draft.date && en.status === 'sent');
+  try { const by0 = ccpProdByDate(); if (by0[P.draft.date]) ccpEnsure(P.draft.date, by0[P.draft.date]); } catch (e) {}   /* v133: 보낸 생산은 곧바로 CCP 일지로 */
   box.innerHTML = `<div class="pnw"><div class="pnw-main">
   ${ready.ok ? '' : `<div class="card" style="border-color:#E8C98E;background:var(--warn-bg)"><b>연동 준비가 필요합니다</b><div class="muted" style="margin:4px 0 8px">${esc(ready.msg)}</div><div class="prow">${shareOn() && !(P.hist && P.hist.kind === 'cons') ? '<button class="btn sm primary" id="pCfgRefetch2">관리자 PC 설정 다시 받기</button>' : ''}<button class="btn sm" data-pgo="pset">${isAdmin() ? '⚙ 통합 설정 → 생산일지 연동 열기' : '🔒 관리자에게 알려 주세요 (관리자 화면 열기)'}</button></div></div>`}
   <div class="pnw-top"><div class="card pbar">
@@ -2053,6 +2076,7 @@ function renderProdNew() {
       </div>`; }).join('')
     : '<div class="muted" style="padding:6px 0">「품목 고르기」에서 오늘 생산한 품목을 누르세요.</div>'}
     ${P.draft.lines.length ? `<div class="prow" style="margin-top:12px"><button class="btn primary psend" id="pSend" ${ready.ok ? '' : 'disabled'}>이카운트로 보내기 (${P.draft.lines.length}품목)</button><button class="btn" id="pClear">비우기</button></div>` : ''}
+    <div id="pCcp">${(() => { try { return ccpPreviewHtml(P.draft.date, P.draft.lines); } catch (e) { return ''; } })()}</div>
   </div>
   </div>
 </div>`;
@@ -2079,9 +2103,11 @@ function renderProdNew() {
     else { const bar = $('#pCartBar'); if (bar) { bar.classList.remove('bump'); void bar.offsetWidth; bar.classList.add('bump'); } toast(`${(prodItem(code) || {}).name || code} 담음 — 아래 「🧺 생산한 품목」에서 수량을 넣으세요`); }
   });
   if ($('#pAll')) $('#pAll').onclick = () => { ui.prodAll = !ui.prodAll; renderProdNew(); };
-  $$('#prodNew [data-pqty]').forEach(inp => inp.oninput = () => { const l = draftLine(inp.dataset.pqty); if (!l) return; l.qty = inp.value.replace(/[^0-9.]/g, ''); save(); refreshConv(l); });
+  const refreshCcp = () => { const c = $('#pCcp'); if (c) try { c.innerHTML = ccpPreviewHtml(P.draft.date, P.draft.lines); } catch (e) {} };
+  if ($('#pCcp')) $('#pCcp').onclick = e => { const b = e.target.closest('[data-pccopen]'); if (!b) return; S.ui.menu = 'prod'; S.ui.prodTab = 'pccp'; S.ui.ccpView = 'day'; S.ui.ccpDate = b.dataset.pccopen; S.ui.ccpCalM = b.dataset.pccopen.slice(0, 7); save(); renderAll(); window.scrollTo(0, 0); };
+  $$('#prodNew [data-pqty]').forEach(inp => inp.oninput = () => { const l = draftLine(inp.dataset.pqty); if (!l) return; l.qty = inp.value.replace(/[^0-9.]/g, ''); save(); refreshConv(l); refreshCcp(); });
   $$('#prodNew [data-pnote]').forEach(inp => inp.oninput = () => { const l = draftLine(inp.dataset.pnote); if (l) { l.note = inp.value; save(); } });
-  $$('#prodNew [data-pstep]').forEach(b => b.onclick = () => { const l = draftLine(b.dataset.pstep); if (!l) return; const v = Math.max(0, (Number(l.qty) || 0) + Number(b.dataset.d)); l.qty = v ? String(v) : ''; save(); const inp = document.querySelector(`#prodNew [data-pqty="${l.id}"]`); if (inp) inp.value = l.qty; refreshConv(l); });
+  $$('#prodNew [data-pstep]').forEach(b => b.onclick = () => { const l = draftLine(b.dataset.pstep); if (!l) return; const v = Math.max(0, (Number(l.qty) || 0) + Number(b.dataset.d)); l.qty = v ? String(v) : ''; save(); const inp = document.querySelector(`#prodNew [data-pqty="${l.id}"]`); if (inp) inp.value = l.qty; refreshConv(l); refreshCcp(); });
   $$('#prodNew [data-plast]').forEach(b => b.onclick = () => { const l = draftLine(b.dataset.plast); const s = l && st[l.code]; if (!s) return; l.qty = String(s.lastQty); l.mode = prodIsEa(prodItem(l.code)) ? 'ea' : ''; save(); renderProdNew(); });
   $$('#prodNew [data-pswap]').forEach(b => b.onclick = () => {   /* v081: 박스 ↔ 낱개 제품코드 바꾸기, 수량도 입수로 환산 */
     const l = draftLine(b.dataset.pswap), from = l && prodItem(l.code), to = prodItem(b.dataset.to); if (!l || !from || !to) return;
@@ -2597,6 +2623,8 @@ table.ccal td.has{background:#F7FBF9}table.ccal td:hover{outline:2px solid #1F6E
 .ccal-n{font-weight:800;font-size:13px}.ccal-p{font-size:11px;color:var(--ink2);margin-top:2px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .ccal-cs{display:flex;flex-wrap:wrap;gap:2px;margin-top:3px}.ccal-c{font-size:10.5px;padding:0 4px;border-radius:6px;white-space:nowrap;font-weight:700}.ccal-c.ok{background:#E3F4EC;color:#1F6E4A}.ccal-c.miss{background:#FBF1DF;color:#A86A12}.ccal-c.bad{background:#FBE9E9;color:#B23A3A}
 .ccp-sheet input::placeholder{color:#B5BEC6;font-weight:400;font-size:11px;opacity:1}
+.pcc{margin-top:14px;border-top:1px dashed var(--line);padding-top:10px}.pcc-t{display:flex;align-items:center;gap:8px;margin-bottom:6px}.pcc-t .btn{margin-left:auto}.pcc-c{border:1px solid var(--line);border-radius:10px;padding:7px 9px;margin-bottom:6px;background:var(--card,#fff)}.pcc-h{display:flex;justify-content:space-between;align-items:center;font-size:13px}.pcc-s{font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:8px}.pcc-s.new{background:#E6F0FB;color:#1F5FA8}.pcc-s.ok{background:#E3F4EC;color:#1F6E4A}.pcc-s.miss{background:#FBF1DF;color:#A86A12}.pcc-s.bad{background:#FBE9E9;color:#B23A3A}
+.pcc-rs{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}.pcc-r,.pcc-p{font-size:11.5px;padding:1px 7px;border-radius:7px;background:var(--line2,#F1F3F5);color:var(--ink2)}.pcc-r i{font-style:normal;color:var(--ink3)}.pcc-r.new{background:#E6F0FB;color:#1F5FA8;font-weight:700;animation:pccIn .5s ease}.pcc-r.ok{background:#E3F4EC;color:#1F6E4A}.pcc-r.bad{background:#FBE9E9;color:#B23A3A}.pcc-p{background:#FFF6E0;color:#8A5A00}.pcc-f{font-size:11px;color:var(--ink3);margin-top:4px}.pcc-k{color:#1F5FA8}@keyframes pccIn{from{transform:scale(.85);opacity:.3}to{transform:none;opacity:1}}
 @media (max-width:759px){table.ccal td{height:70px;padding:2px}.ccal-p{display:none}.ccal-c{font-size:9.5px;padding:0 2px}}`;
 /* 결재 도장 — 이름(또는 설정한 도장 글자)을 빨간 원 안에. 작성자 도장은 측정값을 다 넣었을 때, 승인자 도장은 승인자 이름을 넣었을 때 찍힘 */
 function ccpStamp(name) { const t = String(name || '').trim(); if (!t) return ''; const n = [...t].length; return `<span class="ccp-stamp" style="font-size:${n <= 2 ? 12 : n === 3 ? 10 : 8}px">${esc(t)}</span>`; }
