@@ -565,6 +565,7 @@ body.prod-on #weekSel{display:none}   /* v075: 생산일지·통합 설정에서
 .pquick .pchip.pk .pk-l{display:none}
 .pquick .pchip.pk .pk-v{font-size:20px}
 /* v138: 박스·낱개·비상품 수량 칸 */
+.pday-nav{display:flex;gap:4px;margin-top:6px}.pday-nav .btn{flex:1 1 0;min-height:34px;padding:4px 6px}
 .pfam-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin-top:8px}
 .pfam-c{border:1.5px solid var(--line);border-radius:12px;padding:6px 6px 6px;text-align:center;background:var(--card,#fff);min-width:0}
 .pfam-c.on{border-color:var(--accent);background:var(--accent-bg)}.pfam-c.np .pfam-l{color:var(--minus)}.pfam-c.np.on{border-color:var(--minus);background:#FDF1F1}
@@ -1086,7 +1087,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '143';
+const APP_VER  = '144';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2060,7 +2061,7 @@ function renderProdNew() {
   ${P.draft.replaces ? (() => { const o = P.log.find(x => x.id === P.draft.replaces); return o ? `<div class="card" style="border-color:#E8C98E;background:var(--warn-bg)"><b>✎ ${esc(o.date)} 전표 ${esc(o.slip || '')} 수정 중</b><div class="muted" style="font-size:12.5px">고친 뒤 보내면 새 전표가 이카운트에 들어가고, 생산작업일보·생산기록서·CCP 일지가 새 수량으로 바뀝니다. 이전 전표는 이카운트에서 지워야 합니다(할 일로 안내). <button type="button" class="btn xs" id="pModCancel">수정 그만두기</button></div></div>` : ''; })() : ''}
   <div class="pnw-top"><div class="card pbar">
     <div class="prow">
-      <div class="field" style="flex:1 1 150px"><label for="pDate">생산일</label><input type="date" id="pDate" value="${esc(P.draft.date)}"></div>
+      <div class="field" style="flex:1 1 150px"><label for="pDate">생산일 <span class="muted" style="font-weight:500">${esc(WD[new Date(P.draft.date + 'T00:00:00').getDay()])}요일${P.draft.date === today() ? ' · 오늘' : ''}</span></label><input type="date" id="pDate" value="${esc(P.draft.date)}"><div class="pday-nav" role="group" aria-label="생산일 바꾸기"><button type="button" class="btn sm" data-pday="-1">‹ 전일</button><button type="button" class="btn sm${P.draft.date === today() ? ' primary' : ''}" data-pday="0">오늘</button><button type="button" class="btn sm" data-pday="1">익일 ›</button></div></div>
       <div class="field" style="flex:1 1 120px"><label for="pWho">입력자</label><input id="pWho" value="${esc(S.settings.reporter || '')}" placeholder="이름"></div>
     </div>
     <div style="margin-top:8px"><span class="pill ${P.cfg.test ? 'warn' : 'ok'}">${P.cfg.test ? '테스트 모드 — 실제 이카운트에는 들어가지 않습니다' : '실제 이카운트로 전송'}</span></div>
@@ -2122,6 +2123,7 @@ function renderProdNew() {
   const addCode = (code, focus) => { let l = P.draft.lines.find(x => x.code === code); if (!l) { l = prodNewLine(code); P.draft.lines.push(l); } return l; };
   if ($('#pModCancel')) $('#pModCancel').onclick = () => { P.draft = { date: today(), lines: [], workers: P.draft.workers || [] }; save(); renderProdNew(); };
   $('#pDate').onchange = e => { P.draft.date = e.target.value || today(); P.draft.dateOn = today(); save(); renderProdNew(); };
+  $$('#prodNew [data-pday]').forEach(b => b.onclick = () => { const k = Number(b.dataset.pday); P.draft.date = k ? ccpAddD(P.draft.date || today(), k) : today(); P.draft.dateOn = today(); save(); renderProdNew(); });   /* v144: 전일·오늘·익일 */
   if ($('#pCfgRefetch2')) $('#pCfgRefetch2').onclick = async () => { const b = $('#pCfgRefetch2'); b.disabled = true; b.textContent = '받는 중…'; const P0 = prodS(); P0.cfgTs = ''; await prodCfgRefetch(true); await prodRelaySync(true); renderProdNew(); toast(prodReady().ok ? '관리자 PC의 생산일지 설정을 받았습니다' : '아직 받지 못했습니다 — 관리자 PC에서 통합 재고관리를 열어 두고 1~2분 뒤 다시 눌러 주세요'); };
   if ($('#pCfgRefetch')) $('#pCfgRefetch').onclick = async () => { const b = $('#pCfgRefetch'); b.disabled = true; b.textContent = '받는 중…'; prodS().cfgTs = ''; await prodCfgRefetch(true); await prodRelaySync(true); renderProdNew(); toast(prodOnItems().length ? `생산 품목 ${prodOnItems().length}개를 받았습니다` : '아직 관리자 설정이 없습니다 — 관리자 PC에서 통합 재고관리를 열어 두세요'); };
   $$('#prodNew [data-pwk]').forEach(b => b.onclick = () => { const n = b.dataset.pwk, W = P.draft.workers; const i = W.indexOf(n); if (i >= 0) W.splice(i, 1); else W.push(n); save(); renderProdNew(); });
