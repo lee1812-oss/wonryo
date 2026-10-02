@@ -1086,7 +1086,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '139';
+const APP_VER  = '140';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2339,7 +2339,7 @@ function ccpProdByDate() {
   /* v117: K-HACCP 생산일지 엑셀로 불러온 날짜는 그 자료만 씀 (그날 다른 입력은 겹치지 않게 제외) */
   const imp = {}; Object.values(P.pday || {}).forEach(e => { if (e && e.imp && e.d) imp[e.d] = e; });
   Object.values(imp).forEach(e => (e.l || []).forEach(x => add(e.d, x[0], Number(x[1]) || 0, x[2] || '', x[3], x[4] || '')));
-  (P.log || []).forEach(en => { if (en.status === 'cancel') return; if (en.cid) seen.add(en.cid); seen.add(en.id); if (imp[en.date]) return; (en.lines || []).forEach(l => add(en.date, l.code, Number(l.ecQty || l.qty) || 0, l.name)); });
+  (P.log || []).forEach(en => { if (en.cid) seen.add(en.cid); seen.add(en.id); if (en.status === 'cancel') return;   /* v140: 취소한 전표는 다른 경로(공유 기록)로도 다시 들어오지 않게 */ if (imp[en.date]) return; (en.lines || []).forEach(l => add(en.date, l.code, Number(l.ecQty || l.qty) || 0, l.name)); });
   Object.entries(P.pday || {}).forEach(([k, e]) => { if (!e || e.imp || seen.has(k)) return; seen.add(k); if (e.cid) seen.add(e.cid); if (imp[e.d]) return; (e.l || []).forEach(x => add(e.d, x[0], Number(x[1]) || 0, x[2] || '')); });   /* v109: 다른 기기의 생산(테스트 포함) */
   Object.entries(P.slog || {}).forEach(([k, e]) => { if (seen.has(k) || !e || imp[e.d]) return; (e.l || []).forEach(x => add(e.d, x[0], Number(x[1]) || 0, '')); });
   return out;
@@ -2465,6 +2465,24 @@ function ccpEnsure(date, prods) {
 /* v130: 점검자·승인자가 비어 있는 일지는 기본값으로 채움 (일지마다 고칠 수 있음, 이미 적힌 이름은 그대로) */
 function ccpFillDefaults() { const c = prodS().cfg, w = String(c.ccpWho || '').trim(), o = String(c.ccpOk || '').trim(), rv = String(c.ccpRev || '').trim(); let n = 0; if (!w && !o && !rv) return 0;
   Object.values(ccpS().logs).forEach(g => { if (!g || g.skip) return; let ch = false; if (rv && (g.type === 'prod' || g.type === 'lot') && !String(g.rev || '').trim()) { g.rev = rv; ch = true; } if (w && !String(g.who || '').trim()) { g.who = w; ch = true; } if (o && !String(g.ok || '').trim()) { g.ok = o; ch = true; } if (ch) n++; }); if (n) save(); return n; }
+/* v140: 그날 생산이 줄었을 때(전표 취소) 일지에서 그 품목을 뺌 — 손댄 일지도 생산 수량 줄은 맞추고, 측정값이 있는 CCP 줄은 남김 */
+function ccpSyncDate(date) {
+  const L = ccpS().logs, by = ccpProdByDate()[date] || {}, cs = new Set(Object.keys(by)); let rows = 0, kept = 0;
+  const A = L[date + '|prod'];
+  if (A) { (A.rows || []).forEach(r => { Object.keys(r.src || {}).forEach(c => { if (!cs.has(c)) { delete r.src[c]; ['box', 'ea', 'np'].forEach(sl => { const t = Object.entries(r.src).filter(([cc]) => (r.srcS || {})[cc] === sl).reduce((a, [, v]) => a + (Number(v) || 0), 0); r[sl] = t ? String(t) : ''; if (r.m) delete r.m[sl]; }); } }); });
+    const before = A.rows.length; A.rows = A.rows.filter(r => Object.keys(r.src || {}).length); rows += before - A.rows.length; A.items = (A.items || []).filter(c => cs.has(c)); if (!A.rows.length) A.skip = true; if (A.ts) ccpTouch(A); }
+  const want = new Set(A && !A.skip ? A.rows.map(r => r.key) : []);
+  Object.keys(L).forEach(k => { const g = L[k]; if (!g || g.date !== date || g.skip) return;
+    if (g.type === 'lot') { if (!want.has(g.sub)) { g.skip = true; rows++; if (g.ts) ccpTouch(g); } return; }
+    if (!CCP_ORDER.includes(g.type)) return; let ch = false;
+    const hasVal = r => ['time', 'temp', 'min', 'core', 't1', 'v1', 't2', 'v2', 'start', 'kg', 'room', 'end', 'fe', 'sus', 'p', 'fep', 'susp', 'det'].some(f => r[f] !== '' && r[f] != null);
+    const drop = r => r.code && !String(r.code).startsWith('mix:') && !cs.has(r.code) && r.kind !== 'pre' && r.kind !== 'post';
+    ['rows', 'pass'].forEach(sec => { g[sec] = (g[sec] || []).filter(r => { if (!drop(r)) return true; if (hasVal(r)) { kept++; return true; } rows++; ch = true; return false; }); });
+    g.items = (g.items || []).filter(c => cs.has(c) || String(c).startsWith('mix:'));
+    if (!(g.rows || []).some(r => r.kind !== 'pre' && r.kind !== 'post') && !(g.pass || []).length) { g.skip = true; ch = true; }
+    if (ch && g.ts) ccpTouch(g); });
+  ccpEnsure(date, by); return { rows, kept };
+}
 function ccpEnsureAll(days) {
   const by = ccpProdByDate(), from = (() => { const t = new Date(today() + 'T00:00:00'); t.setDate(t.getDate() - (days || 45)); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); })(); let n = 0;
   const impD = new Set(Object.values(prodS().pday || {}).filter(e => e && e.imp).map(e => e.d));
@@ -2878,7 +2896,7 @@ function ccpCardHtml(g) {
   const k = ccpKey(g), kid = ccpKid(g), T = CCP_TYPES[g.type], s = ccpState(g);
   const adds = (g.type === 'oven' || g.type === 'mix') ? [...new Set(g.rows.map(r => r.code + '|' + r.name))].map(x => { const [c, n] = x.split('|'); return `<button class="btn sm" data-ccpadd="${k}|${c}">+ ${esc(n)} ${g.type === 'oven' ? '측정' : '배치'} 추가</button>`; }).join('') : '';
   return `<div class="card" id="ccpc-${kid}" style="padding:12px;${s.bad ? 'border-color:var(--minus)' : ''}">
-    <div class="prow" style="align-items:center;margin-bottom:8px"><b style="flex:1 1 auto">${T.ico} ${esc(g.type === 'lot' ? T.name + ' — ' + g.name : T.name || T.short)}</b>${adds}<span id="ccps-${kid}">${ccpPill(g)}</span></div>
+    <div class="prow" style="align-items:center;margin-bottom:8px"><b style="flex:1 1 auto">${T.ico} ${esc(g.type === 'lot' ? T.name + ' — ' + g.name : T.name || T.short)}</b>${adds}<button class="btn sm" data-ccprmlog="${esc(k)}" title="이 일지를 목록·인쇄에서 뺍니다 (다른 기기에도 전달)" style="color:var(--minus)">🗑 일지 삭제</button><span id="ccps-${kid}">${ccpPill(g)}</span></div>
     <div style="overflow-x:auto">${ccpSheet(g, true)}</div></div>`;
 }
 function ccpPrint(D) { ccpPrintRange(D, D); }
@@ -2961,6 +2979,8 @@ function ccpBind(box) {
       Object.entries(ccpS().logs).forEach(([k, g]) => { if (!g || String(g.date || '').slice(0, 7) !== M || !g.ts) return; nbQueue({ ts: new Date().toISOString(), week: '', code: k, name: CCP_TYPES[g.type].short, kind: 'ccp', note: JSON.stringify(g) }); n++; });
       save(); toast(`${M.slice(0, 4)}년 ${Number(M.slice(5))}월 일지 ${n}건을 다시 보냅니다 — 다른 기기에서 「전체 다시 받기」를 누르세요`); renderCcp(); return; }
     if (b.dataset.ccphalf) { const ps = b.dataset.ccphalf.split('|'), ix = Number(ps.pop()), g = ccpGet(ps.join('|')), r = g && g.rows[ix]; if (!r) return; r.half = (r.half || 'am') === 'am' ? 'pm' : 'am'; ccpTouch(g); renderCcp(); return; }
+    if (b.dataset.ccprmlog) { const g = ccpGet(b.dataset.ccprmlog); if (!g) return; const T = CCP_TYPES[g.type];   /* v140: 일지 삭제 = 숨김(skip) — 다른 기기에도 전달 */
+      if (!confirm(`${g.date} ${T.name}${g.type === 'lot' ? ' (' + g.name + ')' : ''} 일지를 삭제할까요?\n목록·달력·인쇄에서 빠지고 다른 기기에도 전달됩니다.`)) return; g.skip = true; ccpTouch(g); S.ui.ccpTab = ''; renderCcp(); toast('일지를 삭제했습니다'); return; }
     if (b.dataset.ccpinfo) { S.ui.ccpInfo = !S.ui.ccpInfo; save(); renderCcp(); return; }
     if (b.dataset.ccpdevm) { const M = b.dataset.ccpdevm, y = +M.slice(0, 4), m = +M.slice(5); S.ui.ccpDevF = M + '-01'; S.ui.ccpDevT = ccpYmd(new Date(y, m, 0)); S.ui.ccpView = 'dev'; save(); renderCcp(); return; }
     if (b.dataset.ccpdevr) { [S.ui.ccpDevF, S.ui.ccpDevT] = b.dataset.ccpdevr.split('|'); save(); renderCcp(); return; }
@@ -2994,6 +3014,7 @@ function renderProdLog() {
       ${en.lines.map(l => `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-top:1px solid var(--line)"><span>${esc(l.name)}${l.note ? ` <span class="muted">(${esc(l.note)})</span>` : ''}</span><span class="num"><b>${fmt(l.qty)}</b> ${esc(l.unit || '')}${l.ecQty && l.ecQty !== l.qty ? ` <span class="muted">= ${fmt(l.ecQty)} ${esc(l.ecUnit || "")}</span>` : ''}</span></div>`).join('')}
       ${en.err && en.status !== 'sent' ? `<div style="margin-top:6px;color:var(--minus);font-size:13px">${esc(en.err)}${(en.details || []).map(d => `<div>${esc([d.error].concat(d.errors || []).filter(Boolean).join(' / '))}</div>`).join('')}</div>` : ''}
       ${en.status === 'wait' && en.holdUntil > Date.now() ? `<div class="prow" style="margin-top:6px;align-items:center"><span class="muted" style="flex:1 1 200px;font-size:13px">⏳ ${esc(prodHoldText(en))}까지 모아 두는 중 — 아직 이카운트에 들어가지 않았습니다.</span><button class="btn sm danger" data-pcancel="${en.id}">취소</button></div>` : en.status === 'wait' ? `<div class="muted" style="margin-top:6px;font-size:13px">${prodAgentOk() ? '사무실 PC 전송기가 곧 이카운트로 보냅니다.' : '사무실 PC에서 「생산일지 이카운트 전송기」가 켜져 있어야 보내집니다.'}</div>` : ''}
+      ${en.status === 'sent' ? `<div class="prow" style="margin-top:8px;align-items:center"><span class="muted" style="flex:1 1 200px;font-size:12px">이카운트에서 이 전표를 지웠거나 고쳤다면 →</span><button class="btn sm danger" data-pvoid="${en.id}">이카운트에서 지움 — 우리 기록도 취소</button></div>` : ''}
       ${en.status === 'cancel' ? `<div class="prow" style="margin-top:8px"><button class="btn sm" data-pedit="${en.id}">고쳐서 다시 입력</button><button class="btn sm danger" data-pdrop="${en.id}">기록 지우기</button></div>` : ''}
       ${en.status === 'fail' || en.status === 'queued' ? `<div class="prow" style="margin-top:8px"><button class="btn sm primary" data-pretry="${en.id}">다시 보내기</button><button class="btn sm" data-pedit="${en.id}">고쳐서 다시 입력</button><button class="btn sm danger" data-pdrop="${en.id}">기록 지우기</button></div>` : ''}
     </div>`; }).join('') : '<div class="card muted">아직 보낸 생산일지가 없습니다.</div>'}`;
@@ -3006,6 +3027,10 @@ function renderProdLog() {
   $$('#prodLog [data-pcancel]').forEach(b => b.onclick = async () => { const en = find(b.dataset.pcancel); if (!en || !confirm('이 생산 기록을 취소할까요? 이카운트에는 들어가지 않습니다.')) return; b.disabled = true;
     try { const j = await prodRelayCall({ action: 'cancel', id: en.cid || en.id }); if (!j.ok) { if (j.job) prodApplyJob(en, j.job); throw new Error(j.error || '실패'); } en.status = 'cancel'; save(); toast('취소했습니다 — 「고쳐서 다시 입력」으로 다시 넣을 수 있습니다'); } catch (e) { toast('취소 실패: ' + (e.message || e)); }
     renderProdLog(); });
+  $$('#prodLog [data-pvoid]').forEach(b => b.onclick = () => { const en = find(b.dataset.pvoid); if (!en) return;   /* v140: 이카운트에서 지운 전표 → 우리 생산 기록·일지에서도 뺌 */
+    if (!confirm(`${en.date} 전표 ${en.slip || ''}을(를) 우리 시스템에서도 취소할까요?\n\n· 이카운트에는 아무것도 보내지 않습니다 (이카운트에서 이미 지운 경우에 쓰세요)\n· 생산작업일보·생산기록서·CCP 일지에서 이 생산 품목이 빠집니다 (측정값을 넣은 CCP 줄은 남겨 둠)\n· 다른 기기에도 전달됩니다`)) return;
+    en.status = 'cancel'; en.voidAt = new Date().toISOString(); en.err = ''; save(); try { ccpShareDays(); if (shareOn()) nbQueue({ ts: en.voidAt, week: '', code: String(en.cid || en.id), name: '생산 전송 취소', kind: 'plog', note: '', del: true }); if (P.slog) delete P.slog[String(en.cid || en.id)]; } catch (e) {} const r = ccpSyncDate(en.date); save(); renderProdLog();
+    toast(`취소했습니다 — 일지에서 ${r.rows}줄을 뺐습니다${r.kept ? ` · 측정값이 있는 CCP ${r.kept}줄은 남겨 두었습니다 (필요하면 일지에서 ✕)` : ''} · 「고쳐서 다시 입력」으로 다시 넣을 수 있습니다`); });
   $$('#prodLog [data-pdrop]').forEach(b => b.onclick = () => { P.log = P.log.filter(x => x.id !== b.dataset.pdrop); save(); renderProdLog(); });
 }
 
