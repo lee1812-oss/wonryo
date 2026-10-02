@@ -1087,7 +1087,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '145';
+const APP_VER  = '146';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2664,9 +2664,35 @@ function ccpDevHtml() {
   const [f, t] = ccpDevRange(), R = ccpDevReport(f, t, false), td = today(), mon = ccpMon(td);
   const q = (a, b, l) => `<button class="btn sm${f === a && t === b ? ' primary' : ''}" data-ccpdevr="${a}|${b}">${l}</button>`;
   return `<div class="card"><div class="prow" style="align-items:center;gap:8px;margin-bottom:8px"><button class="btn sm" data-ccpview="cal">← 달력</button><h2 style="margin:0;flex:1 1 auto">⚠ 한계기준 이탈 보고서</h2>
-      ${q(mon, ccpAddD(mon, 6), '이번 주')}${q(ccpAddD(mon, -7), ccpAddD(mon, -1), '지난 주')}<input type="date" id="ccpDevF" value="${f}" style="width:140px">~<input type="date" id="ccpDevT" value="${t}" style="width:140px"><button class="btn sm" id="ccpDevPrint">🖨 보고서 인쇄</button></div>
+      ${q(mon, ccpAddD(mon, 6), '이번 주')}${q(ccpAddD(mon, -7), ccpAddD(mon, -1), '지난 주')}<input type="date" id="ccpDevF" value="${f}" style="width:140px">~<input type="date" id="ccpDevT" value="${t}" style="width:140px"><button class="btn sm" id="ccpDevPrint">🖨 보고서 인쇄</button><button class="btn sm primary" id="ccpWeekly" title="이 기간의 이탈·미작성·점검 포인트를 HACCP 인력·교육 통합관리의 「주간 HACCP 점검 미팅」 발표 자료로 보냅니다 (파일 저장 + 복사)">📤 주간 HACCP 회의 자료</button></div>
     <div class="muted" style="font-size:12px;margin-bottom:8px">주(월~일)마다 이탈을 확인하고, 잘못 입력한 값은 「열기」로 일지를 열어 고치거나 이탈내용·개선조치를 적으세요. 고친 줄은 보고서에서 바로 빠집니다. 「내부 확인 완료」 표시는 이 기기에 저장됩니다.</div>
     ${R.html}</div>`;
+}
+/* v146: 주간 HACCP 점검 미팅 자료 — 이탈 · 미작성 · 「기록을 위한 기록」 의심 패턴을 모아 HACCP 인력·교육 통합관리(주간 점검 미팅)로 넘김 */
+function ccpWeeklyData(f, t) {
+  const L = ccpS().logs, by = ccpProdByDate(), td = today(), devs = ccpDevList(f, t), logs = Object.values(L).filter(g => g && !g.skip && g.date >= f && g.date <= t);
+  const ccpLogs = logs.filter(g => CCP_ORDER.includes(g.type)), st = ccpLogs.map(g => [g, ccpState(g)]);
+  const pdays = Object.keys(by).filter(d => d >= f && d <= t).sort();
+  const nm = r => String(r.name || '').replace(/^(D|DB|Db)\.\s*/, '');
+  const dv = devs.map(x => { const c = ccpDevRec(x.g); return { date: x.g.date, type: x.g.type, proc: CCP_TYPES[x.g.type].name, item: nm(x.r), val: x.val, lim: x.lim, gap: x.gap.length ? x.gap : x.bad, dev: c.dev ? x.g.dev : '', act: c.act ? x.g.act : '', rec: c.dev && c.act, tip: x.bad.map(b => { const k = ccpDevKey(b); const tk = Object.keys(CCP_DEV_TIP).find(z => k.indexOf(z) === 0 || z.indexOf(k) === 0); return tk ? CCP_DEV_TIP[tk] : ''; }).filter(Boolean)[0] || '' }; });
+  const miss = st.filter(([g, s]) => s.miss && g.date < td).map(([g, s]) => ({ date: g.date, proc: CCP_TYPES[g.type].name, n: s.miss }));
+  /* 「기록을 위한 기록」 점검 — 실제로 재지 않고 같은 값을 옮겨 적은 건 아닌지, 하루 넘게 지나 적은 건 아닌지 */
+  const sus = [], F = { oven: [['temp', '가열온도', '℃'], ['min', '가열시간', '분'], ['core', '품온', '℃']], freeze: [['v1', '급냉 전 온도', '℃'], ['v2', '급냉 후 온도', '℃']], mix: [['temp', '배합 품온', '℃'], ['room', '작업장 온도', '℃']] };
+  Object.entries(F).forEach(([type, fs]) => fs.forEach(([f2, lab, u]) => { const per = {};
+    ccpLogs.filter(g => g.type === type).forEach(g => (g.rows || []).forEach(r => { const v = r[f2]; if (v === '' || v == null) return; const k = nm(r); (per[k] = per[k] || []).push([g.date, String(v)]); }));
+    Object.entries(per).forEach(([item, a]) => { const days = [...new Set(a.map(x => x[0]))]; const vals = [...new Set(a.map(x => x[1]))]; if (days.length >= 3 && vals.length === 1) sus.push({ kind: '같은 값 반복', text: `${CCP_TYPES[type].short} · ${item} · ${lab}이(가) ${days.length}일 동안 모두 ${vals[0]}${u}`, ask: '실제로 그때그때 재서 적었는지 확인 — 온도계·타이머를 보고 적는 습관' }); }); }));
+  ccpLogs.forEach(g => { if (!g.ts || g.by === 'K-HACCP 기록') return; const late = Math.round((Date.parse(g.ts.slice(0, 10)) - Date.parse(g.date)) / 864e5); if (late >= 2) sus.push({ kind: '늦은 기록', text: `${g.date.slice(5)} ${CCP_TYPES[g.type].short} 일지를 ${late}일 뒤(${g.ts.slice(5, 10)})에 마지막으로 고침`, ask: '측정한 그 자리에서 바로 기록 — 나중에 몰아 적지 않기' }); });
+  const metalOk = ccpLogs.filter(g => g.type === 'metal' && (g.rows || []).length >= 3 && (g.rows || []).every(r => !r.time || r.time === (g.rows[0] || {}).time)); metalOk.forEach(g => sus.push({ kind: '같은 시각', text: `${g.date.slice(5)} 금속검출 감도 확인 시각이 모두 같음(${(g.rows[0] || {}).time || '—'})`, ask: '작업 전 · 2시간마다 · 작업 후 실제 확인 시각을 각각 기록' }));
+  const noSign = logs.filter(g => g.date < td && g.by !== 'K-HACCP 기록' && !String(g.ok || '').trim()).map(g => ({ date: g.date, proc: CCP_TYPES[g.type].name }));
+  return { kind: 'wonryo-weekly-haccp', v: 1, made: new Date().toISOString(), from: f, to: t,
+    summary: { prodDays: pdays.length, logs: ccpLogs.length, done: st.filter(([, s]) => s.done).length, bad: new Set(devs.map(x => x.g)).size, badRows: devs.length, noRec: dv.filter(x => !x.rec).length, miss: miss.length, sus: sus.length },
+    prod: pdays.map(d => ({ d, items: Object.values(by[d]).map(x => nm(x)) })), devs: dv, miss, sus, noSign: noSign.slice(0, 30) };
+}
+function ccpWeeklyExport() {
+  const [f, t] = ccpDevRange(), D = ccpWeeklyData(f, t), txt = JSON.stringify(D);
+  const done = m => toast(`주간 HACCP 회의 자료 (${f} ~ ${t}) — 이탈 ${D.summary.badRows}줄 · 점검 포인트 ${D.summary.sus}건 · ${m}`);
+  try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = `주간HACCP회의_${f}_${t}.json`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); } catch (e) {}
+  try { navigator.clipboard.writeText(txt).then(() => done('파일 저장 + 복사됨 (HACCP 통합관리 「주간 점검 미팅」에서 붙여넣기)'), () => done('파일로 저장했습니다')); } catch (e) { done('파일로 저장했습니다'); }
 }
 function ccpDevPrint() {
   const [f, t] = ccpDevRange(), R = ccpDevReport(f, t, true); const w = window.open('', '_blank'); if (!w) { toast('팝업이 막혀 인쇄 창을 열 수 없습니다'); return; }
@@ -3001,6 +3027,7 @@ function ccpBind(box) {
     if (b.dataset.ccpdevm) { const M = b.dataset.ccpdevm, y = +M.slice(0, 4), m = +M.slice(5); S.ui.ccpDevF = M + '-01'; S.ui.ccpDevT = ccpYmd(new Date(y, m, 0)); S.ui.ccpView = 'dev'; save(); renderCcp(); return; }
     if (b.dataset.ccpdevr) { [S.ui.ccpDevF, S.ui.ccpDevT] = b.dataset.ccpdevr.split('|'); save(); renderCcp(); return; }
     if (b.id === 'ccpDevPrint') { ccpDevPrint(); return; }
+    if (b.id === 'ccpWeekly') { ccpWeeklyExport(); return; }
     if (b.dataset.ccpopen) { const [d, t] = b.dataset.ccpopen.split('|'); S.ui.ccpDate = d; S.ui.ccpTab = t; S.ui.ccpCalM = d.slice(0, 7); S.ui.ccpView = 'day'; save(); renderCcp(); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     if (b.dataset.ccpview) { S.ui.ccpView = b.dataset.ccpview; save(); renderCcp(); return; }
     if (b.dataset.ccpcal) { S.ui.ccpCalM = b.dataset.ccpcal; save(); renderCcp(); return; }
