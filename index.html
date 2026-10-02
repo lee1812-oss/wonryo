@@ -1086,7 +1086,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '142';
+const APP_VER  = '143';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1565,6 +1565,7 @@ function prodS() {
   P.items = Array.isArray(P.items) ? P.items : [];   /* {code,name,unit,ecEa,ecDiv,kind,on,manual} */
   P.log = Array.isArray(P.log) ? P.log : [];
   if (!P.draft || !Array.isArray(P.draft.lines)) P.draft = { date: today(), lines: [] };
+  if (!P.slogV143) { P.slogV143 = 1; P.slog = {}; try { if (S.share) S.share.since = ''; } catch (e) {} }   /* v143: 공유 생산 기록을 한 번 처음부터 다시 받아 이 기기가 지운 생산이 남지 않게 */
   if (!P.draft.lines.length && P.draft.date !== today() && P.draft.dateOn !== today()) P.draft.date = today();   /* v142: 오늘 직접 고른 생산일은 품목을 담기 전에도 그대로 (다음 날 열면 오늘로) */
   if (P.hist && P.hist.kind === 'cons' && P.prunedCons !== (P.hist.importedAt || '1')) prodPruneCons();   /* v084: 이미 불러온 기기도 한 번 정리 */
   /* v076: 작업자 — 날마다 기본 작업자로 시작, 그날 안에서는 고친 대로 유지 (휴가 등) */
@@ -2017,7 +2018,7 @@ function ccpPreviewHtml(D, lines) {
   const L = ccpS().logs, items = (lines || []).map(l => { const it = prodItem(l.code) || { name: l.code }; const q = Number(l.qty) || 0, pk = prodPack(it) || 1, ea = l.mode === 'ea';
     const ec = ea && pk > 1 ? q / pk : q; return { code: l.code, name: it.name || l.code, ec, ea: ea ? q : ccpEa(it, ec), it }; });
   const sent = Object.values(ccpProdByDate()[D] || {});
-  if (!items.length && !sent.length) return '';
+  if (!items.length && !sent.length) return '';   /* v143: 그날 생산이 없으면(모두 지움) 일지 미리보기도 숨김 */
   const cards = CCP_ALL.map(type => {
     const its = type === 'prod' ? items : items.filter(x => ccpOf(x.it)[type]), cur = L[D + '|' + type], live = cur && !cur.skip;
     if (!its.length && !live) return '';
@@ -2266,7 +2267,8 @@ function prodShareLog(en) {
     nbQueue({ ts: new Date().toISOString(), week: '', code: String(en.cid || en.id), name: '생산 전송', kind: 'plog', note: JSON.stringify({ d: en.date, s: en.slip || '', l: (en.lines || []).map(l => [l.code, Number(l.ecQty || l.qty) || 0]) }) }); } catch (e) {}
 }
 function prodSlogAdd(row) {
-  if (!row || !row.code) return false; const P = prodS(); P.slog = P.slog || {}; if (row.del) { if (P.slog[row.code]) { delete P.slog[row.code]; return true; } return false; }
+  if (!row || !row.code) return false; const P = prodS(); P.slog = P.slog || {}; if (!row.del && row.device && row.device === shareCfg().device) return false;   /* v143: 이 기기가 보낸 생산은 이 기기의 전송 기록이 기준 (지운 뒤 공유 사본으로 되살아나지 않게) */
+  if (!row.del && (P.tomb || {})[row.code]) return false; if (row.del) { if (P.slog[row.code]) { delete P.slog[row.code]; return true; } return false; }
   let o; try { o = JSON.parse(row.note || '{}'); } catch (e) { return false; } if (!o || !o.d || !Array.isArray(o.l)) return false;
   if (P.slog[row.code] && P.slog[row.code].ts >= row.ts) return false; P.slog[row.code] = { ts: row.ts, d: o.d, l: o.l };
   const ks = Object.keys(P.slog); if (ks.length > 600) ks.sort((a, b) => (P.slog[a].d || '').localeCompare(P.slog[b].d || '')).slice(0, ks.length - 600).forEach(k => delete P.slog[k]);
@@ -2274,14 +2276,15 @@ function prodSlogAdd(row) {
 }
 /* v141: 보낸 생산의 수정·삭제 — 이카운트 오픈API는 전표 삭제·수정을 지원하지 않아, 수정은 새 전표로 다시 보내고
    이전 전표는 「이카운트에서 지울 전표」 할 일로 남김. 우리 기록·일지(생산작업일보·생산기록서·CCP)는 자동으로 맞춤 */
+function prodTomb(en) { const P = prodS(); P.tomb = P.tomb || {}; [en.id, en.cid].filter(Boolean).forEach(k => { P.tomb[String(k)] = en.date || 1; }); const ks = Object.keys(P.tomb); if (ks.length > 600) ks.slice(0, ks.length - 600).forEach(k => delete P.tomb[k]); }
 function prodVoid(en) {
-  const P = prodS(); en.status = 'cancel'; en.voidAt = new Date().toISOString(); en.err = ''; if (en.slip && !en.test) en.ecTodo = 1;
+  const P = prodS(); prodTomb(en); en.status = 'cancel'; en.voidAt = new Date().toISOString(); en.err = ''; if (en.slip && !en.test) en.ecTodo = 1;
   try { ccpShareDays(); if (shareOn()) nbQueue({ ts: en.voidAt, week: '', code: String(en.cid || en.id), name: '생산 전송 취소', kind: 'plog', note: '', del: true }); if (P.slog) delete P.slog[String(en.cid || en.id)]; } catch (e) {}
   save(); return ccpSyncDate(en.date, true);
 }
 function prodAfterSent(entry) { try { if (!entry.replaces) return; const P = prodS(), old = (P.log || []).find(x => x.id === entry.replaces); entry.replaces = ''; if (!old || old.status !== 'sent') return; old.replacedBy = entry.id; prodVoid(old); save(); toast(`수정 반영 — 새 전표 ${entry.slip || ''} · 이전 전표 ${old.slip || ''}는 이카운트에서 지워 주세요 (전송 기록 → 할 일)`); } catch (e) {} }
 function prodApplyJob(entry, job) {
-  if (job && job.status === 'cancel') { entry.status = 'cancel'; entry.err = ''; return true; }
+  if (job && job.status === 'cancel') { if (entry.status !== 'cancel') { prodTomb(entry); entry.status = 'cancel'; entry.err = ''; try { ccpShareDays(); ccpSyncDate(entry.date, true); } catch (e) {} } return true; }
   if (job && job.status === 'queued' && entry.holdUntil !== (job.holdUntil || 0)) { entry.holdUntil = job.holdUntil || 0; }
   if (!job || !job.result || (job.status !== 'sent' && job.status !== 'fail')) return false;
   const r = job.result;
@@ -2344,7 +2347,7 @@ function ccpS() { S.ccp = S.ccp || {}; S.ccp.logs = S.ccp.logs || {}; return S.c
 function ccpEa(it, ec) { if (!it) return ec; return prodIsEa(it) ? ec : Math.round(ec * (prodPack(it) || 1)); }
 /* 날짜별 생산 = 이 기기의 생산 입력(취소 제외) + 다른 기기에서 보낸 생산 기록 */
 function ccpProdByDate() {
-  const P = prodS(), out = {}, seen = new Set();
+  const P = prodS(), out = {}, seen = new Set(Object.keys(P.tomb || {}));   /* v143: 지운 생산(취소·삭제·기록 지우기)은 공유 사본으로도 다시 세지 않음 */
   const add = (d, code, ec, name, ea, exp) => { if (!d || !code) return; const it = prodItem(code); const D = out[d] = out[d] || {}; const x = D[code] = D[code] || { code, name: (it && it.name) || name || code, ec: 0, ea: 0 }; x.ec += ec; x.ea += (ea != null && ea !== '' ? Number(ea) || 0 : ccpEa(it, ec)); if (exp && (!x.exp || exp < x.exp)) x.exp = exp; };
   /* v117: K-HACCP 생산일지 엑셀로 불러온 날짜는 그 자료만 씀 (그날 다른 입력은 겹치지 않게 제외) */
   const imp = {}; Object.values(P.pday || {}).forEach(e => { if (e && e.imp && e.d) imp[e.d] = e; });
@@ -3036,7 +3039,7 @@ function renderProdLog() {
     try { const j = await prodRelayCall({ action: 'release', date: d.replace(/-/g, ''), test: t === '1' }); if (!j.ok) throw new Error(j.error || '실패'); P.log.forEach(en => { if (en.status === 'wait' && en.date === d && !!en.test === (t === '1')) en.holdUntil = 0; }); save(); toast(`마감했습니다 — 사무실 PC 전송기가 곧 한 전표로 보냅니다 (${j.released}건)`); prodPollSoon(); } catch (e) { toast('마감 실패: ' + (e.message || e)); }
     renderProdLog(); });
   $$('#prodLog [data-pcancel]').forEach(b => b.onclick = async () => { const en = find(b.dataset.pcancel); if (!en || !confirm('이 생산 기록을 취소할까요? 이카운트에는 들어가지 않습니다.')) return; b.disabled = true;
-    try { const j = await prodRelayCall({ action: 'cancel', id: en.cid || en.id }); if (!j.ok) { if (j.job) prodApplyJob(en, j.job); throw new Error(j.error || '실패'); } en.status = 'cancel'; save(); toast('취소했습니다 — 「고쳐서 다시 입력」으로 다시 넣을 수 있습니다'); } catch (e) { toast('취소 실패: ' + (e.message || e)); }
+    try { const j = await prodRelayCall({ action: 'cancel', id: en.cid || en.id }); if (!j.ok) { if (j.job) prodApplyJob(en, j.job); throw new Error(j.error || '실패'); } prodTomb(en); en.status = 'cancel'; save(); try { ccpShareDays(); ccpSyncDate(en.date, true); save(); } catch (e) {} toast('취소했습니다 — 「고쳐서 다시 입력」으로 다시 넣을 수 있습니다'); } catch (e) { toast('취소 실패: ' + (e.message || e)); }
     renderProdLog(); });
   $$('#prodLog [data-pvoid]').forEach(b => b.onclick = () => { const en = find(b.dataset.pvoid); if (!en) return;
     if (!confirm(`${en.date} 생산(전표 ${en.slip || ''})을 삭제할까요?\n\n· 우리 생산 기록과 생산작업일보·생산기록서·CCP 일지에서 이 품목이 지워집니다 (다른 기기에도 전달)\n· 이카운트 전표는 이카운트가 삭제 기능을 열어 두지 않아 직접 지워야 합니다 — 「할 일」로 남겨 둡니다`)) return;
@@ -3046,7 +3049,7 @@ function renderProdLog() {
     P2.draft = { date: en.date, replaces: en.id, lines: en.lines.map(l => ({ id: 'l' + Math.random().toString(36).slice(2, 8), code: l.code, qty: String(l.qty), mode: l.mode || '', note: l.note || '' })), workers: (en.workers || []).slice(), wkDay: today() };
     S.ui.prodTab = 'pnew'; save(); renderAll(); window.scrollTo(0, 0); toast('수량·품목을 고친 뒤 「이카운트로 보내기」 — 새 전표로 들어가고 일지도 자동으로 바뀝니다'); });
   $$('#prodLog [data-pecdone]').forEach(b => b.onclick = () => { const en = find(b.dataset.pecdone); if (!en) return; en.ecDone = new Date().toISOString(); save(); renderProdLog(); });
-  $$('#prodLog [data-pdrop]').forEach(b => b.onclick = () => { P.log = P.log.filter(x => x.id !== b.dataset.pdrop); save(); renderProdLog(); });
+  $$('#prodLog [data-pdrop]').forEach(b => b.onclick = () => { const en = find(b.dataset.pdrop); if (en) prodTomb(en); P.log = P.log.filter(x => x.id !== b.dataset.pdrop); save(); if (en) { try { ccpSyncDate(en.date, true); save(); } catch (e) {} } renderProdLog(); });
 }
 
 /* ── 연동 설정 ── */
