@@ -564,6 +564,14 @@ body.prod-on #weekSel{display:none}   /* v075: 생산일지·통합 설정에서
 .pquick .pchip.pk{flex:0 0 150px;min-height:78px;padding:8px 10px}
 .pquick .pchip.pk .pk-l{display:none}
 .pquick .pchip.pk .pk-v{font-size:20px}
+/* v138: 박스·낱개·비상품 수량 칸 */
+.pfam-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;margin-top:8px}
+.pfam-c{border:1.5px solid var(--line);border-radius:12px;padding:6px 6px 6px;text-align:center;background:var(--card,#fff);min-width:0}
+.pfam-c.on{border-color:var(--accent);background:var(--accent-bg)}.pfam-c.np .pfam-l{color:var(--minus)}.pfam-c.np.on{border-color:var(--minus);background:#FDF1F1}
+.pfam-l{font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:4px}
+.pfam-q{width:100%;box-sizing:border-box;text-align:center;font-size:22px;font-weight:800;padding:6px 4px;border-radius:9px;min-height:44px}
+.pfam-s{display:flex;gap:4px;margin-top:5px}.pfam-s button{flex:1 1 0;min-height:38px;font-size:20px;font-weight:800;border-radius:9px;border:1px solid var(--line);background:var(--line2,#F1F3F5);color:var(--ink);cursor:pointer;padding:0}
+.pfam-s button:active{transform:scale(.95)}.pfam-cv{font-size:11.5px;color:var(--ink3);margin-top:4px;min-height:16px}.pfam-last{border:none;background:none;color:var(--brand);font-size:11.5px;text-decoration:underline;cursor:pointer;padding:0}
 /* v135: 빠른 시작 — 한 줄에 모두, 품목이 많아지면 카드가 저절로 작아짐 · ☆/★ 빠른 시작 넣기/빼기 */
 .pchip.pk .pk-q{position:absolute;top:4px;right:5px;font-size:15px;line-height:1;color:#C3CBD3;padding:2px 3px;border-radius:6px;cursor:pointer;z-index:1}.pchip.pk .pk-q:hover{background:var(--line2,#F1F3F5);color:#E0A800}.pchip.pk .pk-q.on{color:#E0A800}.pchip.pk .pk-n{padding-right:16px}
 .pnw .pquick .pchips.q1,.pquick .pchips.q1{display:grid!important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);grid-template-columns:none!important;overflow:hidden!important;gap:6px}
@@ -1078,7 +1086,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '137';
+const APP_VER  = '138';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2075,7 +2083,20 @@ function renderProdNew() {
   <div class="pnw-cart${P.draft.lines.length ? '' : ' empty'}${ui.cartOpen ? ' open' : ''}"><div class="pcart-bar"><button type="button" class="pcb-l" id="pCartBar">🧺 생산한 품목 <b>${P.draft.lines.length}</b>개 <span>${ui.cartOpen ? '▼ 닫기' : '▲ 수량 넣기'}</span></button>${P.draft.lines.length ? `<button type="button" class="btn primary" id="pSendBar" ${ready.ok ? '' : 'disabled'}>보내기</button>` : ''}</div>
   <div class="card pcart" id="pCart">
     <h2 style="margin:0 0 4px">생산한 품목${P.draft.lines.length ? ` <span class="pill ok">${P.draft.lines.length}</span>` : ''}</h2>
-    ${P.draft.lines.length ? P.draft.lines.map(l => { const it = prodItem(l.code) || { name: l.code, unit: '' }; const pk = prodPack(it); const s = st[l.code];
+    ${P.draft.lines.length ? (() => { const famSeen = new Set(); return P.draft.lines.map(l => { const it = prodItem(l.code) || { name: l.code, unit: '' }; const pk = prodPack(it); const s = st[l.code];
+      const F = prodItem(l.code) ? prodFamily(it) : null, fm = F ? [[F.B, esc((F.B && F.B.unit) || 'BOX')], [F.E, '낱개'], [F.N, '비상품']].filter(x => x[0]) : [];
+      if (fm.length >= 2) {   /* v138: 박스·낱개·비상품을 한 상자에서 칸마다 수량 입력 (−/+ · 숫자 키) */
+        const key = fm[0][0].code; if (famSeen.has(key)) return ''; famSeen.add(key);
+        const lnOf = c => P.draft.lines.find(y => y.code === c), head = F.B || F.E || F.N, warn = fm.map(([x]) => lnOf(x.code) && !prodEcCheck(x).ok ? `${esc(x.code)}: ${esc(prodEcCheck(x).msg)}` : '').filter(Boolean);
+        const noteLn = fm.map(([x]) => lnOf(x.code)).find(Boolean);
+        return `<div class="pline pfam"><div class="pname"><b>${esc(String(head.name).replace(/^\[비상품\]\s*/, ''))}</b><div style="font-size:12px;color:var(--ink2)">이카운트 ${fm.map(([x]) => esc(x.code)).join(' · ')}</div>${warn.length ? `<div style="font-size:12px;color:var(--minus);font-weight:700">⚠ ${warn.join(' / ')}</div>` : ''}</div>
+          <div class="pfam-g">${fm.map(([x, lab]) => { const y = lnOf(x.code), sx = st[x.code], q = y ? y.qty : '', pkx = prodPack(x), isBox = x === F.B && !/^ea$/i.test(x.unit || '');
+            return `<div class="pfam-c${Number(q) > 0 ? ' on' : ''}${lab === '비상품' ? ' np' : ''}"><div class="pfam-l">${lab}</div>
+              <input class="pfam-q" inputmode="numeric" enterkeyhint="next" data-pfq="${esc(x.code)}" value="${esc(q)}" placeholder="0" aria-label="${esc(x.name)} ${lab} 수량">
+              <div class="pfam-s"><button type="button" data-pfs="${esc(x.code)}" data-d="-1" aria-label="${lab} 줄이기">−</button><button type="button" data-pfs="${esc(x.code)}" data-d="1" aria-label="${lab} 늘리기">+</button></div>
+              <div class="pfam-cv" data-pfcv="${esc(x.code)}">${isBox && pkx > 1 && Number(q) > 0 ? `= ${fmt(Math.round(Number(q) * pkx))}개` : sx && sx.lastQty != null ? `<button type="button" class="pfam-last" data-pfl="${esc(x.code)}" data-v="${esc(String(sx.lastQty))}">지난번 ${fmt(sx.lastQty)}</button>` : ''}</div></div>`; }).join('')}</div>
+          <div class="prow" style="gap:6px;margin-top:6px;align-items:center">${noteLn ? (noteLn.note || ui.noteFor === noteLn.id ? `<input class="pnote" data-pnote="${noteLn.id}" value="${esc(noteLn.note || '')}" placeholder="비고 (선택)" style="flex:1 1 auto">` : `<button type="button" class="pnote-btn" data-pnoteopen="${noteLn.id}">✎ 비고</button>`) : ''}<button type="button" class="btn xs danger" data-pfdel="${fm.map(([x]) => esc(x.code)).join(',')}" style="margin-left:auto">빼기</button></div></div>`;
+      }
       const lastMode = prodIsEa(it) ? 'ea' : ''; const ph = s && s.lastQty != null && (l.mode || '') === lastMode ? String(s.lastQty) : '0';
       return `<div class="pline">
         <div class="pname"><b>${esc(it.name)}</b>${(() => { const k = prodEcCheck(it); return `<div style="font-size:12px;${k.ok ? 'color:var(--ink2)' : 'color:var(--minus);font-weight:700'}">이카운트 ${esc(l.code)}${it.ecName ? ' · ' + esc(it.ecName) : ''}${k.ok ? '' : ' — ⚠ ' + esc(k.msg)}</div>`; })()}<div class="muted" style="font-size:12px">${s ? esc(prodHint(s, it)) : ''}</div>
@@ -2088,7 +2109,7 @@ function renderProdNew() {
           <button type="button" data-pstep="${l.id}" data-d="-1" aria-label="${esc(it.name)} 수량 줄이기">−</button><input inputmode="decimal" data-pqty="${l.id}" value="${esc(l.qty)}" placeholder="${esc(ph)}" aria-label="${esc(it.name)} 수량"><button type="button" data-pstep="${l.id}" data-d="1" aria-label="${esc(it.name)} 수량 늘리기">+</button>
           ${s && s.lastQty != null && !l.qty ? `<button type="button" class="btn xs" data-plast="${l.id}">지난번 ${fmt(s.lastQty)}</button>` : ''}
           <button type="button" class="btn xs danger" data-pdel="${l.id}" aria-label="${esc(it.name)} 빼기">빼기</button></div>
-      </div>`; }).join('')
+      </div>`; }).join(''); })()
     : '<div class="muted" style="padding:6px 0">「품목 고르기」에서 오늘 생산한 품목을 누르세요.</div>'}
     ${P.draft.lines.length ? `<div class="prow" style="margin-top:12px"><button class="btn primary psend" id="pSend" ${ready.ok ? '' : 'disabled'}>이카운트로 보내기 (${P.draft.lines.length}품목)</button><button class="btn" id="pClear">비우기</button></div>` : ''}
     <div id="pCcp">${(() => { try { return ccpPreviewHtml(P.draft.date, P.draft.lines); } catch (e) { return ''; } })()}</div>
@@ -2123,6 +2144,23 @@ function renderProdNew() {
   if ($('#pAll')) $('#pAll').onclick = () => { ui.prodAll = !ui.prodAll; renderProdNew(); };
   const refreshCcp = () => { const c = $('#pCcp'); if (c) try { c.innerHTML = ccpPreviewHtml(P.draft.date, P.draft.lines); } catch (e) {} };
   if ($('#pCcp')) $('#pCcp').onclick = e => { const b = e.target.closest('[data-pccopen]'); if (!b) return; S.ui.menu = 'prod'; S.ui.prodTab = 'pccp'; S.ui.ccpView = 'day'; S.ui.ccpDate = b.dataset.pccopen; S.ui.ccpCalM = b.dataset.pccopen.slice(0, 7); save(); renderAll(); window.scrollTo(0, 0); };
+  /* v138: 박스·낱개·비상품 칸 — 입력하면 바로 그 제품코드 줄에 반영, 비우거나 0이면 (같은 품목의 다른 칸이 있으면) 그 줄을 뺌 */
+  const famCodes = code => { const F = prodFamily(prodItem(code)) || {}; return [F.B, F.E, F.N].filter(Boolean).map(x => x.code); };
+  const famLine = (code, make) => { let y = P.draft.lines.find(x => x.code === code); if (y || !make) return y; y = prodNewLine(code); y.mode = ''; const fc = famCodes(code), ord = c => fc.indexOf(c);
+    let at = -1; P.draft.lines.forEach((x, i) => { if (fc.includes(x.code) && ord(x.code) < ord(code)) at = i; }); if (at < 0) { const f = P.draft.lines.findIndex(x => fc.includes(x.code)); at = f < 0 ? P.draft.lines.length - 1 : f - 1; } P.draft.lines.splice(at + 1, 0, y); return y; };
+  const famPrune = code => { const fc = famCodes(code); const mine = P.draft.lines.filter(x => fc.includes(x.code)); if (mine.length < 2) return; const z = mine.filter(x => !(Number(x.qty) > 0)); if (z.length === mine.length) z.shift(); P.draft.lines = P.draft.lines.filter(x => !z.includes(x)); };
+  const famUi = code => { const y = P.draft.lines.find(x => x.code === code), it = prodItem(code), q = y ? y.qty : ''; const c = document.querySelector(`#prodNew [data-pfq="${code}"]`); if (c) { c.closest('.pfam-c').classList.toggle('on', Number(q) > 0); }
+    const cv = document.querySelector(`#prodNew [data-pfcv="${code}"]`), F = prodFamily(it) || {}, pk = prodPack(it); if (cv && it === F.B && !/^ea$/i.test(it.unit || '') && pk > 1) cv.textContent = Number(q) > 0 ? `= ${fmt(Math.round(Number(q) * pk))}개` : '';
+    const n = P.draft.lines.filter(x => Number(x.qty) > 0 || !prodFamily(prodItem(x.code))).length; const b = $('#pSend'); if (b) b.textContent = `이카운트로 보내기 (${n}품목)`; const hp = document.querySelector('#pCart h2 .pill'); if (hp) hp.textContent = n; refreshCcp(); };
+  $$('#prodNew [data-pfq]').forEach(inp => { inp.oninput = () => { const v = inp.value.replace(/[^0-9.]/g, ''); if (v !== inp.value) inp.value = v; const y = famLine(inp.dataset.pfq, Number(v) > 0); if (y) y.qty = v; save(); famUi(inp.dataset.pfq); };
+    inp.onchange = () => { famPrune(inp.dataset.pfq); save(); famUi(inp.dataset.pfq); };
+    inp.onfocus = () => { try { inp.select(); } catch (e) {} };
+    inp.onkeydown = e => { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); const v = Math.max(0, (Number(inp.value) || 0) + (e.key === 'ArrowUp' ? 1 : -1)); inp.value = v ? String(v) : ''; inp.oninput(); }
+      else if (e.key === 'Enter') { e.preventDefault(); const all = [...document.querySelectorAll('#prodNew [data-pfq], #prodNew [data-pqty]')]; const nx = all[all.indexOf(inp) + 1]; if (nx) nx.focus(); else inp.blur(); } }; });
+  $$('#prodNew [data-pfs]').forEach(b => { b.onmousedown = e => e.preventDefault(); b.onclick = () => { const code = b.dataset.pfs, inp = document.querySelector(`#prodNew [data-pfq="${code}"]`); const cur = Number(inp ? inp.value : 0) || 0; const v = Math.max(0, cur + Number(b.dataset.d));
+    const y = famLine(code, v > 0); if (y) y.qty = v ? String(v) : ''; if (inp) inp.value = v ? String(v) : ''; if (!v) famPrune(code); save(); famUi(code); }; });
+  $$('#prodNew [data-pfl]').forEach(b => b.onclick = () => { const code = b.dataset.pfl, y = famLine(code, true); y.qty = String(b.dataset.v); save(); renderProdNew(); const i = document.querySelector(`#prodNew [data-pfq="${code}"]`); if (i) i.focus(); });
+  $$('#prodNew [data-pfdel]').forEach(b => b.onclick = () => { const cs = b.dataset.pfdel.split(','); P.draft.lines = P.draft.lines.filter(l => !cs.includes(l.code)); save(); renderProdNew(); });
   $$('#prodNew [data-pqty]').forEach(inp => inp.oninput = () => { const l = draftLine(inp.dataset.pqty); if (!l) return; l.qty = inp.value.replace(/[^0-9.]/g, ''); save(); refreshConv(l); refreshCcp(); });
   $$('#prodNew [data-pnote]').forEach(inp => inp.oninput = () => { const l = draftLine(inp.dataset.pnote); if (l) { l.note = inp.value; save(); } });
   $$('#prodNew [data-pstep]').forEach(b => b.onclick = () => { const l = draftLine(b.dataset.pstep); if (!l) return; const v = Math.max(0, (Number(l.qty) || 0) + Number(b.dataset.d)); l.qty = v ? String(v) : ''; save(); const inp = document.querySelector(`#prodNew [data-pqty="${l.id}"]`); if (inp) inp.value = l.qty; refreshConv(l); refreshCcp(); });
@@ -2160,8 +2198,9 @@ function prodConvText0(it, l, pk, n, eu) {
 }
 function prodConfirm() {
   const P = prodS(); const who = ($('#pWho') && $('#pWho').value.trim()) || S.settings.reporter || '';
+  P.draft.lines = P.draft.lines.filter(l => { if (Number(l.qty) > 0) return true; const F = prodFamily(prodItem(l.code)); if (!F) return true; const fc = [F.B, F.E, F.N].filter(Boolean).map(x => x.code); return !P.draft.lines.some(o => o !== l && fc.includes(o.code) && Number(o.qty) > 0); });   /* v138: 박스·낱개·비상품 중 빈 칸은 빼고 보냄 */
   const bad = P.draft.lines.filter(l => !(Number(l.qty) > 0));
-  if (bad.length) { toast(`수량이 없는 품목이 ${bad.length}개 있습니다 — 수량을 넣거나 빼 주세요`); const i = document.querySelector(`#prodNew [data-pqty="${bad[0].id}"]`); if (i) i.focus(); return; }
+  if (bad.length) { toast(`수량이 없는 품목이 ${bad.length}개 있습니다 — 수량을 넣거나 빼 주세요`); const i = document.querySelector(`#prodNew [data-pqty="${bad[0].id}"]`) || document.querySelector(`#prodNew [data-pfq="${bad[0].code}"]`); if (i) i.focus(); return; }
   if (!P.draft.date) { toast('생산일을 고르세요'); return; }
   const st = prodStats();
   const warn = P.draft.lines.map(l => { const it = prodItem(l.code); const s = st[l.code]; const ec = prodEcQty(it, l.qty, l.mode); const ref = s && s.qtys.length ? Math.max.apply(null, s.qtys) : null; return ref && ec > ref * 2 && !prodIsEa(it) ? `${(it || {}).name || l.code}: ${fmt(ec)} — 지금까지 가장 많이 만든 양(${fmt(ref)})의 2배가 넘습니다` : ''; }).filter(Boolean);
