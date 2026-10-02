@@ -1078,7 +1078,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '135';
+const APP_VER  = '136';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2081,7 +2081,8 @@ function renderProdNew() {
         <div class="pname"><b>${esc(it.name)}</b>${(() => { const k = prodEcCheck(it); return `<div style="font-size:12px;${k.ok ? 'color:var(--ink2)' : 'color:var(--minus);font-weight:700'}">이카운트 ${esc(l.code)}${it.ecName ? ' · ' + esc(it.ecName) : ''}${k.ok ? '' : ' — ⚠ ' + esc(k.msg)}</div>`; })()}<div class="muted" style="font-size:12px">${s ? esc(prodHint(s, it)) : ''}</div>
           <div class="muted" style="font-size:12px" data-pconv="${l.id}">${prodConvText(it, l)}</div>
           ${l.note || ui.noteFor === l.id ? `<input class="pnote" data-pnote="${l.id}" value="${esc(l.note || '')}" placeholder="비고 (선택)" aria-label="${esc(it.name)} 비고">` : `<button type="button" class="pnote-btn" data-pnoteopen="${l.id}">✎ 비고</button>`}</div>
-        <div class="pq">${(() => { const F = prodFamily(it); if (F) { const btn = (x, label) => x ? `<button type="button" ${x === it ? 'class="on"' : `data-pswap="${l.id}" data-to="${esc(x.code)}"`} title="${esc(x.code)} · ${esc(x.name)}"${label === '비상품' ? ' style="color:var(--minus)"' : ''}>${label}</button>` : '';
+        <div class="pq">${(() => { const F = prodFamily(it); if (F) { const btn = (x, label) => { if (!x) return ''; if (x === it) return `<button type="button" class="on" title="${esc(x.code)} · ${esc(x.name)}"${label === '비상품' ? ' style="background:var(--minus)"' : ''}>${label}</button>`; const has = P.draft.lines.some(y => y.code === x.code);   /* v136: 다른 종류는 바꾸지 않고 아래에 따로 한 줄 더함 */
+              return `<button type="button" data-pswap="${l.id}" data-to="${esc(x.code)}" title="${has ? '이미 담긴 줄로 이동' : '이 품목 아래에 ' + label + ' 줄 추가'} · ${esc(x.code)} · ${esc(x.name)}"${label === '비상품' ? ' style="color:var(--minus)"' : ''}>${has ? '✓' : '＋'}${label}</button>`; };
             return `<div class="pseg" role="group" aria-label="${esc(it.name)} 박스·낱개·비상품">${btn(F.B, esc((F.B && F.B.unit) || 'BOX'))}${btn(F.E, '낱개')}${btn(F.N, '비상품')}</div>`; }
           return pk > 1 ? `<div class="pseg" role="group" aria-label="${esc(it.name)} 입력 단위"><button type="button" data-pmode="${l.id}" data-m="" class="${l.mode !== 'ea' ? 'on' : ''}">${esc(it.unit || 'BOX')}</button><button type="button" data-pmode="${l.id}" data-m="ea" class="${l.mode === 'ea' ? 'on' : ''}">낱개</button></div>` : ''; })()}
           <button type="button" data-pstep="${l.id}" data-d="-1" aria-label="${esc(it.name)} 수량 줄이기">−</button><input inputmode="decimal" data-pqty="${l.id}" value="${esc(l.qty)}" placeholder="${esc(ph)}" aria-label="${esc(it.name)} 수량"><button type="button" data-pstep="${l.id}" data-d="1" aria-label="${esc(it.name)} 수량 늘리기">+</button>
@@ -2126,14 +2127,13 @@ function renderProdNew() {
   $$('#prodNew [data-pnote]').forEach(inp => inp.oninput = () => { const l = draftLine(inp.dataset.pnote); if (l) { l.note = inp.value; save(); } });
   $$('#prodNew [data-pstep]').forEach(b => b.onclick = () => { const l = draftLine(b.dataset.pstep); if (!l) return; const v = Math.max(0, (Number(l.qty) || 0) + Number(b.dataset.d)); l.qty = v ? String(v) : ''; save(); const inp = document.querySelector(`#prodNew [data-pqty="${l.id}"]`); if (inp) inp.value = l.qty; refreshConv(l); refreshCcp(); });
   $$('#prodNew [data-plast]').forEach(b => b.onclick = () => { const l = draftLine(b.dataset.plast); const s = l && st[l.code]; if (!s) return; l.qty = String(s.lastQty); l.mode = prodIsEa(prodItem(l.code)) ? 'ea' : ''; save(); renderProdNew(); });
-  $$('#prodNew [data-pswap]').forEach(b => b.onclick = () => {   /* v081: 박스 ↔ 낱개 제품코드 바꾸기, 수량도 입수로 환산 */
-    const l = draftLine(b.dataset.pswap), from = l && prodItem(l.code), to = prodItem(b.dataset.to); if (!l || !from || !to) return;
-    const F = prodFamily(from) || {}; const pcs = x => x !== F.B && /^ea$/i.test(x.unit || ''); const fromBox = !pcs(from), toEa = pcs(to); const pk = prodPack(F.B || (fromBox ? from : to)); const q = Number(l.qty);
-    if (q > 0 && pk > 1 && fromBox !== !toEa) l.qty = String(toEa ? Math.round(q * pk) : prodRound(q / pk));   /* 박스↔낱개·비상품만 환산, 낱개↔비상품은 그대로 */
-    const dup = P.draft.lines.find(x => x !== l && x.code === to.code);
-    if (dup) { dup.qty = String((Number(dup.qty) || 0) + (Number(l.qty) || 0) || ''); P.draft.lines = P.draft.lines.filter(x => x !== l); toast(`${to.name}에 수량을 합쳤습니다`); }
-    else { l.code = to.code; l.mode = ''; toast(`${to.np ? '비상품' : toEa ? '낱개' : '박스'} 제품 ${to.code} · ${to.name}(으)로 바꿨습니다`); }
-    save(); renderProdNew(); const inp = document.querySelector(`#prodNew [data-pqty="${(dup || l).id}"]`); if (inp) inp.focus(); });
+  $$('#prodNew [data-pswap]').forEach(b => b.onclick = () => {   /* v136: 박스·낱개·비상품은 각각 따로 — 누르면 지금 줄 아래에 그 종류 줄을 더함 (먼저 넣은 수량은 그대로) */
+    const l = draftLine(b.dataset.pswap), to = prodItem(b.dataset.to); if (!l || !to) return;
+    let t = P.draft.lines.find(x => x.code === to.code);
+    if (!t) { t = prodNewLine(to.code); const F = prodFamily(prodItem(l.code)) || {}, ord = c => c === (F.B || {}).code ? 0 : c === (F.E || {}).code ? 1 : c === (F.N || {}).code ? 2 : 9;
+      let at = P.draft.lines.indexOf(l) + 1; while (at < P.draft.lines.length && ord(P.draft.lines[at].code) < 9 && ord(P.draft.lines[at].code) < ord(to.code)) at++; P.draft.lines.splice(at, 0, t);
+      toast(`${to.np ? '비상품' : /^ea$/i.test(to.unit || '') ? '낱개' : '박스'} ${to.code} · ${to.name} 줄을 더했습니다 — 수량을 넣으세요`); }
+    save(); renderProdNew(); const inp = document.querySelector(`#prodNew [data-pqty="${t.id}"]`); if (inp) { inp.scrollIntoView({ block: 'nearest' }); inp.focus({ preventScroll: true }); } });
   $$('#prodNew [data-pmode]').forEach(b => b.onclick = () => { const l = draftLine(b.dataset.pmode); if (!l) return; l.mode = b.dataset.m; save(); renderProdNew(); const inp = document.querySelector(`#prodNew [data-pqty="${l.id}"]`); if (inp) inp.focus(); });
   $$('#prodNew [data-pdel]').forEach(b => b.onclick = () => { P.draft.lines = P.draft.lines.filter(l => l.id !== b.dataset.pdel); save(); renderProdNew(); });
   if ($('#pClear')) $('#pClear').onclick = () => { modal(`<h2>입력한 품목 비우기</h2><p>아직 보내지 않은 ${P.draft.lines.length}품목을 지웁니다.</p><div class="row" style="justify-content:flex-end;gap:8px;margin-top:12px"><button class="btn" onclick="closeModal()">취소</button><button class="btn danger" id="pClearOk">비우기</button></div>`); $('#pClearOk').onclick = () => { P.draft.lines = []; save(); closeModal(); renderProdNew(); }; };
@@ -2152,7 +2152,7 @@ function prodConvText(it, l) {
 }
 function prodConvText0(it, l, pk, n, eu) {
   { const F = prodFamily(it); if (F) { const cur = it === F.N ? '비상품' : it === F.E ? '낱개' : '박스'; const o = [F.B && it !== F.B ? `${esc(F.B.unit || 'BOX')} → ${esc(F.B.code)}` : '', F.E && it !== F.E ? `낱개 → ${esc(F.E.code)}` : '', F.N && it !== F.N ? `비상품 → ${esc(F.N.code)}` : ''].filter(Boolean).join(' · ');
-    return `<b>${cur}</b> 제품코드 ${esc(it.code)}로 보냅니다${o ? ` <small>(바꾸기: ${o})</small>` : ''}`; } }
+    return `<b>${cur}</b> 제품코드 ${esc(it.code)}로 보냅니다${o ? ` <small>(따로 담기: ${o})</small>` : ''}`; } }
   if (l.mode === 'ea' && pk > 0 && !prodIsEa(it)) return n > 0 ? `낱개 ${fmt(n)}개 ÷ ${fmt(pk)}입 = <b>${fmt(prodEcQty(it, l.qty, 'ea'))} ${esc(eu || 'BOX')}</b>로 보냅니다 <small>(이 제품은 낱개 제품코드가 없어 같은 코드 ${esc(it.code)}에 박스로 환산)</small>` : `낱개 수를 넣으면 ${fmt(pk)}입으로 나눠 ${esc(eu || 'BOX')}로 보냅니다 <small>(낱개 제품코드 없음 → ${esc(it.code)}에 박스로 환산)</small>`;
   if (prodIsEa(it) && pk > 0 && l.mode !== 'ea') return n > 0 ? `이카운트에는 ${fmt(prodEcQty(it, l.qty, l.mode))} EA로 들어갑니다 (${fmt(pk)}입)` : `${esc(it.unit || 'BOX')} 수로 넣으면 ${fmt(pk)}입으로 곱해 EA로 보냅니다`;
   if (l.mode === 'ea' && pk > 0 && !prodIsEa(it)) return n > 0 ? `낱개 ${fmt(n)}개 ÷ ${fmt(pk)}입 = <b>${fmt(prodEcQty(it, l.qty, 'ea'))} ${esc(eu || 'BOX')}</b>로 보냅니다` : `낱개 수를 넣으면 ${fmt(pk)}입으로 나눠 ${esc(eu || 'BOX')}로 보냅니다`;
