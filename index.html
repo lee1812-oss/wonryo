@@ -1070,7 +1070,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '133';
+const APP_VER  = '134';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -2003,9 +2003,9 @@ function ccpPreviewHtml(D, lines) {
   if (!items.length && !sent.length) return '';
   const cards = CCP_ORDER.map(type => {
     const its = items.filter(x => ccpOf(x.it)[type]), cur = L[D + '|' + type], live = cur && !cur.skip;
-    if (!its.length && !live && !(type === 'mix' && items.length)) return '';
+    if (!its.length && !live) return '';
     const g = JSON.parse(JSON.stringify(live ? cur : ccpBlank(type, D))), old = new Set([...(g.rows || []), ...(g.pass || [])].map(r => r.id));
-    its.forEach(x => ccpAddItem(g, x)); if (type === 'mix' && !(g.items || []).includes('mix:auto')) ccpAddItem(g, { code: 'mix:auto', name: '기본', ec: 0 });
+    its.forEach(x => ccpAddItem(g, x));
     const T = CCP_TYPES[type], rows = (g.rows || []).filter(r => r.kind !== 'pre' && r.kind !== 'post');
     const nNew = rows.filter(r => !old.has(r.id)).length, st = live ? ccpState(cur) : null;
     const chip = r => { const s = ccpRowState(type, 'rows', r), isNew = !old.has(r.id); return `<span class="pcc-r${isNew ? ' new' : s.bad.length ? ' bad' : s.miss ? '' : ' ok'}">${esc(String(r.name || '').replace(/^(D|DB|Db)\./, ''))}${r.tag ? ` <i>${esc(r.tag)}</i>` : ''}${isNew ? ' <b>＋</b>' : s.bad.length ? ' ⚠' : s.miss ? '' : ' ✓'}</span>`; };
@@ -2385,8 +2385,8 @@ function ccpEnsure(date, prods) {
     const k = date + '|' + type; let g = L[k]; if (!g) { g = L[k] = ccpBlank(type, date); n++; }
     its.forEach(x => ccpAddItem(g, x));
   });
-  /* v111: 생산이 있는 날은 크림배합 일지를 기본으로 만듦 (크림배합·마늘배합 줄) — 기기마다 받은 생산이 달라도 똑같이 보이게 */
-  if (items.length) { const k = date + '|mix'; let g = L[k]; if (!g) { g = L[k] = ccpBlank('mix', date); n++; } if (!(g.items || []).includes('mix:auto')) ccpAddItem(g, { code: 'mix:auto', name: '기본', ec: 0 }); }
+  /* v134: 크림배합 일지는 배합·마늘빵류처럼 크림배합에 연결된 품목을 만든 날만 — 몽블랑만 만든 날 v111 이 자동으로 만들어 둔 빈 크림배합 일지(아무도 손대지 않은 것)는 지움 */
+  const km = date + '|mix', gm = L[km]; if (gm && !gm.ts && !items.some(x => ccpOf(prodItem(x.code) || { name: x.name }).mix)) delete L[km];
   return n;
 }
 /* v130: 점검자·승인자가 비어 있는 일지는 기본값으로 채움 (일지마다 고칠 수 있음, 이미 적힌 이름은 그대로) */
