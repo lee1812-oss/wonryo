@@ -703,16 +703,102 @@ body.sys-sub .finwrap{height:calc(100vh - var(--head-h,62px) - 60px)!important}
 .modestate b.adm{background:#E8F1FB;border-color:#9DC0E8;color:#1D4E89}
 .modestate b.usr{background:#EAF6EC;border-color:#9ACDA4;color:#1E6A34}
 .sysnote{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;line-height:1.7;color:var(--ink2)}
-.sale .pchip b{display:block;font-size:14px;line-height:1.3;word-break:keep-all;overflow-wrap:anywhere}
-.sline .pname{flex:1 1 220px;min-width:0}.sline .pq{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.sprice{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink2);font-weight:600}.sprice input{width:96px;height:44px;text-align:right;font-size:17px;font-weight:700;border:1px solid var(--line);border-radius:10px;padding:0 8px;background:#fff}
-.samt{min-width:86px;text-align:right;font-weight:800;color:var(--brand)}
-.stot{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--accent-bg);font-size:14px}
-.sconf{margin-top:12px;padding:12px;border:2px solid var(--accent);border-radius:12px;background:#fff}
-.stbl{width:100%;border-collapse:collapse;font-size:13px}.stbl th,.stbl td{border-bottom:1px solid var(--line2);padding:5px 6px;text-align:right}.stbl th:first-child,.stbl td:first-child{text-align:left}.stbl tfoot td{font-weight:700;border-bottom:0}
-.slog{padding:8px 0;border-top:1px solid var(--line)}.slog:first-of-type{border-top:0}
-.sjson{max-height:220px;overflow:auto;font-size:11px;background:var(--bg);padding:8px;border-radius:8px;white-space:pre-wrap;word-break:break-all}
-@media (max-width:640px){.sline{flex-direction:column;align-items:stretch}.sline .pname{flex:0 0 auto}.sline .pq input[data-sqty]{width:64px;height:40px;font-size:18px}.sprice input{width:100px;height:40px;font-size:16px;padding:0 6px}.samt{min-width:0;flex:1 1 auto}}
+/* v150: 판매 입력 작업 화면 */
+body.sale-on main>section.view{max-width:none}
+.sw{display:flex;flex-direction:column;gap:8px;font-variant-numeric:tabular-nums}
+.sw .num{font-variant-numeric:tabular-nums}
+.sw-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:8px 12px}
+.sw-ttl{display:flex;align-items:center;gap:8px}.sw-ttl h2{margin:0;font-size:17px;letter-spacing:-.3px}
+.sw-badge{font-size:11px;font-weight:700;color:var(--warn);background:var(--warn-bg);border:1px solid #E8C98E;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.sw-date{display:flex;align-items:center;gap:4px}.sw-date input{height:32px;border:1px solid var(--line);border-radius:8px;padding:0 6px;font-weight:700;background:#fff}.sw-date .btn{min-height:32px;padding:3px 9px}
+.sw-wd{font-weight:800;color:var(--brand);min-width:16px;text-align:center}
+.sw-who{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink2)}.sw-who input{width:96px;height:32px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:#fff}
+.sw-tools{display:flex;align-items:center;gap:6px;margin-left:auto}
+.sw-data{font-size:12px;color:var(--ink2);white-space:nowrap}.sw-data.none{color:var(--warn);font-weight:700}
+.sw-cfg{position:relative}.sw-cfg>summary{list-style:none;cursor:pointer}.sw-cfg>summary::-webkit-details-marker{display:none}
+.sw-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:30;width:260px;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(16,24,40,.18);padding:12px;display:flex;flex-direction:column;gap:8px}
+.sw-pop label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:700;color:var(--ink2)}.sw-pop input{height:32px;border:1px solid var(--line);border-radius:8px;padding:0 8px}
+.sw-kpi{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.sw-k{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:8px 12px;display:flex;flex-direction:column;min-width:0;border-left:4px solid var(--line)}
+.sw-k[role=button]{cursor:pointer}.sw-k[role=button]:hover{border-color:var(--brand2)}
+.sw-k.pri{border-left-color:var(--accent)}.sw-k.warn{border-left-color:var(--warn)}
+.sw-kl{font-size:11.5px;font-weight:700;color:var(--ink3)}
+.sw-kv{font-size:21px;font-weight:800;color:var(--ink);letter-spacing:-.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sw-kv small{font-size:12px;font-weight:700;color:var(--ink2);margin-left:2px}
+.sw-ks{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sw-ks .up{color:var(--accent);font-weight:700}.sw-ks .dn{color:var(--minus);font-weight:700}
+.sw-steps{display:none}
+.sw-main{display:grid;grid-template-columns:minmax(230px,.8fr) minmax(320px,1.25fr) minmax(400px,1.35fr);gap:8px;min-height:0}
+.sw-p{background:var(--paper);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.sw-ph,.sw-seg,.sw-sh,.sw-foot{flex:0 0 auto}
+.sw-ph{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line2);min-height:46px}
+.sw-ph h3{margin:0;font-size:14px;font-weight:800;white-space:nowrap}.sw-ph.sub{min-height:0;padding:6px 10px}
+.sw-q{flex:1 1 auto;min-width:0;height:32px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font-size:13.5px;background:var(--bg)}.sw-q:focus{background:#fff;outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+.sw-chk{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--ink2);white-space:nowrap}
+.sw-seg{display:flex;gap:2px;padding:4px;background:var(--bg);border-bottom:1px solid var(--line2)}
+.sw-seg button{flex:1 1 0;padding:5px 6px;border-radius:7px;font-size:12.5px;font-weight:700;color:var(--ink2)}.sw-seg button.on{background:var(--paper);color:var(--brand);box-shadow:0 1px 3px rgba(16,24,40,.12)}
+.sw-seg.big button{font-size:13.5px;padding:7px}.sw-seg button span{display:inline-block;min-width:18px;font-size:11px;background:var(--brand);color:#fff;border-radius:999px;padding:0 5px;margin-left:3px}.sw-seg button span:empty{display:none}
+.sw-list{flex:1 1 auto;overflow:auto;min-height:0}
+.sw-empty{padding:24px 16px;text-align:center;color:var(--ink2);font-size:13px;line-height:1.6}
+.sw-ci{display:flex;flex-direction:column;align-items:stretch;gap:2px;width:100%;text-align:left;padding:7px 12px;border-bottom:1px solid var(--line2);border-left:3px solid transparent}
+.sw-ci:hover{background:var(--bg)}.sw-ci.kb{background:var(--plus-bg)}.sw-ci.sel{background:var(--accent-bg);border-left-color:var(--accent)}
+.sw-cn{font-size:13.5px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sw-cm{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink3)}.sw-cm em{font-style:normal;margin-left:auto}
+.tg{font-style:normal;font-size:10.5px;font-weight:800;border-radius:4px;padding:0 5px;line-height:17px;white-space:nowrap}.tg.ok{background:var(--accent-bg);color:var(--accent)}.tg.due{background:var(--warn-bg);color:var(--warn)}
+.sw-cust{flex:1 1 auto;min-width:0}.sw-cust h3{overflow:hidden;text-overflow:ellipsis}.sw-cust span{display:block;font-size:11.5px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sw-t{width:100%;border-collapse:collapse;font-size:13px}.sw-t.fx{table-layout:fixed}
+.sw-t th{position:sticky;top:0;z-index:1;background:#F4F6F8;color:var(--ink2);font-size:11.5px;font-weight:700;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.sw-t td{padding:6px 8px;border-bottom:1px solid var(--line2);vertical-align:middle}.sw-t .r{text-align:right;white-space:nowrap}
+.sw-t tbody tr{cursor:pointer}.sw-t tbody tr:hover{background:var(--bg)}.sw-t tbody tr.kb{background:var(--plus-bg)}.sw-t tbody tr.on{background:var(--accent-bg)}.sw-t tbody tr.ot td:first-child .sw-in{color:var(--ink2)}
+.sw-t small{color:var(--ink3)}
+.sw-in{display:block;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sw-ic{display:block;font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sw-ic .w,.sw-ic em.w{color:var(--warn);font-style:normal;font-weight:700}
+.sw-add{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;border:1px solid var(--line);font-weight:800;color:var(--brand)}tr.on .sw-add{background:var(--accent);border-color:var(--accent);color:#fff}
+.sw-slip{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
+.sw-sh{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line2);font-size:12.5px;color:var(--ink2)}.sw-sh b{font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sw-sl{flex:1 1 auto;overflow:auto;min-height:0}
+.sw-gh,.sw-g{display:grid;grid-template-columns:minmax(0,1fr) 112px 88px 92px 22px;gap:4px 6px;align-items:center;padding:0 10px}
+.sw-gh{position:sticky;top:0;z-index:1;background:#F4F6F8;border-bottom:1px solid var(--line);font-size:11.5px;font-weight:700;color:var(--ink2);height:28px}.sw-gh span:not(:first-child){text-align:right}.sw-gh span:nth-child(2){text-align:center}
+.sw-g{padding-top:6px;padding-bottom:7px;border-bottom:1px solid var(--line2)}
+.sw-g .sw-gn{grid-column:1/-1;grid-row:1}.sw-g .sw-gn .sw-in{white-space:normal;font-size:13.5px;line-height:1.3}
+.sw-gs{grid-column:1;grid-row:2;min-width:0}.sw-gs .sw-ic{white-space:normal}.sw-g .sw-gq{grid-column:2;grid-row:2}.sw-g .sw-gp{grid-column:3;grid-row:2}.sw-g .sw-ga{grid-column:4;grid-row:2}.sw-g .sw-gx{grid-column:5;grid-row:2}
+.sw-gn{min-width:0}.sw-gn .lnk{font-size:11px;color:var(--plus);text-decoration:underline;padding:0}
+.sw-gq{display:grid;grid-template-columns:28px 1fr 28px;border:1px solid var(--line);border-radius:8px;overflow:hidden;height:32px;background:#fff}
+.sw-gq button{font-size:16px;font-weight:700;color:var(--ink2);background:var(--bg)}.sw-gq button:active{background:var(--line)}
+.sw-gq input{width:100%;min-width:0;border:0;text-align:center;font-size:15px;font-weight:800;color:var(--ink)}
+.sw-gq:focus-within,.sw-gp:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.sw-gp{width:100%;height:32px;border:1px solid var(--line);border-radius:8px;padding:0 6px;text-align:right;font-size:13.5px;font-weight:700;background:#fff}
+.sw-ga{text-align:right;font-weight:800;color:var(--brand);font-size:13.5px}
+.sw-gx{width:22px;height:22px;border-radius:6px;color:var(--ink3);font-size:15px}.sw-gx:hover{background:var(--minus-bg);color:var(--minus)}
+.sw-foot{border-top:1px solid var(--line);padding:8px 10px;display:flex;flex-direction:column;gap:7px;background:#FAFBFC}
+.sw-tot{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:6px}
+.sw-tot>div{display:flex;flex-direction:column;align-items:flex-end;padding:4px 8px;border-radius:8px;background:var(--paper);border:1px solid var(--line2)}
+.sw-tot span{font-size:11px;font-weight:700;color:var(--ink3)}.sw-tot b{font-size:15px;font-weight:800}
+.sw-tot .g{background:var(--brand);border-color:var(--brand)}.sw-tot .g span{color:rgba(255,255,255,.7)}.sw-tot .g b{color:#fff;font-size:18px}
+.sw-memo{height:34px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font-size:13.5px;background:#fff}
+.sw-act{display:grid;grid-template-columns:96px 1fr;gap:6px}.sw-act .btn{min-height:42px}.sw-act .primary{font-size:15px}.sw-act small,.sw-ma small{opacity:.7;font-size:11px;margin-left:4px;font-weight:600}
+.sw-de{padding:9px 12px;border-bottom:1px solid var(--line2)}
+.sw-deh{display:flex;justify-content:space-between;gap:8px}.sw-deh b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sw-deh .num{font-weight:800;color:var(--brand);white-space:nowrap}
+.sw-dem{font-size:11.5px;color:var(--ink3);margin-top:1px}.sw-del{font-size:12.5px;color:var(--ink2);margin-top:3px}.sw-dea{display:flex;gap:5px;margin-top:6px}
+.sw-modal{position:fixed;inset:0;z-index:200;background:rgba(16,24,40,.45);display:flex;align-items:center;justify-content:center;padding:16px}.sw-modal[hidden]{display:none}
+.sw-mb{background:var(--paper);border-radius:14px;box-shadow:0 20px 50px rgba(16,24,40,.3);width:min(640px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:16px 18px}
+.sw-mb h3{margin:0 0 6px;font-size:16px}.sw-mh{font-size:13.5px;margin-bottom:8px}.sw-t.mt tbody tr{cursor:default}.sw-t.mt tfoot td{font-weight:800;border-bottom:0;padding-top:8px}
+.sw-mt{margin:10px 0 4px;font-size:15px}.sw-mt b{font-size:20px;color:var(--brand)}
+.sjson{max-height:50vh;overflow:auto;font-size:11px;background:var(--bg);padding:8px;border-radius:8px;white-space:pre-wrap;word-break:break-all}
+.sw-ma{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.sw-ma .btn{min-height:42px;padding:0 16px}
+@media (max-width:1280px){.sw-main{grid-template-columns:minmax(200px,.7fr) minmax(300px,1.1fr) minmax(390px,1.25fr)}.sw-kv{font-size:18px}.sw-gh,.sw-g{grid-template-columns:minmax(0,1fr) 104px 80px 84px 22px}}
+@media (max-width:899px){
+  body.sale-on #tabsBottom{display:none}
+  body.sale-on main{padding-bottom:6px}
+  .sw-ttl h2{display:none}.sw-who{font-size:0;gap:0}.sw-who input{font-size:13px}
+  .sw-t.fx{table-layout:auto}.sw-t .sw-in{white-space:normal;line-height:1.3}.sw-t th:nth-child(4),.sw-t td:nth-child(4){display:none}.sw-t td,.sw-t th{padding:6px 6px}
+  .sw{gap:6px}.sw-bar{padding:6px 8px;gap:6px}.sw-ttl h2{font-size:15px}.sw-who input{width:70px}.sw-data{display:none}.sw-tools{margin-left:0}
+  .sw-kpi{display:flex;overflow-x:auto;scrollbar-width:none;gap:6px}.sw-kpi::-webkit-scrollbar{display:none}.sw-k{flex:0 0 140px;padding:6px 10px}.sw-kv{font-size:17px}
+  .sw-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:3px;background:var(--paper);border:1px solid var(--line);border-radius:10px}
+  .sw-steps button{padding:8px 4px;border-radius:8px;font-size:13px;font-weight:800;color:var(--ink2)}.sw-steps button.on{background:var(--brand);color:#fff}.sw-steps b{display:inline-block;min-width:18px;border-radius:999px;background:var(--accent);color:#fff;font-size:11px;padding:0 5px}.sw-steps b:empty{display:none}
+  .sw-main{grid-template-columns:1fr}.sw-p{display:none}
+  .sw[data-step=c] .sw-pc,.sw[data-step=i] .sw-pi,.sw[data-step=s] .sw-ps{display:flex}
+  .sw-gh,.sw-g{grid-template-columns:minmax(0,1fr) 104px 84px 22px}.sw-gh{display:none}.sw-gs{display:none}.sw-g .sw-ga{grid-column:1;grid-row:2;text-align:left}.sw-g .sw-gq{grid-column:2}.sw-g .sw-gp{grid-column:3}.sw-g .sw-gx{grid-column:4}
+  .sw-gh{display:none}
+}
 </style>
 </head>
 <body>
@@ -1099,7 +1185,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '149';
+const APP_VER  = '150';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1535,7 +1621,7 @@ function renderTabs() {
   const view = menu === 'fin' ? 'fin' : menu === 'insp' ? 'insp' : isProdM(menu) ? S.ui.prodTab : menu === 'sys' ? sysView : menu === 'home' ? 'home' : S.ui.tab;
   $$('.view').forEach(v => v.classList.toggle('on', v.dataset.view === view));
   const frameOn = view === 'fin' || view === 'insp';
-  document.body.classList.toggle('fin-tab', frameOn); document.body.classList.toggle('home-on', menu === 'home'); document.body.classList.toggle('prod-on', isProdM(menu) || menu === 'sys');
+  document.body.classList.toggle('fin-tab', frameOn); document.body.classList.toggle('home-on', menu === 'home'); document.body.classList.toggle('sale-on', menu === 'sale'); document.body.classList.toggle('prod-on', isProdM(menu) || menu === 'sys');
   document.body.classList.toggle('mode-user', !A); document.body.classList.toggle('sys-sub', menu === 'sys' && sysT === 'sinsp');
   // 육안검사 설정: 화면 위 작은 탭
   $('#inspSub').innerHTML = menu === 'sys' && sysT === 'sinsp' ? SYS_INSP.map(([k, n]) => `<button data-si="${k}" class="${S.ui.sysInsp === k ? 'on' : ''}">${n}</button>`).join('') : '';
@@ -4961,108 +5047,232 @@ function saleAddLine(code) {
   const ix = saleIndex(), y = ((ix.C[D.cust] || {}).items || {})[code], g = ix.I[code];
   D.lines.push({ code, name: saleItemName(code), qty: '', price: y && y.price != null ? y.price : '', pFrom: y && y.price != null ? 'cust' : '', pDate: y ? y.pDate : '', other: !y && g && g.price != null ? g.price : null });
 }
+/* v150: 판매 입력 작업 화면 — 한 화면(스크롤 없이)에서 거래처 → 품목 → 주문서. 각 칸만 안에서 넘겨 봄
+   키보드: 거래처 검색 ↑↓ Enter → 품목 검색 ↑↓ Enter(담기) → 수량 Enter 단가 Enter … · Ctrl+Enter 확인 · Esc 닫기 */
+const saleWon = n => (n == null || isNaN(n)) ? '—' : Math.round(n).toLocaleString('ko-KR');
+const saleMan = n => { n = Math.round(n || 0); return Math.abs(n) >= 1e8 ? (n / 1e8).toFixed(2).replace(/\.?0+$/, '') + '억' : Math.abs(n) >= 1e4 ? Math.round(n / 1e4).toLocaleString('ko-KR') + '만' : n.toLocaleString('ko-KR'); };
+function saleDayStats() {   /* 판매현황 자료의 날짜별 공급가액·거래처 */
+  const ix = saleIndex(); if (ix.B) return ix.B; const B = {};
+  for (const [d, c, , q, s] of saleS().rows) { const x = B[d] || (B[d] = { s: 0, c: {} }); x.s += s; if (q > 0) x.c[c] = 1; }
+  return (ix.B = B);
+}
+function saleSum(B, f, t) { let s = 0; for (const d in B) if (d >= f && d <= t) s += B[d].s; return s; }
+function saleDue(date) {   /* 지난 8주 같은 요일에 3번 이상 주문한 거래처 */
+  const ix = saleIndex(), ds = [1, 2, 3, 4, 5, 6, 7, 8].map(k => ccpAddD(date, -7 * k)), out = [];
+  for (const c in ix.C) { const n = ds.filter(d => ix.C[c].dset[d]).length; if (n >= 3) out.push({ c, n }); }
+  return out.sort((a, b) => b.n - a.n);
+}
+function saleKpi() {
+  const X = saleS(), D = X.draft, B = saleDayStats(), dl = X.log.filter(e => e.date === D.date);
+  const dSup = dl.reduce((t, e) => t + e.sup, 0), dVat = dl.reduce((t, e) => t + e.vat, 0);
+  const lw = ccpAddD(D.date, -7), lwS = B[lw] ? B[lw].s : 0, lwC = B[lw] ? Object.keys(B[lw].c).length : 0;
+  const m0 = D.date.slice(0, 8) + '01', mS = saleSum(B, m0, D.date);
+  const pm = new Date(D.date + 'T00:00:00'); pm.setDate(1); pm.setMonth(pm.getMonth() - 1); const pf = ccpYmd(pm), dd = Number(D.date.slice(8)), pmEnd = new Date(pm.getFullYear(), pm.getMonth() + 1, 0).getDate();
+  const pt = pf.slice(0, 8) + String(Math.min(dd, pmEnd)).padStart(2, '0'), pS = saleSum(B, pf, pt), mR = pS ? (mS - pS) / pS * 100 : null;
+  const due = saleDue(D.date), done = new Set(dl.map(e => e.cust)), dueDone = due.filter(o => done.has(o.c)).length;
+  const t = (lab, val, sub, cls, act) => `<div class="sw-k${cls ? ' ' + cls : ''}"${act ? ` role="button" tabindex="0" data-skpi="${act}"` : ''}><span class="sw-kl">${lab}</span><b class="sw-kv">${val}</b><span class="sw-ks">${sub}</span></div>`;
+  return t(`${D.date === today() ? '오늘' : esc(saleMD(D.date))} 입력`, `${dl.length}<small>건</small>`, `거래처 ${done.size}곳`, '', 'day')
+    + t('입력 공급가액', `${saleWon(dSup)}<small>원</small>`, `부가세 포함 ${saleWon(dSup + dVat)}원`, 'pri')
+    + t('지난주 같은 요일', `${saleMan(lwS)}<small>원</small>`, X.rows.length ? `${esc(saleMD(lw))} · 거래처 ${lwC}곳 (판매현황)` : '판매현황 자료 없음')
+    + t(`${Number(D.date.slice(5, 7))}월 누계`, `${saleMan(mS)}<small>원</small>`, mR == null ? '전월 같은 기간 자료 없음' : `<span class="${mR >= 0 ? 'up' : 'dn'}">전월 같은 기간 ${mR >= 0 ? '▲' : '▼'} ${Math.abs(mR).toFixed(1)}%</span>`)
+    + t('주문 예상 거래처', `${dueDone}<small> / ${due.length}</small>`, due.length ? `${WD[new Date(D.date + 'T00:00:00').getDay()]}요일 단골 · 남은 ${due.length - dueDone}곳` : '같은 요일 단골 없음', due.length - dueDone > 0 ? 'warn' : '', 'due');
+}
 function renderSale() {
   const box = $('#saleNew'); if (!box) return;
-  const X = saleS(), D = X.draft, ix = saleIndex(), hasData = X.rows.length > 0;
-  const cu = D.cust ? ix.C[D.cust] : null, tot = saleTotals(D.lines);
-  const custAll = Object.keys(X.cust).map(c => ({ c, name: X.cust[c][0], x: ix.C[c] || { n: 0, n90: 0, last: '' } }));
-  const q = saleNorm(saleUi.q);
-  const custList = q ? custAll.filter(o => saleNorm(o.name + o.c).includes(q)).sort((a, b) => b.x.n90 - a.x.n90 || (b.x.last > a.x.last ? 1 : -1)).slice(0, 40)
-    : custAll.filter(o => o.x.n90 > 0).sort((a, b) => (b.x.last > a.x.last ? 1 : b.x.last < a.x.last ? -1 : b.x.n90 - a.x.n90)).slice(0, saleUi.allCust ? 200 : 18);
-  const inCart = new Set(D.lines.map(l => l.code));
-  const iq = saleNorm(saleUi.iq);
-  const favs = cu ? Object.entries(cu.items).filter(([, y]) => y.n > 0).sort((a, b) => b[1].n90 - a[1].n90 || b[1].n - a[1].n || (b[1].last > a[1].last ? 1 : -1)) : [];
-  const favShow = iq ? favs.filter(([c]) => saleNorm(saleItemName(c) + c).includes(iq)) : favs.slice(0, saleUi.allItems ? 300 : 24);
-  const others = iq ? Object.keys(X.items).filter(c => !(cu && cu.items[c]) && saleNorm(saleItemName(c) + c).includes(iq)).slice(0, 30) : [];
-  const dayLog = X.log.filter(e => e.date === D.date);
-  const itemChip = (c, y, other) => `<button type="button" class="pchip${inCart.has(c) ? ' on' : ''}" data-sitem="${esc(c)}"><b>${inCart.has(c) ? '✓ ' : ''}${esc(saleItemName(c))}</b><small>${esc(c)}${y ? ` · ${y.price != null ? fmt(y.price) + '원' : '단가 없음'} · 최근 ${saleMD(y.last)} ${fmt(y.lastQty)}개 · ${y.n}회` : other ? ` · 이 거래처 첫 주문${ix.I[c] && ix.I[c].price != null ? ' · 다른 거래처 ' + fmt(ix.I[c].price) + '원' : ''}` : ''}</small></button>`;
-  box.innerHTML = `<div class="sale">
-  <div class="card" style="border-color:#E8C98E;background:var(--warn-bg)"><b>연습 단계</b> — 여기서 저장한 판매는 <b>이카운트로 보내지 않습니다</b>. 화면과 단가가 맞는지 먼저 써 보고, 맞으면 이카운트 판매입력(Sale/SaveSale)으로 보내는 3단계를 붙입니다.</div>
-  <div class="card"><div class="prow" style="align-items:center"><h2 style="margin:0;flex:1 1 auto">판매 자료 <span class="pill ${hasData ? 'ok' : 'warn'}">${hasData ? `${fmt(X.rows.length)}줄 · 거래처 ${Object.keys(X.cust).length} · 품목 ${Object.keys(X.items).length}` : '없음'}</span></h2>
-    <label class="btn sm${hasData ? '' : ' primary'}">판매현황 엑셀 올리기<input type="file" id="saleFile" accept=".xlsx,.xls" multiple hidden></label>${hasData ? '<button type="button" class="btn sm danger" id="saleWipe">자료 지우기</button>' : ''}</div>
-    <div class="muted" style="font-size:12.5px;margin-top:6px">이카운트 <b>영업관리 → 판매현황</b>을 <b>일별·거래처별·품목별</b>로 조회해 엑셀로 받은 파일 (거래처코드·품목코드·수량·공급가액 칸). 5,000줄이 넘으면 기간을 나눠 여러 번 올리면 이어 붙입니다 — 겹치는 날은 줄이 더 많은 쪽을 씁니다. 자료는 이 기기에만 저장됩니다.</div>
-    ${X.files.length ? `<div class="muted" style="font-size:12px;margin-top:4px">${X.files.slice(0, 4).map(f => `${esc(f.name)} (${esc(f.from)}~${esc(f.to)}, ${fmt(f.n)}줄)`).join(' · ')}</div>` : ''}</div>
-  <div class="card pbar"><div class="prow">
-    <div class="field" style="flex:1 1 150px"><label for="sDate">판매일 <span class="muted" style="font-weight:500">${esc(WD[new Date(D.date + 'T00:00:00').getDay()])}요일${D.date === today() ? ' · 오늘' : ''}</span></label><input type="date" id="sDate" value="${esc(D.date)}"><div class="pday-nav" role="group" aria-label="판매일 바꾸기"><button type="button" class="btn sm" data-sday="-1">‹ 전일</button><button type="button" class="btn sm${D.date === today() ? ' primary' : ''}" data-sday="0">오늘</button><button type="button" class="btn sm" data-sday="1">익일 ›</button></div></div>
-    <div class="field" style="flex:1 1 120px"><label for="sWho">입력자</label><input id="sWho" value="${esc(S.settings.reporter || '')}" placeholder="이름"></div></div></div>
-  ${!hasData ? '<div class="card muted">먼저 위에서 판매현황 엑셀을 올려 주세요. 거래처 목록과 거래처별 지난 단가가 여기서 만들어집니다.</div>' : !D.cust ? `<div class="card"><div class="prow" style="align-items:center;margin-bottom:8px"><h2 style="margin:0;flex:1 1 auto">① 거래처 고르기</h2><input class="search" id="sQ" value="${esc(saleUi.q)}" placeholder="거래처 이름·사업자번호" aria-label="거래처 검색" style="flex:0 1 220px;min-width:0"></div>
-    <div class="muted" style="font-size:12.5px;margin-bottom:8px">${q ? `검색 결과 ${custList.length}곳` : '최근 주문한 거래처 순 (최근 90일)'}</div>
-    ${custList.length ? `<div class="pchips">${custList.map(o => `<button type="button" class="pchip" data-scust="${esc(o.c)}"><b>${esc(o.name)}</b><small>최근 ${saleMD(o.x.last)} · 90일 ${o.x.n90}회</small></button>`).join('')}</div>` : '<div class="muted">맞는 거래처가 없습니다. 새 거래처는 이카운트에 먼저 등록한 뒤 판매현황을 다시 올려 주세요.</div>'}
-    ${!q ? `<div style="margin-top:10px"><button type="button" class="btn sm" id="sCustAll">${saleUi.allCust ? '줄여 보기' : '최근 거래처 더 보기'}</button></div>` : ''}</div>`
-  : `<div class="card"><div class="prow" style="align-items:center"><h2 style="margin:0;flex:1 1 auto">${esc(saleCustName(D.cust))}</h2><button type="button" class="btn sm" id="sCustChg">거래처 바꾸기</button></div>
-    <div class="muted" style="font-size:12.5px">거래처코드 ${esc(D.cust)}${cu ? ` · 최근 주문 ${saleMD(cu.last)} · 90일 ${cu.n90}회` : ''}</div></div>
-  <div class="card"><div class="prow" style="align-items:center;margin-bottom:8px"><h2 style="margin:0;flex:1 1 auto">② 품목 고르기</h2><input class="search" id="sIQ" value="${esc(saleUi.iq)}" placeholder="품목·코드 검색" aria-label="품목 검색" style="flex:0 1 200px;min-width:0"></div>
-    <div class="muted" style="font-size:12.5px;margin-bottom:8px">이 거래처가 자주 산 품목 순 · 단가는 이 거래처의 지난 단가(공급가액÷수량, 부가세 별도)</div>
-    ${favShow.length ? `<div class="pchips">${favShow.map(([c, y]) => itemChip(c, y)).join('')}</div>` : `<div class="muted">${iq ? '이 거래처가 산 품목 중에는 없습니다.' : '이 거래처의 판매 이력이 없습니다. 위에서 품목을 검색하세요.'}</div>`}
-    ${others.length ? `<div class="muted" style="margin:10px 0 6px;font-size:12.5px">다른 품목 (이 거래처는 처음)</div><div class="pchips">${others.map(c => itemChip(c, null, true)).join('')}</div>` : ''}
-    ${!iq && favs.length > 24 ? `<div style="margin-top:10px"><button type="button" class="btn sm" id="sItemAll">${saleUi.allItems ? '줄여 보기' : `산 품목 모두 보기 (${favs.length})`}</button></div>` : ''}</div>
-  <div class="card"><h2 style="margin:0 0 4px">③ 수량·단가 ${D.lines.length ? `<span class="pill ok">${D.lines.length}품목</span>` : ''}</h2>
-    ${D.lines.length ? D.lines.map((l, k) => { const a = saleLineAmt(l); return `<div class="pline sline"><div class="pname"><b>${esc(l.name)}</b><div class="muted" style="font-size:12px">${esc(l.code)} · ${l.pFrom === 'cust' ? `지난 단가 (${saleMD(l.pDate)})` : l.pFrom === 'other' ? '다른 거래처 단가 — 확인 필요' : l.pFrom === 'manual' ? '직접 고친 단가' : '<span style="color:var(--warn);font-weight:700">단가를 넣으세요</span>'}${l.other != null && l.pFrom !== 'other' && l.price === '' ? ` <button type="button" class="btn xs" data-sother="${k}">다른 거래처 ${fmt(l.other)}원 쓰기</button>` : ''}</div></div>
-      <div class="pq"><button type="button" data-sstep="${k}" data-d="-1" aria-label="${esc(l.name)} 수량 줄이기">−</button><input inputmode="numeric" data-sqty="${k}" value="${esc(l.qty)}" placeholder="0" aria-label="${esc(l.name)} 수량"><button type="button" data-sstep="${k}" data-d="1" aria-label="${esc(l.name)} 수량 늘리기">+</button>
-      <label class="sprice">단가<input inputmode="numeric" data-sprice="${k}" value="${esc(l.price)}" placeholder="0" aria-label="${esc(l.name)} 단가"></label>
-      <span class="samt" data-samt="${k}">${a.s ? fmt(a.s) + '원' : ''}</span><button type="button" class="btn xs danger" data-sdel="${k}">빼기</button></div></div>`; }).join('')
-      + `<div class="stot" id="sTot">${saleTotHtml(tot)}</div>
-      <div class="field" style="margin-top:8px"><label for="sMemo">메모 (이카운트 적요 — 배송일·요청사항 등)</label><input id="sMemo" value="${esc(D.memo || '')}" placeholder="예: 10/4(토) 오전 배송 요망"></div>
-      ${saleUi.confirm ? saleConfirmHtml() : `<div class="prow" style="margin-top:12px"><button type="button" class="btn primary psend" id="sOk">확인하기</button><button type="button" class="btn" id="sClear">비우기</button></div>`}`
-    : '<div class="muted" style="padding:6px 0">위에서 주문받은 품목을 누르세요.</div>'}</div>`}
-  <div class="card"><h2 style="margin:0 0 6px">${esc(D.date)} 저장한 판매 <span class="pill">${dayLog.length}건</span></h2>
-    ${dayLog.length ? dayLog.map(e => `<div class="slog"><div><b>${esc(e.custName)}</b> <span class="pill warn">연습</span> <span class="muted" style="font-size:12px">${esc(hmOf(e.ts))}${e.who ? ' · ' + esc(e.who) : ''}</span></div>
-      <div class="muted" style="font-size:12.5px">${e.lines.map(l => `${esc(l.name)} ${fmt(l.qty)}×${fmt(l.price)}`).join(', ')}</div>
-      <div style="font-size:13px">공급가액 <b>${fmt(e.sup)}</b>원 · 부가세 ${fmt(e.vat)}원 · 합계 <b>${fmt(e.sup + e.vat)}</b>원${e.memo ? ` · <span class="muted">${esc(e.memo)}</span>` : ''}</div>
-      <div class="prow" style="gap:6px;margin-top:4px"><button type="button" class="btn xs" data-sedit="${esc(e.id)}">고치기</button><button type="button" class="btn xs danger" data-sldel="${esc(e.id)}">지우기</button></div>
-      <details style="margin-top:4px"><summary class="muted" style="font-size:12px;cursor:pointer">이카운트로 보낼 내용 보기 (3단계 미리보기)</summary><pre class="sjson">${esc(JSON.stringify({ SaleList: saleBulk(e).map(b => ({ BulkDatas: b })) }, null, 1))}</pre></details></div>`).join('')
-      : '<div class="muted">이 날짜에 저장한 판매가 없습니다.</div>'}
-    ${X.log.length ? `<div class="muted" style="font-size:12px;margin-top:6px">전체 ${X.log.length}건 저장됨 (최근 ${saleMD(X.log[0].date)})</div>` : ''}</div>
-  <div class="card"><button type="button" class="btn sm" id="sCfgOpen">${saleUi.cfgOpen ? '▼' : '▶'} 이카운트 전송 설정 (3단계에서 사용)</button>
-    ${saleUi.cfgOpen ? `<div class="prow" style="margin-top:8px"><div class="field" style="flex:1 1 140px"><label for="sWh">출하창고 코드 (WH_CD)</label><input id="sWh" value="${esc(X.cfg.wh || '')}" placeholder="예: 100"></div><div class="field" style="flex:1 1 140px"><label for="sEmp">담당자 사원코드 (EMP_CD)</label><input id="sEmp" value="${esc(X.cfg.emp || '')}" placeholder="이카운트 사원코드"></div></div><div class="muted" style="font-size:12px">이 기기에만 저장됩니다.</div>` : ''}</div>
+  const X = saleS(), D = X.draft, has = X.rows.length > 0;
+  if (!saleUi.ctabSet) saleUi.ctab = saleDue(D.date).length ? 'due' : 'recent'; if (!saleUi.rtab) saleUi.rtab = 'slip'; if (!saleUi.step) saleUi.step = 'c';
+  box.innerHTML = `<div class="sw" data-step="${saleUi.step}">
+  <div class="sw-bar">
+    <div class="sw-ttl"><h2>판매 입력</h2><span class="sw-badge" title="3단계에서 이카운트 판매입력(Sale/SaveSale)으로 보내기를 붙입니다">연습 · 이카운트 미전송</span></div>
+    <div class="sw-date"><button type="button" class="btn sm" data-sday="-1" aria-label="전일">‹</button><input type="date" id="sDate" value="${esc(D.date)}" aria-label="판매일"><span class="sw-wd">${esc(WD[new Date(D.date + 'T00:00:00').getDay()])}</span><button type="button" class="btn sm" data-sday="1" aria-label="익일">›</button><button type="button" class="btn sm${D.date === today() ? ' primary' : ''}" data-sday="0">오늘</button></div>
+    <label class="sw-who">입력자<input id="sWho" value="${esc(S.settings.reporter || '')}" placeholder="이름"></label>
+    <div class="sw-tools">
+      <span class="sw-data${has ? '' : ' none'}" title="${X.files.slice(0, 4).map(f => `${f.name} (${f.from}~${f.to}, ${f.n}줄)`).join('\n')}">${has ? `판매현황 ${esc(saleMD(X.rows[0][0]))}~${esc(saleMD(X.rows[X.rows.length - 1][0]))} · 거래처 ${Object.keys(X.cust).length}` : '판매현황 자료 없음'}</span>
+      <label class="btn sm${has ? '' : ' primary'}" title="이카운트 영업관리 → 판매현황 (일별·거래처별·품목별) 엑셀. 5,000줄이 넘으면 기간을 나눠 여러 번 올리면 이어 붙입니다.">${has ? '자료 갱신' : '판매현황 올리기'}<input type="file" id="saleFile" accept=".xlsx,.xls" multiple hidden></label>
+      <details class="sw-cfg"><summary class="btn sm" aria-label="설정">⚙</summary><div class="sw-pop">
+        <b>이카운트 전송 설정</b><label>출하창고 코드 (WH_CD)<input id="sWh" value="${esc(X.cfg.wh || '')}"></label><label>담당 사원코드 (EMP_CD)<input id="sEmp" value="${esc(X.cfg.emp || '')}"></label>
+        <div class="muted" style="font-size:11.5px">판매현황 자료·입력 기록은 이 기기에만 저장됩니다.</div>${has ? '<button type="button" class="btn xs danger" id="saleWipe">판매현황 자료 지우기</button>' : ''}</div></details>
+    </div>
+  </div>
+  <div class="sw-kpi" id="swK">${saleKpi()}</div>
+  <div class="sw-steps" role="tablist"><button type="button" data-sstepv="c">① 거래처</button><button type="button" data-sstepv="i">② 품목</button><button type="button" data-sstepv="s">③ 주문서 <b id="swStepN"></b></button></div>
+  <div class="sw-main" id="swMain">
+    <section class="sw-p sw-pc"><div class="sw-ph"><h3>거래처</h3><input class="sw-q" id="sQ" value="${esc(saleUi.q || '')}" placeholder="이름·사업자번호 검색" autocomplete="off" aria-label="거래처 검색"></div>
+      <div class="sw-seg"><button type="button" data-sctab="due">주문 예상</button><button type="button" data-sctab="recent">최근</button><button type="button" data-sctab="all">전체</button></div>
+      <div class="sw-list" id="swC"></div></section>
+    <section class="sw-p sw-pi"><div class="sw-ph" id="swIH"></div>
+      <div class="sw-ph sub"><input class="sw-q" id="sIQ" value="${esc(saleUi.iq || '')}" placeholder="품목·코드 검색 (Enter: 담기)" autocomplete="off" aria-label="품목 검색"><label class="sw-chk"><input type="checkbox" id="sIAll"${saleUi.allItems ? ' checked' : ''}>전체 품목</label></div>
+      <div class="sw-list" id="swI"></div></section>
+    <section class="sw-p sw-ps"><div class="sw-seg big"><button type="button" data-srtab="slip">주문서</button><button type="button" data-srtab="day">저장한 판매 <span id="swDayN"></span></button></div>
+      <div class="sw-slip" id="swS"></div></section>
+  </div>
+  <div class="sw-modal" id="swM" hidden></div>
 </div>`;
-  saleBind();
+  saleBindShell(); saleRenderC(); saleRenderI(); saleRenderS(); saleSeg(); setTimeout(saleFit, 0);
+  if (!saleUi.inited) { saleUi.inited = true; window.addEventListener('resize', saleFit); document.addEventListener('keydown', saleKeys); }
 }
-function saleTotHtml(t) { return `공급가액 <b>${fmt(t.s)}</b>원 + 부가세(10%) ${fmt(t.v)}원 = 합계 <b>${fmt(t.s + t.v)}</b>원 <span class="muted" style="font-size:11.5px">부가세는 이카운트 계산과 1원 차이 날 수 있음</span>`; }
-function saleConfirmHtml() {
-  const X = saleS(), D = X.draft, t = saleTotals(D.lines);
-  return `<div class="sconf"><b>이대로 저장할까요?</b><div style="margin:6px 0">${esc(D.date)} (${esc(WD[new Date(D.date + 'T00:00:00').getDay()])}) · <b>${esc(saleCustName(D.cust))}</b></div>
-    <table class="stbl"><thead><tr><th>품목</th><th>수량</th><th>단가</th><th>공급가액</th></tr></thead><tbody>${D.lines.map(l => `<tr><td>${esc(l.name)}</td><td>${fmt(l.qty)}</td><td>${fmt(l.price)}</td><td>${fmt(saleLineAmt(l).s)}</td></tr>`).join('')}</tbody>
-    <tfoot><tr><td colspan="3">공급가액 / 부가세 / 합계</td><td>${fmt(t.s)} / ${fmt(t.v)} / <b>${fmt(t.s + t.v)}</b></td></tr></tfoot></table>${D.memo ? `<div class="muted" style="margin-top:4px">메모: ${esc(D.memo)}</div>` : ''}
-    <div class="prow" style="margin-top:10px"><button type="button" class="btn primary psend" id="sSave">저장 (연습 — 이카운트로 보내지 않음)</button><button type="button" class="btn" id="sBack">돌아가 고치기</button></div></div>`;
+function saleFit() {   /* 작업 칸을 화면 아래 끝까지 — 창 스크롤 없이 칸 안에서만 넘김 */
+  const m = $('#swMain'); if (!m || !m.offsetParent) return;
+  const tb = $('#tabsBottom'), tbH = tb && tb.offsetParent && getComputedStyle(tb).position === 'fixed' ? tb.offsetHeight : 0;
+  m.style.height = Math.max(window.innerWidth < 900 ? 360 : 440, window.innerHeight - (m.getBoundingClientRect().top + window.scrollY) - tbH - (parseFloat(getComputedStyle($('main')).paddingBottom) || 0) - 2) + 'px';
 }
-function saleBind() {
-  const X = saleS(), D = X.draft, re = () => { saleSave(); renderSale(); };
+function saleSeg() {
+  const r = $('#saleNew .sw'); if (!r) return; r.dataset.step = saleUi.step;
+  $$('#saleNew [data-sctab]').forEach(b => b.classList.toggle('on', b.dataset.sctab === saleUi.ctab));
+  $$('#saleNew [data-srtab]').forEach(b => b.classList.toggle('on', b.dataset.srtab === saleUi.rtab));
+  $$('#saleNew [data-sstepv]').forEach(b => b.classList.toggle('on', b.dataset.sstepv === saleUi.step));
+  const D = saleS().draft, n = $('#swStepN'); if (n) n.textContent = D.lines.length ? D.lines.length : '';
+  const dn = $('#swDayN'), c = saleS().log.filter(e => e.date === D.date).length; if (dn) dn.textContent = c ? c : '';
+}
+function saleCustRows() {
+  const X = saleS(), D = X.draft, ix = saleIndex(), q = saleNorm(saleUi.q), done = new Set(X.log.filter(e => e.date === D.date).map(e => e.cust));
+  const due = saleDue(D.date), dueN = Object.fromEntries(due.map(o => [o.c, o.n]));
+  const all = Object.keys(X.cust).map(c => ({ c, name: X.cust[c][0], x: ix.C[c] || { n: 0, n90: 0, last: '' }, due: dueN[c] || 0, done: done.has(c) }));
+  const byLast = (a, b) => (b.x.last > a.x.last ? 1 : b.x.last < a.x.last ? -1 : b.x.n90 - a.x.n90);
+  if (q) return all.filter(o => saleNorm(o.name + o.c).includes(q)).sort((a, b) => b.x.n90 - a.x.n90 || byLast(a, b)).slice(0, 80);
+  if (saleUi.ctab === 'due') return all.filter(o => o.due).sort((a, b) => (a.done - b.done) || b.due - a.due || byLast(a, b));
+  if (saleUi.ctab === 'recent') return all.filter(o => o.x.n90 > 0).sort(byLast).slice(0, 80);
+  return all.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+}
+function saleRenderC() {
+  const el = $('#swC'); if (!el) return; const X = saleS(), D = X.draft;
+  if (!X.rows.length) { el.innerHTML = '<div class="sw-empty">판매현황 자료가 없습니다.<br>위의 <b>판매현황 올리기</b>로 이카운트 판매현황 엑셀(일별·거래처별·품목별)을 올리면 거래처와 거래처별 지난 단가가 만들어집니다.</div>'; return; }
+  const L = saleUi.cl = saleCustRows(); if (saleUi.ck == null || saleUi.ck >= L.length) saleUi.ck = 0;
+  el.innerHTML = L.length ? L.map((o, i) => `<button type="button" class="sw-ci${o.c === D.cust ? ' sel' : ''}${i === saleUi.ck && (saleUi.q || saleUi.ckOn) ? ' kb' : ''}" data-scust="${esc(o.c)}"><span class="sw-cn">${esc(o.name)}</span>
+    <span class="sw-cm">${o.done ? '<i class="tg ok">입력</i>' : o.due ? `<i class="tg due">예상 ${o.due}/8</i>` : ''}<em>${o.x.last ? '최근 ' + esc(saleMD(o.x.last)) : '이력 없음'}${o.x.n90 ? ` · 90일 ${o.x.n90}회` : ''}</em></span></button>`).join('')
+    : `<div class="sw-empty">${saleUi.q ? '맞는 거래처가 없습니다.' : saleUi.ctab === 'due' ? '이 요일에 자주 주문하는 거래처가 없습니다. 「최근」 탭을 보세요.' : '거래처가 없습니다.'}</div>`;
+}
+function saleItemRows() {
+  const X = saleS(), D = X.draft, ix = saleIndex(), cu = D.cust ? ix.C[D.cust] : null, q = saleNorm(saleUi.iq);
+  const own = cu ? Object.entries(cu.items).filter(([, y]) => y.n > 0).map(([c, y]) => ({ c, y })) : [];
+  let L = own.sort((a, b) => b.y.n90 - a.y.n90 || b.y.n - a.y.n || (b.y.last > a.y.last ? 1 : -1));
+  if (q) L = L.filter(o => saleNorm(saleItemName(o.c) + o.c).includes(q));
+  if (q || saleUi.allItems) { const has = new Set(L.map(o => o.c)); const ot = Object.keys(X.items).filter(c => !has.has(c) && (!q || saleNorm(saleItemName(c) + c).includes(q))).map(c => ({ c, y: null, g: ix.I[c] })).sort((a, b) => ((b.g || {}).n || 0) - ((a.g || {}).n || 0)); L = L.concat(ot.slice(0, q ? 60 : 300)); }
+  return L;
+}
+function saleRenderI() {
+  const h = $('#swIH'), el = $('#swI'); if (!h || !el) return; const X = saleS(), D = X.draft, ix = saleIndex(), cu = D.cust ? ix.C[D.cust] : null;
+  if (!D.cust) { h.innerHTML = '<h3>품목</h3>'; el.innerHTML = `<div class="sw-empty">${X.rows.length ? '왼쪽에서 거래처를 고르세요.<br><span class="muted">거래처 검색 → ↑↓ → Enter</span>' : ''}</div>`; return; }
+  const avg = cu && cu.n ? Object.keys(cu.dset).length : 0;
+  h.innerHTML = `<div class="sw-cust"><h3>${esc(saleCustName(D.cust))}</h3><span>${esc(D.cust)}${cu ? ` · 최근 주문 ${esc(saleMD(cu.last))} · 90일 ${cu.n90}회 · 누적 ${avg}일` : ' · 판매 이력 없음'}</span></div><button type="button" class="btn xs" id="sCustChg">바꾸기</button>`;
+  const L = saleUi.il = saleItemRows(), inC = new Set(D.lines.map(l => l.code)); if (saleUi.ik == null || saleUi.ik >= L.length) saleUi.ik = 0;
+  el.innerHTML = L.length ? `<table class="sw-t fx"><colgroup><col><col style="width:84px"><col style="width:74px"><col style="width:42px"><col style="width:38px"></colgroup><thead><tr><th>품목</th><th class="r">지난 단가</th><th class="r">최근</th><th class="r">횟수</th><th></th></tr></thead><tbody>${L.map((o, i) => { const on = inC.has(o.c);
+    return `<tr class="${on ? 'on' : ''}${i === saleUi.ik && (saleUi.iq || saleUi.ikOn) ? ' kb' : ''}${o.y ? '' : ' ot'}" data-sitem="${esc(o.c)}"><td><span class="sw-in">${esc(saleItemName(o.c))}</span><span class="sw-ic">${esc(o.c)}${o.y ? '' : ' · 이 거래처 처음'}</span></td>
+      <td class="r num">${o.y ? (o.y.price != null ? saleWon(o.y.price) : '—') : o.g && o.g.price != null ? `<span class="muted" title="다른 거래처 최근 단가">(${saleWon(o.g.price)})</span>` : '—'}</td>
+      <td class="r num">${o.y ? `${esc(saleMD(o.y.last))}<small> ${fmt(o.y.lastQty)}</small>` : ''}</td><td class="r num">${o.y ? o.y.n : ''}</td><td class="r"><span class="sw-add">${on ? '✓' : '+'}</span></td></tr>`; }).join('')}</tbody></table>`
+    : `<div class="sw-empty">${saleUi.iq ? '맞는 품목이 없습니다.' : '이 거래처의 판매 이력이 없습니다. 품목을 검색하거나 「전체 품목」을 켜세요.'}</div>`;
+}
+function saleRenderS() {
+  const el = $('#swS'); if (!el) return; const X = saleS(), D = X.draft; saleSeg();
+  if (saleUi.rtab === 'day') {
+    const dl = X.log.filter(e => e.date === D.date);
+    el.innerHTML = `<div class="sw-sl">${dl.length ? dl.map(e => `<div class="sw-de"><div class="sw-deh"><b>${esc(e.custName)}</b><span class="num">${saleWon(e.sup + e.vat)}원</span></div>
+      <div class="sw-dem">${esc(hmOf(e.ts))}${e.who ? ' · ' + esc(e.who) : ''} · ${e.lines.length}품목 · 공급가액 ${saleWon(e.sup)}${e.memo ? ' · ' + esc(e.memo) : ''}</div>
+      <div class="sw-del">${e.lines.map(l => `${esc(l.name)} <b>${fmt(l.qty)}</b>×${saleWon(l.price)}`).join(' · ')}</div>
+      <div class="sw-dea"><button type="button" class="btn xs" data-sedit="${esc(e.id)}">고치기</button><button type="button" class="btn xs" data-sjson="${esc(e.id)}">전송 미리보기</button><button type="button" class="btn xs danger" data-sldel="${esc(e.id)}">지우기</button></div></div>`).join('')
+      : '<div class="sw-empty">이 날짜에 저장한 판매가 없습니다.</div>'}</div>
+      <div class="sw-foot"><div class="sw-tot"><div><span>건수</span><b>${dl.length}</b></div><div><span>공급가액</span><b>${saleWon(dl.reduce((t, e) => t + e.sup, 0))}</b></div><div class="g"><span>합계</span><b>${saleWon(dl.reduce((t, e) => t + e.sup + e.vat, 0))}</b></div></div></div>`;
+    return;
+  }
+  const t = saleTotals(D.lines);
+  el.innerHTML = `<div class="sw-sh">${D.cust ? `<b>${esc(saleCustName(D.cust))}</b>` : '<span class="muted">거래처 미선택</span>'}<span>${esc(D.date)} (${esc(WD[new Date(D.date + 'T00:00:00').getDay()])})</span>${D.editOf ? '<i class="tg due">기록 고치는 중</i>' : ''}</div>
+  <div class="sw-sl">${D.lines.length ? `<div class="sw-gh"><span>품목 · 단가 근거</span><span>수량</span><span>단가</span><span>공급가액</span></div>` + D.lines.map((l, k) => { const a = saleLineAmt(l);
+    return `<div class="sw-g"><div class="sw-gn"><span class="sw-in">${k + 1}. ${esc(l.name)}</span></div><div class="sw-gs"><span class="sw-ic">${esc(l.code)} · ${l.pFrom === 'cust' ? `지난 단가 ${esc(saleMD(l.pDate))}` : l.pFrom === 'other' ? '<em class="w">다른 거래처 단가</em>' : l.pFrom === 'manual' ? '직접 입력' : '<em class="w">단가 없음</em>'}${l.other != null && l.price === '' ? ` <button type="button" class="lnk" data-sother="${k}">${saleWon(l.other)} 쓰기</button>` : ''}</span></div>
+      <div class="sw-gq"><button type="button" data-sstep="${k}" data-d="-1" aria-label="줄이기">−</button><input inputmode="numeric" data-sqty="${k}" value="${esc(l.qty)}" placeholder="0" aria-label="${esc(l.name)} 수량"><button type="button" data-sstep="${k}" data-d="1" aria-label="늘리기">+</button></div>
+      <input class="sw-gp num" inputmode="numeric" data-sprice="${k}" value="${esc(l.price)}" placeholder="단가" aria-label="${esc(l.name)} 단가">
+      <span class="sw-ga num" data-samt="${k}">${a.s ? saleWon(a.s) : ''}</span><button type="button" class="sw-gx" data-sdel="${k}" aria-label="${esc(l.name)} 빼기">×</button></div>`; }).join('')
+    : `<div class="sw-empty">${D.cust ? '가운데 목록에서 품목을 누르면 여기에 담깁니다.' : '거래처를 고르고 품목을 담으세요.'}</div>`}</div>
+  <div class="sw-foot"><div class="sw-tot" id="sTot">${saleTotHtml(t)}</div>
+    <input class="sw-memo" id="sMemo" value="${esc(D.memo || '')}" placeholder="메모 · 적요 (배송일, 요청사항)" aria-label="메모">
+    <div class="sw-act"><button type="button" class="btn" id="sClear"${D.lines.length || D.cust ? '' : ' disabled'}>비우기</button><button type="button" class="btn primary" id="sOk"${D.lines.length ? '' : ' disabled'}>확인 <small>Ctrl+Enter</small></button></div></div>`;
+}
+function saleTotHtml(t) { return `<div><span>공급가액</span><b>${saleWon(t.s)}</b></div><div><span>부가세 10%</span><b>${saleWon(t.v)}</b></div><div class="g"><span>합계</span><b>${saleWon(t.s + t.v)}</b></div>`; }
+function saleModal(html) { const m = $('#swM'); if (!m) return; if (!html) { m.hidden = true; m.innerHTML = ''; return; } m.innerHTML = `<div class="sw-mb" role="dialog" aria-modal="true">${html}</div>`; m.hidden = false; m.onclick = e => { if (e.target === m || e.target.closest('[data-mclose]')) saleModal(); }; }
+function saleConfirm() {
+  const X = saleS(), D = X.draft;
+  const bad = D.lines.filter(l => !(Number(l.qty) > 0) || !(Number(l.price) > 0)); if (!D.lines.length) return;
+  if (bad.length) { toast(`수량·단가를 넣으세요: ${bad.map(l => l.name).slice(0, 2).join(', ')}${bad.length > 2 ? ' 외' : ''}`); const k = D.lines.indexOf(bad[0]); const f = $(`#saleNew [data-${Number(bad[0].qty) > 0 ? 'sprice' : 'sqty'}="${k}"]`); if (f) f.focus(); return; }
+  const t = saleTotals(D.lines);
+  saleModal(`<h3>판매 저장 확인</h3><div class="sw-mh"><b>${esc(saleCustName(D.cust))}</b> · ${esc(D.date)} (${esc(WD[new Date(D.date + 'T00:00:00').getDay()])})</div>
+    <table class="sw-t mt"><thead><tr><th>품목</th><th class="r">수량</th><th class="r">단가</th><th class="r">공급가액</th><th class="r">부가세</th></tr></thead><tbody>${D.lines.map(l => { const a = saleLineAmt(l); return `<tr><td>${esc(l.name)}<span class="sw-ic">${esc(l.code)}</span></td><td class="r num">${fmt(l.qty)}</td><td class="r num">${saleWon(l.price)}</td><td class="r num">${saleWon(a.s)}</td><td class="r num">${saleWon(a.v)}</td></tr>`; }).join('')}</tbody>
+    <tfoot><tr><td>합계 ${D.lines.length}품목</td><td></td><td></td><td class="r num">${saleWon(t.s)}</td><td class="r num">${saleWon(t.v)}</td></tr></tfoot></table>
+    <div class="sw-mt">총 <b>${saleWon(t.s + t.v)}</b>원 <span class="muted">(부가세 별도 단가 · 부가세는 이카운트 계산과 1원 차이 날 수 있음)</span></div>${D.memo ? `<div class="muted">메모: ${esc(D.memo)}</div>` : ''}
+    <div class="sw-ma"><button type="button" class="btn" data-mclose>돌아가 고치기 <small>Esc</small></button><button type="button" class="btn primary" id="sSave">저장 (연습) <small>Enter</small></button></div>`);
+  $('#sSave').onclick = saleDoSave; setTimeout(() => $('#sSave') && $('#sSave').focus(), 0);
+}
+function saleDoSave() {
+  const X = saleS(), D = X.draft;
+  const lines = D.lines.map(l => { const a = saleLineAmt(l); return { code: l.code, name: l.name, qty: Number(l.qty), price: Number(l.price), sup: a.s, vat: a.v }; });
+  const t = saleTotals(D.lines), en = { id: D.editOf || 's' + Date.now().toString(36), ts: new Date().toISOString(), date: D.date, cust: D.cust, custName: saleCustName(D.cust), lines, memo: D.memo || '', sup: t.s, vat: t.v, who: S.settings.reporter || '', status: 'practice' };
+  X.log = X.log.filter(e => e.id !== en.id); X.log.unshift(en); X.log = X.log.slice(0, 2000);
+  X.draft = { date: D.date, dateOn: today(), cust: '', lines: [], memo: '' }; saleUi.q = ''; saleUi.iq = ''; saleUi.step = 'c'; saleSave(); saleModal();
+  renderSale(); toast(`${en.custName} ${saleWon(t.s + t.v)}원 저장 (연습)`); const q = $('#sQ'); if (q && window.innerWidth >= 900) q.focus();
+}
+function saleKeys(e) {
+  if (S.ui.menu !== 'sale' || !$('#saleNew .sw')) return; const m = $('#swM');
+  if (m && !m.hidden) { if (e.key === 'Escape') { e.preventDefault(); saleModal(); } else if (e.key === 'Enter' && $('#sSave') && !e.target.closest('[data-mclose]')) { e.preventDefault(); saleDoSave(); } return; }
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saleConfirm(); }
+}
+function salePick(c) {
+  const X = saleS(), D = X.draft; if (D.cust === c) { saleUi.step = 'i'; saleSeg(); return; }
+  if (D.lines.length && !confirm('담은 품목을 비우고 거래처를 바꿀까요?')) return;
+  D.cust = c; D.lines = []; D.memo = ''; D.editOf = ''; saleUi.iq = ''; saleUi.ik = 0; saleUi.step = 'i'; saleUi.rtab = 'slip'; saleSave();
+  const iq = $('#sIQ'); if (iq) iq.value = ''; saleRenderC(); saleRenderI(); saleRenderS(); if (iq && window.innerWidth >= 900) iq.focus();
+}
+function saleToggleItem(c, focusQty) {
+  const D = saleS().draft; if (!D.cust) return; const i = D.lines.findIndex(l => l.code === c);
+  if (i >= 0 && !focusQty) D.lines.splice(i, 1); else if (i < 0) saleAddLine(c);
+  saleUi.rtab = 'slip'; saleSave(); saleRenderI(); saleRenderS();
+  if (focusQty) { const k = D.lines.findIndex(l => l.code === c); const f = $(`#saleNew [data-sqty="${k}"]`); if (f) { f.focus(); f.select(); } }
+}
+function saleBindShell() {
+  const X = saleS(), D = X.draft, box = $('#saleNew');
   const fi = $('#saleFile'); if (fi) fi.onchange = async e => { const fs = [...e.target.files]; let n = 0, msg = [];
     for (const f of fs) { try { const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' }); const p = saleParse(wb); if (!p.rows.length) { msg.push(`${f.name}: 판매현황 칸(거래처코드·품목코드·수량)을 찾지 못했습니다`); continue; } saleMerge(p, f.name); n += p.rows.length; } catch (er) { msg.push(`${f.name}: 읽지 못했습니다`); } }
     toast(msg.length ? msg[0] : `판매 자료 ${fmt(n)}줄을 넣었습니다`); renderSale(); };
-  if ($('#saleWipe')) $('#saleWipe').onclick = () => { if (!confirm('올린 판매현황 자료를 이 기기에서 지울까요? (저장한 판매 입력은 남습니다)')) return; X.rows = []; X.cust = {}; X.items = {}; X.files = []; saleIdx = null; re(); };
-  $('#sDate').onchange = e => { D.date = e.target.value || today(); D.dateOn = today(); re(); };
-  $$('#saleNew [data-sday]').forEach(b => b.onclick = () => { const k = Number(b.dataset.sday); D.date = k ? ccpAddD(D.date || today(), k) : today(); D.dateOn = today(); re(); });
+  if ($('#saleWipe')) $('#saleWipe').onclick = () => { if (!confirm('올린 판매현황 자료를 이 기기에서 지울까요? (저장한 판매 입력은 남습니다)')) return; X.rows = []; X.cust = {}; X.items = {}; X.files = []; saleIdx = null; saleSave(); renderSale(); };
+  if ($('#sWh')) $('#sWh').onchange = e => { X.cfg.wh = e.target.value.trim(); saleSave(); };
+  if ($('#sEmp')) $('#sEmp').onchange = e => { X.cfg.emp = e.target.value.trim(); saleSave(); };
+  $('#sDate').onchange = e => { D.date = e.target.value || today(); D.dateOn = today(); saleSave(); renderSale(); };
+  $$('#saleNew [data-sday]').forEach(b => b.onclick = () => { const k = Number(b.dataset.sday); D.date = k ? ccpAddD(D.date || today(), k) : today(); D.dateOn = today(); saleSave(); renderSale(); });
   $('#sWho').onchange = e => { S.settings.reporter = e.target.value.trim(); save(); };
-  const live = (id, key) => { const el = $(id); if (!el) return; el.oninput = () => { saleUi[key] = el.value; const pos = el.selectionStart; renderSale(); const n = $(id); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } }; };
-  live('#sQ', 'q'); live('#sIQ', 'iq');
-  $$('#saleNew [data-scust]').forEach(b => b.onclick = () => { if (D.cust !== b.dataset.scust) { D.lines = []; D.memo = ''; } D.cust = b.dataset.scust; saleUi.q = ''; saleUi.iq = ''; saleUi.confirm = false; saleUi.allItems = false; re(); });
-  if ($('#sCustAll')) $('#sCustAll').onclick = () => { saleUi.allCust = !saleUi.allCust; renderSale(); };
-  if ($('#sItemAll')) $('#sItemAll').onclick = () => { saleUi.allItems = !saleUi.allItems; renderSale(); };
-  if ($('#sCustChg')) $('#sCustChg').onclick = () => { if (D.lines.length && !confirm('담은 품목을 비우고 거래처를 바꿀까요?')) return; D.cust = ''; D.lines = []; D.memo = ''; D.editOf = ''; saleUi.confirm = false; re(); };
-  $$('#saleNew [data-sitem]').forEach(b => b.onclick = () => { const c = b.dataset.sitem, i = D.lines.findIndex(l => l.code === c); if (i >= 0) D.lines.splice(i, 1); else saleAddLine(c); saleUi.confirm = false; re(); if (i < 0) setTimeout(() => { const el = $(`#saleNew [data-sqty="${D.lines.length - 1}"]`); if (el) el.focus(); }, 0); });
-  const upd = k => { const l = D.lines[k], a = saleLineAmt(l), c = $(`#saleNew [data-samt="${k}"]`); if (c) c.textContent = a.s ? fmt(a.s) + '원' : ''; const t = $('#sTot'); if (t) t.innerHTML = saleTotHtml(saleTotals(D.lines)); saleSave(); };
-  $$('#saleNew [data-sqty]').forEach(el => { el.oninput = () => { const k = +el.dataset.sqty; D.lines[k].qty = el.value.replace(/[^\d]/g, ''); upd(k); }; el.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); const p = $(`#saleNew [data-sprice="${el.dataset.sqty}"]`); if (p) p.focus(); } }; });
-  $$('#saleNew [data-sprice]').forEach(el => { el.oninput = () => { const k = +el.dataset.sprice; D.lines[k].price = el.value.replace(/[^\d]/g, ''); D.lines[k].pFrom = 'manual'; upd(k); }; el.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); const n = $(`#saleNew [data-sqty="${+el.dataset.sprice + 1}"]`) || $('#sMemo'); if (n) n.focus(); } }; });
-  $$('#saleNew [data-sstep]').forEach(b => b.onclick = () => { const l = D.lines[+b.dataset.sstep]; l.qty = String(Math.max(0, (Number(l.qty) || 0) + Number(b.dataset.d))); if (l.qty === '0') l.qty = ''; re(); });
-  $$('#saleNew [data-sother]').forEach(b => b.onclick = () => { const l = D.lines[+b.dataset.sother]; l.price = l.other; l.pFrom = 'other'; re(); });
-  $$('#saleNew [data-sdel]').forEach(b => b.onclick = () => { D.lines.splice(+b.dataset.sdel, 1); saleUi.confirm = false; re(); });
-  if ($('#sMemo')) $('#sMemo').oninput = e => { D.memo = e.target.value; saleSave(); };
-  if ($('#sClear')) $('#sClear').onclick = () => { D.lines = []; D.memo = ''; D.editOf = ''; re(); };
-  if ($('#sOk')) $('#sOk').onclick = () => { const bad = D.lines.filter(l => !(Number(l.qty) > 0) || !(Number(l.price) > 0)); if (bad.length) { toast(`수량·단가가 비어 있는 품목: ${bad.map(l => l.name).slice(0, 2).join(', ')}${bad.length > 2 ? ' 외' : ''}`); return; } saleUi.confirm = true; renderSale(); const c = $('#saleNew .sconf'); if (c) c.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
-  if ($('#sBack')) $('#sBack').onclick = () => { saleUi.confirm = false; renderSale(); };
-  if ($('#sSave')) $('#sSave').onclick = () => {
-    const lines = D.lines.map(l => { const a = saleLineAmt(l); return { code: l.code, name: l.name, qty: Number(l.qty), price: Number(l.price), sup: a.s, vat: a.v }; });
-    const t = saleTotals(D.lines), en = { id: D.editOf || 's' + Date.now().toString(36), ts: new Date().toISOString(), date: D.date, cust: D.cust, custName: saleCustName(D.cust), lines, memo: D.memo || '', sup: t.s, vat: t.v, who: S.settings.reporter || '', status: 'practice' };
-    X.log = X.log.filter(e => e.id !== en.id); X.log.unshift(en); X.log = X.log.slice(0, 2000);
-    X.draft = { date: D.date, dateOn: today(), cust: '', lines: [], memo: '' }; saleUi.confirm = false; re(); toast(`${en.custName} 판매를 저장했습니다 (연습)`); };
-  $$('#saleNew [data-sldel]').forEach(b => b.onclick = () => { if (!confirm('이 판매 기록을 지울까요?')) return; X.log = X.log.filter(e => e.id !== b.dataset.sldel); re(); });
-  $$('#saleNew [data-sedit]').forEach(b => b.onclick = () => { const e = X.log.find(x => x.id === b.dataset.sedit); if (!e) return; if (D.lines.length && !confirm('지금 담은 품목을 비우고 이 기록을 고칠까요?')) return;
-    X.draft = { date: e.date, dateOn: today(), cust: e.cust, lines: e.lines.map(l => ({ code: l.code, name: l.name, qty: String(l.qty), price: l.price, pFrom: 'manual' })), memo: e.memo, editOf: e.id }; saleUi.confirm = false; re(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
-  if ($('#sCfgOpen')) $('#sCfgOpen').onclick = () => { saleUi.cfgOpen = !saleUi.cfgOpen; renderSale(); };
-  if ($('#sWh')) $('#sWh').onchange = e => { X.cfg.wh = e.target.value.trim(); re(); };
-  if ($('#sEmp')) $('#sEmp').onchange = e => { X.cfg.emp = e.target.value.trim(); re(); };
+  /* 거래처 */
+  const sq = $('#sQ'); sq.oninput = () => { saleUi.q = sq.value; saleUi.ck = 0; saleRenderC(); };
+  sq.onkeydown = e => { const L = saleUi.cl || []; if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); saleUi.ck = saleUi.ckOn || saleUi.q ? Math.max(0, Math.min(L.length - 1, (saleUi.ck || 0) + (e.key === 'ArrowDown' ? 1 : -1))) : 0; saleUi.ckOn = true; $$('#swC .kb').forEach(x => x.classList.remove('kb')); const k = $$('#swC .sw-ci')[saleUi.ck]; if (k) { k.classList.add('kb'); k.scrollIntoView({ block: 'nearest' }); } }
+    else if (e.key === 'Enter') { e.preventDefault(); const o = L[saleUi.ck || 0]; if (o) salePick(o.c); } else if (e.key === 'Escape') { sq.value = ''; saleUi.q = ''; saleRenderC(); } };
+  $$('#saleNew [data-sctab]').forEach(b => b.onclick = () => { saleUi.ctab = b.dataset.sctab; saleUi.ctabSet = true; saleUi.q = ''; sq.value = ''; saleSeg(); saleRenderC(); });
+  $('#swC').onclick = e => { const b = e.target.closest('[data-scust]'); if (b) salePick(b.dataset.scust); };
+  /* 품목 */
+  const iq = $('#sIQ'); iq.oninput = () => { saleUi.iq = iq.value; saleUi.ik = 0; saleRenderI(); };
+  iq.onkeydown = e => { const L = saleUi.il || []; if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); saleUi.ik = saleUi.ikOn || saleUi.iq ? Math.max(0, Math.min(L.length - 1, (saleUi.ik || 0) + (e.key === 'ArrowDown' ? 1 : -1))) : 0; saleUi.ikOn = true; $$('#swI tr.kb').forEach(r => r.classList.remove('kb')); const r = $$('#swI tbody tr')[saleUi.ik]; if (r) { r.classList.add('kb'); r.scrollIntoView({ block: 'nearest' }); } }
+    else if (e.key === 'Enter') { e.preventDefault(); const o = L[saleUi.ik || 0]; if (o) { iq.value = ''; saleUi.iq = ''; saleToggleItem(o.c, true); } } else if (e.key === 'Escape') { iq.value = ''; saleUi.iq = ''; saleRenderI(); } };
+  $('#sIAll').onchange = e => { saleUi.allItems = e.target.checked; saleRenderI(); };
+  $('#swIH').onclick = e => { if (e.target.closest('#sCustChg')) { if (D.lines.length && !confirm('담은 품목을 비우고 거래처를 바꿀까요?')) return; D.cust = ''; D.lines = []; D.memo = ''; D.editOf = ''; saleUi.step = 'c'; saleSave(); renderSale(); const q = $('#sQ'); if (q) q.focus(); } };
+  $('#swI').onclick = e => { const r = e.target.closest('[data-sitem]'); if (r) saleToggleItem(r.dataset.sitem, false); };
+  /* 주문서 · 저장한 판매 */
+  $$('#saleNew [data-srtab]').forEach(b => b.onclick = () => { saleUi.rtab = b.dataset.srtab; saleRenderS(); });
+  $$('#saleNew [data-sstepv]').forEach(b => b.onclick = () => { saleUi.step = b.dataset.sstepv; saleSeg(); setTimeout(saleFit, 0); });
+  $('#swK').onclick = e => { const k = e.target.closest('[data-skpi]'); if (!k) return; if (k.dataset.skpi === 'due') { saleUi.ctab = 'due'; saleUi.q = ''; sq.value = ''; saleUi.step = 'c'; saleSeg(); saleRenderC(); } else { saleUi.rtab = 'day'; saleUi.step = 's'; saleRenderS(); } };
+  const S_ = $('#swS');
+  const upd = k => { const l = D.lines[k], a = saleLineAmt(l), c = $(`#saleNew [data-samt="${k}"]`); if (c) c.textContent = a.s ? saleWon(a.s) : ''; const t = $('#sTot'); if (t) t.innerHTML = saleTotHtml(saleTotals(D.lines)); saleSave(); };
+  S_.oninput = e => { const el = e.target;
+    if (el.dataset.sqty != null) { const k = +el.dataset.sqty; D.lines[k].qty = el.value.replace(/[^\d]/g, ''); upd(k); }
+    else if (el.dataset.sprice != null) { const k = +el.dataset.sprice; D.lines[k].price = el.value.replace(/[^\d]/g, ''); D.lines[k].pFrom = 'manual'; upd(k); }
+    else if (el.id === 'sMemo') { D.memo = el.value; saleSave(); } };
+  S_.onkeydown = e => { const el = e.target; if (e.key !== 'Enter' || e.ctrlKey || e.metaKey) return;
+    if (el.dataset.sqty != null) { e.preventDefault(); const p = $(`#saleNew [data-sprice="${el.dataset.sqty}"]`); if (p) { p.focus(); p.select(); } }
+    else if (el.dataset.sprice != null) { e.preventDefault(); const n = $(`#saleNew [data-sqty="${+el.dataset.sprice + 1}"]`); if (n) { n.focus(); n.select(); } else if (window.innerWidth >= 900) { const q = $('#sIQ'); if (q) q.focus(); } }
+    else if (el.id === 'sMemo') { e.preventDefault(); saleConfirm(); } };
+  S_.onclick = e => { const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
+    if (d.sstep != null) { const l = D.lines[+d.sstep]; const v = Math.max(0, (Number(l.qty) || 0) + Number(d.d)); l.qty = v ? String(v) : ''; const f = $(`#saleNew [data-sqty="${d.sstep}"]`); if (f) f.value = l.qty; upd(+d.sstep); }
+    else if (d.sother != null) { const l = D.lines[+d.sother]; l.price = l.other; l.pFrom = 'other'; saleSave(); saleRenderS(); }
+    else if (d.sdel != null) { D.lines.splice(+d.sdel, 1); saleSave(); saleRenderS(); saleRenderI(); }
+    else if (b.id === 'sClear') { D.lines = []; D.memo = ''; D.editOf = ''; saleSave(); saleRenderS(); saleRenderI(); }
+    else if (b.id === 'sOk') saleConfirm();
+    else if (d.sldel) { if (!confirm('이 판매 기록을 지울까요?')) return; X.log = X.log.filter(x => x.id !== d.sldel); saleSave(); saleRenderS(); saleRenderC(); $('#swK').innerHTML = saleKpi(); }
+    else if (d.sjson) { const en = X.log.find(x => x.id === d.sjson); if (en) saleModal(`<h3>이카운트로 보낼 내용 (3단계 미리보기)</h3><div class="muted" style="font-size:12px;margin-bottom:6px">Sale/SaveSale · 지금은 보내지 않습니다</div><pre class="sjson">${esc(JSON.stringify({ SaleList: saleBulk(en).map(b => ({ BulkDatas: b })) }, null, 1))}</pre><div class="sw-ma"><button type="button" class="btn" data-mclose>닫기</button></div>`); }
+    else if (d.sedit) { const en = X.log.find(x => x.id === d.sedit); if (!en) return; if (D.lines.length && !confirm('지금 담은 품목을 비우고 이 기록을 고칠까요?')) return;
+      X.draft = { date: en.date, dateOn: today(), cust: en.cust, lines: en.lines.map(l => ({ code: l.code, name: l.name, qty: String(l.qty), price: l.price, pFrom: 'manual' })), memo: en.memo, editOf: en.id }; saleUi.rtab = 'slip'; saleUi.step = 's'; saleSave(); renderSale(); } };
 }
 function renderAll() {
   renderTabs(); renderHeader(); renderNotice(); if (typeof renderSyncPill === 'function') renderSyncPill(); if (typeof renderChanges === 'function') setTimeout(renderChanges, 0);
