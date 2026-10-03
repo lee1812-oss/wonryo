@@ -809,11 +809,13 @@ body.sale-on main>section.view{max-width:none}
   .sw-gh,.sw-g{grid-template-columns:minmax(0,1fr) 104px 84px 22px}.sw-gh{display:none}.sw-gs{display:none}.sw-g .sw-ga{grid-column:1;grid-row:2;text-align:left}.sw-g .sw-gq{grid-column:2}.sw-g .sw-gp{grid-column:3}.sw-g .sw-gx{grid-column:4}
   .sw-gh{display:none}
 }
+header.top .brand .hver{font-size:11px;color:rgba(255,255,255,.62);margin-top:1px;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media (max-width:759px){header.top .brand .hver{font-size:10px;margin-top:0}}
 </style>
 </head>
 <body>
 <header class="top">
-  <div class="brand" id="brandHome" role="button" tabindex="0" title="통합 대시보드 (원료수불부 + 완제품·생지 핵심 요약)"><img id="brandLogo" alt="" src=""><div><h1 id="hSub">빵을그리다 주식회사</h1><div class="sub" id="hTitle">☎ 031-762-1533</div></div></div>
+  <div class="brand" id="brandHome" role="button" tabindex="0" title="통합 대시보드 (원료수불부 + 완제품·생지 핵심 요약)"><img id="brandLogo" alt="" src=""><div><h1 id="hSub">빵을그리다 주식회사</h1><div class="sub" id="hTitle">☎ 031-762-1533</div><div class="hver" id="hVer"></div></div></div>
   <nav class="topmenu" id="topMenu"></nav>
   <div class="noticebar" id="noticeBar">
     <button class="nb-head" id="nbOpen" title="전달사항 전체 보기"><span class="nb-ic">📢</span><span class="nb-lb">전달사항</span><b class="nb-cnt" id="nbCnt"></b></button>
@@ -1195,7 +1197,9 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '153';
+const APP_VER  = '154';
+const APP_BUILT = '2026-10-04 08:20';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
