@@ -702,6 +702,16 @@ body.sys-sub .finwrap{height:calc(100vh - var(--head-h,62px) - 60px)!important}
 .modestate b.adm{background:#E8F1FB;border-color:#9DC0E8;color:#1D4E89}
 .modestate b.usr{background:#EAF6EC;border-color:#9ACDA4;color:#1E6A34}
 .sysnote{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:13px;line-height:1.7;color:var(--ink2)}
+.sale .pchip b{display:block;font-size:14px;line-height:1.3;word-break:keep-all;overflow-wrap:anywhere}
+.sline .pname{flex:1 1 220px;min-width:0}.sline .pq{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.sprice{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink2);font-weight:600}.sprice input{width:96px;height:44px;text-align:right;font-size:17px;font-weight:700;border:1px solid var(--line);border-radius:10px;padding:0 8px;background:#fff}
+.samt{min-width:86px;text-align:right;font-weight:800;color:var(--brand)}
+.stot{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--accent-bg);font-size:14px}
+.sconf{margin-top:12px;padding:12px;border:2px solid var(--accent);border-radius:12px;background:#fff}
+.stbl{width:100%;border-collapse:collapse;font-size:13px}.stbl th,.stbl td{border-bottom:1px solid var(--line2);padding:5px 6px;text-align:right}.stbl th:first-child,.stbl td:first-child{text-align:left}.stbl tfoot td{font-weight:700;border-bottom:0}
+.slog{padding:8px 0;border-top:1px solid var(--line)}.slog:first-of-type{border-top:0}
+.sjson{max-height:220px;overflow:auto;font-size:11px;background:var(--bg);padding:8px;border-radius:8px;white-space:pre-wrap;word-break:break-all}
+@media (max-width:640px){.sline{flex-direction:column;align-items:stretch}.sline .pname{flex:0 0 auto}.sline .pq input[data-sqty]{width:64px;height:40px;font-size:18px}.sprice input{width:100px;height:40px;font-size:16px;padding:0 6px}.samt{min-width:0;flex:1 1 auto}}
 </style>
 </head>
 <body>
@@ -975,6 +985,7 @@ body.sys-sub .finwrap{height:calc(100vh - var(--head-h,62px) - 60px)!important}
   <section class="view" data-view="pnew"><div id="prodNew"></div></section>
   <section class="view" data-view="plog"><div id="prodLog"></div></section>
   <section class="view" data-view="pccp"><div id="prodCcp"></div></section>
+  <section class="view" data-view="psale"><div id="saleNew"></div></section>
   <section class="view" data-view="pset"><div id="prodSet"></div></section>
   <!-- ═══ 설정 ═══ -->
   <section class="view" data-view="setraw">
@@ -1087,7 +1098,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '147';
+const APP_VER  = '148';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1121,7 +1132,7 @@ const INSP_TABS = [
 ICO.prod = '<svg viewBox="0 0 24 24"><path d="M4 20V10l5 3V10l5 3V6l6 4v10z"/><path d="M4 20h16"/></svg>';
 const HOME_MENU = { name: '통합 대시보드', items: [['home', '통합', '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>'], ['@raw', '원료수불부', ICO.raw], ['@fin', '완제품·생지', ICO.fin], ['@insp', '육안검사', ICO.insp], ['@prod', '생산일지', ICO.prod]] };
 const MENUS = { raw: { name: '원료수불부', ico: ICO.raw, items: TABS }, fin: { name: '완제품·생지', ico: ICO.fin, items: FIN_TABS }, insp: { name: '육안검사', ico: ICO.insp, items: INSP_TABS } };
-const PROD_TABS = [['pnew', '생산 입력', '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>'], ['pccp', 'CCP 일지', '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>'], ['plog', '전송 기록', ICO.ledger], ['pset', '연동 설정', ICO.items]];
+const PROD_TABS = [['pnew', '생산 입력', '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>'], ['pccp', 'CCP 일지', '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>'], ['psale', '판매 입력', '<svg viewBox="0 0 24 24"><path d="M3 4h2l2.4 11h11.2L21 7H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>'], ['plog', '전송 기록', ICO.ledger], ['pset', '연동 설정', ICO.items]];
 MENUS.prod = { name: '생산일지', ico: ICO.prod, items: PROD_TABS };
 /* ── v068: 관리자 / 직원 화면 분리 + 통합 설정
    · 연동·설정·백업 화면은 「⚙ 통합 설정」 한 곳에 모읍니다 (원료수불부 · 완제품·생지 · 육안검사 · 생산일지).
@@ -1636,7 +1647,7 @@ function prodReady() {
 }
 function prodRenderIf() { if (S.ui.menu === 'prod') renderProd(); }
 let prodMig = false;
-function renderProd() { try { finEnsure(); } catch (e) {} if (!prodMig) { prodMig = true; try { if (prodS().hist) { prodLinkHist(false); save(); } } catch (e) {} } const t = S.ui.prodTab; if (t === 'pccp') renderCcp(); else if (t === 'plog') renderProdLog(); else if (t === 'pset') renderProdSet(); else renderProdNew(); }
+function renderProd() { try { finEnsure(); } catch (e) {} if (!prodMig) { prodMig = true; try { if (prodS().hist) { prodLinkHist(false); save(); } } catch (e) {} } const t = S.ui.prodTab; if (t === 'pccp') renderCcp(); else if (t === 'psale') renderSale(); else if (t === 'plog') renderProdLog(); else if (t === 'pset') renderProdSet(); else renderProdNew(); }
 async function prodCopy(text) {
   let ok = false; try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {}
   if (!ok) { try { const t = document.createElement('textarea'); t.value = text; t.setAttribute('style', 'position:fixed;left:-9999px;top:0'); document.body.appendChild(t); t.select(); ok = document.execCommand('copy'); t.remove(); } catch (e) {} }
@@ -4862,6 +4873,189 @@ function nbRenderItems(focusId) {
 }
 $('#nbOpen').onclick = () => nbOpen(); $('#nbAdd').onclick = () => nbOpen();
 setInterval(() => { if (!document.hidden) renderNotice(); }, 60000);
+/* ═══ v148: 판매 입력 (2단계 · 연습) — 거래처 주문(카톡·전화)을 그때그때 입력
+   판매현황 엑셀(거래처별·품목별)로 거래처·품목·거래처별 지난 단가를 익힙니다.
+   거래처·판매 자료는 코드에 넣지 않고 이 기기에만 저장합니다 (wonryo_sale_v1). 아직 이카운트로 보내지 않습니다. */
+const SALE_KEY = 'wonryo_sale_v1';
+let SL = null, saleIdx = null;
+const saleUi = { q: '', iq: '', confirm: false, allCust: false, allItems: false, cfgOpen: false };
+function saleS() {
+  if (!SL) { try { SL = JSON.parse(localStorage.getItem(SALE_KEY) || 'null'); } catch (e) {} }
+  if (!SL || typeof SL !== 'object') SL = {};
+  SL.rows = SL.rows || []; SL.cust = SL.cust || {}; SL.items = SL.items || {}; SL.files = SL.files || []; SL.log = SL.log || []; SL.cfg = SL.cfg || {};
+  if (!SL.draft) SL.draft = { date: today(), cust: '', lines: [], memo: '' };
+  if (SL.draft.dateOn !== today()) { SL.draft.date = today(); SL.draft.dateOn = today(); }   /* 다음 날 열면 오늘로 */
+  return SL;
+}
+function saleSave() { try { localStorage.setItem(SALE_KEY, JSON.stringify(SL)); } catch (e) { toast('저장 실패: 저장공간 부족'); } }
+const saleNorm = s => String(s || '').toLowerCase().replace(/[\s_()（）\[\]·.,\-]/g, '');
+const saleMD = d => d ? d.slice(5).replace('-', '/') : '—';
+function saleDate(v) {
+  if (v == null || v === '') return '';
+  if (typeof v === 'number') { const o = XLSX.SSF.parse_date_code(v); return o ? `${o.y}-${String(o.m).padStart(2, '0')}-${String(o.d).padStart(2, '0')}` : ''; }
+  if (v instanceof Date) return ccpYmd(v);
+  const m = String(v).match(/(\d{4})\s*[\/.\-년]\s*(\d{1,2})\s*[\/.\-월]\s*(\d{1,2})/); return m ? `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}` : '';
+}
+/* 이카운트 판매현황(일별·거래처별·품목별) 엑셀 → [일자, 거래처코드, 품목코드, 수량, 공급가액, 전달사항] */
+function saleParse(wb) {
+  const rows = [], cust = {}, items = {};
+  for (const sn of wb.SheetNames) {
+    const A = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: null });
+    const hi = A.findIndex(r => r && r.some(v => String(v ?? '').trim() === '거래처코드') && r.some(v => String(v ?? '').trim() === '품목코드'));
+    if (hi < 0) continue;
+    const H = A[hi].map(v => String(v ?? '').replace(/\s/g, '')); const c = (...ns) => { for (const n of ns) { const i = H.indexOf(n); if (i >= 0) return i; } return -1; };
+    const iD = c('일별', '일자', '판매일자', '월/일'), iCn = c('거래처별', '거래처명', '거래처'), iIn = c('품목별', '품목명', '품목'), iQ = c('수량'), iC = c('거래처코드'), iI = c('품목코드'), iS = c('공급가액'), iM = c('전달사항', '적요');
+    if (iD < 0 || iC < 0 || iI < 0 || iQ < 0) continue;
+    for (const r of A.slice(hi + 1)) {
+      const d = saleDate(r[iD]); const cc = String(r[iC] ?? '').trim(), ic = String(r[iI] ?? '').trim(); if (!d || !cc || !ic) continue;
+      const q = Number(r[iQ]) || 0, s = iS >= 0 ? Number(r[iS]) || 0 : 0;
+      rows.push([d, cc, ic, q, s, iM >= 0 && r[iM] ? String(r[iM]).trim() : '']);
+      if (iCn >= 0 && r[iCn]) cust[cc] = [String(r[iCn]).trim(), d]; if (iIn >= 0 && r[iIn]) items[ic] = [String(r[iIn]).trim(), d];
+    }
+  }
+  return { rows, cust, items };
+}
+/* 여러 파일을 합칠 때: 같은 날짜는 줄이 더 많은 쪽(잘린 파일의 마지막 날 보호), 같으면 새로 올린 쪽 */
+function saleMerge(p, fname) {
+  const X = saleS(), byD = {}, nb = {};
+  X.rows.forEach(r => (byD[r[0]] = byD[r[0]] || []).push(r)); p.rows.forEach(r => (nb[r[0]] = nb[r[0]] || []).push(r));
+  let took = 0, kept = 0; Object.keys(nb).forEach(d => { if (!byD[d] || nb[d].length >= byD[d].length) { byD[d] = nb[d]; took++; } else kept++; });
+  X.rows = Object.keys(byD).sort().flatMap(d => byD[d]);
+  const upd = (T, N) => Object.entries(N).forEach(([k, v]) => { if (!T[k] || v[1] >= T[k][1]) T[k] = v; }); upd(X.cust, p.cust); upd(X.items, p.items);
+  const ds = p.rows.map(r => r[0]).sort(); X.files.unshift({ name: fname, from: ds[0], to: ds[ds.length - 1], n: p.rows.length, at: new Date().toISOString() }); X.files = X.files.slice(0, 12);
+  saleIdx = null; saleSave(); return { took, kept };
+}
+/* 거래처별 품목 이력 · 지난 단가 (0원·반품 줄은 단가에서 뺌) */
+function saleIndex() {
+  if (saleIdx) return saleIdx;
+  const X = saleS(), C = {}, I = {}; const cut = ccpAddD(today(), -90);
+  for (const [d, c, i, q, s] of X.rows) {
+    const x = C[c] || (C[c] = { n: 0, n90: 0, last: '', dset: {}, items: {} }); if (!x.dset[d]) { x.dset[d] = 1; x.n++; if (d >= cut) x.n90++; } if (d > x.last) x.last = d;
+    const y = x.items[i] || (x.items[i] = { n: 0, n90: 0, last: '', price: null, pDate: '', lastQty: null });
+    if (q > 0) { y.n++; if (d >= cut) y.n90++; if (d >= y.last) { y.last = d; y.lastQty = q; } }
+    if (q > 0 && s > 0 && d >= y.pDate) { y.price = Math.round(s / q); y.pDate = d; }
+    const g = I[i] || (I[i] = { n: 0, last: '', price: null, pDate: '', pCust: '' }); if (q > 0) { g.n++; if (d > g.last) g.last = d; }
+    if (q > 0 && s > 0 && d >= g.pDate) { g.price = Math.round(s / q); g.pDate = d; g.pCust = c; }
+  }
+  return (saleIdx = { C, I });
+}
+const saleCustName = c => (saleS().cust[c] || [c])[0];
+const saleItemName = c => (saleS().items[c] || [c])[0];
+function saleLineAmt(l) { const q = Number(l.qty) || 0, p = Number(l.price) || 0, s = Math.round(q * p); return { s, v: Math.round(s / 10) }; }
+function saleTotals(lines) { return lines.reduce((t, l) => { const a = saleLineAmt(l); t.s += a.s; t.v += a.v; return t; }, { s: 0, v: 0 }); }
+/* 3단계(이카운트 Sale/SaveSale)로 보낼 줄 — 지금은 미리보기만 */
+function saleBulk(en) {
+  const cfg = saleS().cfg;
+  return en.lines.map(l => { const a = saleLineAmt(l); return { UPLOAD_SER_NO: '1', IO_DATE: en.date.replace(/-/g, ''), CUST: en.cust, CUST_DES: en.custName, EMP_CD: cfg.emp || '', WH_CD: cfg.wh || '', PROD_CD: l.code, PROD_DES: l.name, QTY: String(l.qty), PRICE: String(l.price), SUPPLY_AMT: String(a.s), VAT_AMT: String(a.v), REMARKS: en.memo || '' }; });
+}
+function saleAddLine(code) {
+  const X = saleS(), D = X.draft; if (D.lines.some(l => l.code === code)) return;
+  const ix = saleIndex(), y = ((ix.C[D.cust] || {}).items || {})[code], g = ix.I[code];
+  D.lines.push({ code, name: saleItemName(code), qty: '', price: y && y.price != null ? y.price : '', pFrom: y && y.price != null ? 'cust' : '', pDate: y ? y.pDate : '', other: !y && g && g.price != null ? g.price : null });
+}
+function renderSale() {
+  const box = $('#saleNew'); if (!box) return;
+  const X = saleS(), D = X.draft, ix = saleIndex(), hasData = X.rows.length > 0;
+  const cu = D.cust ? ix.C[D.cust] : null, tot = saleTotals(D.lines);
+  const custAll = Object.keys(X.cust).map(c => ({ c, name: X.cust[c][0], x: ix.C[c] || { n: 0, n90: 0, last: '' } }));
+  const q = saleNorm(saleUi.q);
+  const custList = q ? custAll.filter(o => saleNorm(o.name + o.c).includes(q)).sort((a, b) => b.x.n90 - a.x.n90 || (b.x.last > a.x.last ? 1 : -1)).slice(0, 40)
+    : custAll.filter(o => o.x.n90 > 0).sort((a, b) => (b.x.last > a.x.last ? 1 : b.x.last < a.x.last ? -1 : b.x.n90 - a.x.n90)).slice(0, saleUi.allCust ? 200 : 18);
+  const inCart = new Set(D.lines.map(l => l.code));
+  const iq = saleNorm(saleUi.iq);
+  const favs = cu ? Object.entries(cu.items).filter(([, y]) => y.n > 0).sort((a, b) => b[1].n90 - a[1].n90 || b[1].n - a[1].n || (b[1].last > a[1].last ? 1 : -1)) : [];
+  const favShow = iq ? favs.filter(([c]) => saleNorm(saleItemName(c) + c).includes(iq)) : favs.slice(0, saleUi.allItems ? 300 : 24);
+  const others = iq ? Object.keys(X.items).filter(c => !(cu && cu.items[c]) && saleNorm(saleItemName(c) + c).includes(iq)).slice(0, 30) : [];
+  const dayLog = X.log.filter(e => e.date === D.date);
+  const itemChip = (c, y, other) => `<button type="button" class="pchip${inCart.has(c) ? ' on' : ''}" data-sitem="${esc(c)}"><b>${inCart.has(c) ? '✓ ' : ''}${esc(saleItemName(c))}</b><small>${esc(c)}${y ? ` · ${y.price != null ? fmt(y.price) + '원' : '단가 없음'} · 최근 ${saleMD(y.last)} ${fmt(y.lastQty)}개 · ${y.n}회` : other ? ` · 이 거래처 첫 주문${ix.I[c] && ix.I[c].price != null ? ' · 다른 거래처 ' + fmt(ix.I[c].price) + '원' : ''}` : ''}</small></button>`;
+  box.innerHTML = `<div class="sale">
+  <div class="card" style="border-color:#E8C98E;background:var(--warn-bg)"><b>연습 단계</b> — 여기서 저장한 판매는 <b>이카운트로 보내지 않습니다</b>. 화면과 단가가 맞는지 먼저 써 보고, 맞으면 이카운트 판매입력(Sale/SaveSale)으로 보내는 3단계를 붙입니다.</div>
+  <div class="card"><div class="prow" style="align-items:center"><h2 style="margin:0;flex:1 1 auto">판매 자료 <span class="pill ${hasData ? 'ok' : 'warn'}">${hasData ? `${fmt(X.rows.length)}줄 · 거래처 ${Object.keys(X.cust).length} · 품목 ${Object.keys(X.items).length}` : '없음'}</span></h2>
+    <label class="btn sm${hasData ? '' : ' primary'}">판매현황 엑셀 올리기<input type="file" id="saleFile" accept=".xlsx,.xls" multiple hidden></label>${hasData ? '<button type="button" class="btn sm danger" id="saleWipe">자료 지우기</button>' : ''}</div>
+    <div class="muted" style="font-size:12.5px;margin-top:6px">이카운트 <b>영업관리 → 판매현황</b>을 <b>일별·거래처별·품목별</b>로 조회해 엑셀로 받은 파일 (거래처코드·품목코드·수량·공급가액 칸). 5,000줄이 넘으면 기간을 나눠 여러 번 올리면 이어 붙입니다 — 겹치는 날은 줄이 더 많은 쪽을 씁니다. 자료는 이 기기에만 저장됩니다.</div>
+    ${X.files.length ? `<div class="muted" style="font-size:12px;margin-top:4px">${X.files.slice(0, 4).map(f => `${esc(f.name)} (${esc(f.from)}~${esc(f.to)}, ${fmt(f.n)}줄)`).join(' · ')}</div>` : ''}</div>
+  <div class="card pbar"><div class="prow">
+    <div class="field" style="flex:1 1 150px"><label for="sDate">판매일 <span class="muted" style="font-weight:500">${esc(WD[new Date(D.date + 'T00:00:00').getDay()])}요일${D.date === today() ? ' · 오늘' : ''}</span></label><input type="date" id="sDate" value="${esc(D.date)}"><div class="pday-nav" role="group" aria-label="판매일 바꾸기"><button type="button" class="btn sm" data-sday="-1">‹ 전일</button><button type="button" class="btn sm${D.date === today() ? ' primary' : ''}" data-sday="0">오늘</button><button type="button" class="btn sm" data-sday="1">익일 ›</button></div></div>
+    <div class="field" style="flex:1 1 120px"><label for="sWho">입력자</label><input id="sWho" value="${esc(S.settings.reporter || '')}" placeholder="이름"></div></div></div>
+  ${!hasData ? '<div class="card muted">먼저 위에서 판매현황 엑셀을 올려 주세요. 거래처 목록과 거래처별 지난 단가가 여기서 만들어집니다.</div>' : !D.cust ? `<div class="card"><div class="prow" style="align-items:center;margin-bottom:8px"><h2 style="margin:0;flex:1 1 auto">① 거래처 고르기</h2><input class="search" id="sQ" value="${esc(saleUi.q)}" placeholder="거래처 이름·사업자번호" aria-label="거래처 검색" style="flex:0 1 220px;min-width:0"></div>
+    <div class="muted" style="font-size:12.5px;margin-bottom:8px">${q ? `검색 결과 ${custList.length}곳` : '최근 주문한 거래처 순 (최근 90일)'}</div>
+    ${custList.length ? `<div class="pchips">${custList.map(o => `<button type="button" class="pchip" data-scust="${esc(o.c)}"><b>${esc(o.name)}</b><small>최근 ${saleMD(o.x.last)} · 90일 ${o.x.n90}회</small></button>`).join('')}</div>` : '<div class="muted">맞는 거래처가 없습니다. 새 거래처는 이카운트에 먼저 등록한 뒤 판매현황을 다시 올려 주세요.</div>'}
+    ${!q ? `<div style="margin-top:10px"><button type="button" class="btn sm" id="sCustAll">${saleUi.allCust ? '줄여 보기' : '최근 거래처 더 보기'}</button></div>` : ''}</div>`
+  : `<div class="card"><div class="prow" style="align-items:center"><h2 style="margin:0;flex:1 1 auto">${esc(saleCustName(D.cust))}</h2><button type="button" class="btn sm" id="sCustChg">거래처 바꾸기</button></div>
+    <div class="muted" style="font-size:12.5px">거래처코드 ${esc(D.cust)}${cu ? ` · 최근 주문 ${saleMD(cu.last)} · 90일 ${cu.n90}회` : ''}</div></div>
+  <div class="card"><div class="prow" style="align-items:center;margin-bottom:8px"><h2 style="margin:0;flex:1 1 auto">② 품목 고르기</h2><input class="search" id="sIQ" value="${esc(saleUi.iq)}" placeholder="품목·코드 검색" aria-label="품목 검색" style="flex:0 1 200px;min-width:0"></div>
+    <div class="muted" style="font-size:12.5px;margin-bottom:8px">이 거래처가 자주 산 품목 순 · 단가는 이 거래처의 지난 단가(공급가액÷수량, 부가세 별도)</div>
+    ${favShow.length ? `<div class="pchips">${favShow.map(([c, y]) => itemChip(c, y)).join('')}</div>` : `<div class="muted">${iq ? '이 거래처가 산 품목 중에는 없습니다.' : '이 거래처의 판매 이력이 없습니다. 위에서 품목을 검색하세요.'}</div>`}
+    ${others.length ? `<div class="muted" style="margin:10px 0 6px;font-size:12.5px">다른 품목 (이 거래처는 처음)</div><div class="pchips">${others.map(c => itemChip(c, null, true)).join('')}</div>` : ''}
+    ${!iq && favs.length > 24 ? `<div style="margin-top:10px"><button type="button" class="btn sm" id="sItemAll">${saleUi.allItems ? '줄여 보기' : `산 품목 모두 보기 (${favs.length})`}</button></div>` : ''}</div>
+  <div class="card"><h2 style="margin:0 0 4px">③ 수량·단가 ${D.lines.length ? `<span class="pill ok">${D.lines.length}품목</span>` : ''}</h2>
+    ${D.lines.length ? D.lines.map((l, k) => { const a = saleLineAmt(l); return `<div class="pline sline"><div class="pname"><b>${esc(l.name)}</b><div class="muted" style="font-size:12px">${esc(l.code)} · ${l.pFrom === 'cust' ? `지난 단가 (${saleMD(l.pDate)})` : l.pFrom === 'other' ? '다른 거래처 단가 — 확인 필요' : l.pFrom === 'manual' ? '직접 고친 단가' : '<span style="color:var(--warn);font-weight:700">단가를 넣으세요</span>'}${l.other != null && l.pFrom !== 'other' && l.price === '' ? ` <button type="button" class="btn xs" data-sother="${k}">다른 거래처 ${fmt(l.other)}원 쓰기</button>` : ''}</div></div>
+      <div class="pq"><button type="button" data-sstep="${k}" data-d="-1" aria-label="${esc(l.name)} 수량 줄이기">−</button><input inputmode="numeric" data-sqty="${k}" value="${esc(l.qty)}" placeholder="0" aria-label="${esc(l.name)} 수량"><button type="button" data-sstep="${k}" data-d="1" aria-label="${esc(l.name)} 수량 늘리기">+</button>
+      <label class="sprice">단가<input inputmode="numeric" data-sprice="${k}" value="${esc(l.price)}" placeholder="0" aria-label="${esc(l.name)} 단가"></label>
+      <span class="samt" data-samt="${k}">${a.s ? fmt(a.s) + '원' : ''}</span><button type="button" class="btn xs danger" data-sdel="${k}">빼기</button></div></div>`; }).join('')
+      + `<div class="stot" id="sTot">${saleTotHtml(tot)}</div>
+      <div class="field" style="margin-top:8px"><label for="sMemo">메모 (이카운트 적요 — 배송일·요청사항 등)</label><input id="sMemo" value="${esc(D.memo || '')}" placeholder="예: 10/4(토) 오전 배송 요망"></div>
+      ${saleUi.confirm ? saleConfirmHtml() : `<div class="prow" style="margin-top:12px"><button type="button" class="btn primary psend" id="sOk">확인하기</button><button type="button" class="btn" id="sClear">비우기</button></div>`}`
+    : '<div class="muted" style="padding:6px 0">위에서 주문받은 품목을 누르세요.</div>'}</div>`}
+  <div class="card"><h2 style="margin:0 0 6px">${esc(D.date)} 저장한 판매 <span class="pill">${dayLog.length}건</span></h2>
+    ${dayLog.length ? dayLog.map(e => `<div class="slog"><div><b>${esc(e.custName)}</b> <span class="pill warn">연습</span> <span class="muted" style="font-size:12px">${esc(hmOf(e.ts))}${e.who ? ' · ' + esc(e.who) : ''}</span></div>
+      <div class="muted" style="font-size:12.5px">${e.lines.map(l => `${esc(l.name)} ${fmt(l.qty)}×${fmt(l.price)}`).join(', ')}</div>
+      <div style="font-size:13px">공급가액 <b>${fmt(e.sup)}</b>원 · 부가세 ${fmt(e.vat)}원 · 합계 <b>${fmt(e.sup + e.vat)}</b>원${e.memo ? ` · <span class="muted">${esc(e.memo)}</span>` : ''}</div>
+      <div class="prow" style="gap:6px;margin-top:4px"><button type="button" class="btn xs" data-sedit="${esc(e.id)}">고치기</button><button type="button" class="btn xs danger" data-sldel="${esc(e.id)}">지우기</button></div>
+      <details style="margin-top:4px"><summary class="muted" style="font-size:12px;cursor:pointer">이카운트로 보낼 내용 보기 (3단계 미리보기)</summary><pre class="sjson">${esc(JSON.stringify({ SaleList: saleBulk(e).map(b => ({ BulkDatas: b })) }, null, 1))}</pre></details></div>`).join('')
+      : '<div class="muted">이 날짜에 저장한 판매가 없습니다.</div>'}
+    ${X.log.length ? `<div class="muted" style="font-size:12px;margin-top:6px">전체 ${X.log.length}건 저장됨 (최근 ${saleMD(X.log[0].date)})</div>` : ''}</div>
+  <div class="card"><button type="button" class="btn sm" id="sCfgOpen">${saleUi.cfgOpen ? '▼' : '▶'} 이카운트 전송 설정 (3단계에서 사용)</button>
+    ${saleUi.cfgOpen ? `<div class="prow" style="margin-top:8px"><div class="field" style="flex:1 1 140px"><label for="sWh">출하창고 코드 (WH_CD)</label><input id="sWh" value="${esc(X.cfg.wh || '')}" placeholder="예: 100"></div><div class="field" style="flex:1 1 140px"><label for="sEmp">담당자 사원코드 (EMP_CD)</label><input id="sEmp" value="${esc(X.cfg.emp || '')}" placeholder="이카운트 사원코드"></div></div><div class="muted" style="font-size:12px">이 기기에만 저장됩니다.</div>` : ''}</div>
+</div>`;
+  saleBind();
+}
+function saleTotHtml(t) { return `공급가액 <b>${fmt(t.s)}</b>원 + 부가세(10%) ${fmt(t.v)}원 = 합계 <b>${fmt(t.s + t.v)}</b>원 <span class="muted" style="font-size:11.5px">부가세는 이카운트 계산과 1원 차이 날 수 있음</span>`; }
+function saleConfirmHtml() {
+  const X = saleS(), D = X.draft, t = saleTotals(D.lines);
+  return `<div class="sconf"><b>이대로 저장할까요?</b><div style="margin:6px 0">${esc(D.date)} (${esc(WD[new Date(D.date + 'T00:00:00').getDay()])}) · <b>${esc(saleCustName(D.cust))}</b></div>
+    <table class="stbl"><thead><tr><th>품목</th><th>수량</th><th>단가</th><th>공급가액</th></tr></thead><tbody>${D.lines.map(l => `<tr><td>${esc(l.name)}</td><td>${fmt(l.qty)}</td><td>${fmt(l.price)}</td><td>${fmt(saleLineAmt(l).s)}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="3">공급가액 / 부가세 / 합계</td><td>${fmt(t.s)} / ${fmt(t.v)} / <b>${fmt(t.s + t.v)}</b></td></tr></tfoot></table>${D.memo ? `<div class="muted" style="margin-top:4px">메모: ${esc(D.memo)}</div>` : ''}
+    <div class="prow" style="margin-top:10px"><button type="button" class="btn primary psend" id="sSave">저장 (연습 — 이카운트로 보내지 않음)</button><button type="button" class="btn" id="sBack">돌아가 고치기</button></div></div>`;
+}
+function saleBind() {
+  const X = saleS(), D = X.draft, re = () => { saleSave(); renderSale(); };
+  const fi = $('#saleFile'); if (fi) fi.onchange = async e => { const fs = [...e.target.files]; let n = 0, msg = [];
+    for (const f of fs) { try { const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' }); const p = saleParse(wb); if (!p.rows.length) { msg.push(`${f.name}: 판매현황 칸(거래처코드·품목코드·수량)을 찾지 못했습니다`); continue; } saleMerge(p, f.name); n += p.rows.length; } catch (er) { msg.push(`${f.name}: 읽지 못했습니다`); } }
+    toast(msg.length ? msg[0] : `판매 자료 ${fmt(n)}줄을 넣었습니다`); renderSale(); };
+  if ($('#saleWipe')) $('#saleWipe').onclick = () => { if (!confirm('올린 판매현황 자료를 이 기기에서 지울까요? (저장한 판매 입력은 남습니다)')) return; X.rows = []; X.cust = {}; X.items = {}; X.files = []; saleIdx = null; re(); };
+  $('#sDate').onchange = e => { D.date = e.target.value || today(); D.dateOn = today(); re(); };
+  $$('#saleNew [data-sday]').forEach(b => b.onclick = () => { const k = Number(b.dataset.sday); D.date = k ? ccpAddD(D.date || today(), k) : today(); D.dateOn = today(); re(); });
+  $('#sWho').onchange = e => { S.settings.reporter = e.target.value.trim(); save(); };
+  const live = (id, key) => { const el = $(id); if (!el) return; el.oninput = () => { saleUi[key] = el.value; const pos = el.selectionStart; renderSale(); const n = $(id); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } }; };
+  live('#sQ', 'q'); live('#sIQ', 'iq');
+  $$('#saleNew [data-scust]').forEach(b => b.onclick = () => { if (D.cust !== b.dataset.scust) { D.lines = []; D.memo = ''; } D.cust = b.dataset.scust; saleUi.q = ''; saleUi.iq = ''; saleUi.confirm = false; saleUi.allItems = false; re(); });
+  if ($('#sCustAll')) $('#sCustAll').onclick = () => { saleUi.allCust = !saleUi.allCust; renderSale(); };
+  if ($('#sItemAll')) $('#sItemAll').onclick = () => { saleUi.allItems = !saleUi.allItems; renderSale(); };
+  if ($('#sCustChg')) $('#sCustChg').onclick = () => { if (D.lines.length && !confirm('담은 품목을 비우고 거래처를 바꿀까요?')) return; D.cust = ''; D.lines = []; D.memo = ''; D.editOf = ''; saleUi.confirm = false; re(); };
+  $$('#saleNew [data-sitem]').forEach(b => b.onclick = () => { const c = b.dataset.sitem, i = D.lines.findIndex(l => l.code === c); if (i >= 0) D.lines.splice(i, 1); else saleAddLine(c); saleUi.confirm = false; re(); if (i < 0) setTimeout(() => { const el = $(`#saleNew [data-sqty="${D.lines.length - 1}"]`); if (el) el.focus(); }, 0); });
+  const upd = k => { const l = D.lines[k], a = saleLineAmt(l), c = $(`#saleNew [data-samt="${k}"]`); if (c) c.textContent = a.s ? fmt(a.s) + '원' : ''; const t = $('#sTot'); if (t) t.innerHTML = saleTotHtml(saleTotals(D.lines)); saleSave(); };
+  $$('#saleNew [data-sqty]').forEach(el => { el.oninput = () => { const k = +el.dataset.sqty; D.lines[k].qty = el.value.replace(/[^\d]/g, ''); upd(k); }; el.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); const p = $(`#saleNew [data-sprice="${el.dataset.sqty}"]`); if (p) p.focus(); } }; });
+  $$('#saleNew [data-sprice]').forEach(el => { el.oninput = () => { const k = +el.dataset.sprice; D.lines[k].price = el.value.replace(/[^\d]/g, ''); D.lines[k].pFrom = 'manual'; upd(k); }; el.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); const n = $(`#saleNew [data-sqty="${+el.dataset.sprice + 1}"]`) || $('#sMemo'); if (n) n.focus(); } }; });
+  $$('#saleNew [data-sstep]').forEach(b => b.onclick = () => { const l = D.lines[+b.dataset.sstep]; l.qty = String(Math.max(0, (Number(l.qty) || 0) + Number(b.dataset.d))); if (l.qty === '0') l.qty = ''; re(); });
+  $$('#saleNew [data-sother]').forEach(b => b.onclick = () => { const l = D.lines[+b.dataset.sother]; l.price = l.other; l.pFrom = 'other'; re(); });
+  $$('#saleNew [data-sdel]').forEach(b => b.onclick = () => { D.lines.splice(+b.dataset.sdel, 1); saleUi.confirm = false; re(); });
+  if ($('#sMemo')) $('#sMemo').oninput = e => { D.memo = e.target.value; saleSave(); };
+  if ($('#sClear')) $('#sClear').onclick = () => { D.lines = []; D.memo = ''; D.editOf = ''; re(); };
+  if ($('#sOk')) $('#sOk').onclick = () => { const bad = D.lines.filter(l => !(Number(l.qty) > 0) || !(Number(l.price) > 0)); if (bad.length) { toast(`수량·단가가 비어 있는 품목: ${bad.map(l => l.name).slice(0, 2).join(', ')}${bad.length > 2 ? ' 외' : ''}`); return; } saleUi.confirm = true; renderSale(); const c = $('#saleNew .sconf'); if (c) c.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+  if ($('#sBack')) $('#sBack').onclick = () => { saleUi.confirm = false; renderSale(); };
+  if ($('#sSave')) $('#sSave').onclick = () => {
+    const lines = D.lines.map(l => { const a = saleLineAmt(l); return { code: l.code, name: l.name, qty: Number(l.qty), price: Number(l.price), sup: a.s, vat: a.v }; });
+    const t = saleTotals(D.lines), en = { id: D.editOf || 's' + Date.now().toString(36), ts: new Date().toISOString(), date: D.date, cust: D.cust, custName: saleCustName(D.cust), lines, memo: D.memo || '', sup: t.s, vat: t.v, who: S.settings.reporter || '', status: 'practice' };
+    X.log = X.log.filter(e => e.id !== en.id); X.log.unshift(en); X.log = X.log.slice(0, 2000);
+    X.draft = { date: D.date, dateOn: today(), cust: '', lines: [], memo: '' }; saleUi.confirm = false; re(); toast(`${en.custName} 판매를 저장했습니다 (연습)`); };
+  $$('#saleNew [data-sldel]').forEach(b => b.onclick = () => { if (!confirm('이 판매 기록을 지울까요?')) return; X.log = X.log.filter(e => e.id !== b.dataset.sldel); re(); });
+  $$('#saleNew [data-sedit]').forEach(b => b.onclick = () => { const e = X.log.find(x => x.id === b.dataset.sedit); if (!e) return; if (D.lines.length && !confirm('지금 담은 품목을 비우고 이 기록을 고칠까요?')) return;
+    X.draft = { date: e.date, dateOn: today(), cust: e.cust, lines: e.lines.map(l => ({ code: l.code, name: l.name, qty: String(l.qty), price: l.price, pFrom: 'manual' })), memo: e.memo, editOf: e.id }; saleUi.confirm = false; re(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  if ($('#sCfgOpen')) $('#sCfgOpen').onclick = () => { saleUi.cfgOpen = !saleUi.cfgOpen; renderSale(); };
+  if ($('#sWh')) $('#sWh').onchange = e => { X.cfg.wh = e.target.value.trim(); re(); };
+  if ($('#sEmp')) $('#sEmp').onchange = e => { X.cfg.emp = e.target.value.trim(); re(); };
+}
 function renderAll() {
   renderTabs(); renderHeader(); renderNotice(); if (typeof renderSyncPill === 'function') renderSyncPill(); if (typeof renderChanges === 'function') setTimeout(renderChanges, 0);
   if (S.ui.menu === 'home') renderHome();
