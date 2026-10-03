@@ -1197,8 +1197,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '155';
-const APP_BUILT = '2026-10-04 08:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '156';
+const APP_BUILT = '2026-10-04 09:00';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -5233,7 +5233,7 @@ async function saleSend(en) {
   } catch (er) { en.status = 'fail'; en.err = '중계에 넣지 못했습니다: ' + er.message; }
   saleSave(); salePollLater();
 }
-function saleApplyResult(en, v) { const r = v.result || {}; if (v.status === 'sent') { en.status = 'sent'; en.slip = (r.slipNos || []).join(', '); en.sentAt = v.doneAt || new Date().toISOString(); en.err = ''; } else if (v.status === 'fail') { en.status = 'fail'; en.err = r.error || '이카운트가 입력을 거절했습니다'; } }
+function saleApplyResult(en, v) { const r = v.result || {}; if (v.status === 'sent') { en.status = 'sent'; en.slip = (r.slipNos || []).join(', '); en.sentAt = v.doneAt || new Date().toISOString(); en.err = ''; } else if (v.status === 'fail') { en.status = 'fail'; en.err = saleErrText(r.error || '이카운트가 입력을 거절했습니다'); } }
 let salePollT = null;
 function salePollLater() { clearTimeout(salePollT); if (saleS().log.some(salePend)) salePollT = setTimeout(salePoll, 12000); }
 async function salePoll() {
@@ -5244,6 +5244,9 @@ async function salePoll() {
       const ag = $('#swAgent'); if (ag) ag.innerHTML = saleAgentText(); } } catch (e) {}
   salePollLater();
 }
+/* v156: 이카운트 답 풀이 — EXP00001 「인증되지 않은 API」 = 이 인증키에 판매입력 API가 아직 등록·검증되지 않음 */
+const SALE_UNCERT = '이 인증키로 판매입력 API가 아직 인증되지 않았습니다 — ⚙에서 「테스트」로 바꿔 판매 1건을 테스트 서버로 보내 성공시킨 뒤, 이카운트 API 인증키 관리 화면에서 판매입력(SaveSale) 사용 인증을 받으세요';
+function saleErrText(t) { t = String(t || ''); return /인증되지 않은 API|EXP00001/.test(t) ? SALE_UNCERT : t; }
 async function saleCheckPerm() {   /* 사무실 PC 전송기가 품목을 비운 줄 하나로 Sale/SaveSale을 불러 권한만 확인 (전표 없음) */
   const show = m => { saleUi.perm = m; const el = $('#swPerm'); if (el) el.textContent = m; };
   if (!String(prodS().cfg.relayUrl || '').trim() || !prodKey()) return show('이카운트 연동(중계 주소)이 설정되지 않았습니다');
@@ -5252,7 +5255,7 @@ async function saleCheckPerm() {   /* 사무실 PC 전송기가 품목을 비운
     saleUi.agent = { seen: r.agentSeen, ver: r.agentVer }; const ag = $('#swAgent'); if (ag) ag.innerHTML = saleAgentText(); const id = r.job.id;
     if ((r.agentVer || 2) < 3) show('사무실 PC 전송기가 v3로 바뀌면 확인됩니다 (요청은 대기 중)'); else show('사무실 PC 전송기가 이카운트에 묻는 중… (최대 1분)');
     for (let i = 0; i < 30; i++) { await new Promise(res => setTimeout(res, 5000)); const s2 = await prodRelayCall({ action: 'status', ids: [id] }); const v = s2 && s2.jobs && s2.jobs[id];
-      if (v && (v.status === 'sent' || v.status === 'fail')) { const x = v.result || {}; return show((x.perm === true ? '✓ ' : x.perm === false ? '✗ ' : '? ') + (x.message || x.error || '결과 없음') + (x.perm == null && x.raw ? ' — ' + x.raw.slice(0, 200) : '')); } }
+      if (v && (v.status === 'sent' || v.status === 'fail')) { const x = v.result || {}; if (/인증되지 않은 API|EXP00001/.test(x.raw || '')) return show('✗ ' + SALE_UNCERT); return show((x.perm === true ? '✓ ' : x.perm === false ? '✗ ' : '? ') + (x.message || x.error || '결과 없음') + (x.perm == null && x.raw ? ' — ' + x.raw.slice(0, 200) : '')); } }
     show('2분 안에 답이 없습니다 — 사무실 PC 전송기가 켜져 있는지 확인하세요');
   } catch (e) { show('확인 실패: ' + e.message); }
 }
