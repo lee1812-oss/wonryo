@@ -127,7 +127,12 @@ function EcSaleCheck($job) {
 # ── 설정 ──
 function AskText($q, $pattern, $hint, [switch]$Secret) {
   while ($true) {
-    if ($Secret) { $ss = Read-Host ($q + ' (입력해도 화면에 보이지 않습니다)') -AsSecureString; $v = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ss)) }
+    if ($Secret) {   # v3: 숨김 입력 칸은 붙여넣기가 잘 안 됨 → 값을 복사해 두고 Enter만 누르면 클립보드에서 읽음
+      $ss = Read-Host ($q + ' — 값을 복사한 뒤 Enter만 누르세요 (화면에 보이지 않음)') -AsSecureString; $v = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($ss))
+      if ($null -eq $v) { $v = '' }; $v = ($v -replace '[\x00-\x1F]', '').Trim()
+      if ($v.Length -lt 3) { $clip = ''; try { $clip = [string](Get-Clipboard -Raw) } catch {}; $clip = (($clip -split "`r?`n") | Where-Object { $_.Trim() } | Select-Object -First 1); if ($clip) { $v = $clip.Trim() } }
+      if ($v) { $show = $v; if ($v.Length -gt 8) { $show = $v.Substring(0, 4) + '…' + $v.Substring($v.Length - 2) }; Write-Host ('   ↳ 받은 값: ' + $show + ' (' + $v.Length + '자)') }
+    }
     else { $v = (Read-Host $q) }
     if ($null -eq $v) { $v = '' }
     $v = $v.Trim().Trim('"').Trim("'").Trim()
