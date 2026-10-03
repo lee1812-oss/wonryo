@@ -83,9 +83,9 @@ function EcLogin($test, $fresh) {
 function EcSave($job) {
   $test = [bool]$job.test
   $list = @(); foreach ($row in $job.rows) { $list += , @{ BulkDatas = $row } }
-  $body = @{ GoodsReceiptList = $list }
+  if ("$($job.kind)" -eq 'sale') { $body = @{ SaleList = $list }; $api = '/OAPI/V2/Sale/SaveSale' } else { $body = @{ GoodsReceiptList = $list }; $api = '/OAPI/V2/GoodsReceipt/SaveGoodsReceipt' }   # v3: 판매입력도 같은 길로
   $sid = EcLogin $test $false
-  $url = (EcHost $test (EcZone $test)) + '/OAPI/V2/GoodsReceipt/SaveGoodsReceipt?SESSION_ID='
+  $url = (EcHost $test (EcZone $test)) + $api + '?SESSION_ID='
   $r = PostJson ($url + [Uri]::EscapeDataString($sid)) $body
   if ("$($r.Status)" -ne '200' -and ((ConvertTo-Json -InputObject $r -Compress -Depth 6) -match 'session|세션|로그인|login')) {
     $sid = EcLogin $test $true; $r = PostJson ($url + [Uri]::EscapeDataString($sid)) $body
@@ -98,6 +98,30 @@ function EcSave($job) {
   if (-not $ok -and -not $err) { $bad = $details | Where-Object { -not $_.ok } | Select-Object -First 1; if ($bad) { $err = $bad.error; if (-not $err) { $err = ($bad.errors -join ' / ') } } else { $err = '이카운트가 입력을 거절했습니다: ' + (ConvertTo-Json -InputObject $r -Compress -Depth 5) } }
   $slips = @(); if ($d -and $d.SlipNos) { $slips = @($d.SlipNos) }
   return @{ ok = $ok; test = $test; slipNos = $slips; details = $details; error = $err }
+}
+
+# v3: 판매입력(Sale/SaveSale) 권한 확인 — 품목·창고를 비운 줄 하나를 보내 이카운트가 무엇 때문에 거절하는지로 판단 (전표는 만들어지지 않음)
+function EcSaleCheck($job) {
+  $test = [bool]$job.test
+  $row = @{ UPLOAD_SER_NO = '1'; IO_DATE = (Get-Date).ToString('yyyyMMdd'); WH_CD = ''; PROD_CD = ''; QTY = '0' }
+  $body = @{ SaleList = @(, @{ BulkDatas = $row }) }
+  $sid = EcLogin $test $false
+  $url = (EcHost $test (EcZone $test)) + '/OAPI/V2/Sale/SaveSale?SESSION_ID='
+  $r = PostJson ($url + [Uri]::EscapeDataString($sid)) $body
+  $raw = ConvertTo-Json -InputObject $r -Compress -Depth 6
+  if ("$($r.Status)" -ne '200' -and $raw -match 'session|세션|로그인|login') { $sid = EcLogin $test $true; $r = PostJson ($url + [Uri]::EscapeDataString($sid)) $body; $raw = ConvertTo-Json -InputObject $r -Compress -Depth 6 }
+  $d = $r.Data; $msgs = @()
+  if ($r.Error -and $r.Error.Message) { $msgs += "$($r.Error.Message)" }
+  if ($d -and $d.ResultDetails) { foreach ($x in $d.ResultDetails) { if ($x.TotalError) { $msgs += "$($x.TotalError)" }; if ($x.Errors) { foreach ($er in $x.Errors) { $msgs += ("$($er.ColCd): $($er.Message)").Trim(': ') } } } }
+  $succ = 0; if ($d -and $d.SuccessCnt) { $succ = [int]$d.SuccessCnt }
+  $slips = @(); if ($d -and $d.SlipNos) { $slips = @($d.SlipNos) }
+  if ($raw -match '권한|permission|Permission|허용되지|허용 되지|not allowed|Not Allowed|Unauthorized') { $perm = $false; $m = '판매입력 API 권한이 없습니다' }
+  elseif ($succ -gt 0) { $perm = $true; $m = '판매입력 권한 있음 (주의: 확인용 전표가 만들어졌습니다 — 이카운트에서 지워 주세요)' }
+  elseif ($d -and $d.ResultDetails) { $perm = $true; $m = '판매입력 권한 있음 — 이카운트가 판매입력 요청을 받아 품목·창고 칸을 검사했습니다 (확인용이라 일부러 비워 보냄, 전표 없음)' }
+  else { $perm = $null; $m = '판단할 수 없는 응답입니다' }
+  if ($raw.Length -gt 900) { $raw = $raw.Substring(0, 900) + '…' }
+  $err = ''; if ($perm -ne $true) { $err = $m }
+  return @{ ok = ($perm -eq $true); kind = 'saleCheck'; perm = $perm; test = $test; message = $m; errors = $msgs; slipNos = $slips; raw = $raw; error = $err }
 }
 
 # ── 설정 ──
@@ -152,12 +176,12 @@ $Cfg = Get-Content -LiteralPath $CfgPath -Raw -Encoding UTF8 | ConvertFrom-Json
 foreach ($k in 'relayUrl', 'apiKey', 'comCode', 'userId', 'certKey') { if (-not $Cfg.$k) { Log ("설정에 $k 가 비어 있습니다 — " + $CfgPath + ' 파일을 지우고 다시 실행하세요'); Read-Host '끝내려면 Enter'; exit 1 } }
 
 # ── 반복 ──
-Log ('생산일지 이카운트 전송기 v2 시작 — ' + $Poll + '초마다 중계를 확인합니다. 이 창을 닫으면 전송이 멈춥니다.')
+Log ('생산일지·판매입력 이카운트 전송기 v3 시작 — ' + $Poll + '초마다 중계를 확인합니다. 이 창을 닫으면 전송이 멈춥니다.')
 $fails = 0
 $Done = DoneLoad
 while ($true) {
   try {
-    $r = RelayPost @{ key = $Cfg.apiKey; action = 'jobs' }
+    $r = RelayPost @{ key = $Cfg.apiKey; action = 'jobs'; ver = 3 }   # v3: 판매입력을 받을 수 있다고 중계에 알림
     if (-not $r.ok) { throw ('중계 거절: ' + $r.error) }
     if ($fails -gt 0) { Log '중계 연결 복구' }; $fails = 0
     foreach ($job in @($r.jobs)) {
@@ -166,9 +190,9 @@ while ($true) {
       if ($jid -and $Done.ContainsKey($jid)) {
         $res = $Done[$jid].result; Log ('이미 전표를 만든 건입니다 (' + (@($res.slipNos) -join ', ') + ') — 새로 만들지 않고 결과만 다시 돌려줍니다')
       } else {
-        try { $res = EcSave $job } catch { $res = @{ ok = $false; test = [bool]$job.test; slipNos = @(); details = @(); error = $_.Exception.Message } }
+        try { if ("$($job.kind)" -eq 'saleCheck') { $res = EcSaleCheck $job; Log ('[판매입력 권한 확인] ' + $res.message) } else { $res = EcSave $job } } catch { $res = @{ ok = $false; test = [bool]$job.test; slipNos = @(); details = @(); error = $_.Exception.Message } }
         if ($res.ok) {
-          $t = ''; if ($res.test) { $t = '[테스트] ' }; Log ($t + '전표 ' + ($res.slipNos -join ', ') + ' 생성 (' + @($job.rows).Count + '품목)')
+          $t = ''; if ($res.test) { $t = '[테스트] ' }; if ("$($job.kind)" -eq 'sale') { $t += '[판매입력] ' }; if ("$($job.kind)" -ne 'saleCheck') { Log ($t + '전표 ' + ($res.slipNos -join ', ') + ' 생성 (' + @($job.rows).Count + '품목)') }
           if ($jid) { $Done[$jid] = @{ t = (NowSec); result = $res }; DoneSave }   # 결과를 돌려주기 전에 먼저 기록
         } else { Log ('실패: ' + $res.error) }
       }
