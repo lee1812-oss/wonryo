@@ -62,6 +62,7 @@ aside.side{display:none}
   .topmenu{margin-left:auto;gap:4px;background:rgba(255,255,255,.10);border-radius:10px;padding:3px}
   .topmenu button{padding:6px 10px;font-size:13px;border-radius:8px}
   .topmenu button svg{display:none}
+  .topmenu{flex:0 1 auto;min-width:0;max-width:100%;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.topmenu::-webkit-scrollbar{display:none}.topmenu button{flex:0 0 auto;white-space:nowrap}   /* v149: 대메뉴가 늘어 가로로 넘겨 봄 */
   header.top .grow{display:none}
   #weekSel{order:8}
   body.fin-tab #weekSel{display:none}
@@ -1098,7 +1099,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '148';
+const APP_VER  = '149';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -1132,8 +1133,13 @@ const INSP_TABS = [
 ICO.prod = '<svg viewBox="0 0 24 24"><path d="M4 20V10l5 3V10l5 3V6l6 4v10z"/><path d="M4 20h16"/></svg>';
 const HOME_MENU = { name: '통합 대시보드', items: [['home', '통합', '<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>'], ['@raw', '원료수불부', ICO.raw], ['@fin', '완제품·생지', ICO.fin], ['@insp', '육안검사', ICO.insp], ['@prod', '생산일지', ICO.prod]] };
 const MENUS = { raw: { name: '원료수불부', ico: ICO.raw, items: TABS }, fin: { name: '완제품·생지', ico: ICO.fin, items: FIN_TABS }, insp: { name: '육안검사', ico: ICO.insp, items: INSP_TABS } };
-const PROD_TABS = [['pnew', '생산 입력', '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>'], ['pccp', 'CCP 일지', '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>'], ['psale', '판매 입력', '<svg viewBox="0 0 24 24"><path d="M3 4h2l2.4 11h11.2L21 7H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>'], ['plog', '전송 기록', ICO.ledger], ['pset', '연동 설정', ICO.items]];
+const PROD_TABS = [['pnew', '생산 입력', '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>'], ['plog', '전송 기록', ICO.ledger], ['pset', '연동 설정', ICO.items]];
 MENUS.prod = { name: '생산일지', ico: ICO.prod, items: PROD_TABS };
+/* v149: CCP 일지·판매 입력을 생산일지에서 떼어 각각 대메뉴로 — 화면 안에서는 S.ui.prodTab('pccp'·'psale')을 그대로 씀 */
+const CCP_TABS = [['pccp', 'CCP 일지', '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>']], SALE_TABS = [['psale', '판매 입력', '<svg viewBox="0 0 24 24"><path d="M3 4h2l2.4 11h11.2L21 7H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>']];
+MENUS.ccp = { name: 'CCP 일지', ico: CCP_TABS[0][2], items: CCP_TABS }; MENUS.sale = { name: '판매 입력', ico: SALE_TABS[0][2], items: SALE_TABS };
+const isProdM = m => m === 'prod' || m === 'ccp' || m === 'sale';
+const prodMenuOf = t => t === 'pccp' ? 'ccp' : t === 'psale' ? 'sale' : 'prod';
 /* ── v068: 관리자 / 직원 화면 분리 + 통합 설정
    · 연동·설정·백업 화면은 「⚙ 통합 설정」 한 곳에 모읍니다 (원료수불부 · 완제품·생지 · 육안검사 · 생산일지).
    · 기기마다 「관리자용 / 직원용」을 정합니다. 직원용 기기에서는 설정·연동 화면이 보이지 않고,
@@ -1156,6 +1162,8 @@ function menuItems(menu) {
   if (menu === 'fin') return FIN_TABS.filter(t => t[0] !== 'items');
   if (menu === 'insp') return INSP_TABS.filter(t => t[0] !== 'items').map(t => t[0] === 'eclink' && !A ? ['eclink', '입고 확인', t[2]] : t);
   if (menu === 'prod') return PROD_TABS.filter(t => t[0] !== 'pset');
+  if (menu === 'ccp') return CCP_TABS;
+  if (menu === 'sale') return SALE_TABS;
   return SYS_TABS;
 }
 function modePost() {
@@ -1494,22 +1502,22 @@ function importPaste() {
 
 /* ── render: frame ── */
 function renderTabs() {
-  if (!['fin', 'home', 'insp', 'prod', 'sys'].includes(S.ui.menu)) S.ui.menu = 'raw';
+  if (!['fin', 'home', 'insp', 'prod', 'ccp', 'sale', 'sys'].includes(S.ui.menu)) S.ui.menu = 'raw';
   const A = isAdmin(); if (S.ui.menu === 'sys' && !A) S.ui.menu = 'home';
   const ok = (m, t) => menuItems(m).some(x => x[0] === t);   /* v068: 설정 탭은 통합 설정으로 옮김 — 저장된 탭이 없는 탭이면 첫 화면으로 */
-  if (!ok('raw', S.ui.tab)) S.ui.tab = 'dash'; if (!ok('fin', S.ui.finTab)) S.ui.finTab = 'dash'; if (!ok('insp', S.ui.inspTab)) S.ui.inspTab = 'dashboard'; if (!ok('prod', S.ui.prodTab)) S.ui.prodTab = 'pnew';
+  if (!ok('raw', S.ui.tab)) S.ui.tab = 'dash'; if (!ok('fin', S.ui.finTab)) S.ui.finTab = 'dash'; if (!ok('insp', S.ui.inspTab)) S.ui.inspTab = 'dashboard'; if (S.ui.prodTab !== 'pccp' && S.ui.prodTab !== 'psale' && !ok('prod', S.ui.prodTab)) S.ui.prodTab = 'pnew'; if (isProdM(S.ui.menu)) S.ui.menu = prodMenuOf(S.ui.prodTab);
   if (!ok('sys', S.ui.sysTab)) S.ui.sysTab = 'set'; if (!SYS_INSP.some(x => x[0] === S.ui.sysInsp)) S.ui.sysInsp = 'eclink';
-  const menu = S.ui.menu, sysT = S.ui.sysTab; const M = menu === 'home' ? HOME_MENU : MENUS[menu]; const cur = menu === 'fin' ? S.ui.finTab : menu === 'insp' ? S.ui.inspTab : menu === 'prod' ? S.ui.prodTab : menu === 'sys' ? sysT : menu === 'home' ? 'home' : S.ui.tab;
+  const menu = S.ui.menu, sysT = S.ui.sysTab; const M = menu === 'home' ? HOME_MENU : MENUS[menu]; const cur = menu === 'fin' ? S.ui.finTab : menu === 'insp' ? S.ui.inspTab : isProdM(menu) ? S.ui.prodTab : menu === 'sys' ? sysT : menu === 'home' ? 'home' : S.ui.tab;
   // 상단: 대메뉴
-  const menuBtns = ['raw', 'fin', 'insp', 'prod'].map(k => `<button data-menu="${k}" class="${menu === k ? 'on' : ''}">${MENUS[k].ico}<span>${MENUS[k].name}</span></button>`).join('');
+  const menuBtns = ['raw', 'fin', 'insp', 'prod', 'ccp', 'sale'].map(k => `<button data-menu="${k}" class="${menu === k ? 'on' : ''}">${MENUS[k].ico}<span>${MENUS[k].name}</span></button>`).join('');
   const modeBtn = A ? `<button data-menu="sys" class="sysbtn${menu === 'sys' ? ' on' : ''}" title="통합 설정">${ICO.sys}<span>설정</span></button>` : `<button class="sysbtn" data-lock="1" title="관리자 화면 열기">🔒</button>`;
-  $('#topMenu').innerHTML = menuBtns + modeBtn; /* 휴대폰: 헤더 토글 유지 */
+  $('#topMenu').innerHTML = menuBtns + modeBtn; /* 휴대폰: 헤더 토글 유지 */ { const tm = $('#topMenu'), on = tm.querySelector('.on'); if (on && tm.scrollWidth > tm.clientWidth) { const l = on.offsetLeft - tm.offsetLeft; if (l < tm.scrollLeft || l + on.offsetWidth > tm.scrollLeft + tm.clientWidth) tm.scrollLeft = Math.max(0, l - 12); } }   /* v149: 메뉴가 늘어 휴대폰에서 고른 메뉴가 보이게 */
   // 좌측 사이드바(PC) + 하단 탭(휴대폰): 현재 대메뉴의 하위 메뉴
   const items = menuItems(menu).map(([k, n, ic]) => `<button data-tab="${k}" class="${cur === k ? 'on' : ''}${k === 'brief' ? ' act' : ''}">${ic}<span>${n}</span></button>`).join('');
   const modeBox = `<div class="modebox">${A ? `<button data-menu="sys" class="${menu === 'sys' ? 'on' : ''}">${ICO.sys}<span>통합 설정</span></button>` : ''}${!A ? '<button class="lockbtn" data-lock="1">🔒<span>관리자</span></button>' : modeDevUser() ? '<button class="lockbtn" data-leave="1">↩<span>직원 화면으로</span></button>' : ''}</div>`;
   weekSelHome(); /* v043: 사이드바를 다시 그리기 전에 주차 선택을 헤더로 돌려놓음 */
   $('#sideNav').innerHTML = `<button class="homebtn${menu === 'home' ? ' on' : ''}" data-menu="home">${ICO.home}<span>통합 대시보드</span></button><div class="menusw">${menuBtns}</div>` + (menu === 'raw' || menu === 'home' ? `<div class="sidewk" id="sideWeek"><label>원료 기준 주차</label></div>` : '') + (menu === 'home' ? '' : `<div class="grp">${M.name}</div>` + items) + modeBox; $('#tabsBottom').innerHTML = items;
-  $$('#topMenu [data-menu], #sideNav [data-menu]').forEach(b => b.onclick = () => { if (S.ui.menu === b.dataset.menu && !(b.dataset.menu === 'prod' && (S.ui.prodTab !== 'pccp' || S.ui.ccpView !== 'cal'))) return; S.ui.menu = b.dataset.menu; if (S.ui.menu === 'prod') { S.ui.prodTab = 'pccp'; S.ui.ccpView = 'cal'; }   /* v120: 생산일지를 누르면 달력부터 · v127: 생산 입력·전송 기록을 보고 있을 때 눌러도 달력으로 */
+  $$('#topMenu [data-menu], #sideNav [data-menu]').forEach(b => b.onclick = () => { if (S.ui.menu === b.dataset.menu && !(b.dataset.menu === 'ccp' && S.ui.ccpView !== 'cal')) return; S.ui.menu = b.dataset.menu; if (S.ui.menu === 'ccp') { S.ui.prodTab = 'pccp'; S.ui.ccpView = 'cal'; } else if (S.ui.menu === 'sale') S.ui.prodTab = 'psale'; else if (isProdM(S.ui.menu)) S.ui.prodTab = 'pnew';   /* v149: CCP 일지를 누르면 달력부터 (보고 있을 때 다시 눌러도 달력으로) */
     save(); renderAll(); window.scrollTo(0, 0); if (S.ui.menu === 'home') finAskSum(); });
   $$('#topMenu [data-lock], #sideNav [data-lock]').forEach(b => b.onclick = adminEnter);
   $$('#sideNav [data-leave]').forEach(b => b.onclick = adminLeave);
@@ -1519,15 +1527,15 @@ function renderTabs() {
     if (k[0] === '@') { homeGo(k.slice(1)); return; }
     if (S.ui.menu === 'fin') { if (k !== 'brief') S.ui.finTab = k; finNav(k); finShown = k === 'brief' ? finShown : k; save(); renderTabs(); return; }
     if (S.ui.menu === 'insp') { S.ui.inspTab = k; save(); renderTabs(); return; }
-    if (S.ui.menu === 'prod') { S.ui.prodTab = k; save(); renderAll(); window.scrollTo(0, 0); return; }
+    if (isProdM(S.ui.menu)) { S.ui.prodTab = k; save(); renderAll(); window.scrollTo(0, 0); return; }
     if (S.ui.menu === 'sys') { S.ui.sysTab = k; save(); renderAll(); window.scrollTo(0, 0); return; }
     S.ui.tab = k; save(); renderAll(); window.scrollTo(0, 0);
   });
   const sysView = { set: 'set', setraw: 'setraw', sfin: 'fin', sinsp: 'insp', pset: 'pset' }[sysT];
-  const view = menu === 'fin' ? 'fin' : menu === 'insp' ? 'insp' : menu === 'prod' ? S.ui.prodTab : menu === 'sys' ? sysView : menu === 'home' ? 'home' : S.ui.tab;
+  const view = menu === 'fin' ? 'fin' : menu === 'insp' ? 'insp' : isProdM(menu) ? S.ui.prodTab : menu === 'sys' ? sysView : menu === 'home' ? 'home' : S.ui.tab;
   $$('.view').forEach(v => v.classList.toggle('on', v.dataset.view === view));
   const frameOn = view === 'fin' || view === 'insp';
-  document.body.classList.toggle('fin-tab', frameOn); document.body.classList.toggle('home-on', menu === 'home'); document.body.classList.toggle('prod-on', menu === 'prod' || menu === 'sys');
+  document.body.classList.toggle('fin-tab', frameOn); document.body.classList.toggle('home-on', menu === 'home'); document.body.classList.toggle('prod-on', isProdM(menu) || menu === 'sys');
   document.body.classList.toggle('mode-user', !A); document.body.classList.toggle('sys-sub', menu === 'sys' && sysT === 'sinsp');
   // 육안검사 설정: 화면 위 작은 탭
   $('#inspSub').innerHTML = menu === 'sys' && sysT === 'sinsp' ? SYS_INSP.map(([k, n]) => `<button data-si="${k}" class="${S.ui.sysInsp === k ? 'on' : ''}">${n}</button>`).join('') : '';
@@ -1645,7 +1653,7 @@ function prodReady() {
   if (!prodOnItems().length) return { ok: false, msg: '「⚙ 통합 설정 → 생산일지 연동 → 생산 품목」에서 완제품·생지 품목을 불러와 주세요.' };
   return { ok: true, msg: '' };
 }
-function prodRenderIf() { if (S.ui.menu === 'prod') renderProd(); }
+function prodRenderIf() { if (isProdM(S.ui.menu)) renderProd(); }
 let prodMig = false;
 function renderProd() { try { finEnsure(); } catch (e) {} if (!prodMig) { prodMig = true; try { if (prodS().hist) { prodLinkHist(false); save(); } } catch (e) {} } const t = S.ui.prodTab; if (t === 'pccp') renderCcp(); else if (t === 'psale') renderSale(); else if (t === 'plog') renderProdLog(); else if (t === 'pset') renderProdSet(); else renderProdNew(); }
 async function prodCopy(text) {
@@ -1683,7 +1691,7 @@ window.addEventListener('message', e => {
   const linked = changed ? prodLinkHist(false) : 0;
   if (changed || wanted) { P.itemsAt = new Date().toISOString(); save(); }
   /* 자동으로 받은 경우엔 입력 중인 화면을 다시 그리지 않음 (입력 칸 초점 유지) */
-  if (wanted || (changed && S.ui.menu === 'prod' && S.ui.prodTab !== 'pnew')) prodRenderIf();
+  if (wanted || (changed && isProdM(S.ui.menu) && S.ui.prodTab !== 'pnew')) prodRenderIf();
   if (wanted) toast(!m.items.length ? `완제품·생지 품목 ${m.total || 0}개 중 이카운트 코드가 연결된 품목이 없습니다 — 완제품·생지 → 품목·설정에서 이카운트 코드를 먼저 연결하세요`
     : (add ? `완제품·생지 품목 ${add}개를 새로 불러왔습니다` : `완제품·생지 품목 ${m.items.length}개를 다시 맞췄습니다`) + (linked ? ` · 생산 이력 품목 ${linked}개 추가` : ''));
 });
@@ -1906,7 +1914,7 @@ async function prodRelaySync(force) {
   const P = prodS(); if (!String(P.cfg.relayUrl || '').trim() || !prodKey() || (!force && Date.now() - prodRelayAt < 10 * 60000)) return; prodRelayAt = Date.now(); let ch = false, got = false;
   if (!(P.hist && P.hist.kind === 'cons')) { try { const j = await prodRelayCall({ action: 'getCfg' }); if (j && j.ok && j.cfg && j.cfg.note) { if (force) P.cfgTs = ''; if (prodCfgApply({ ts: j.cfg.ts, note: j.cfg.note, user: j.cfg.user, device: j.cfg.device })) { ch = got = true; } } } catch (e) {} }
   try { const j = await prodRelayCall({ action: 'recent' }); if (j && j.ok) (j.jobs || []).forEach(x => { const d = String(x.date || ''); const dd = /^\d{8}$/.test(d) ? `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}` : d; if (dd && prodSlogAdd({ code: String(x.id), ts: String(x.at || ''), note: JSON.stringify({ d: dd, l: x.l || [] }) })) ch = true; }); } catch (e) {}
-  if (ch) { save(); if (got) toast('관리자 PC의 생산일지 설정을 받았습니다'); if (S.ui.menu === 'prod' && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#prodNew'))) renderProd(); }
+  if (ch) { save(); if (got) toast('관리자 PC의 생산일지 설정을 받았습니다'); if (isProdM(S.ui.menu) && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#prodNew'))) renderProd(); }
   return got;
 }
 setTimeout(() => prodRelaySync(true), 6000); setInterval(() => prodRelaySync(false), 60 * 1000);
@@ -2312,7 +2320,7 @@ async function prodPoll() {
   prodPolling = true; let changed = false;
   try { const r = await fetch(P.cfg.relayUrl.trim(), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ key: prodKey(), action: 'status', ids: wait.map(en => en.cid || en.id) }) }); const j = await r.json();
     if (j.ok) { if (j.agentSeen !== P.agentSeen) { P.agentSeen = j.agentSeen || ''; changed = true; } wait.forEach(en => { if (prodApplyJob(en, (j.jobs || {})[en.cid || en.id])) changed = true; }); } } catch (e) {}
-  prodPolling = false; if (changed) { save(); if (S.ui.menu === 'prod' && S.ui.prodTab !== 'pnew') prodRenderIf(); }
+  prodPolling = false; if (changed) { save(); if (isProdM(S.ui.menu) && S.ui.prodTab !== 'pnew') prodRenderIf(); }
   if (P.log.some(en => en.status === 'wait')) prodPollT = setTimeout(prodPoll, document.hidden ? 60000 : 10000);
 }
 setTimeout(prodPoll, 5000);
@@ -3310,7 +3318,7 @@ function homeGo(t) { /* t = 'raw' | 'fin' | 'raw:tab' | 'fin:tab' */
   const [menu, tab] = t.split(':'); S.ui.menu = menu;
   if (menu === 'fin') { if (tab) S.ui.finTab = tab; save(); renderAll(); if (tab) { finShown = S.ui.finTab; finNav(S.ui.finTab); } }
   else if (menu === 'insp') { if (tab) S.ui.inspTab = tab; save(); renderAll(); }
-  else if (menu === 'prod') { if (tab) S.ui.prodTab = tab; save(); renderAll(); }
+  else if (isProdM(menu)) { if (tab) S.ui.prodTab = tab; save(); renderAll(); }
   else { if (tab) S.ui.tab = tab; save(); renderAll(); }
   window.scrollTo(0, 0);
 }
@@ -3773,8 +3781,8 @@ async function sharePull(full, quiet) {
     sh.lastPull = new Date().toISOString(); sh.err = sh.pushErr || ''; save(true); renderSharePill();
     if (!full && S.prod && !(S.prod.hist && S.prod.hist.kind === 'cons') && (!prodOnItems().length || !String((S.prod.cfg || {}).relayUrl || '').trim() || !S.prod.consSrc) && Date.now() - prodRefetchAt >= 10 * 60000) { S.prod.cfgTs = ''; setTimeout(() => prodCfgRefetch(false), 500); }   /* v088: 설정을 못 받았거나 옛 기준이면 처음부터 다시 받음 */   /* v082: 생산 품목이 비어 있으면 처음부터 한 번 다시 받음 (시각 차이로 설정 행을 건너뛴 경우 대비) */
     if (inspCh) renderSharePill();
-    if (ccpCh && S.ui.menu === 'prod' && S.ui.prodTab === 'pccp' && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#prodCcp'))) renderCcp();
-    if (pcfgCh) { if (pcfgCh !== 'log') toast('관리자 PC에서 생산일지 설정을 받았습니다'); if (S.ui.menu === 'prod' && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#prodNew'))) renderProd(); }
+    if (ccpCh && isProdM(S.ui.menu) && S.ui.prodTab === 'pccp' && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#prodCcp'))) renderCcp();
+    if (pcfgCh) { if (pcfgCh !== 'log') toast('관리자 PC에서 생산일지 설정을 받았습니다'); if (isProdM(S.ui.menu) && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#prodNew'))) renderProd(); }
     if (nbCh) { renderNotice(); if (nbNew.length && !full) { const r = nbNew[nbNew.length - 1]; let t = ''; try { t = JSON.parse(r.note || '{}').text || ''; } catch (e) {} toast(`📢 새 전달사항 · ${r.name || ''}: ${String(t).slice(0, 40)}`); } }
     if (changed) { toast(`공유 저장소에서 ${changed}건 반영`); if (S.ui.menu !== 'fin' && ['phys', 'weekly', 'cmp', 'dash', 'trend'].includes(S.ui.tab)) { if (shareTyping()) { sh.pendingRender = true; } else { if (S.ui.tab === 'weekly') wk.rows = []; renderAll(); } } } }
   catch (e) { sh.err = '받기 실패: ' + (e.message || e); save(); }
@@ -4882,7 +4890,7 @@ const saleUi = { q: '', iq: '', confirm: false, allCust: false, allItems: false,
 function saleS() {
   if (!SL) { try { SL = JSON.parse(localStorage.getItem(SALE_KEY) || 'null'); } catch (e) {} }
   if (!SL || typeof SL !== 'object') SL = {};
-  SL.rows = SL.rows || []; SL.cust = SL.cust || {}; SL.items = SL.items || {}; SL.files = SL.files || []; SL.log = SL.log || []; SL.cfg = SL.cfg || {};
+  SL.rows = SL.rows || []; SL.cust = SL.cust || {}; SL.items = SL.items || {}; SL.files = SL.files || []; SL.log = SL.log || []; SL.cfg = SL.cfg || {}; if (SL.cfg.wh == null) SL.cfg.wh = '00017'; if (SL.cfg.emp == null) SL.cfg.emp = '12312';
   if (!SL.draft) SL.draft = { date: today(), cust: '', lines: [], memo: '' };
   if (SL.draft.dateOn !== today()) { SL.draft.date = today(); SL.draft.dateOn = today(); }   /* 다음 날 열면 오늘로 */
   return SL;
@@ -5059,7 +5067,7 @@ function saleBind() {
 function renderAll() {
   renderTabs(); renderHeader(); renderNotice(); if (typeof renderSyncPill === 'function') renderSyncPill(); if (typeof renderChanges === 'function') setTimeout(renderChanges, 0);
   if (S.ui.menu === 'home') renderHome();
-  if (S.ui.menu === 'prod') renderProd();
+  if (isProdM(S.ui.menu)) renderProd();
   if (S.ui.menu === 'sys') { if (S.ui.sysTab === 'set' || S.ui.sysTab === 'setraw') renderSet(); if (S.ui.sysTab === 'pset') { try { finEnsure(); } catch (e) {} renderProdSet(); } renderModeBox(); }
   const t = S.ui.tab;
   if (t === 'dash') renderDash(); else if (t === 'stock') renderStock(); else if (t === 'phys') renderPhys(); else if (t === 'weekly') renderWeekly(); else if (t === 'cmp') renderCmp(); else if (t === 'trend') renderTrend(); else if (t === 'adj') renderAdj(); else renderSet();
