@@ -1197,8 +1197,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '154';
-const APP_BUILT = '2026-10-04 08:20';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '155';
+const APP_BUILT = '2026-10-04 08:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -2690,6 +2690,7 @@ function renderCcp() {
   ccpBind(box); try { renderSharePill(); } catch (e) {}
 }
 /* v119: 달력 — 날마다 생산 품목과 공정별 CCP 일지 상태 표시, 누르면 그날 일지 */
+const CCAL_LBL = { prod: '생산일지', mix: '크림배합', oven: '가열', freeze: '냉동', metal: '금속검출', lot: '생산기록서' };   /* v155: 달력 칸에 그림과 함께 공정 이름 */
 function ccpCalHtml(D) {
   const by = ccpProdByDate(), L = ccpS().logs; const M = /^\d{4}-\d{2}$/.test(S.ui.ccpCalM || '') ? S.ui.ccpCalM : D.slice(0, 7);
   const y = Number(M.slice(0, 4)), m = Number(M.slice(5, 7)); const first = new Date(y, m - 1, 1), days = new Date(y, m, 0).getDate(), td = today();
@@ -2698,7 +2699,7 @@ function ccpCalHtml(D) {
   for (let i = 0; i < first.getDay(); i++) cells.push('<td class="ccal-x"></td>');
   for (let n = 1; n <= days; n++) { const d = ymd(n), its = Object.values(by[d] || {}), gs = CCP_ALL.map(t => L[d + '|' + t]).filter(g => g && !g.skip), wd = new Date(d + 'T00:00:00').getDay();
     if (its.length) mProd++; mLogs += gs.length;
-    const chips = gs.map(g => { const st = ccpState(g); if (st.done) mDone++; if (st.bad) mBad++; const c = st.bad ? 'bad' : st.miss ? 'miss' : 'ok'; return `<span class="ccal-c ${c}" title="${esc(CCP_TYPES[g.type].short)} · ${st.bad ? '한계기준 이탈' : st.miss ? '입력 필요 ' + st.miss : '작성 완료'}">${CCP_TYPES[g.type].ico}${st.bad ? '⚠' : st.miss ? '✎' : '✓'}</span>`; }).join('');
+    const chips = gs.map(g => { const st = ccpState(g); if (st.done) mDone++; if (st.bad) mBad++; const c = st.bad ? 'bad' : st.miss ? 'miss' : 'ok'; return `<span class="ccal-c ${c}" title="${esc(CCP_TYPES[g.type].short)} · ${st.bad ? '한계기준 이탈' : st.miss ? '입력 필요 ' + st.miss : '작성 완료'}">${CCP_TYPES[g.type].ico}<i class="ccal-l">${esc(CCAL_LBL[g.type] || CCP_TYPES[g.type].short)}</i>${st.bad ? '⚠' : st.miss ? '✎' : '✓'}</span>`; }).join('');
     const pn = its.map(x => String(x.name).replace(/^(D|DB|Db)\./, '')); 
     cells.push(`<td class="ccal-d${d === td ? ' today' : ''}${d === D ? ' sel' : ''}${its.length || gs.length ? ' has' : ''}" data-ccpdate="${d}"><div class="ccal-n${wd === 0 ? ' sun' : wd === 6 ? ' sat' : ''}">${n}</div>${pn.length ? `<div class="ccal-p" title="${esc(pn.join(', '))}">${esc(pn.slice(0, 2).join(' · '))}${pn.length > 2 ? ` <b>+${pn.length - 2}</b>` : ''}</div>` : ''}<div class="ccal-cs">${chips}</div></td>`); }
   while (cells.length % 7) cells.push('<td class="ccal-x"></td>');
@@ -2988,12 +2989,12 @@ table.ccal{width:100%;border-collapse:collapse;table-layout:fixed}table.ccal th{
 table.ccal td{border:1px solid var(--line);vertical-align:top;height:92px;padding:4px 5px;cursor:pointer;background:var(--paper,#fff)}table.ccal td.ccal-x{background:transparent;cursor:default}
 table.ccal td.has{background:#F7FBF9}table.ccal td:hover{outline:2px solid #1F6E5A;outline-offset:-2px}table.ccal td.sel{outline:2px solid #1F6E5A;outline-offset:-2px}table.ccal td.today .ccal-n{background:#1F6E5A;color:#fff;border-radius:10px;padding:0 7px;display:inline-block}
 .ccal-n{font-weight:800;font-size:13px}.ccal-p{font-size:11px;color:var(--ink2);margin-top:2px;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.ccal-cs{display:flex;flex-wrap:wrap;gap:2px;margin-top:3px}.ccal-c{font-size:10.5px;padding:0 4px;border-radius:6px;white-space:nowrap;font-weight:700}.ccal-c.ok{background:#E3F4EC;color:#1F6E4A}.ccal-c.miss{background:#FBF1DF;color:#A86A12}.ccal-c.bad{background:#FBE9E9;color:#B23A3A}
+.ccal-cs{display:flex;flex-wrap:wrap;gap:2px;margin-top:3px}.ccal-c{font-size:10.5px;padding:0 5px;border-radius:6px;white-space:nowrap;font-weight:700;display:inline-flex;align-items:center;gap:1px;line-height:17px}.ccal-l{font-style:normal;font-size:10px;font-weight:700;margin:0 1px 0 2px;letter-spacing:-.3px}.ccal-c.ok{background:#E3F4EC;color:#1F6E4A}.ccal-c.miss{background:#FBF1DF;color:#A86A12}.ccal-c.bad{background:#FBE9E9;color:#B23A3A}
 .ccp-sheet .ccp-sec{background:#E6EEF7;border-top:1px solid #000;border-bottom:1px solid #000;padding:4px 8px;font-weight:700;font-size:12.5px;text-align:left;margin-top:8px}.ccp-sheet .ccp-2{display:grid;grid-template-columns:1fr 1fr;gap:0}.ccp-sheet .ccp-2>div{min-width:0}.ccp-sheet .ccp-2>div+div{border-left:1px solid #000}.ccp-sheet input[type=checkbox]{width:auto!important;min-width:0;height:auto;vertical-align:middle}.ccp-a td,.ccp-b td{font-size:12px;height:24px}
 .ccp-sheet input::placeholder{color:#B5BEC6;font-weight:400;font-size:11px;opacity:1}
 .pcc{margin-top:14px;border-top:1px dashed var(--line);padding-top:10px}.pcc-t{display:flex;align-items:center;gap:8px;margin-bottom:6px}.pcc-t .btn{margin-left:auto}.pcc-c{border:1px solid var(--line);border-radius:10px;padding:7px 9px;margin-bottom:6px;background:var(--card,#fff)}.pcc-h{display:flex;justify-content:space-between;align-items:center;font-size:13px}.pcc-s{font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:8px}.pcc-s.new{background:#E6F0FB;color:#1F5FA8}.pcc-s.ok{background:#E3F4EC;color:#1F6E4A}.pcc-s.miss{background:#FBF1DF;color:#A86A12}.pcc-s.bad{background:#FBE9E9;color:#B23A3A}
 .pcc-rs{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}.pcc-r,.pcc-p{font-size:11.5px;padding:1px 7px;border-radius:7px;background:var(--line2,#F1F3F5);color:var(--ink2)}.pcc-r i{font-style:normal;color:var(--ink3)}.pcc-r.new{background:#E6F0FB;color:#1F5FA8;font-weight:700;animation:pccIn .5s ease}.pcc-r.ok{background:#E3F4EC;color:#1F6E4A}.pcc-r.bad{background:#FBE9E9;color:#B23A3A}.pcc-p{background:#FFF6E0;color:#8A5A00}.pcc-f{font-size:11px;color:var(--ink3);margin-top:4px}.pcc-k{color:#1F5FA8}@keyframes pccIn{from{transform:scale(.85);opacity:.3}to{transform:none;opacity:1}}
-@media (max-width:759px){table.ccal td{height:70px;padding:2px}.ccal-p{display:none}.ccal-c{font-size:9.5px;padding:0 2px}}`;
+@media (max-width:759px){table.ccal td{height:70px;padding:2px}.ccal-p{display:none}.ccal-c{font-size:9.5px;padding:0 2px}.ccal-l{display:none}}`;
 /* 결재 도장 — 이름(또는 설정한 도장 글자)을 빨간 원 안에. 작성자 도장은 측정값을 다 넣었을 때, 승인자 도장은 승인자 이름을 넣었을 때 찍힘 */
 function ccpStamp(name) { const t = String(name || '').trim(); if (!t) return ''; const n = [...t].length; return `<span class="ccp-stamp" style="font-size:${n <= 2 ? 12 : n === 3 ? 10 : 8}px">${esc(t)}</span>`; }
 /* v131: 측정칸에 지난 기록의 평소 값(중앙값)을 흐린 글씨로만 보여 줌 — 저장되지 않으며 직접 재서 입력해야 함 */
