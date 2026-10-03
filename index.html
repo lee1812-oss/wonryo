@@ -776,6 +776,10 @@ body.sale-on main>section.view{max-width:none}
 .sw-ship{display:flex;align-items:center;gap:6px}.sw-memos{display:grid;grid-template-columns:1fr 1fr;gap:6px}.sw-memos .sw-memo:only-child{grid-column:1/-1}
 .sw-sd,.sw-box{display:flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:var(--ink2);white-space:nowrap}.sw-sd input{width:116px;height:30px;border:1px solid var(--line);border-radius:7px;padding:0 4px;font-size:12.5px;background:#fff}.sw-box input{width:40px;height:30px;border:1px solid var(--line);border-radius:7px;text-align:center;font-weight:700;background:#fff}
 .sw-dlv{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;flex:1 1 auto}.sw-dlv button{flex:1 1 0;min-width:0;white-space:nowrap;padding:6px 2px;font-size:12px;font-weight:700;color:var(--ink2);border-left:1px solid var(--line2)}.sw-dlv button:first-child{border-left:0}.sw-dlv button.on{background:var(--brand);color:#fff}
+.sw-mode{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}.sw-mode button{flex:1 1 0;padding:6px 4px;font-size:12px;font-weight:700;color:var(--ink2);border-left:1px solid var(--line2)}.sw-mode button:first-child{border-left:0}.sw-mode button.on{background:var(--brand);color:#fff}
+.sw-badge.m-test{color:var(--plus);background:var(--plus-bg);border-color:#A9D3E3}.sw-badge.m-real{color:#fff;background:var(--accent);border-color:var(--accent)}
+.tg{background:var(--bg);color:var(--ink2)}.tg.bad{background:var(--minus-bg);color:var(--minus)}.sw-err{font-size:12px;color:var(--minus);margin-top:4px}
+.sw-warn{margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--warn-bg);border:1px solid #E8C98E;font-size:12.5px;line-height:1.5}
 .sw-mx{margin-top:6px;font-size:13px;line-height:1.6;color:var(--ink2)}.sw-mx b{color:var(--ink)}
 .sw-memo{height:32px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font-size:13.5px;background:#fff}
 .sw-act{display:grid;grid-template-columns:96px 1fr;gap:6px}.sw-act .btn{min-height:38px}.sw-act .primary{font-size:15px}.sw-act small,.sw-ma small{opacity:.7;font-size:11px;margin-left:4px;font-weight:600}
@@ -1190,7 +1194,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '151';
+const APP_VER  = '152';
 const STORE_KEY = 'wonryo_subulbu_v1';
 
 const TABS = [
@@ -5088,14 +5092,15 @@ function renderSale() {
   if (!saleUi.ctabSet) saleUi.ctab = saleDue(D.date).length ? 'due' : 'recent'; if (!saleUi.rtab) saleUi.rtab = 'slip'; if (!saleUi.step) saleUi.step = 'c';
   box.innerHTML = `<div class="sw" data-step="${saleUi.step}">
   <div class="sw-bar">
-    <div class="sw-ttl"><h2>판매 입력</h2><span class="sw-badge" title="3단계에서 이카운트 판매입력(Sale/SaveSale)으로 보내기를 붙입니다">연습 · 이카운트 미전송</span></div>
+    <div class="sw-ttl"><h2>판매 입력</h2><span class="sw-badge m-${esc(X.cfg.mode || 'practice')}" title="⚙ 에서 바꿉니다">${({ practice: '연습 · 이카운트 미전송', test: '이카운트 테스트 서버', real: '이카운트 실제 입력' })[X.cfg.mode || 'practice']}</span></div>
     <div class="sw-date"><button type="button" class="btn sm" data-sday="-1" aria-label="전일">‹</button><input type="date" id="sDate" value="${esc(D.date)}" aria-label="판매일"><span class="sw-wd">${esc(WD[new Date(D.date + 'T00:00:00').getDay()])}</span><button type="button" class="btn sm" data-sday="1" aria-label="익일">›</button><button type="button" class="btn sm${D.date === today() ? ' primary' : ''}" data-sday="0">오늘</button></div>
     <label class="sw-who">입력자<input id="sWho" value="${esc(S.settings.reporter || '')}" placeholder="이름"></label>
     <div class="sw-tools">
       <span class="sw-data${has ? '' : ' none'}" title="${X.files.slice(0, 4).map(f => `${f.name} (${f.from}~${f.to}, ${f.n}줄)`).join('\n')}">${has ? `판매현황 ${esc(saleMD(X.rows[0][0]))}~${esc(saleMD(X.rows[X.rows.length - 1][0]))} · 거래처 ${Object.keys(X.cust).length}` : '판매현황 자료 없음'}</span>
       <label class="btn sm${has ? '' : ' primary'}" title="이카운트 영업관리 → 판매현황 (일별·거래처별·품목별) 엑셀. 5,000줄이 넘으면 기간을 나눠 여러 번 올리면 이어 붙입니다.">${has ? '자료 갱신' : '판매현황 올리기'}<input type="file" id="saleFile" accept=".xlsx,.xls" multiple hidden></label>
       <details class="sw-cfg"><summary class="btn sm" aria-label="설정">⚙</summary><div class="sw-pop">
-        <b>이카운트 전송 설정</b><label>출하창고 코드 (WH_CD)<input id="sWh" value="${esc(X.cfg.wh || '')}"></label><label>담당 사원코드 (EMP_CD)<input id="sEmp" value="${esc(X.cfg.emp || '')}"></label>
+        <b>이카운트 전송 설정</b><div class="sw-mode" role="radiogroup" aria-label="전송 방식">${[['practice', '연습', '이 기기에만 저장'], ['test', '테스트', '이카운트 테스트 서버(실데이터 아님)'], ['real', '실제 입력', '이카운트 판매입력에 전표 생성']].map(([k, n, t]) => `<button type="button" role="radio" aria-checked="${(X.cfg.mode || 'practice') === k}" class="${(X.cfg.mode || 'practice') === k ? 'on' : ''}" data-smode="${k}" title="${t}">${n}</button>`).join('')}</div>
+        <div class="muted" style="font-size:11.5px" id="swAgent">${saleAgentText()}</div><label>출하창고 코드 (WH_CD)<input id="sWh" value="${esc(X.cfg.wh || '')}"></label><label>담당 사원코드 (EMP_CD)<input id="sEmp" value="${esc(X.cfg.emp || '')}"></label>
         <div class="muted" style="font-size:11.5px">판매현황 자료·입력 기록은 이 기기에만 저장됩니다.</div>${has ? '<button type="button" class="btn xs danger" id="saleWipe">판매현황 자료 지우기</button>' : ''}</div></details>
     </div>
   </div>
@@ -5171,10 +5176,10 @@ function saleRenderS() {
   const el = $('#swS'); if (!el) return; const X = saleS(), D = X.draft; saleSeg();
   if (saleUi.rtab === 'day') {
     const dl = X.log.filter(e => e.date === D.date);
-    el.innerHTML = `<div class="sw-sl">${dl.length ? dl.map(e => `<div class="sw-de"><div class="sw-deh"><b>${esc(e.custName)}</b><span class="num">${saleWon(e.sup + e.vat)}원</span></div>
+    el.innerHTML = `<div class="sw-sl">${dl.length ? dl.map(e => `<div class="sw-de"><div class="sw-deh"><b>${esc(e.custName)} ${e.status === 'sent' ? `<i class="tg ok">${e.test ? '테스트 ' : ''}전표 ${esc(e.slip || '')}</i>` : e.status === 'fail' ? '<i class="tg bad">전송 실패</i>' : salePend(e) ? '<i class="tg due">보내는 중</i>' : '<i class="tg">연습</i>'}</b><span class="num">${saleWon(e.sup + e.vat)}원</span></div>
       <div class="sw-dem">${esc(hmOf(e.ts))}${e.who ? ' · ' + esc(e.who) : ''} · ${e.lines.length}품목 · 공급가액 ${saleWon(e.sup)}${e.dlv ? ' · ' + esc(e.dlv) : ''}${e.ship && e.ship !== e.date ? ' · 배송 ' + esc(saleMD(e.ship)) : ''}${e.box ? ' · 박스 ' + e.box : ''}${e.note ? ' · ' + esc(e.note) : ''}${e.memo ? ' · ' + esc(e.memo) : ''}</div>
       <div class="sw-del">${e.lines.map(l => `${esc(l.name)} <b>${fmt(l.qty)}</b>×${saleWon(l.price)}`).join(' · ')}</div>
-      <div class="sw-dea"><button type="button" class="btn xs" data-sedit="${esc(e.id)}">고치기</button><button type="button" class="btn xs" data-sjson="${esc(e.id)}">전송 미리보기</button><button type="button" class="btn xs danger" data-sldel="${esc(e.id)}">지우기</button></div></div>`).join('')
+      ${e.status === 'fail' ? `<div class="sw-err">⚠ ${esc(e.err || '')}</div>` : ''}<div class="sw-dea">${e.status === 'fail' ? `<button type="button" class="btn xs primary" data-sretry="${esc(e.id)}">다시 보내기</button>` : ''}${e.status === 'sent' || salePend(e) ? '' : `<button type="button" class="btn xs" data-sedit="${esc(e.id)}">고치기</button>`}<button type="button" class="btn xs" data-sjson="${esc(e.id)}">전송 미리보기</button><button type="button" class="btn xs danger" data-sldel="${esc(e.id)}">지우기</button></div></div>`).join('')
       : '<div class="sw-empty">이 날짜에 저장한 판매가 없습니다.</div>'}</div>
       <div class="sw-foot"><div class="sw-tot"><div><span>건수</span><b>${dl.length}</b></div><div><span>공급가액</span><b>${saleWon(dl.reduce((t, e) => t + e.sup, 0))}</b></div><div class="g"><span>합계</span><b>${saleWon(dl.reduce((t, e) => t + e.sup + e.vat, 0))}</b></div></div></div>`;
     return;
@@ -5204,17 +5209,43 @@ function saleConfirm() {
   saleModal(`<h3>판매 저장 확인</h3><div class="sw-mh"><b>${esc(saleCustName(D.cust))}</b> · ${esc(D.date)} (${esc(WD[new Date(D.date + 'T00:00:00').getDay()])})</div>
     <table class="sw-t mt"><thead><tr><th>품목</th><th class="r">수량</th><th class="r">단가</th><th class="r">공급가액</th><th class="r">부가세</th></tr></thead><tbody>${D.lines.map(l => { const a = saleLineAmt(l); return `<tr><td>${esc(l.name)}<span class="sw-ic">${esc(l.code)}</span></td><td class="r num">${fmt(l.qty)}</td><td class="r num">${saleWon(l.price)}</td><td class="r num">${saleWon(a.s)}</td><td class="r num">${saleWon(a.v)}</td></tr>`; }).join('')}</tbody>
     <tfoot><tr><td>합계 ${D.lines.length}품목</td><td></td><td></td><td class="r num">${saleWon(t.s)}</td><td class="r num">${saleWon(t.v)}</td></tr></tfoot></table>
-    <div class="sw-mt">총 <b>${saleWon(t.s + t.v)}</b>원 <span class="muted">(부가세 별도 단가 · 부가세는 이카운트 계산과 1원 차이 날 수 있음)</span></div><div class="sw-mx">배송일 <b>${esc(D.ship || D.date)}</b> · 배송현황 <b>${esc(D.dlv || '미선택')}</b>${Number(D.box) ? ` · 출고박스 <b>${fmt(D.box)}</b>` : ''}${D.note ? `<br>전달사항: ${esc(D.note)}` : ''}${D.memo ? `<br>적요: ${esc(D.memo)}` : ''}</div>
-    <div class="sw-ma"><button type="button" class="btn" data-mclose>돌아가 고치기 <small>Esc</small></button><button type="button" class="btn primary" id="sSave">저장 (연습) <small>Enter</small></button></div>`);
+    <div class="sw-mt">총 <b>${saleWon(t.s + t.v)}</b>원 <span class="muted">(부가세 별도 단가 · 부가세는 이카운트 계산과 1원 차이 날 수 있음)</span></div>${(X.cfg.mode || 'practice') === 'real' ? `<div class="sw-warn">저장하면 이카운트 판매입력에 <b>전표가 바로 만들어집니다</b> (출하창고 ${esc(X.cfg.wh || '—')} · 담당 ${esc(X.cfg.emp || '—')}). 보낸 뒤 수정·삭제는 이카운트에서 해야 합니다.${saleUi.agent && (saleUi.agent.ver || 2) < 3 ? '<br><b>사무실 PC 전송기가 v3가 아니라 보내지지 않고 대기합니다.</b>' : ''}</div>` : ''}<div class="sw-mx">배송일 <b>${esc(D.ship || D.date)}</b> · 배송현황 <b>${esc(D.dlv || '미선택')}</b>${Number(D.box) ? ` · 출고박스 <b>${fmt(D.box)}</b>` : ''}${D.note ? `<br>전달사항: ${esc(D.note)}` : ''}${D.memo ? `<br>적요: ${esc(D.memo)}` : ''}</div>
+    <div class="sw-ma"><button type="button" class="btn" data-mclose>돌아가 고치기 <small>Esc</small></button><button type="button" class="btn primary" id="sSave">${(X.cfg.mode || 'practice') === 'practice' ? '저장 (연습)' : (X.cfg.mode === 'test' ? '이카운트 테스트 서버로 보내기' : '이카운트 판매입력으로 보내기')} <small>Enter</small></button></div>`);
   $('#sSave').onclick = saleDoSave; setTimeout(() => $('#sSave') && $('#sSave').focus(), 0);
+}
+/* v152: 이카운트 판매입력 보내기 — 중계(구글)에 넣으면 사무실 PC 전송기(v3)가 Sale/SaveSale로 보냄. 한 번 저장 = 거래처 전표 하나 */
+const salePend = e => e.status === 'queued' || e.status === 'taken';
+function saleAgentText() { const a = saleUi.agent; if (!a) return '사무실 PC 전송기: 확인 전'; const seen = a.seen ? new Date(a.seen) : null, ago = seen ? Math.round((Date.now() - seen) / 60000) : null;
+  return `사무실 PC 전송기 v${a.ver || 2} · ${ago == null ? '아직 연결 기록 없음' : ago <= 2 ? '연결됨' : `마지막 확인 ${ago}분 전`}${(a.ver || 2) < 3 ? ' — <b style="color:var(--minus)">판매입력은 v3 전송기가 필요합니다</b>' : ''}`; }
+async function saleSend(en) {
+  const P = prodS(), url = String(P.cfg.relayUrl || '').trim(), key = prodKey();
+  if (!url || !key) { en.status = 'fail'; en.err = '이카운트 연동(중계 주소)이 설정되지 않았습니다 — 통합 설정 → 생산일지 연동'; saleSave(); return; }
+  en.tries = (en.tries || 0) + 1; en.cid = en.tries > 1 ? (en.id + 'r' + en.tries) : en.id;
+  try { const r = await prodRelayCall({ action: 'saveSale', test: !!en.test, clientId: en.cid, who: en.who || '', rows: saleBulk(en) });
+    if (!r || !r.ok) throw new Error((r && r.error) || '중계가 거절했습니다');
+    saleUi.agent = { seen: r.agentSeen, ver: r.agentVer }; const v = r.job || {}; en.status = v.status === 'sent' ? 'sent' : v.status === 'fail' ? 'fail' : 'queued'; if (v.result) saleApplyResult(en, v); en.err = en.status === 'fail' ? en.err : '';
+  } catch (er) { en.status = 'fail'; en.err = '중계에 넣지 못했습니다: ' + er.message; }
+  saleSave(); salePollLater();
+}
+function saleApplyResult(en, v) { const r = v.result || {}; if (v.status === 'sent') { en.status = 'sent'; en.slip = (r.slipNos || []).join(', '); en.sentAt = v.doneAt || new Date().toISOString(); en.err = ''; } else if (v.status === 'fail') { en.status = 'fail'; en.err = r.error || '이카운트가 입력을 거절했습니다'; } }
+let salePollT = null;
+function salePollLater() { clearTimeout(salePollT); if (saleS().log.some(salePend)) salePollT = setTimeout(salePoll, 12000); }
+async function salePoll() {
+  const X = saleS(), wait = X.log.filter(salePend).slice(0, 40); if (!wait.length) return;
+  try { const r = await prodRelayCall({ action: 'status', ids: wait.map(e => e.cid || e.id) }); if (r && r.ok) { saleUi.agent = { seen: r.agentSeen, ver: r.agentVer }; let ch = false;
+      wait.forEach(e => { const v = (r.jobs || {})[e.cid || e.id]; if (v && (v.status === 'sent' || v.status === 'fail')) { saleApplyResult(e, v); ch = true; if (e.status === 'sent') toast(`${e.custName} 이카운트 전표 ${e.slip || ''} 생성`); } else if (v && v.status === 'taken' && e.status !== 'taken') { e.status = 'taken'; ch = true; } });
+      if (ch) { saleSave(); if (S.ui.menu === 'sale') { saleRenderS(); const k = $('#swK'); if (k) k.innerHTML = saleKpi(); } }
+      const ag = $('#swAgent'); if (ag) ag.innerHTML = saleAgentText(); } } catch (e) {}
+  salePollLater();
 }
 function saleDoSave() {
   const X = saleS(), D = X.draft;
   const lines = D.lines.map(l => { const a = saleLineAmt(l); return { code: l.code, name: l.name, qty: Number(l.qty), price: Number(l.price), sup: a.s, vat: a.v }; });
   const t = saleTotals(D.lines), en = { id: D.editOf || 's' + Date.now().toString(36), ts: new Date().toISOString(), date: D.date, cust: D.cust, custName: saleCustName(D.cust), lines, memo: D.memo || '', ship: D.ship || D.date, dlv: D.dlv || '', note: D.note || '', box: Number(D.box) || 0, sup: t.s, vat: t.v, who: S.settings.reporter || '', status: 'practice' };
+  const mode = X.cfg.mode || 'practice'; if (mode !== 'practice') { en.status = 'queued'; en.test = mode === 'test'; }
   X.log = X.log.filter(e => e.id !== en.id); X.log.unshift(en); X.log = X.log.slice(0, 2000); if (en.dlv) { X.pref = X.pref || {}; X.pref[en.cust] = Object.assign(X.pref[en.cust] || {}, { dlv: en.dlv }); }
   X.draft = { date: D.date, dateOn: today(), cust: '', lines: [], memo: '' }; saleUi.q = ''; saleUi.iq = ''; saleUi.step = 'c'; saleSave(); saleModal();
-  renderSale(); toast(`${en.custName} ${saleWon(t.s + t.v)}원 저장 (연습)`); const q = $('#sQ'); if (q && window.innerWidth >= 900) q.focus();
+  renderSale(); if (en.status === 'queued') { toast(`${en.custName} ${saleWon(t.s + t.v)}원 — 이카운트로 보내는 중`); saleSend(en).then(() => { if (S.ui.menu === 'sale') saleRenderS(); }); } else toast(`${en.custName} ${saleWon(t.s + t.v)}원 저장 (연습)`); const q = $('#sQ'); if (q && window.innerWidth >= 900) q.focus();
 }
 function saleKeys(e) {
   if (S.ui.menu !== 'sale' || !$('#saleNew .sw')) return; const m = $('#swM');
@@ -5241,6 +5272,9 @@ function saleBindShell() {
   if ($('#saleWipe')) $('#saleWipe').onclick = () => { if (!confirm('올린 판매현황 자료를 이 기기에서 지울까요? (저장한 판매 입력은 남습니다)')) return; X.rows = []; X.cust = {}; X.items = {}; X.files = []; saleIdx = null; saleSave(); renderSale(); };
   if ($('#sWh')) $('#sWh').onchange = e => { X.cfg.wh = e.target.value.trim(); saleSave(); };
   if ($('#sEmp')) $('#sEmp').onchange = e => { X.cfg.emp = e.target.value.trim(); saleSave(); };
+  $$('#saleNew [data-smode]').forEach(b => b.onclick = () => { const m = b.dataset.smode; if (m === 'real' && X.cfg.mode !== 'real' && !confirm('실제 입력으로 바꿀까요? 이제부터 저장하면 이카운트 판매입력에 전표가 바로 만들어집니다.')) return; X.cfg.mode = m; saleSave(); renderSale(); const c = $('#saleNew .sw-cfg'); if (c) c.open = true; });
+  if (!saleUi.agentAsked && String(prodS().cfg.relayUrl || '').trim()) { saleUi.agentAsked = true; prodRelayCall({ action: 'ping' }).then(r => { if (r && r.ok) { saleUi.agent = { seen: r.agentSeen, ver: r.agentVer }; const ag = $('#swAgent'); if (ag) ag.innerHTML = saleAgentText(); } }).catch(() => {}); }
+  salePollLater();
   $('#sDate').onchange = e => { D.date = e.target.value || today(); D.dateOn = today(); saleSave(); renderSale(); };
   $$('#saleNew [data-sday]').forEach(b => b.onclick = () => { const k = Number(b.dataset.sday); D.date = k ? ccpAddD(D.date || today(), k) : today(); D.dateOn = today(); saleSave(); renderSale(); });
   $('#sWho').onchange = e => { S.settings.reporter = e.target.value.trim(); save(); };
@@ -5281,7 +5315,8 @@ function saleBindShell() {
     else if (b.id === 'sClear') { D.lines = []; D.memo = ''; D.editOf = ''; saleSave(); saleRenderS(); saleRenderI(); }
     else if (b.id === 'sOk') saleConfirm();
     else if (d.sdlv) { D.dlv = D.dlv === d.sdlv ? '' : d.sdlv; saleSave(); $$('#swS [data-sdlv]').forEach(x => { const on = x.dataset.sdlv === D.dlv; x.classList.toggle('on', on); x.setAttribute('aria-checked', on); }); }
-    else if (d.sldel) { if (!confirm('이 판매 기록을 지울까요?')) return; X.log = X.log.filter(x => x.id !== d.sldel); saleSave(); saleRenderS(); saleRenderC(); $('#swK').innerHTML = saleKpi(); }
+    else if (d.sretry) { const en = X.log.find(x => x.id === d.sretry); if (!en) return; en.status = 'queued'; en.err = ''; saleSave(); saleRenderS(); saleSend(en).then(() => saleRenderS()); }
+    else if (d.sldel) { const en0 = X.log.find(x => x.id === d.sldel); if (!confirm(en0 && en0.status === 'sent' ? '이 기록만 지웁니다. 이카운트에 만들어진 전표 ' + (en0.slip || '') + '는 이카운트에서 지워야 합니다. 지울까요?' : '이 판매 기록을 지울까요?')) return; X.log = X.log.filter(x => x.id !== d.sldel); saleSave(); saleRenderS(); saleRenderC(); $('#swK').innerHTML = saleKpi(); }
     else if (d.sjson) { const en = X.log.find(x => x.id === d.sjson); if (en) saleModal(`<h3>이카운트로 보낼 내용 (3단계 미리보기)</h3><div class="muted" style="font-size:12px;margin-bottom:6px">Sale/SaveSale · 지금은 보내지 않습니다 · 배송일자·배송현황·전달사항·출고박스는 이카운트 입력화면의 칸 이름(추가항목)을 확인한 뒤 연결합니다</div><pre class="sjson">${esc(JSON.stringify({ SaleList: saleBulk(en).map(b => ({ BulkDatas: b })) }, null, 1))}</pre><div class="sw-ma"><button type="button" class="btn" data-mclose>닫기</button></div>`); }
     else if (d.sedit) { const en = X.log.find(x => x.id === d.sedit); if (!en) return; if (D.lines.length && !confirm('지금 담은 품목을 비우고 이 기록을 고칠까요?')) return;
       X.draft = { date: en.date, dateOn: today(), cust: en.cust, lines: en.lines.map(l => ({ code: l.code, name: l.name, qty: String(l.qty), price: l.price, pFrom: 'manual' })), memo: en.memo, ship: en.ship || en.date, dlv: en.dlv || '', note: en.note || '', box: en.box ? String(en.box) : '', editOf: en.id }; saleUi.rtab = 'slip'; saleUi.step = 's'; saleSave(); renderSale(); } };
