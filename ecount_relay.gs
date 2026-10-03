@@ -27,7 +27,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3.2 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3.3 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -49,7 +49,7 @@ var JOB_ = 'job:', KEEP_MS_ = 3 * 24 * 3600 * 1000, TAKE_MS_ = 3 * 60 * 1000;
 function props_() { return PropertiesService.getScriptProperties(); }
 function getJob_(id) { var v = props_().getProperty(JOB_ + id); return v ? JSON.parse(v) : null; }
 function putJob_(j) { props_().setProperty(JOB_ + j.id, JSON.stringify(j)); }
-function view_(j) { return j ? { id: j.id, status: j.status, result: j.result || null, ts: j.ts, doneAt: j.doneAt || '', holdUntil: j.holdUntil || 0, date: j.date || '', mergedInto: j.mergedInto || '' } : null; }
+function view_(j) { return j ? { id: j.id, kind: j.kind || '', status: j.status, result: j.result || null, ts: j.ts, doneAt: j.doneAt || '', holdUntil: j.holdUntil || 0, date: j.date || '', mergedInto: j.mergedInto || '' } : null; }
 function num_(v) { var n = Number(String(v == null ? '' : v).replace(/,/g, '')); return isFinite(n) ? n : 0; }
 // 같은 날짜·같은 테스트 여부의 건들을 한 전표로: 같은 품목(코드·창고·담당자)은 수량을 더하고 적요는 겹치지 않게 이어 붙임
 function mergeRows_(jobs) {
@@ -62,6 +62,7 @@ function mergeRows_(jobs) {
   return order.map(function (k) { var r = by[k]; r.QTY = String(Math.round(r.QTY * 1000) / 1000); if (r.__rem.length) r.REMARKS = r.__rem.join(' / ').slice(0, 200); else delete r.REMARKS; delete r.__rem; r.UPLOAD_SER_NO = '1'; return r; });
 }
 function agentSeen_() { return props_().getProperty('agent:seen') || ''; }
+function agentVer_() { return Number(props_().getProperty('agent:ver') || 2); }   // v3.3: 사무실 PC 전송기 버전 (3부터 판매입력)
 function prune_() {
   var all = props_().getProperties(), now = Date.now();
   Object.keys(all).forEach(function (k) {
@@ -95,7 +96,7 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 3.2, agentSeen: agentSeen_() };
+  if (req.action === 'ping') return { ok: true, version: 3.3, agentSeen: agentSeen_(), agentVer: agentVer_() };
   // 생산일지 설정 받기 (모든 기기)
   if (req.action === 'getCfg') { var meta = props_().getProperty('cfg:meta'); if (!meta) return { ok: true, cfg: null };
     var mm = JSON.parse(meta), parts = []; for (var ci = 0; ci < mm.n; ci++) parts.push(props_().getProperty('cfg:' + ci) || '');
@@ -103,7 +104,7 @@ function handle_(req) {
   // 최근 이카운트에 들어간 생산 (테스트 제외, 합친 전표는 원래 건 기준) — 다른 기기의 지난번 수량 맞추기
   if (req.action === 'recent') { var ra = props_().getProperties(), out2 = [];
     Object.keys(ra).forEach(function (k) { if (k.indexOf(JOB_) !== 0) return; var q; try { q = JSON.parse(ra[k]); } catch (e) { return; }
-      if (q.status !== 'sent' || q.test || q.members) return;
+      if (q.status !== 'sent' || q.test || q.members || q.kind) return;   // 생산입고만 (판매·권한 확인 제외)
       out2.push({ id: q.id, date: q.date || ((q.rows && q.rows[0] && q.rows[0].IO_DATE) || ''), at: q.doneAt || q.ts, l: (q.rows || []).map(function (r) { return [r.PROD_CD, num_(r.QTY)]; }) }); });
     return { ok: true, jobs: out2.slice(-300) }; }
 
@@ -123,10 +124,25 @@ function handle_(req) {
       if (!j) { prune_(); j = { id: id, test: !!req.test, rows: rows, ts: new Date().toISOString(), status: 'queued', who: String(req.who || '').slice(0, 30), date: String(rows[0].IO_DATE || ''), holdUntil: Number(req.holdUntil) || 0 }; putJob_(j); }
       return { ok: true, queued: true, job: view_(j), agentSeen: agentSeen_() };
     }
+    // v3.3: 판매입력 한 건(한 거래처 전표)을 대기열에 넣음 (같은 clientId는 한 번만)
+    if (req.action === 'saveSale') {
+      var sid = String(req.clientId || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+      if (!sid) return { ok: false, error: 'clientId가 없습니다' };
+      var srows = (req.rows || []).map(function (r) { var b = {}; Object.keys(r).forEach(function (k) { if (r[k] !== '' && r[k] != null) b[k] = String(r[k]); }); if (!b.UPLOAD_SER_NO) b.UPLOAD_SER_NO = '1'; return b; });
+      if (!srows.length) return { ok: false, error: '보낼 품목이 없습니다' };
+      var sj = getJob_(sid);
+      if (!sj) { prune_(); sj = { id: sid, kind: 'sale', test: !!req.test, rows: srows, ts: new Date().toISOString(), status: 'queued', who: String(req.who || '').slice(0, 30), date: String(srows[0].IO_DATE || '') }; putJob_(sj); }
+      return { ok: true, queued: true, job: view_(sj), agentSeen: agentSeen_(), agentVer: agentVer_() };
+    }
+    // v3.3: 판매입력(Sale/SaveSale) 권한 확인 — 사무실 PC 전송기가 일부러 빈 품목 한 줄을 보내 이카운트 답으로 권한만 확인 (전표는 만들어지지 않음)
+    if (req.action === 'checkSale') {
+      prune_(); var ck = { id: 'CK' + Date.now().toString(36), kind: 'saleCheck', test: !!req.test, rows: [], ts: new Date().toISOString(), status: 'queued', who: String(req.who || '').slice(0, 30), date: '' };
+      putJob_(ck); return { ok: true, queued: true, job: view_(ck), agentSeen: agentSeen_(), agentVer: agentVer_() };
+    }
     // 휴대폰: 보낸 건들의 처리 결과
     if (req.action === 'status') {
       var out = {}; (req.ids || []).slice(0, 50).forEach(function (x) { out[x] = view_(getJob_(String(x))); });
-      return { ok: true, jobs: out, agentSeen: agentSeen_() };
+      return { ok: true, jobs: out, agentSeen: agentSeen_(), agentVer: agentVer_() };
     }
     // 관리자 PC: 생산일지 설정 올리기 (속성 하나에 9KB까지라 나눠 저장)
     if (req.action === 'putCfg') {
@@ -151,12 +167,14 @@ function handle_(req) {
     }
     // 사무실 PC 전송기: 처리할 건 가져가기 — 모을 시각이 지난 건만, 같은 날짜·같은 테스트 여부는 한 전표로 합침
     if (req.action === 'jobs') {
-      props_().setProperty('agent:seen', new Date().toISOString());
+      props_().setProperty('agent:seen', new Date().toISOString()); props_().setProperty('agent:ver', String(Number(req.ver) || 2));
       var all = props_().getProperties(), now = Date.now(), list = [], ready = {};
       Object.keys(all).forEach(function (k) {
         if (k.indexOf(JOB_) !== 0) return; var jj; try { jj = JSON.parse(all[k]); } catch (e) { return; }
+        if (jj.kind && !(Number(req.ver) >= 3)) return;   // 판매·확인 건은 v3 이상 전송기만 (v2는 모두 생산입고로 보내므로)
         if (jj.status === 'taken' && !jj.mergedInto && now - new Date(jj.takenAt).getTime() > TAKE_MS_) {   // 가져갔는데 결과가 안 온 건(합친 건 포함)은 같은 id로 다시 줌
-          jj.takenAt = new Date().toISOString(); putJob_(jj); list.push({ id: jj.id, test: jj.test, rows: jj.rows }); return; }
+          jj.takenAt = new Date().toISOString(); putJob_(jj); list.push({ id: jj.id, test: jj.test, kind: jj.kind || '', rows: jj.rows }); return; }
+        if (jj.status === 'queued' && jj.kind) { jj.status = 'taken'; jj.takenAt = new Date().toISOString(); putJob_(jj); list.push({ id: jj.id, test: jj.test, kind: jj.kind, rows: jj.rows }); return; }   // 판매·확인 건은 합치지 않음
         if (jj.status === 'queued' && !(jj.holdUntil > now)) { var g = (jj.date || (jj.rows && jj.rows[0] && jj.rows[0].IO_DATE) || '') + '|' + (jj.test ? 1 : 0); (ready[g] = ready[g] || []).push(jj); }
       });
       Object.keys(ready).forEach(function (g) {
