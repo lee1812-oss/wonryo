@@ -115,7 +115,8 @@ function EcSaleCheck($job) {
   if ($d -and $d.ResultDetails) { foreach ($x in $d.ResultDetails) { if ($x.TotalError) { $msgs += "$($x.TotalError)" }; if ($x.Errors) { foreach ($er in $x.Errors) { $msgs += ("$($er.ColCd): $($er.Message)").Trim(': ') } } } }
   $succ = 0; if ($d -and $d.SuccessCnt) { $succ = [int]$d.SuccessCnt }
   $slips = @(); if ($d -and $d.SlipNos) { $slips = @($d.SlipNos) }
-  if ($raw -match '권한|permission|Permission|허용되지|허용 되지|not allowed|Not Allowed|Unauthorized') { $perm = $false; $m = '판매입력 API 권한이 없습니다' }
+  if ($raw -match '인증되지 않은 API|EXP00001') { $perm = $false; $m = '이 인증키로 판매입력 API가 아직 인증되지 않았습니다 (테스트 서버에서 1건 성공 후 이카운트 API 관리에서 인증)' }
+  elseif ($raw -match '권한|permission|Permission|허용되지|허용 되지|not allowed|Not Allowed|Unauthorized') { $perm = $false; $m = '판매입력 API 권한이 없습니다' }
   elseif ($succ -gt 0) { $perm = $true; $m = '판매입력 권한 있음 (주의: 확인용 전표가 만들어졌습니다 — 이카운트에서 지워 주세요)' }
   elseif ($d -and $d.ResultDetails) { $perm = $true; $m = '판매입력 권한 있음 — 이카운트가 판매입력 요청을 받아 품목·창고 칸을 검사했습니다 (확인용이라 일부러 비워 보냄, 전표 없음)' }
   else { $perm = $null; $m = '판단할 수 없는 응답입니다' }
