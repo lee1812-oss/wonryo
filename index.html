@@ -1238,8 +1238,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '167';
-const APP_BUILT = '2026-10-05 05:30';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '168';
+const APP_BUILT = '2026-10-05 06:10';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -5682,7 +5682,7 @@ function saleCatGuess(name, grp) {   /* 단가표 제품 이름 → 이카운트
   const X = saleS(), want = /생지/.test(grp || '') ? /생지/ : /완성품|완제품/, k = saleKNorm(name); let best = null;
   Object.keys(X.items).forEach(c => { const n = saleItemName(c); if (!want.test(n) || /수수료|운반비|택배비|배송비|운임|할인|샘플/.test(n)) return;
     const s = saleDice(k, saleKNorm(n.replace(/(완성품|완제품|생지).*$/, ''))); if (s >= 0.8 && (!best || s > best.s)) best = { c, s }; }); return best ? best.c : ''; }
-const saleDriveErr = m => /permission|authoriz|권한|DriveApp/i.test(m || '') ? '중계에 구글 드라이브 권한이 없습니다 — Apps Script 편집기 위 함수 목록에서 「authorizeDrive」를 골라 ▷실행 → 「허용」을 눌러 주세요' : m;
+const saleDriveErr = m => /authoriz|권한이 필요|permission to call/i.test(m || '') ? `중계에 구글 드라이브 권한이 없습니다 — Apps Script 편집기 위 함수 목록에서 「authorizeDrive」를 골라 ▷실행 → 「허용」 (원문: ${m})` : m;
 async function saleCatImport(file) { let J; try { J = JSON.parse(await file.text()); } catch (e) { return toast('단가표 파일을 읽지 못했습니다'); } return saleCatImportJ(J); }
 async function saleCatPhotos(list, prog) {   /* 단가표 제품 사진 → 중계(드라이브). 사진은 파일 안 img(data:) 또는 이 사이트의 cat/<id>.jpg */
   let ok = 0; const fails = [];
@@ -5748,7 +5748,7 @@ function saleNtcEditor(n) {
 function saleCatPanel() {
   const C = saleUi.cat || { items: [] }, I = saleUi.imgs || {}, N = saleUi.notices || [], t = today(), items = C.items || [];
   const live = n => n.on !== false && (!n.from || n.from <= t) && (!n.to || n.to >= t), md = d => d ? d.slice(5).replace('-', '/') : '';
-  const grps = [...new Set(items.map(i => i.grp))], g = grps.includes(saleUi.catGrp) ? saleUi.catGrp : grps[0], rows = items.filter(i => i.grp === g), unm = items.filter(i => !i.hide && !i.code).length, noPic = items.filter(i => !i.hide && !I['cat_' + i.id]).length;
+  const grps = [...new Set(items.map(i => i.grp))], g = grps.includes(saleUi.catGrp) ? saleUi.catGrp : grps[0], rows = items.filter(i => i.grp === g), unm = items.filter(i => !i.hide && !i.code).length, noPic = 0;
   return `<details class="card so-cat"${saleUi.catOpen ? ' open' : ''}><summary><b>단가표 · 거래처 안내</b> <span class="pill ${N.some(live) ? 'ok' : ''}">안내 ${N.filter(live).length}</span> <span class="pill ${items.length ? (C.on !== false ? 'ok' : '') : 'warn'}">제품 ${items.filter(i => !i.hide).length}${items.length && C.on === false ? ' · 숨김' : ''}</span> <span class="muted" style="font-size:12px">모든 주문 링크에 같이 — 링크를 다시 보낼 필요 없음</span></summary>
     ${saleUi.catErr ? `<div class="sw-err">⚠ ${esc(saleUi.catErr)}</div>` : ''}
     <div class="so-g"><div class="prow" style="margin-bottom:6px"><b>거래처 안내</b><span class="muted" style="font-size:12px">신제품 출시·휴무·배송 변경 등 — 주문서 맨 위에 보임</span><button type="button" class="btn sm primary" id="ntNew" style="margin-left:auto">＋ 안내 쓰기</button></div>
@@ -5759,7 +5759,7 @@ function saleCatPanel() {
       ${saleUi.catImgErr ? `<div class="sw-err">⚠ 사진: ${esc(saleUi.catImgErr)}</div>` : ''}${noPic ? `<div class="prow" style="margin-bottom:6px"><span class="pill warn">사진 없음 ${noPic}</span><span class="muted" style="font-size:12px">거래처 주문서에 「사진 준비 중」으로 보입니다</span><button type="button" class="btn xs primary" id="catFill">사진 채우기</button></div>` : ''}
       ${items.length ? `<div class="prow" style="margin-bottom:6px"><label class="so-f" style="flex:1 1 260px">주문서에 보일 제목 <input id="catTitle" maxlength="60" value="${esc(C.title || '')}" placeholder="예) 2026.09.17 단가 · VAT 별도"></label>${unm ? `<span class="pill warn" style="align-self:center">이카운트 코드 없음 ${unm}</span>` : ''}</div>
       ${grps.length > 1 ? `<div class="so-ctab">${grps.map(x => `<button type="button" class="btn xs${x === g ? ' primary' : ''}" data-catg="${esc(x)}">${esc(x)} ${items.filter(i => i.grp === x).length}</button>`).join('')}</div>` : ''}
-      <div class="so-cw"><table class="sl-t so-ct"><thead><tr><th></th><th>제품</th><th>규격</th><th class="r">개당</th><th class="r">Box</th><th class="c">입수</th><th>이카운트 품목코드</th><th class="c">숨김</th></tr></thead><tbody>${rows.map(i => `<tr data-cid="${esc(i.id)}"><td><label class="so-cimg" title="사진 바꾸기">${I['cat_' + i.id] ? `<img src="${saleImgUrl(I['cat_' + i.id], 120)}" alt="" loading="lazy">` : '📷'}<input type="file" accept="image/*" data-catimg="${esc(i.id)}" hidden></label></td>
+      <div class="so-cw"><table class="sl-t so-ct"><thead><tr><th></th><th>제품</th><th>규격</th><th class="r">개당</th><th class="r">Box</th><th class="c">입수</th><th>이카운트 품목코드</th><th class="c">숨김</th></tr></thead><tbody>${rows.map(i => `<tr data-cid="${esc(i.id)}"><td><label class="so-cimg" title="사진 바꾸기"><img src="${I['cat_' + i.id] ? saleImgUrl(I['cat_' + i.id], 120) : 'cat/' + encodeURIComponent(i.id) + '.jpg'}" alt="" loading="lazy" onerror="this.replaceWith('📷')"><input type="file" accept="image/*" data-catimg="${esc(i.id)}" hidden></label></td>
         <td><input data-cf="name" value="${esc(i.name)}" maxlength="60"></td><td><input data-cf="spec" value="${esc(i.spec || '')}" maxlength="40" style="width:110px"></td><td class="r"><input data-cf="pe" value="${i.pe == null ? '' : i.pe}" inputmode="numeric" style="width:70px;text-align:right"></td><td class="r"><input data-cf="pb" value="${i.pb == null ? '' : i.pb}" inputmode="numeric" style="width:80px;text-align:right"></td><td class="c"><input data-cf="bq" value="${i.bq || ''}" inputmode="numeric" style="width:44px;text-align:center"></td>
         <td><input data-cf="code" value="${esc(i.code || '')}" maxlength="30" list="catCodes" style="width:110px" placeholder="없으면 비워 둠"> <span class="muted" style="font-size:11px">${i.code ? esc(saleItemName(i.code)) : ''}</span></td><td class="c"><input type="checkbox" data-cf="hide"${i.hide ? ' checked' : ''}></td></tr>`).join('')}</tbody></table></div>
       <datalist id="catCodes">${Object.keys(saleS().items).slice(0, 800).map(c => `<option value="${esc(c)}">${esc(saleItemName(c))}</option>`).join('')}</datalist>
