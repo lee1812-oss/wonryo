@@ -5,6 +5,8 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v3.4: 거래처 주문 링크 — 거래처마다 비밀 토큰으로 주문서(orderForm)를 열고 주문(orderSubmit)을 넣음 (열쇠 없이, 토큰 한 곳의 자료만)
+ *       통합재고관리(열쇠 필요): putOrderForm · delOrderForm · listOrderForms · orders · orderDone
  * v3.2: 로그인 계정(acct · putAcct · delAcct · listAcct)과 접속 이력(logLogin · logins)
  *       계정에는 「재고 비밀번호」를 그 사람 비밀번호로 잠근 값만 보관합니다 (이 중계는 비밀번호를 모름)
  *
@@ -27,7 +29,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3.3 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3.4 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -71,10 +73,50 @@ function prune_() {
   });
 }
 
+// ── v3.4 거래처 주문 링크 ──
+var ORDF_ = 'ordf:', ORD_ = 'ord:', ORD_KEEP_DAYS_ = 45;
+function tok_(v) { var t = String(v || '').replace(/[^A-Za-z0-9_-]/g, ''); return t.length >= 16 && t.length <= 64 ? t : ''; }
+function kst_(d) { return new Date((d ? d.getTime() : Date.now()) + 9 * 3600000); }   // 한국 시각을 UTC 필드로
+function ymdK_(d) { var k = kst_(d); return k.getUTCFullYear() + '-' + ('0' + (k.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + k.getUTCDate()).slice(-2); }
+// 배송일이 주문 가능한지: 허용 요일이고, (배송일 - lead일) cutoff시(한국 시각) 전
+function shipOk_(f, ship) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ship || '')) return false;
+  var p = ship.split('-'), d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+  if ((f.days || []).indexOf(d.getUTCDay()) < 0) return false;
+  var dl = Date.UTC(+p[0], +p[1] - 1, +p[2] - (Number(f.lead) || 0), Number(f.cut == null ? 15 : f.cut), 0) - 9 * 3600000;   // 한국 시각 → UTC
+  return Date.now() < dl && d.getTime() - Date.now() < 45 * 86400000;
+}
+function ordList_(filter) { var all = props_().getProperties(), out = [], cut = Date.now() - ORD_KEEP_DAYS_ * 86400000;
+  Object.keys(all).forEach(function (k) { if (k.indexOf(ORD_) !== 0) return; var o; try { o = JSON.parse(all[k]); } catch (e) { props_().deleteProperty(k); return; }
+    if (new Date(o.at).getTime() < cut) { props_().deleteProperty(k); return; } if (!filter || filter(o)) out.push(o); });
+  return out.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); }); }
+function ordView_(o) { return { id: o.id, at: o.at, ship: o.ship, memo: o.memo || '', lines: o.lines, status: o.status, slip: o.slip || '', doneAt: o.doneAt || '', note: o.note || '' }; }
+
 function handle_(req) {
   // v3.2: 로그인 화면 — 아이디 하나의 잠긴 계정 값만 돌려줌 (열쇠 없이, 목록은 주지 않음)
   if (req.action === 'acct') { var aid = acctId_(req.id); if (!aid) return { ok: true, acct: null };
     var av = props_().getProperty(ACCT_ + aid); return { ok: true, acct: av ? JSON.parse(av) : null }; }
+  // v3.4: 거래처 주문서 열기 (토큰 한 곳의 주문서와 최근 주문만)
+  if (req.action === 'orderForm') { var t1 = tok_(req.t); var fv = t1 && props_().getProperty(ORDF_ + t1); if (!fv) return { ok: false, error: '주문 링크가 맞지 않거나 사용이 멈춰 있습니다 — 빵을그리다에 문의해 주세요' };
+    var f1 = JSON.parse(fv); if (f1.on === false) return { ok: false, error: '이 주문 링크는 지금 사용이 멈춰 있습니다 — 빵을그리다에 문의해 주세요' };
+    var mine = ordList_(function (o) { return o.tok === t1; }).slice(0, 10).map(ordView_);
+    return { ok: true, form: { name: f1.name, items: f1.items, days: f1.days, cut: f1.cut, lead: f1.lead, price: !!f1.price, last: f1.last || [], note: f1.note || '' }, orders: mine, now: new Date().toISOString() }; }
+  // v3.4: 거래처 주문 넣기 — 품목은 그 주문서에 있는 것만, 수량 1~9999, 배송일·마감 확인, 같은 cid는 한 번만, 하루 30건까지
+  if (req.action === 'orderSubmit') { var t2 = tok_(req.t); var fv2 = t2 && props_().getProperty(ORDF_ + t2); if (!fv2) return { ok: false, error: '주문 링크가 맞지 않습니다' };
+    var f2 = JSON.parse(fv2); if (f2.on === false) return { ok: false, error: '이 주문 링크는 사용이 멈춰 있습니다' };
+    var cid = String(req.cid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 30); if (!cid) return { ok: false, error: '주문 번호가 없습니다' };
+    var lk2 = LockService.getScriptLock(); lk2.waitLock(15000);
+    try {
+      var oid = t2.slice(0, 6) + '_' + cid, ex = props_().getProperty(ORD_ + oid); if (ex) return { ok: true, order: ordView_(JSON.parse(ex)), dup: true };
+      if (!shipOk_(f2, String(req.ship || ''))) return { ok: false, error: '고른 배송일은 주문 마감이 지났거나 배송하지 않는 날입니다 — 다른 날을 골라 주세요' };
+      var codes = {}; (f2.items || []).forEach(function (it) { codes[it[0]] = it[1]; });
+      var lines = []; (req.lines || []).slice(0, 60).forEach(function (l) { var c = String(l && l[0] || ''), q = Math.floor(Number(l && l[1])); if (codes[c] != null && q >= 1 && q <= 9999) lines.push([c, codes[c], q]); });
+      if (!lines.length) return { ok: false, error: '주문할 품목의 수량을 넣어 주세요' };
+      var today = ymdK_(), nToday = ordList_(function (o) { return o.tok === t2 && ymdK_(new Date(o.at)) === today; }).length; if (nToday >= 30) return { ok: false, error: '오늘 주문이 너무 많습니다 — 빵을그리다에 문의해 주세요' };
+      var o2 = { id: oid, tok: t2, cust: f2.cust, name: f2.name, at: new Date().toISOString(), ship: String(req.ship), memo: String(req.memo || '').slice(0, 300), who: String(req.who || '').slice(0, 30), lines: lines, status: 'new' };
+      props_().setProperty(ORD_ + oid, JSON.stringify(o2));
+      return { ok: true, order: ordView_(o2) };
+    } finally { lk2.releaseLock(); } }
   var key = props_().getProperty('API_KEY');
   if (!key) return { ok: false, error: '중계의 스크립트 속성 API_KEY가 비어 있습니다' };
   if (req.key !== key) return { ok: false, error: '열쇠가 맞지 않습니다 — 「공유 저장소 열쇠 복사」 값을 중계의 API_KEY에 넣었는지 확인하세요' };
@@ -96,7 +138,25 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 3.3, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 3.4, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  // v3.4: 주문 링크 관리 (통합재고관리)
+  if (req.action === 'putOrderForm') { var t3 = tok_(req.t), f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
+    var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3])]; }),
+      days: (f3.days || []).map(Number).filter(function (x) { return x >= 0 && x <= 6; }), cut: Math.min(23, Math.max(0, Number(f3.cut == null ? 15 : f3.cut))), lead: Math.min(7, Math.max(0, Number(f3.lead == null ? 1 : f3.lead))),
+      price: !!f3.price, last: (f3.last || []).slice(0, 50).map(function (x) { return [String(x[0]).slice(0, 30), num_(x[1])]; }), note: String(f3.note || '').slice(0, 200), on: f3.on !== false, at: new Date().toISOString() };
+    var js3 = JSON.stringify(keep); if (js3.length > 8800) return { ok: false, error: '품목이 너무 많습니다 — 40개 이하로 줄여 주세요' };
+    props_().setProperty(ORDF_ + t3, js3); return { ok: true }; }
+  if (req.action === 'setOrderFormOn') { var t5 = tok_(req.t), v5 = t5 && props_().getProperty(ORDF_ + t5); if (!v5) return { ok: false, error: '없는 링크입니다' }; var f5 = JSON.parse(v5); f5.on = !!req.on; props_().setProperty(ORDF_ + t5, JSON.stringify(f5)); return { ok: true }; }
+  if (req.action === 'delOrderForm') { var t4 = tok_(req.t); if (t4) props_().deleteProperty(ORDF_ + t4); return { ok: true }; }
+  if (req.action === 'listOrderForms') { var af = props_().getProperties(), lf = [];
+    Object.keys(af).forEach(function (k) { if (k.indexOf(ORDF_) !== 0) return; try { var f = JSON.parse(af[k]); lf.push({ t: k.slice(ORDF_.length), cust: f.cust, name: f.name, on: f.on !== false, at: f.at, n: (f.items || []).length, days: f.days, cut: f.cut, lead: f.lead, price: !!f.price }); } catch (e) {} });
+    return { ok: true, forms: lf }; }
+  if (req.action === 'orders') { var since = Date.now() - Math.min(45, Math.max(1, Number(req.days) || 14)) * 86400000;
+    return { ok: true, orders: ordList_(function (o) { return o.status === 'new' || new Date(o.at).getTime() >= since; }).slice(0, 200).map(function (o) { var v = ordView_(o); v.cust = o.cust; v.name = o.name; v.tok = o.tok; v.who = o.who || ''; return v; }) }; }
+  if (req.action === 'orderDone') { var lk3 = LockService.getScriptLock(); lk3.waitLock(10000);
+    try { var ov = props_().getProperty(ORD_ + String(req.id || '')); if (!ov) return { ok: false, error: '없는 주문입니다' }; var o3 = JSON.parse(ov);
+      if (req.status) o3.status = String(req.status).slice(0, 12); if (req.slip != null) o3.slip = String(req.slip).slice(0, 60); if (req.note != null) o3.note = String(req.note).slice(0, 200);
+      o3.doneAt = new Date().toISOString(); o3.by = String(req.by || '').slice(0, 30); props_().setProperty(ORD_ + o3.id, JSON.stringify(o3)); return { ok: true, order: ordView_(o3) }; } finally { lk3.releaseLock(); } }
   // 생산일지 설정 받기 (모든 기기)
   if (req.action === 'getCfg') { var meta = props_().getProperty('cfg:meta'); if (!meta) return { ok: true, cfg: null };
     var mm = JSON.parse(meta), parts = []; for (var ci = 0; ci < mm.n; ci++) parts.push(props_().getProperty('cfg:' + ci) || '');
