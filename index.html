@@ -840,6 +840,8 @@ header.top .brand .hver{font-size:11px;color:rgba(255,255,255,.62);margin-top:1p
 .sk-in{display:flex;gap:8px;align-items:stretch}.sk-in .sk-t{flex:1 1 auto}.sk-imgs{flex:0 0 auto;display:flex;flex-direction:column;gap:4px;max-height:160px;overflow:auto}.sk-imgs img{width:90px;border:1px solid var(--line);border-radius:6px}
 .sk-who{font-size:12px;font-weight:700;background:#FFF6C8;color:#6B5A00;border-radius:6px;padding:2px 8px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sw-mb.sk-drag{outline:3px dashed var(--accent);outline-offset:-6px}
+.so-cus{max-height:34vh;overflow:auto;border:1px solid var(--line2);border-radius:8px;padding:4px}.so-cu{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;font-size:13px;cursor:pointer}.so-cu:hover{background:var(--bg)}.so-cu.on{background:var(--accent-bg)}.so-cu span{flex:1 1 auto;min-width:0;font-weight:700}.so-cu em{font-style:normal;font-size:11px;color:var(--ink3);white-space:nowrap}
+.so-n{margin-left:auto;color:var(--accent);white-space:nowrap}.so-r{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;margin-left:10px;font-weight:600}
 </style>
 </head>
 <body>
@@ -1228,8 +1230,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '163';
-const APP_BUILT = '2026-10-05 03:13';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '164';
+const APP_BUILT = '2026-10-05 03:18';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -5542,34 +5544,70 @@ function saleOrdDefaults(c) {   /* 거래처의 배송 요일(판매현황에서
   const lastD = items.reduce((m, [, y]) => (y.last > m ? y.last : m), '');   /* 반품·0원 줄을 빼고 실제로 산 마지막 날 */
   return { days, items, pre, last: items.filter(([, y]) => y.last === lastD).map(([cd, y]) => [cd, y.lastQty || 0]) };
 }
-function saleOrdEditor(form) {   /* form: 기존 링크(수정) 또는 null(새로) */
-  const X = saleS(), ix = saleIndex(), has = new Set((saleUi.ordForms || []).map(f => f.cust)); let cust = form ? form.cust : '';
-  const custs = Object.keys(X.cust).map(c => ({ c, n: X.cust[c][0], x: (ix.C[c] || {}).n90 || 0, all: (ix.C[c] || {}).n || 0 })).sort((a, b) => b.x - a.x || b.all - a.all);
+function saleOrdEditor(form) {   /* form: 기존 링크(수정, 한 곳) 또는 null(새로 — 거래처 검색·여러 곳 선택) */
+  const X = saleS(), ix = saleIndex(), has = new Set((saleUi.ordForms || []).map(f => f.cust));
+  const custs = Object.keys(X.cust).map(c => ({ c, n: X.cust[c][0], x: (ix.C[c] || {}).n90 || 0, all: (ix.C[c] || {}).n || 0, last: (ix.C[c] || {}).last || '' })).filter(o => o.all > 0).sort((a, b) => b.x - a.x || b.all - a.all);
   const box = $('#soM'); const close = () => { box.hidden = true; box.innerHTML = ''; };
-  const draw = () => { const dfl = cust ? saleOrdDefaults(cust) : null, fdays = form && form.cust === cust ? form.days : dfl ? dfl.days : [3, 5];
-    box.innerHTML = `<div class="sw-mb so-ed" role="dialog" aria-modal="true"><h3>${form ? '주문 링크 고치기' : '주문 링크 만들기'}</h3>
-      <div class="sk-row"><label>거래처 <select id="soCust"${form ? ' disabled' : ''}><option value="">— 고르기 (최근 많이 주문한 순) —</option>${custs.map(o => `<option value="${esc(o.c)}"${o.c === cust ? ' selected' : ''}>${esc(o.n)}${has.has(o.c) && (!form || form.cust !== o.c) ? ' · 링크 있음' : ''} · 90일 ${o.x}회</option>`).join('')}</select></label></div>
-      ${cust ? `<div class="so-g"><b>배송 요일</b> <span class="muted">거래처가 고를 수 있는 날 (판매현황 기준 추천)</span><div class="so-days">${'일월화수목금토'.split('').map((w, i) => `<label><input type="checkbox" data-sowd="${i}"${fdays.includes(i) ? ' checked' : ''}>${w}</label>`).join('')}</div>
-        <div class="sk-row"><label>주문 마감 배송 <select id="soLead">${[0, 1, 2, 3].map(n => `<option value="${n}"${(form ? form.lead : 1) === n ? ' selected' : ''}>${n ? n + '일 전' : '당일'}</option>`).join('')}</select></label><label><select id="soCut">${Array.from({ length: 24 }, (_, h) => `<option value="${h}"${(form ? form.cut : 15) === h ? ' selected' : ''}>${h}시</option>`).join('')}</select> 까지</label>
-        <label><input type="checkbox" id="soPrice"${form && form.price ? ' checked' : ''}> 단가 보여 주기</label></div>
-        <div class="sk-row"><label style="flex:1 1 100%">안내 문구 <input id="soNote" style="flex:1 1 auto;max-width:none" value="${esc(form && form.note || '')}" placeholder="예: 수·금 배송 / 배송 전날 15시 마감"></label></div></div>
-        <div class="so-g"><b>주문서 품목</b> <span class="muted">이 거래처가 산 품목 (최근 180일 품목은 미리 체크) · 최대 40개</span> <button type="button" class="lnk" id="soAll">모두</button> <button type="button" class="lnk" id="soNone">없음</button>
-          <div class="so-items">${dfl.items.map(([cd, y]) => `<label><input type="checkbox" data-soit="${esc(cd)}"${(form && form.cust === cust ? (form.codes || []).includes(cd) : dfl.pre.has(cd)) ? ' checked' : ''}><span>${esc(saleItemName(cd))}</span><em>${y.price != null ? saleWon(y.price) + '원 · ' : ''}${y.n}회 · 최근 ${esc(saleMD(y.last))}</em></label>`).join('') || '<div class="muted">판매 이력이 없습니다 — 판매현황 자료를 올려 주세요</div>'}</div></div>` : '<div class="muted" style="padding:10px 0">거래처를 고르면 품목과 배송 요일을 판매현황에서 추천합니다.</div>'}
-      <div class="sw-ma"><button type="button" class="btn" id="soX">취소</button><button type="button" class="btn primary" id="soSave"${cust ? '' : ' disabled'}>${form ? '저장' : '링크 만들기'}</button></div></div>`;
-    box.hidden = false;
-    $('#soX').onclick = close; box.onclick = e => { if (e.target === box) close(); };
-    if ($('#soCust')) $('#soCust').onchange = e => { cust = e.target.value; draw(); };
+  const st = { sel: new Set(form ? [form.cust] : []), q: '', dmode: 'auto', fdays: form ? form.days.slice() : [3, 5], lead: form ? form.lead : 1, cut: form ? form.cut : 15, price: !!(form && form.price), note: form ? form.note || '' : '', codes: null, onlyNew: true };
+  const wdTxt = ds => ds.map(i => '일월화수목금토'[i]).join('·');
+  const keepSettings = () => { const g = id => $('#' + id); if (g('soLead')) st.lead = +g('soLead').value; if (g('soCut')) st.cut = +g('soCut').value; if (g('soPrice')) st.price = g('soPrice').checked; if (g('soNote')) st.note = g('soNote').value;
+    if ($$('#soM [data-sowd]').length) st.fdays = $$('#soM [data-sowd]').filter(c => c.checked).map(c => +c.dataset.sowd); if ($$('#soM [data-soit]').length) st.codes = $$('#soM [data-soit]').filter(c => c.checked).map(c => c.dataset.soit); };
+  const listHtml = () => { const nq = saleNorm(st.q); const L = custs.filter(o => (!nq || saleNorm(o.n + o.c).includes(nq)) && (!st.onlyNew || !has.has(o.c) || st.sel.has(o.c))).slice(0, 150);
+    return L.length ? L.map(o => `<label class="so-cu${st.sel.has(o.c) ? ' on' : ''}"><input type="checkbox" data-socu="${esc(o.c)}"${st.sel.has(o.c) ? ' checked' : ''}><span>${esc(o.n)}</span><em>${has.has(o.c) ? '<i class="tg ok">링크 있음</i> ' : ''}90일 ${o.x}회 · 최근 ${esc(saleMD(o.last))}</em></label>`).join('') : '<div class="muted" style="padding:8px">맞는 거래처가 없습니다</div>'; };
+  const setHtml = () => {
+    const one = st.sel.size === 1 ? [...st.sel][0] : '', dfl = one ? saleOrdDefaults(one) : null;
+    if (one && st.codes == null) st.codes = form && form.cust === one && form.codes ? form.codes : [...dfl.pre];
+    const daysOne = one ? (form && form.cust === one ? st.fdays : (st.dmode === 'auto' ? dfl.days : st.fdays)) : st.fdays;
+    return (st.sel.size ? `<div class="so-g"><b>배송 요일</b> ${st.sel.size > 1 && !form ? `<label class="so-r"><input type="radio" name="sodm" value="auto"${st.dmode === 'auto' ? ' checked' : ''}> 거래처마다 판매현황 추천</label><label class="so-r"><input type="radio" name="sodm" value="fixed"${st.dmode === 'fixed' ? ' checked' : ''}> 모두 같은 요일</label>` : '<span class="muted">거래처가 고를 수 있는 날 (판매현황 기준 추천)</span>'}
+        ${st.sel.size > 1 && !form && st.dmode === 'auto' ? `<div class="muted" style="font-size:12px;margin:6px 0">${[...st.sel].slice(0, 8).map(c => `${esc(saleCustName(c))} <b>${wdTxt(saleOrdDefaults(c).days)}</b>`).join(' · ')}${st.sel.size > 8 ? ` 외 ${st.sel.size - 8}곳` : ''}</div>`
+          : `<div class="so-days">${'일월화수목금토'.split('').map((w, i) => `<label><input type="checkbox" data-sowd="${i}"${daysOne.includes(i) ? ' checked' : ''}>${w}</label>`).join('')}</div>`}
+        <div class="sk-row"><label>주문 마감 배송 <select id="soLead">${[0, 1, 2, 3].map(n => `<option value="${n}"${st.lead === n ? ' selected' : ''}>${n ? n + '일 전' : '당일'}</option>`).join('')}</select></label><label><select id="soCut">${Array.from({ length: 24 }, (_, h) => `<option value="${h}"${st.cut === h ? ' selected' : ''}>${h}시</option>`).join('')}</select> 까지</label>
+          <label><input type="checkbox" id="soPrice"${st.price ? ' checked' : ''}> 단가 보여 주기</label></div>
+        <div class="sk-row"><label style="flex:1 1 100%">안내 문구 <input id="soNote" style="flex:1 1 auto;max-width:none" value="${esc(st.note)}" placeholder="예: 수·금 배송 / 배송 전날 15시 마감"></label></div></div>
+        ${one ? `<div class="so-g"><b>주문서 품목</b> <span class="muted">이 거래처가 산 품목 (최근 180일 품목은 미리 체크) · 최대 40개</span> <button type="button" class="lnk" id="soAll">모두</button> <button type="button" class="lnk" id="soNone">없음</button>
+          <div class="so-items">${dfl.items.map(([cd, y]) => `<label><input type="checkbox" data-soit="${esc(cd)}"${st.codes.includes(cd) ? ' checked' : ''}><span>${esc(saleItemName(cd))}</span><em>${y.price != null ? saleWon(y.price) + '원 · ' : ''}${y.n}회 · 최근 ${esc(saleMD(y.last))}</em></label>`).join('') || '<div class="muted">판매 이력이 없습니다</div>'}</div></div>`
+          : `<div class="so-g muted" style="font-size:12.5px">품목은 거래처마다 <b>최근 180일에 산 품목</b>(수수료 등 제외, 최대 30개)으로 자동으로 넣습니다. 만든 뒤 「고치기」로 거래처별로 바꿀 수 있습니다.</div>`}` : '<div class="muted" style="padding:10px 0">거래처를 하나 이상 고르세요. 여러 곳을 고르면 한 번에 링크를 만듭니다.</div>');
+  };
+  const bindSet = () => {
+    $$('#soM input[name="sodm"]').forEach(r => r.onchange = () => { keepSettings(); st.dmode = r.value; redrawSet(); });
     if ($('#soAll')) $('#soAll').onclick = () => $$('#soM [data-soit]').forEach((c, i) => c.checked = i < 40);
     if ($('#soNone')) $('#soNone').onclick = () => $$('#soM [data-soit]').forEach(c => c.checked = false);
+  };
+  const redrawSet = () => { const el = $('#soSet'); if (!el) return; el.innerHTML = setHtml(); bindSet(); const n = $('#soM .so-n'); if (n) n.textContent = `${st.sel.size}곳 선택`; const b = $('#soSave'); if (b) { b.disabled = !st.sel.size; b.textContent = form ? '저장' : st.sel.size > 1 ? `${st.sel.size}곳 링크 만들기` : '링크 만들기'; } };
+  const draw = () => {
+    box.innerHTML = `<div class="sw-mb so-ed" role="dialog" aria-modal="true"><h3>${form ? '주문 링크 고치기' : '주문 링크 만들기'}</h3>
+      ${form ? `<div style="font-weight:800;margin:4px 0 8px">${esc(saleCustName(form.cust))}</div>` : `<div class="so-g" style="border-top:0;margin-top:0;padding-top:0"><div class="sk-row" style="margin:0 0 6px"><input class="sw-q" id="soQ" placeholder="거래처 이름 검색" value="${esc(st.q)}" style="flex:1 1 220px;max-width:none"><label><input type="checkbox" id="soOnlyNew"${st.onlyNew ? ' checked' : ''}> 링크 없는 곳만</label><button type="button" class="lnk" id="soSelAll">보이는 곳 모두</button><button type="button" class="lnk" id="soSelNone">선택 해제</button><b class="so-n">${st.sel.size}곳 선택</b></div>
+        <div class="so-cus" id="soCus">${listHtml()}</div></div>`}
+      <div id="soSet">${setHtml()}</div>
+      <div class="sw-ma"><span class="muted" id="soProg" style="margin-right:auto;font-size:12.5px"></span><button type="button" class="btn" id="soX">취소</button><button type="button" class="btn primary" id="soSave"${st.sel.size ? '' : ' disabled'}>${form ? '저장' : st.sel.size > 1 ? `${st.sel.size}곳 링크 만들기` : '링크 만들기'}</button></div></div>`;
+    box.hidden = false;
+    $('#soX').onclick = close; box.onclick = e => { if (e.target === box) close(); };
+    const q = $('#soQ'); if (q) q.oninput = () => { st.q = q.value; $('#soCus').innerHTML = listHtml(); };
+    if ($('#soOnlyNew')) $('#soOnlyNew').onchange = e => { st.onlyNew = e.target.checked; $('#soCus').innerHTML = listHtml(); };
+    if ($('#soCus')) $('#soCus').onchange = e => { const c = e.target.closest('[data-socu]'); if (!c) return; keepSettings(); const k = c.dataset.socu; if (c.checked) st.sel.add(k); else st.sel.delete(k); c.closest('.so-cu').classList.toggle('on', c.checked); st.codes = null; redrawSet(); };   /* 목록은 그대로(스크롤 유지), 설정만 다시 */
+    if ($('#soSelAll')) $('#soSelAll').onclick = () => { keepSettings(); $$('#soCus [data-socu]').forEach(c => { st.sel.add(c.dataset.socu); c.checked = true; c.closest('.so-cu').classList.add('on'); }); st.codes = null; redrawSet(); };
+    if ($('#soSelNone')) $('#soSelNone').onclick = () => { st.sel.clear(); $$('#soCus [data-socu]').forEach(c => { c.checked = false; c.closest('.so-cu').classList.remove('on'); }); st.codes = null; redrawSet(); };
+    bindSet();
     $('#soSave').onclick = async () => {
-      const codes = $$('#soM [data-soit]').filter(c => c.checked).map(c => c.dataset.soit).slice(0, 40), days = $$('#soM [data-sowd]').filter(c => c.checked).map(c => +c.dataset.sowd);
-      if (!codes.length) return toast('주문서에 넣을 품목을 고르세요'); if (!days.length) return toast('배송 요일을 하나 이상 고르세요');
-      const cu = ix.C[cust] || { items: {} }, d = saleOrdDefaults(cust), t = form ? form.t : saleOrdTok();
-      const f = { cust, name: saleCustName(cust), items: codes.map(cd => { const y = cu.items[cd] || {}; return [cd, saleItemName(cd), y.price != null ? y.price : null, y.lastQty || null]; }), days, cut: +$('#soCut').value, lead: +$('#soLead').value, price: $('#soPrice').checked, last: (() => { const lastD = codes.reduce((m, cd) => { const y = cu.items[cd]; return y && y.last > m ? y.last : m; }, ''); return codes.filter(cd => cu.items[cd] && cu.items[cd].last === lastD).map(cd => [cd, cu.items[cd].lastQty || 0]); })(), note: $('#soNote').value.trim(), on: form ? form.on !== false : true };
-      const b = $('#soSave'); b.disabled = true; b.textContent = '저장 중…';
-      try { const r = await prodRelayCall({ action: 'putOrderForm', t, form: f }); if (!r || !r.ok) throw new Error((r && r.error) || '중계가 거절했습니다');
-        X.ordCodes = X.ordCodes || {}; X.ordCodes[t] = codes; saleSave(); close(); await saleOrdFetch(true); toast(form ? '주문 링크를 고쳤습니다' : `${f.name} 주문 링크를 만들었습니다 — 「안내문 복사」로 카톡방에 보내세요`);
-      } catch (e) { b.disabled = false; b.textContent = '다시 저장'; toast(/알 수 없는 요청/.test(e.message) ? '중계를 새 버전(3.4)으로 배포해야 합니다' : '저장 실패: ' + e.message); } };
+      keepSettings(); const sel = [...st.sel]; if (!sel.length) return;
+      if ((sel.length === 1 || form) && !(st.codes || []).length) return toast('주문서에 넣을 품목을 고르세요');
+      if ((st.dmode === 'fixed' || sel.length === 1 || form) && !st.fdays.length) return toast('배송 요일을 하나 이상 고르세요');
+      const b = $('#soSave'), prog = $('#soProg'); b.disabled = true; let ok = 0; const fails = [];
+      for (let i = 0; i < sel.length; i++) { const cust = sel[i]; prog.textContent = `만드는 중… ${i + 1}/${sel.length} ${saleCustName(cust)}`;
+        try { const cu = ix.C[cust] || { items: {} }, d = saleOrdDefaults(cust);
+          const codes = sel.length === 1 || form ? st.codes.slice(0, 40) : d.items.filter(([cd]) => d.pre.has(cd)).map(x => x[0]).slice(0, 30);
+          if (!codes.length) throw new Error('판매 이력 품목이 없음');
+          const days = sel.length > 1 && !form && st.dmode === 'auto' ? d.days : st.fdays;
+          const lastD = codes.reduce((m, cd) => { const y = cu.items[cd]; return y && y.last > m ? y.last : m; }, '');
+          const t = form ? form.t : saleOrdTok();
+          const f = { cust, name: saleCustName(cust), items: codes.map(cd => { const y = cu.items[cd] || {}; return [cd, saleItemName(cd), y.price != null ? y.price : null, y.lastQty || null]; }), days, cut: st.cut, lead: st.lead, price: st.price, last: codes.filter(cd => cu.items[cd] && cu.items[cd].last === lastD).map(cd => [cd, cu.items[cd].lastQty || 0]), note: st.note.trim(), on: form ? form.on !== false : true };
+          const r = await prodRelayCall({ action: 'putOrderForm', t, form: f }); if (!r || !r.ok) throw new Error((r && r.error) || '중계가 거절했습니다');
+          X.ordCodes = X.ordCodes || {}; X.ordCodes[t] = codes; ok++;
+        } catch (e) { fails.push(`${saleCustName(cust)}: ${/알 수 없는 요청/.test(e.message) ? '중계를 새 버전(3.4)으로 배포해야 합니다' : e.message}`); } }
+      saleSave(); await saleOrdFetch(true);
+      if (fails.length) { b.disabled = false; b.textContent = '다시 시도'; prog.textContent = `${ok}곳 완료 · 실패 ${fails.length}곳 — ${fails.slice(0, 2).join(' / ')}`; fails.length && sel.forEach(c => { if (!fails.some(f => f.startsWith(saleCustName(c) + ':'))) st.sel.delete(c); }); return; }
+      close(); toast(form ? '주문 링크를 고쳤습니다' : ok > 1 ? `${ok}곳 주문 링크를 만들었습니다 — 목록에서 거래처마다 「안내문 복사」로 카톡방에 보내세요` : `${saleCustName(sel[0])} 주문 링크를 만들었습니다 — 「안내문 복사」로 카톡방에 보내세요`);
+    };
   };
   draw();
 }
