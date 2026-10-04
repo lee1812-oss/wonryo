@@ -795,8 +795,6 @@ body.sale-on main>section.view{max-width:none}
 .sw-ma{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.sw-ma .btn{min-height:42px;padding:0 16px}
 @media (max-width:1280px){.sw-main{grid-template-columns:minmax(200px,.7fr) minmax(300px,1.1fr) minmax(390px,1.25fr)}.sw-kv{font-size:18px}.sw-gh,.sw-g{grid-template-columns:minmax(0,1fr) 104px 80px 84px 22px}}
 @media (max-width:899px){
-  body.sale-on #tabsBottom{display:none}
-  body.sale-on main{padding-bottom:6px}
   .sw-ship{flex-wrap:wrap}.sw-memos{grid-template-columns:1fr}
   .sw-ttl h2{display:none}.sw-who{font-size:0;gap:0}.sw-who input{font-size:13px}
   .sw-t.fx{table-layout:auto}.sw-t .sw-in{white-space:normal;line-height:1.3}.sw-t th:nth-child(4),.sw-t td:nth-child(4){display:none}.sw-t td,.sw-t th{padding:6px 6px}
@@ -811,6 +809,20 @@ body.sale-on main>section.view{max-width:none}
 }
 header.top .brand .hver{font-size:11px;color:rgba(255,255,255,.62);margin-top:1px;white-space:nowrap;font-variant-numeric:tabular-nums}
 @media (max-width:759px){header.top .brand .hver{font-size:10px;margin-top:0}}
+.sl{display:flex;flex-direction:column;gap:8px}.sl .sw-kpi{grid-template-columns:repeat(5,minmax(0,1fr))}
+.sl-sort{border:1px solid var(--line);border-radius:9px;border-bottom:1px solid var(--line)}.sl-sort button{flex:0 0 auto;padding:4px 10px}
+.sl-card{padding:0;overflow:hidden}.sl-wrap{overflow:auto;max-height:calc(100vh - 330px)}
+.sl-t{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.sl-t th{position:sticky;top:0;z-index:1;background:#F4F6F8;color:var(--ink2);font-size:11.5px;font-weight:700;padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.sl-t td{padding:6px 8px;border-bottom:1px solid var(--line2);vertical-align:middle}.sl-t .r{text-align:right;white-space:nowrap}.sl-t .c{text-align:center;white-space:nowrap}.sl-t .b{font-weight:800;color:var(--brand)}
+.sl-r{cursor:pointer}.sl-r:hover{background:var(--bg)}.sl-r.op{background:var(--accent-bg)}.sl-r.bad td:first-child{box-shadow:inset 3px 0 var(--minus)}
+.sl-n{display:block;font-size:11px;color:var(--warn);font-weight:600}.sl-it{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink2)}.sl-it em{font-style:normal;color:var(--ink3);font-size:11.5px}
+.sl-g td{background:#EEF2F5;font-weight:800;color:var(--brand);font-size:12.5px;padding:5px 8px}.sl-g span{font-weight:600;color:var(--ink2);margin-left:6px;font-size:11.5px}
+.sl-d>td{background:#FAFBFC}.sl-lt{width:100%;max-width:640px;border-collapse:collapse;font-size:12.5px}.sl-lt td{padding:3px 6px;border-bottom:1px dashed var(--line2)}
+.sl-t tfoot td{font-weight:800;border-top:2px solid var(--line);border-bottom:0;background:#FAFBFC}
+.sl-left{padding:10px 12px;border-top:1px solid var(--line)}.sl-left>div{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.sl-lc{font-size:12.5px;padding:4px 9px;border:1px dashed var(--warn);border-radius:8px;color:var(--ink);background:var(--warn-bg)}.sl-lc em{font-style:normal;color:var(--warn);font-weight:700;font-size:11px}
+.sl-todo{border-color:#E8C98E;background:var(--warn-bg)}.sl-tr{display:flex;align-items:center;gap:10px;padding:5px 0;border-top:1px dashed #E8C98E;font-size:13px;flex-wrap:wrap}.sl-tr b{flex:1 1 auto}
+@media (max-width:899px){.sl .sw-kpi{display:flex;overflow-x:auto}.sl-r>td:nth-child(3),.sl-r>td:nth-child(5),.sl-r>td:nth-child(6),.sl-r>td:nth-child(10),.sl-t thead th:nth-child(3),.sl-t thead th:nth-child(5),.sl-t thead th:nth-child(6),.sl-t thead th:nth-child(10),.sl-t tfoot td:nth-child(3),.sl-t tfoot td:nth-child(5),.sl-t tfoot td:nth-child(6){display:none}.sl-t td,.sl-t th{padding:6px 5px}.sl-t{font-size:12.5px}.sl-wrap{max-height:none}.sl-t .c small{display:block}}
 </style>
 </head>
 <body>
@@ -1085,6 +1097,7 @@ header.top .brand .hver{font-size:11px;color:rgba(255,255,255,.62);margin-top:1p
   <section class="view" data-view="plog"><div id="prodLog"></div></section>
   <section class="view" data-view="pccp"><div id="prodCcp"></div></section>
   <section class="view" data-view="psale"><div id="saleNew"></div></section>
+  <section class="view" data-view="plist"><div id="saleList"></div></section>
   <section class="view" data-view="pset"><div id="prodSet"></div></section>
   <!-- ═══ 설정 ═══ -->
   <section class="view" data-view="setraw">
@@ -1197,8 +1210,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '156';
-const APP_BUILT = '2026-10-04 09:00';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '157';
+const APP_BUILT = '2026-10-04 09:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -1236,10 +1249,10 @@ const MENUS = { raw: { name: '원료수불부', ico: ICO.raw, items: TABS }, fin
 const PROD_TABS = [['pnew', '생산 입력', '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>'], ['plog', '전송 기록', ICO.ledger], ['pset', '연동 설정', ICO.items]];
 MENUS.prod = { name: '생산일지', ico: ICO.prod, items: PROD_TABS };
 /* v149: CCP 일지·판매 입력을 생산일지에서 떼어 각각 대메뉴로 — 화면 안에서는 S.ui.prodTab('pccp'·'psale')을 그대로 씀 */
-const CCP_TABS = [['pccp', 'CCP 일지', '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>']], SALE_TABS = [['psale', '판매 입력', '<svg viewBox="0 0 24 24"><path d="M3 4h2l2.4 11h11.2L21 7H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>']];
+const CCP_TABS = [['pccp', 'CCP 일지', '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>']], SALE_TABS = [['psale', '판매 입력', '<svg viewBox="0 0 24 24"><path d="M3 4h2l2.4 11h11.2L21 7H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/></svg>'], ['plist', '판매 목록', '<svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>']];
 MENUS.ccp = { name: 'CCP 일지', ico: CCP_TABS[0][2], items: CCP_TABS }; MENUS.sale = { name: '판매 입력', ico: SALE_TABS[0][2], items: SALE_TABS };
 const isProdM = m => m === 'prod' || m === 'ccp' || m === 'sale';
-const prodMenuOf = t => t === 'pccp' ? 'ccp' : t === 'psale' ? 'sale' : 'prod';
+const prodMenuOf = t => t === 'pccp' ? 'ccp' : t === 'psale' || t === 'plist' ? 'sale' : 'prod';
 /* ── v068: 관리자 / 직원 화면 분리 + 통합 설정
    · 연동·설정·백업 화면은 「⚙ 통합 설정」 한 곳에 모읍니다 (원료수불부 · 완제품·생지 · 육안검사 · 생산일지).
    · 기기마다 「관리자용 / 직원용」을 정합니다. 직원용 기기에서는 설정·연동 화면이 보이지 않고,
@@ -1605,7 +1618,7 @@ function renderTabs() {
   if (!['fin', 'home', 'insp', 'prod', 'ccp', 'sale', 'sys'].includes(S.ui.menu)) S.ui.menu = 'raw';
   const A = isAdmin(); if (S.ui.menu === 'sys' && !A) S.ui.menu = 'home';
   const ok = (m, t) => menuItems(m).some(x => x[0] === t);   /* v068: 설정 탭은 통합 설정으로 옮김 — 저장된 탭이 없는 탭이면 첫 화면으로 */
-  if (!ok('raw', S.ui.tab)) S.ui.tab = 'dash'; if (!ok('fin', S.ui.finTab)) S.ui.finTab = 'dash'; if (!ok('insp', S.ui.inspTab)) S.ui.inspTab = 'dashboard'; if (S.ui.prodTab !== 'pccp' && S.ui.prodTab !== 'psale' && !ok('prod', S.ui.prodTab)) S.ui.prodTab = 'pnew'; if (isProdM(S.ui.menu)) S.ui.menu = prodMenuOf(S.ui.prodTab);
+  if (!ok('raw', S.ui.tab)) S.ui.tab = 'dash'; if (!ok('fin', S.ui.finTab)) S.ui.finTab = 'dash'; if (!ok('insp', S.ui.inspTab)) S.ui.inspTab = 'dashboard'; if (!['pccp', 'psale', 'plist'].includes(S.ui.prodTab) && !ok('prod', S.ui.prodTab)) S.ui.prodTab = 'pnew'; if (isProdM(S.ui.menu)) S.ui.menu = prodMenuOf(S.ui.prodTab);
   if (!ok('sys', S.ui.sysTab)) S.ui.sysTab = 'set'; if (!SYS_INSP.some(x => x[0] === S.ui.sysInsp)) S.ui.sysInsp = 'eclink';
   const menu = S.ui.menu, sysT = S.ui.sysTab; const M = menu === 'home' ? HOME_MENU : MENUS[menu]; const cur = menu === 'fin' ? S.ui.finTab : menu === 'insp' ? S.ui.inspTab : isProdM(menu) ? S.ui.prodTab : menu === 'sys' ? sysT : menu === 'home' ? 'home' : S.ui.tab;
   // 상단: 대메뉴
@@ -1755,7 +1768,7 @@ function prodReady() {
 }
 function prodRenderIf() { if (isProdM(S.ui.menu)) renderProd(); }
 let prodMig = false;
-function renderProd() { try { finEnsure(); } catch (e) {} if (!prodMig) { prodMig = true; try { if (prodS().hist) { prodLinkHist(false); save(); } } catch (e) {} } const t = S.ui.prodTab; if (t === 'pccp') renderCcp(); else if (t === 'psale') renderSale(); else if (t === 'plog') renderProdLog(); else if (t === 'pset') renderProdSet(); else renderProdNew(); }
+function renderProd() { try { finEnsure(); } catch (e) {} if (!prodMig) { prodMig = true; try { if (prodS().hist) { prodLinkHist(false); save(); } } catch (e) {} } const t = S.ui.prodTab; if (t === 'pccp') renderCcp(); else if (t === 'psale') renderSale(); else if (t === 'plist') renderSaleList(); else if (t === 'plog') renderProdLog(); else if (t === 'pset') renderProdSet(); else renderProdNew(); }
 async function prodCopy(text) {
   let ok = false; try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {}
   if (!ok) { try { const t = document.createElement('textarea'); t.value = text; t.setAttribute('style', 'position:fixed;left:-9999px;top:0'); document.body.appendChild(t); t.select(); ok = document.execCommand('copy'); t.remove(); } catch (e) {} }
@@ -5259,6 +5272,72 @@ async function saleCheckPerm() {   /* 사무실 PC 전송기가 품목을 비운
     show('2분 안에 답이 없습니다 — 사무실 PC 전송기가 켜져 있는지 확인하세요');
   } catch (e) { show('확인 실패: ' + e.message); }
 }
+/* v157: 판매 목록(일간) — 판매현황상 하루 1~36곳(수·금 15~20곳)이라 한 화면 표로, 배송현황별로 묶어 출고 준비하기 좋게.
+   이카운트 OAPI에는 판매 삭제·수정이 없어(Sale/SaveSale만) 보낸 전표를 지우면 「이카운트에서 지울 전표」 할 일로 남김 */
+function saleDelete(en) {
+  const X = saleS(); if (!en) return false;
+  const sent = en.status === 'sent', pend = salePend(en);
+  if (!confirm(sent ? `${en.custName} 판매를 지울까요?\n이카운트 API는 전표 삭제를 지원하지 않아, 이카운트 전표 ${en.slip || ''}는 「이카운트에서 지울 전표」 목록에 남깁니다. 이카운트 판매조회에서 지운 뒤 「지웠음」을 눌러 주세요.` : pend ? `${en.custName} 판매는 지금 이카운트로 보내는 중입니다. 지우면 이미 들어간 경우 이카운트 전표가 남을 수 있어 할 일로 남깁니다. 지울까요?` : `${en.custName} 판매 기록을 지울까요?`)) return false;
+  if ((sent || pend) && !en.test) { X.ecTodo = X.ecTodo || []; X.ecTodo.unshift({ id: en.id, slip: en.slip || '', date: en.date, custName: en.custName, total: en.sup + en.vat, at: new Date().toISOString(), pend }); }
+  X.log = X.log.filter(x => x.id !== en.id); saleSave(); return true;
+}
+function saleSlipSum(e) { const q = e.lines.reduce((t, l) => t + (Number(l.qty) || 0), 0); return { q, first: e.lines[0] ? e.lines[0].name : '', more: e.lines.length - 1 }; }
+function saleStatusTag(e) { return e.status === 'sent' ? `<i class="tg ok">${e.test ? '테스트 ' : ''}${esc(e.slip || '전송됨')}</i>` : e.status === 'fail' ? '<i class="tg bad">전송 실패</i>' : salePend(e) ? '<i class="tg due">보내는 중</i>' : '<i class="tg">연습</i>'; }
+function renderSaleList() {
+  const box = $('#saleList'); if (!box) return;
+  const X = saleS(), D = X.draft, date = D.date || today(), wd = new Date(date + 'T00:00:00').getDay();
+  const dl = X.log.filter(e => e.date === date), srt = saleUi.lsort || 'dlv';
+  const due = saleDue(date), done = new Set(dl.map(e => e.cust)), left = due.filter(o => !done.has(o.c));
+  const B = saleDayStats(), avgWd = (() => { const ds = [1, 2, 3, 4, 5, 6, 7, 8].map(k => ccpAddD(date, -7 * k)).filter(d => B[d]); return ds.length ? Math.round(ds.reduce((t, d) => t + Object.keys(B[d].c).length, 0) / ds.length) : 0; })();
+  const tot = dl.reduce((t, e) => { t.s += e.sup; t.v += e.vat; return t; }, { s: 0, v: 0 }), sentN = dl.filter(e => e.status === 'sent').length, failN = dl.filter(e => e.status === 'fail').length, pendN = dl.filter(salePend).length;
+  const byName = (a, b) => a.custName.localeCompare(b.custName, 'ko');
+  const sorted = dl.slice().sort(srt === 'cust' ? byName : srt === 'amt' ? (a, b) => (b.sup - a.sup) : srt === 'time' ? (a, b) => (a.ts > b.ts ? 1 : -1) : (a, b) => (SALE_DLV.indexOf(a.dlv) + 1 || 9) - (SALE_DLV.indexOf(b.dlv) + 1 || 9) || byName(a, b));
+  const row = (e, i) => { const m = saleSlipSum(e), op = saleUi.lopen === e.id;
+    return `<tr class="sl-r${op ? ' op' : ''}${e.status === 'fail' ? ' bad' : ''}" data-slopen="${esc(e.id)}"><td class="c">${i + 1}</td><td><b>${esc(e.custName)}</b>${e.note ? `<span class="sl-n">${esc(e.note)}</span>` : ''}</td>
+      <td class="sl-it">${esc(m.first)}${m.more > 0 ? ` <em>외 ${m.more}</em>` : ''}</td><td class="r num">${fmt(m.q)}</td><td class="r num">${saleWon(e.sup)}</td><td class="r num">${saleWon(e.vat)}</td><td class="r num b">${saleWon(e.sup + e.vat)}</td>
+      <td class="c">${esc(e.dlv || '—')}${e.box ? `<small> ${e.box}박스</small>` : ''}${e.ship && e.ship !== e.date ? `<small> ${esc(saleMD(e.ship))}</small>` : ''}</td><td class="c">${saleStatusTag(e)}</td><td class="c num muted">${esc(hmOf(e.ts).split(' ')[1] || '')}</td></tr>
+      ${op ? `<tr class="sl-d"><td></td><td colspan="9"><table class="sl-lt"><tbody>${e.lines.map(l => `<tr><td>${esc(l.name)} <span class="muted">${esc(l.code)}</span></td><td class="r num">${fmt(l.qty)}</td><td class="r num">× ${saleWon(l.price)}</td><td class="r num">${saleWon(l.sup)}</td></tr>`).join('')}</tbody></table>
+        ${e.memo ? `<div class="muted" style="font-size:12px;margin:4px 0">적요: ${esc(e.memo)}</div>` : ''}${e.status === 'fail' ? `<div class="sw-err">⚠ ${esc(e.err || '')}</div>` : ''}
+        <div class="sw-dea">${e.status === 'fail' ? `<button type="button" class="btn xs primary" data-slretry="${esc(e.id)}">다시 보내기</button>` : ''}${e.status === 'sent' || salePend(e) ? '' : `<button type="button" class="btn xs" data-sledit="${esc(e.id)}">판매 입력에서 고치기</button>`}<button type="button" class="btn xs danger" data-slremove="${esc(e.id)}">지우기</button></div></td></tr>` : ''}`; };
+  let body = '', grp = null, gi = 0;
+  sorted.forEach((e, i) => { if (srt === 'dlv') { const g = e.dlv || '미지정'; if (g !== grp) { grp = g; const ge = sorted.filter(x => (x.dlv || '미지정') === g); body += `<tr class="sl-g"><td colspan="10">${esc(g)} <span>${ge.length}곳 · ${saleWon(ge.reduce((t, x) => t + x.sup + x.vat, 0))}원</span></td></tr>`; } } body += row(e, gi++); });
+  const todo = X.ecTodo || [];
+  box.innerHTML = `<div class="sl">
+  <div class="sw-bar"><div class="sw-ttl"><h2>판매 목록</h2><span class="muted" style="font-size:12px">일간</span></div>
+    <div class="sw-date"><button type="button" class="btn sm" data-slday="-1" aria-label="전일">‹</button><input type="date" id="slDate" value="${esc(date)}" aria-label="날짜"><span class="sw-wd">${esc(WD[wd])}</span><button type="button" class="btn sm" data-slday="1" aria-label="익일">›</button><button type="button" class="btn sm${date === today() ? ' primary' : ''}" data-slday="0">오늘</button></div>
+    <div class="sw-seg sl-sort" role="tablist" aria-label="정렬">${[['dlv', '배송별'], ['cust', '거래처순'], ['time', '입력순'], ['amt', '금액순']].map(([k, n]) => `<button type="button" class="${srt === k ? 'on' : ''}" data-slsort="${k}">${n}</button>`).join('')}</div>
+    <div class="sw-tools"><button type="button" class="btn sm" id="slPrint">🖨 인쇄</button><button type="button" class="btn sm primary" data-pgo2="psale">＋ 판매 입력</button></div></div>
+  <div class="sw-kpi">
+    <div class="sw-k"><span class="sw-kl">입력 거래처</span><b class="sw-kv">${dl.length}<small> / 평소 ${avgWd || '—'}곳</small></b><span class="sw-ks">${WD[wd]}요일 평균 (최근 8주 판매현황)</span></div>
+    <div class="sw-k pri"><span class="sw-kl">공급가액</span><b class="sw-kv">${saleWon(tot.s)}<small>원</small></b><span class="sw-ks">합계 ${saleWon(tot.s + tot.v)}원</span></div>
+    <div class="sw-k"><span class="sw-kl">이카운트 전송</span><b class="sw-kv">${sentN}<small> / ${dl.length}</small></b><span class="sw-ks">${pendN ? `보내는 중 ${pendN} · ` : ''}${failN ? `<span class="dn">실패 ${failN}</span>` : '실패 없음'}</span></div>
+    <div class="sw-k${left.length ? ' warn' : ''}"><span class="sw-kl">아직 입력 안 한 단골</span><b class="sw-kv">${left.length}<small>곳</small></b><span class="sw-ks">${due.length ? `${WD[wd]}요일 단골 ${due.length}곳 중` : '같은 요일 단골 없음'}</span></div>
+    <div class="sw-k${todo.length ? ' warn' : ''}"><span class="sw-kl">이카운트에서 지울 전표</span><b class="sw-kv">${todo.length}<small>건</small></b><span class="sw-ks">${todo.length ? '아래 목록 확인' : '없음'}</span></div>
+  </div>
+  ${todo.length ? `<div class="card sl-todo"><b>⚠ 이카운트에서 지울 전표 ${todo.length}건</b> <span class="muted" style="font-size:12px">이카운트 API는 판매 전표 삭제를 지원하지 않습니다 — 이카운트 영업관리 → 판매조회에서 지운 뒤 「지웠음」</span>
+    ${todo.map(t => `<div class="sl-tr"><span class="num">${esc(t.date)}</span><b>${esc(t.custName)}</b><span>전표 ${esc(t.slip || (t.pend ? '확인 필요(보내는 중에 지움)' : '—'))}</span><span class="num">${saleWon(t.total)}원</span><button type="button" class="btn xs" data-sltodo="${esc(t.id)}">지웠음</button></div>`).join('')}</div>` : ''}
+  <div class="card sl-card">${dl.length ? `<div class="sl-wrap"><table class="sl-t"><thead><tr><th class="c">No</th><th>거래처</th><th>품목</th><th class="r">수량</th><th class="r">공급가액</th><th class="r">부가세</th><th class="r">합계</th><th class="c">배송</th><th class="c">이카운트</th><th class="c">입력</th></tr></thead>
+    <tbody>${body}</tbody><tfoot><tr><td></td><td>합계 ${dl.length}곳</td><td></td><td class="r num">${fmt(dl.reduce((t, e) => t + saleSlipSum(e).q, 0))}</td><td class="r num">${saleWon(tot.s)}</td><td class="r num">${saleWon(tot.v)}</td><td class="r num b">${saleWon(tot.s + tot.v)}</td><td colspan="3"></td></tr></tfoot></table></div>`
+    : `<div class="sw-empty">${esc(date)} 판매 입력이 없습니다.</div>`}
+    ${left.length ? `<div class="sl-left"><b>아직 입력 안 한 ${WD[wd]}요일 단골 ${left.length}곳</b> <span class="muted" style="font-size:12px">지난 8주 같은 요일 주문 횟수</span><div>${left.map(o => `<button type="button" class="sl-lc" data-slnew="${esc(o.c)}">${esc(saleCustName(o.c))} <em>${o.n}/8</em></button>`).join('')}</div></div>` : ''}</div>
+  <div class="muted" style="font-size:11.5px">이 목록은 이 기기에서 입력한 판매입니다. 다른 기기에서 입력한 판매는 이카운트 판매조회에서 확인하세요.</div>
+</div>`;
+  const re = () => { saleSave(); renderSaleList(); };
+  $('#slDate').onchange = e => { D.date = e.target.value || today(); D.dateOn = today(); re(); };
+  $$('#saleList [data-slday]').forEach(b => b.onclick = () => { const k = Number(b.dataset.slday); D.date = k ? ccpAddD(date, k) : today(); D.dateOn = today(); re(); });
+  $$('#saleList [data-slsort]').forEach(b => b.onclick = () => { saleUi.lsort = b.dataset.slsort; renderSaleList(); });
+  $$('#saleList [data-pgo2]').forEach(b => b.onclick = () => { S.ui.prodTab = 'psale'; save(); renderAll(); });
+  $$('#saleList [data-slnew]').forEach(b => b.onclick = () => { S.ui.prodTab = 'psale'; save(); renderAll(); setTimeout(() => salePick(b.dataset.slnew), 0); });
+  $$('#saleList [data-sltodo]').forEach(b => b.onclick = () => { X.ecTodo = (X.ecTodo || []).filter(t => t.id !== b.dataset.sltodo); re(); });
+  $('#saleList .sl-card').onclick = e => { const t = e.target;
+    const rm = t.closest('[data-slremove]'); if (rm) { if (saleDelete(X.log.find(x => x.id === rm.dataset.slremove))) { saleUi.lopen = ''; renderSaleList(); } return; }
+    const rt = t.closest('[data-slretry]'); if (rt) { const en = X.log.find(x => x.id === rt.dataset.slretry); if (en) { en.status = 'queued'; en.err = ''; saleSave(); renderSaleList(); saleSend(en).then(() => renderSaleList()); } return; }
+    const ed = t.closest('[data-sledit]'); if (ed) { const en = X.log.find(x => x.id === ed.dataset.sledit); if (!en) return; X.draft = { date: en.date, dateOn: today(), cust: en.cust, lines: en.lines.map(l => ({ code: l.code, name: l.name, qty: String(l.qty), price: l.price, pFrom: 'manual' })), memo: en.memo, ship: en.ship || en.date, dlv: en.dlv || '', note: en.note || '', box: en.box ? String(en.box) : '', editOf: en.id }; saleUi.rtab = 'slip'; saleUi.step = 's'; saleSave(); S.ui.prodTab = 'psale'; save(); renderAll(); return; }
+    const r = t.closest('[data-slopen]'); if (r) { saleUi.lopen = saleUi.lopen === r.dataset.slopen ? '' : r.dataset.slopen; renderSaleList(); } };
+  $('#slPrint').onclick = () => { const w = window.open('', '_blank'); if (!w) return toast('팝업이 막혀 있습니다');
+    const rows = sorted.map((e, i) => `<tr><td>${i + 1}</td><td>${esc(e.custName)}${e.note ? `<br><small>${esc(e.note)}</small>` : ''}</td><td>${e.lines.map(l => `${esc(l.name)} <b>${fmt(l.qty)}</b>`).join('<br>')}</td><td style="text-align:right">${saleWon(e.sup + e.vat)}</td><td>${esc(e.dlv || '')}${e.box ? ` ${e.box}박스` : ''}</td><td>${esc(e.memo || '')}</td><td style="width:40px"></td></tr>`).join('');
+    w.document.write(`<!doctype html><meta charset="utf-8"><title>판매 목록 ${date}</title><style>body{font-family:"Malgun Gothic",sans-serif;margin:12mm;font-size:12px}h1{font-size:17px;margin:0 0 4px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:4px 6px;vertical-align:top}th{background:#eee}small{color:#555}</style><h1>판매 목록 · ${esc(date)} (${WD[wd]})</h1><div>${dl.length}곳 · 합계 ${saleWon(tot.s + tot.v)}원 · 출력 ${new Date().toLocaleString('ko-KR')}</div><table><thead><tr><th>No</th><th>거래처</th><th>품목·수량</th><th>합계</th><th>배송</th><th>적요</th><th>출고✓</th></tr></thead><tbody>${rows}</tbody></table><script>setTimeout(function(){window.print()},300)<\/script>`); w.document.close(); };
+}
 function saleDoSave() {
   const X = saleS(), D = X.draft;
   const lines = D.lines.map(l => { const a = saleLineAmt(l); return { code: l.code, name: l.name, qty: Number(l.qty), price: Number(l.price), sup: a.s, vat: a.v }; });
@@ -5338,7 +5417,7 @@ function saleBindShell() {
     else if (b.id === 'sOk') saleConfirm();
     else if (d.sdlv) { D.dlv = D.dlv === d.sdlv ? '' : d.sdlv; saleSave(); $$('#swS [data-sdlv]').forEach(x => { const on = x.dataset.sdlv === D.dlv; x.classList.toggle('on', on); x.setAttribute('aria-checked', on); }); }
     else if (d.sretry) { const en = X.log.find(x => x.id === d.sretry); if (!en) return; en.status = 'queued'; en.err = ''; saleSave(); saleRenderS(); saleSend(en).then(() => saleRenderS()); }
-    else if (d.sldel) { const en0 = X.log.find(x => x.id === d.sldel); if (!confirm(en0 && en0.status === 'sent' ? '이 기록만 지웁니다. 이카운트에 만들어진 전표 ' + (en0.slip || '') + '는 이카운트에서 지워야 합니다. 지울까요?' : '이 판매 기록을 지울까요?')) return; X.log = X.log.filter(x => x.id !== d.sldel); saleSave(); saleRenderS(); saleRenderC(); $('#swK').innerHTML = saleKpi(); }
+    else if (d.sldel) { if (!saleDelete(X.log.find(x => x.id === d.sldel))) return; saleSave(); saleRenderS(); saleRenderC(); $('#swK').innerHTML = saleKpi(); }
     else if (d.sjson) { const en = X.log.find(x => x.id === d.sjson); if (en) saleModal(`<h3>이카운트로 보낼 내용 (3단계 미리보기)</h3><div class="muted" style="font-size:12px;margin-bottom:6px">Sale/SaveSale · 지금은 보내지 않습니다 · 배송일자·배송현황·전달사항·출고박스는 이카운트 입력화면의 칸 이름(추가항목)을 확인한 뒤 연결합니다</div><pre class="sjson">${esc(JSON.stringify({ SaleList: saleBulk(en).map(b => ({ BulkDatas: b })) }, null, 1))}</pre><div class="sw-ma"><button type="button" class="btn" data-mclose>닫기</button></div>`); }
     else if (d.sedit) { const en = X.log.find(x => x.id === d.sedit); if (!en) return; if (D.lines.length && !confirm('지금 담은 품목을 비우고 이 기록을 고칠까요?')) return;
       X.draft = { date: en.date, dateOn: today(), cust: en.cust, lines: en.lines.map(l => ({ code: l.code, name: l.name, qty: String(l.qty), price: l.price, pFrom: 'manual' })), memo: en.memo, ship: en.ship || en.date, dlv: en.dlv || '', note: en.note || '', box: en.box ? String(en.box) : '', editOf: en.id }; saleUi.rtab = 'slip'; saleUi.step = 's'; saleSave(); renderSale(); } };
