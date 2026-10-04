@@ -753,6 +753,7 @@ body.sale-on main>section.view{max-width:none}
 .sw-ic{display:block;font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sw-ic .w,.sw-ic em.w{color:var(--warn);font-style:normal;font-weight:700}
 .sw-add{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;border:1px solid var(--line);font-weight:800;color:var(--brand)}tr.on .sw-add{background:var(--accent);border-color:var(--accent);color:#fff}
 .sw-slip{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
+.sw-sh .lnk{font-size:11.5px;color:var(--plus);text-decoration:underline;padding:0}
 .sw-sh{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line2);font-size:12.5px;color:var(--ink2)}.sw-sh b{font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sw-sl{flex:1 1 auto;overflow:auto;min-height:0}
 .sw-gh,.sw-g{display:grid;grid-template-columns:minmax(0,1fr) 112px 88px 92px 22px;gap:4px 6px;align-items:center;padding:0 10px}
@@ -1210,8 +1211,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '158';
-const APP_BUILT = '2026-10-04 10:10';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '159';
+const APP_BUILT = '2026-10-04 10:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -5198,13 +5199,13 @@ function saleRenderS() {
     el.innerHTML = `<div class="sw-sl">${dl.length ? dl.map(e => `<div class="sw-de"><div class="sw-deh"><b>${esc(e.custName)} ${e.status === 'sent' ? `<i class="tg ok">${e.test ? '테스트 ' : ''}전표 ${esc(e.slip || '')}</i>` : e.status === 'fail' ? '<i class="tg bad">전송 실패</i>' : salePend(e) ? '<i class="tg due">보내는 중</i>' : '<i class="tg">연습</i>'}</b><span class="num">${saleWon(e.sup + e.vat)}원</span></div>
       <div class="sw-dem">${esc(hmOf(e.ts))}${e.who ? ' · ' + esc(e.who) : ''} · ${e.lines.length}품목 · 공급가액 ${saleWon(e.sup)}${e.dlv ? ' · ' + esc(e.dlv) : ''}${e.ship && e.ship !== e.date ? ' · 배송 ' + esc(saleMD(e.ship)) : ''}${e.box ? ' · 박스 ' + e.box : ''}${e.note ? ' · ' + esc(e.note) : ''}${e.memo ? ' · ' + esc(e.memo) : ''}</div>
       <div class="sw-del">${e.lines.map(l => `${esc(l.name)} <b>${fmt(l.qty)}</b>×${saleWon(l.price)}`).join(' · ')}</div>
-      ${e.status === 'fail' ? `<div class="sw-err">⚠ ${esc(e.err || '')}</div>` : ''}<div class="sw-dea">${e.status === 'fail' ? `<button type="button" class="btn xs primary" data-sretry="${esc(e.id)}">다시 보내기</button>` : ''}${e.status === 'sent' || salePend(e) ? '' : `<button type="button" class="btn xs" data-sedit="${esc(e.id)}">고치기</button>`}<button type="button" class="btn xs" data-sjson="${esc(e.id)}">전송 미리보기</button><button type="button" class="btn xs danger" data-sldel="${esc(e.id)}">지우기</button></div></div>`).join('')
+      ${e.status === 'fail' ? `<div class="sw-err">⚠ ${esc(e.err || '')}</div>` : ''}<div class="sw-dea">${e.status === 'fail' ? `<button type="button" class="btn xs primary" data-sretry="${esc(e.id)}">다시 보내기</button>` : ''}${e.status === 'sent' ? `<button type="button" class="btn xs" data-sfix="${esc(e.id)}">고쳐서 다시 보내기</button>` : salePend(e) ? '' : `<button type="button" class="btn xs" data-sedit="${esc(e.id)}">고치기</button>`}<button type="button" class="btn xs" data-sjson="${esc(e.id)}">전송 미리보기</button><button type="button" class="btn xs danger" data-sldel="${esc(e.id)}">지우기</button></div></div>`).join('')
       : '<div class="sw-empty">이 날짜에 저장한 판매가 없습니다.</div>'}</div>
       <div class="sw-foot"><div class="sw-tot"><div><span>건수</span><b>${dl.length}</b></div><div><span>공급가액</span><b>${saleWon(dl.reduce((t, e) => t + e.sup, 0))}</b></div><div class="g"><span>합계</span><b>${saleWon(dl.reduce((t, e) => t + e.sup + e.vat, 0))}</b></div></div></div>`;
     return;
   }
   const t = saleTotals(D.lines);
-  el.innerHTML = `<div class="sw-sh">${D.cust ? `<b>${esc(saleCustName(D.cust))}</b>` : '<span class="muted">거래처 미선택</span>'}<span>${esc(D.date)} (${esc(WD[new Date(D.date + 'T00:00:00').getDay()])})</span>${D.editOf ? '<i class="tg due">기록 고치는 중</i>' : ''}</div>
+  el.innerHTML = `<div class="sw-sh">${D.cust ? `<b>${esc(saleCustName(D.cust))}</b>` : '<span class="muted">거래처 미선택</span>'}<span>${esc(D.date)} (${esc(WD[new Date(D.date + 'T00:00:00').getDay()])})</span>${D.editOf ? '<i class="tg due">기록 고치는 중</i>' : ''}${D.replaces ? `<i class="tg due">전표 ${esc(D.replSlip || '')} 수정 중</i><button type="button" class="lnk" id="sFixCancel">그만두기</button>` : ''}</div>
   <div class="sw-sl">${D.lines.length ? `<div class="sw-gh"><span>품목</span><span>수량</span><span>단가</span><span>공급가액</span></div>` + D.lines.map((l, k) => { const a = saleLineAmt(l);
     return `<div class="sw-g"><div class="sw-gn"><span class="sw-in">${k + 1}. ${esc(l.name)}</span></div><div class="sw-gs"><span class="sw-ic">${esc(l.code)} · ${l.pFrom === 'cust' ? `지난 단가 ${esc(saleMD(l.pDate))}` : l.pFrom === 'other' ? '<em class="w">다른 거래처 단가</em>' : l.pFrom === 'manual' ? '직접 입력' : '<em class="w">단가 없음</em>'}${l.other != null && l.price === '' ? ` <button type="button" class="lnk" data-sother="${k}">${saleWon(l.other)} 쓰기</button>` : ''}</span></div>
       <div class="sw-gq"><button type="button" data-sstep="${k}" data-d="-1" aria-label="줄이기">−</button><input inputmode="numeric" data-sqty="${k}" value="${esc(l.qty)}" placeholder="0" aria-label="${esc(l.name)} 수량"><button type="button" data-sstep="${k}" data-d="1" aria-label="늘리기">+</button></div>
@@ -5223,12 +5224,13 @@ function saleModal(html) { const m = $('#swM'); if (!m) return; if (!html) { m.h
 function saleConfirm() {
   const X = saleS(), D = X.draft;
   const bad = D.lines.filter(l => !(Number(l.qty) > 0) || !(Number(l.price) > 0)); if (!D.lines.length) return;
+  if (D.replaces && (X.cfg.mode || 'practice') === 'practice') { toast('고쳐서 다시 보내기는 ⚙ 전송 방식이 「실제 입력」(또는 테스트)일 때만 됩니다'); return; }
   if (bad.length) { toast(`수량·단가를 넣으세요: ${bad.map(l => l.name).slice(0, 2).join(', ')}${bad.length > 2 ? ' 외' : ''}`); const k = D.lines.indexOf(bad[0]); const f = $(`#saleNew [data-${Number(bad[0].qty) > 0 ? 'sprice' : 'sqty'}="${k}"]`); if (f) f.focus(); return; }
   const t = saleTotals(D.lines);
   saleModal(`<h3>판매 저장 확인</h3><div class="sw-mh"><b>${esc(saleCustName(D.cust))}</b> · ${esc(D.date)} (${esc(WD[new Date(D.date + 'T00:00:00').getDay()])})</div>
     <table class="sw-t mt"><thead><tr><th>품목</th><th class="r">수량</th><th class="r">단가</th><th class="r">공급가액</th><th class="r">부가세</th></tr></thead><tbody>${D.lines.map(l => { const a = saleLineAmt(l); return `<tr><td>${esc(l.name)}<span class="sw-ic">${esc(l.code)}</span></td><td class="r num">${fmt(l.qty)}</td><td class="r num">${saleWon(l.price)}</td><td class="r num">${saleWon(a.s)}</td><td class="r num">${saleWon(a.v)}</td></tr>`; }).join('')}</tbody>
     <tfoot><tr><td>합계 ${D.lines.length}품목</td><td></td><td></td><td class="r num">${saleWon(t.s)}</td><td class="r num">${saleWon(t.v)}</td></tr></tfoot></table>
-    <div class="sw-mt">총 <b>${saleWon(t.s + t.v)}</b>원 <span class="muted">(부가세 별도 단가 · 부가세는 이카운트 계산과 1원 차이 날 수 있음)</span></div>${(X.cfg.mode || 'practice') === 'real' ? `<div class="sw-warn">저장하면 이카운트 판매입력에 <b>전표가 바로 만들어집니다</b> (출하창고 ${esc(X.cfg.wh || '—')} · 담당 ${esc(X.cfg.emp || '—')}). 보낸 뒤 수정·삭제는 이카운트에서 해야 합니다.${saleUi.agent && (saleUi.agent.ver || 2) < 3 ? '<br><b>사무실 PC 전송기가 v3가 아니라 보내지지 않고 대기합니다.</b>' : ''}</div>` : ''}<div class="sw-mx">발주날짜 <b>${esc(D.date)}</b> · 배송일자(이카운트 일자) <b>${esc(D.ship || D.date)}</b> · 배송현황 <b>${esc(D.dlv || '미선택')}</b>${Number(D.box) ? ` · 출고박스 <b>${fmt(D.box)}</b>` : ''}${D.note ? `<br>전달사항: ${esc(D.note)}` : ''}${D.memo ? `<br>적요: ${esc(D.memo)}` : ''}</div>
+    <div class="sw-mt">총 <b>${saleWon(t.s + t.v)}</b>원 <span class="muted">(부가세 별도 단가 · 부가세는 이카운트 계산과 1원 차이 날 수 있음)</span></div>${(X.cfg.mode || 'practice') === 'real' ? `<div class="sw-warn">저장하면 이카운트 판매입력에 <b>전표가 바로 만들어집니다</b> (출하창고 ${esc(X.cfg.wh || '—')} · 담당 ${esc(X.cfg.emp || '—')}). 보낸 뒤 수정·삭제는 이카운트에서 해야 합니다.${saleUi.agent && (saleUi.agent.ver || 2) < 3 ? '<br><b>사무실 PC 전송기가 v3가 아니라 보내지지 않고 대기합니다.</b>' : ''}</div>` : ''}${D.replaces ? `<div class="sw-warn">고친 내용으로 <b>새 전표</b>를 보냅니다. 새 전표가 들어가면 예전 전표 <b>${esc(D.replSlip || '')}</b>는 「이카운트에서 지울 전표」에 올라가니 이카운트 판매조회에서 지워 주세요.</div>` : ''}<div class="sw-mx">발주날짜 <b>${esc(D.date)}</b> · 배송일자(이카운트 일자) <b>${esc(D.ship || D.date)}</b> · 배송현황 <b>${esc(D.dlv || '미선택')}</b>${Number(D.box) ? ` · 출고박스 <b>${fmt(D.box)}</b>` : ''}${D.note ? `<br>전달사항: ${esc(D.note)}` : ''}${D.memo ? `<br>적요: ${esc(D.memo)}` : ''}</div>
     <div class="sw-ma"><button type="button" class="btn" data-mclose>돌아가 고치기 <small>Esc</small></button><button type="button" class="btn primary" id="sSave">${(X.cfg.mode || 'practice') === 'practice' ? '저장 (연습)' : (X.cfg.mode === 'test' ? '이카운트 테스트 서버로 보내기' : '이카운트 판매입력으로 보내기')} <small>Enter</small></button></div>`);
   $('#sSave').onclick = saleDoSave; setTimeout(() => $('#sSave') && $('#sSave').focus(), 0);
 }
@@ -5246,7 +5248,8 @@ async function saleSend(en) {
   } catch (er) { en.status = 'fail'; en.err = '중계에 넣지 못했습니다: ' + er.message; }
   saleSave(); salePollLater();
 }
-function saleApplyResult(en, v) { const r = v.result || {}; if (v.status === 'sent') { en.status = 'sent'; en.slip = (r.slipNos || []).join(', '); en.sentAt = v.doneAt || new Date().toISOString(); en.err = ''; } else if (v.status === 'fail') { en.status = 'fail'; en.err = saleErrText(r.error || '이카운트가 입력을 거절했습니다'); } }
+function saleApplyResult(en, v) { const r = v.result || {}; if (v.status === 'sent') { en.status = 'sent'; en.slip = (r.slipNos || []).join(', '); en.sentAt = v.doneAt || new Date().toISOString(); en.err = '';
+    if (en.replOld) { const o = en.replOld, X = saleS(); if (!o.test && o.slip) { X.ecTodo = X.ecTodo || []; if (!X.ecTodo.some(t => t.id === o.id)) X.ecTodo.unshift({ id: o.id, slip: o.slip, date: o.date, custName: o.custName, total: o.total, at: new Date().toISOString(), fixedTo: en.slip }); } en.replacedSlip = o.slip; delete en.replOld; } } else if (v.status === 'fail') { en.status = 'fail'; en.err = saleErrText(r.error || '이카운트가 입력을 거절했습니다'); } }
 let salePollT = null;
 function salePollLater() { clearTimeout(salePollT); if (saleS().log.some(salePend)) salePollT = setTimeout(salePoll, 12000); }
 async function salePoll() {
@@ -5274,6 +5277,12 @@ async function saleCheckPerm() {   /* 사무실 PC 전송기가 품목을 비운
 }
 /* v157: 판매 목록(일간) — 판매현황상 하루 1~36곳(수·금 15~20곳)이라 한 화면 표로, 배송현황별로 묶어 출고 준비하기 좋게.
    이카운트 OAPI에는 판매 삭제·수정이 없어(Sale/SaveSale만) 보낸 전표를 지우면 「이카운트에서 지울 전표」 할 일로 남김 */
+/* v159: 보낸 판매 고쳐서 다시 보내기 — 이카운트 API는 수정이 없어 새 전표로 보내고, 새 전표가 들어가면 예전 전표를 「이카운트에서 지울 전표」로 */
+function saleLoadFix(en) {
+  const X = saleS(); if (!en) return;
+  X.draft = { date: en.date, dateOn: today(), cust: en.cust, lines: en.lines.map(l => ({ code: l.code, name: l.name, qty: String(l.qty), price: l.price, pFrom: 'manual' })), memo: en.memo, ship: en.ship || en.date, dlv: en.dlv || '', note: en.note || '', box: en.box ? String(en.box) : '', editOf: '', replaces: en.id, replSlip: en.slip || '' };
+  saleUi.rtab = 'slip'; saleUi.step = 's'; saleModal(); saleSave(); S.ui.prodTab = 'psale'; save(); renderAll();
+}
 function saleDelete(en) {
   const X = saleS(); if (!en) return false;
   const sent = en.status === 'sent', pend = salePend(en);
@@ -5298,7 +5307,7 @@ function renderSaleList() {
       <td class="c">${esc(e.dlv || '—')}${e.box ? `<small> ${e.box}박스</small>` : ''}${e.ship && e.ship !== e.date ? `<small> ${esc(saleMD(e.ship))}</small>` : ''}</td><td class="c">${saleStatusTag(e)}</td><td class="c num muted">${esc(hmOf(e.ts).split(' ')[1] || '')}</td></tr>
       ${op ? `<tr class="sl-d"><td></td><td colspan="9"><table class="sl-lt"><tbody>${e.lines.map(l => `<tr><td>${esc(l.name)} <span class="muted">${esc(l.code)}</span></td><td class="r num">${fmt(l.qty)}</td><td class="r num">× ${saleWon(l.price)}</td><td class="r num">${saleWon(l.sup)}</td></tr>`).join('')}</tbody></table>
         ${e.memo ? `<div class="muted" style="font-size:12px;margin:4px 0">적요: ${esc(e.memo)}</div>` : ''}${e.status === 'fail' ? `<div class="sw-err">⚠ ${esc(e.err || '')}</div>` : ''}
-        <div class="sw-dea">${e.status === 'fail' ? `<button type="button" class="btn xs primary" data-slretry="${esc(e.id)}">다시 보내기</button>` : ''}${e.status === 'sent' || salePend(e) ? '' : `<button type="button" class="btn xs" data-sledit="${esc(e.id)}">판매 입력에서 고치기</button>`}<button type="button" class="btn xs danger" data-slremove="${esc(e.id)}">지우기</button></div></td></tr>` : ''}`; };
+        <div class="sw-dea">${e.status === 'fail' ? `<button type="button" class="btn xs primary" data-slretry="${esc(e.id)}">다시 보내기</button>` : ''}${e.status === 'sent' ? `<button type="button" class="btn xs" data-slfix="${esc(e.id)}">고쳐서 다시 보내기</button>` : salePend(e) ? '' : `<button type="button" class="btn xs" data-sledit="${esc(e.id)}">판매 입력에서 고치기</button>`}<button type="button" class="btn xs danger" data-slremove="${esc(e.id)}">지우기</button></div></td></tr>` : ''}`; };
   let body = '', grp = null, gi = 0;
   sorted.forEach((e, i) => { if (srt === 'dlv') { const g = e.dlv || '미지정'; if (g !== grp) { grp = g; const ge = sorted.filter(x => (x.dlv || '미지정') === g); body += `<tr class="sl-g"><td colspan="10">${esc(g)} <span>${ge.length}곳 · ${saleWon(ge.reduce((t, x) => t + x.sup + x.vat, 0))}원</span></td></tr>`; } } body += row(e, gi++); });
   const todo = X.ecTodo || [];
@@ -5315,7 +5324,7 @@ function renderSaleList() {
     <div class="sw-k${todo.length ? ' warn' : ''}"><span class="sw-kl">이카운트에서 지울 전표</span><b class="sw-kv">${todo.length}<small>건</small></b><span class="sw-ks">${todo.length ? '아래 목록 확인' : '없음'}</span></div>
   </div>
   ${todo.length ? `<div class="card sl-todo"><b>⚠ 이카운트에서 지울 전표 ${todo.length}건</b> <span class="muted" style="font-size:12px">이카운트 API는 판매 전표 삭제를 지원하지 않습니다 — 이카운트 영업관리 → 판매조회에서 지운 뒤 「지웠음」</span>
-    ${todo.map(t => `<div class="sl-tr"><span class="num">${esc(t.date)}</span><b>${esc(t.custName)}</b><span>전표 ${esc(t.slip || (t.pend ? '확인 필요(보내는 중에 지움)' : '—'))}</span><span class="num">${saleWon(t.total)}원</span><button type="button" class="btn xs" data-sltodo="${esc(t.id)}">지웠음</button></div>`).join('')}</div>` : ''}
+    ${todo.map(t => `<div class="sl-tr"><span class="num">${esc(t.date)}</span><b>${esc(t.custName)}</b><span>전표 ${esc(t.slip || (t.pend ? '확인 필요(보내는 중에 지움)' : '—'))}${t.fixedTo ? ` <em class="muted">→ 고친 새 전표 ${esc(t.fixedTo)}</em>` : ''}</span><span class="num">${saleWon(t.total)}원</span><button type="button" class="btn xs" data-sltodo="${esc(t.id)}">지웠음</button></div>`).join('')}</div>` : ''}
   <div class="card sl-card">${dl.length ? `<div class="sl-wrap"><table class="sl-t"><thead><tr><th class="c">No</th><th>거래처</th><th>품목</th><th class="r">수량</th><th class="r">공급가액</th><th class="r">부가세</th><th class="r">합계</th><th class="c">배송</th><th class="c">이카운트</th><th class="c">입력</th></tr></thead>
     <tbody>${body}</tbody><tfoot><tr><td></td><td>합계 ${dl.length}곳</td><td></td><td class="r num">${fmt(dl.reduce((t, e) => t + saleSlipSum(e).q, 0))}</td><td class="r num">${saleWon(tot.s)}</td><td class="r num">${saleWon(tot.v)}</td><td class="r num b">${saleWon(tot.s + tot.v)}</td><td colspan="3"></td></tr></tfoot></table></div>`
     : `<div class="sw-empty">${esc(date)} 판매 입력이 없습니다.</div>`}
@@ -5332,6 +5341,7 @@ function renderSaleList() {
   $('#saleList .sl-card').onclick = e => { const t = e.target;
     const rm = t.closest('[data-slremove]'); if (rm) { if (saleDelete(X.log.find(x => x.id === rm.dataset.slremove))) { saleUi.lopen = ''; renderSaleList(); } return; }
     const rt = t.closest('[data-slretry]'); if (rt) { const en = X.log.find(x => x.id === rt.dataset.slretry); if (en) { en.status = 'queued'; en.err = ''; saleSave(); renderSaleList(); saleSend(en).then(() => renderSaleList()); } return; }
+    const fx = t.closest('[data-slfix]'); if (fx) { saleLoadFix(X.log.find(x => x.id === fx.dataset.slfix)); return; }
     const ed = t.closest('[data-sledit]'); if (ed) { const en = X.log.find(x => x.id === ed.dataset.sledit); if (!en) return; X.draft = { date: en.date, dateOn: today(), cust: en.cust, lines: en.lines.map(l => ({ code: l.code, name: l.name, qty: String(l.qty), price: l.price, pFrom: 'manual' })), memo: en.memo, ship: en.ship || en.date, dlv: en.dlv || '', note: en.note || '', box: en.box ? String(en.box) : '', editOf: en.id }; saleUi.rtab = 'slip'; saleUi.step = 's'; saleSave(); S.ui.prodTab = 'psale'; save(); renderAll(); return; }
     const r = t.closest('[data-slopen]'); if (r) { saleUi.lopen = saleUi.lopen === r.dataset.slopen ? '' : r.dataset.slopen; renderSaleList(); } };
   $('#slPrint').onclick = () => { const w = window.open('', '_blank'); if (!w) return toast('팝업이 막혀 있습니다');
@@ -5343,6 +5353,7 @@ function saleDoSave() {
   const lines = D.lines.map(l => { const a = saleLineAmt(l); return { code: l.code, name: l.name, qty: Number(l.qty), price: Number(l.price), sup: a.s, vat: a.v }; });
   const t = saleTotals(D.lines), en = { id: D.editOf || 's' + Date.now().toString(36), ts: new Date().toISOString(), date: D.date, cust: D.cust, custName: saleCustName(D.cust), lines, memo: D.memo || '', ship: D.ship || D.date, dlv: D.dlv || '', note: D.note || '', box: Number(D.box) || 0, sup: t.s, vat: t.v, who: S.settings.reporter || '', status: 'practice' };
   const mode = X.cfg.mode || 'practice'; if (mode !== 'practice') { en.status = 'queued'; en.test = mode === 'test'; }
+  if (D.replaces) { const old = X.log.find(e => e.id === D.replaces); if (old) en.replOld = { id: old.id, slip: old.slip || '', total: old.sup + old.vat, test: !!old.test, date: old.date, custName: old.custName }; X.log = X.log.filter(e => e.id !== D.replaces); }
   X.log = X.log.filter(e => e.id !== en.id); X.log.unshift(en); X.log = X.log.slice(0, 2000); if (en.dlv) { X.pref = X.pref || {}; X.pref[en.cust] = Object.assign(X.pref[en.cust] || {}, { dlv: en.dlv }); }
   X.draft = { date: D.date, dateOn: today(), cust: '', lines: [], memo: '' }; saleUi.q = ''; saleUi.iq = ''; saleUi.step = 'c'; saleSave(); saleModal();
   renderSale(); if (en.status === 'queued') { toast(`${en.custName} ${saleWon(t.s + t.v)}원 — 이카운트로 보내는 중`); saleSend(en).then(() => { if (S.ui.menu === 'sale') saleRenderS(); }); } else toast(`${en.custName} ${saleWon(t.s + t.v)}원 저장 (연습)`); const q = $('#sQ'); if (q && window.innerWidth >= 900) q.focus();
@@ -5355,7 +5366,7 @@ function saleKeys(e) {
 function salePick(c) {
   const X = saleS(), D = X.draft; if (D.cust === c) { saleUi.step = 'i'; saleSeg(); return; }
   if (D.lines.length && !confirm('담은 품목을 비우고 거래처를 바꿀까요?')) return;
-  D.cust = c; D.lines = []; D.memo = ''; D.editOf = ''; D.ship = D.date; D.dlv = saleDlvDefault(c); D.note = ''; D.box = ''; saleUi.iq = ''; saleUi.ik = 0; saleUi.step = 'i'; saleUi.rtab = 'slip'; saleSave();
+  D.cust = c; D.lines = []; D.memo = ''; D.editOf = ''; D.replaces = ''; D.ship = D.date; D.dlv = saleDlvDefault(c); D.note = ''; D.box = ''; saleUi.iq = ''; saleUi.ik = 0; saleUi.step = 'i'; saleUi.rtab = 'slip'; saleSave();
   const iq = $('#sIQ'); if (iq) iq.value = ''; saleRenderC(); saleRenderI(); saleRenderS(); if (iq && window.innerWidth >= 900) iq.focus();
 }
 function saleToggleItem(c, focusQty) {
@@ -5391,7 +5402,7 @@ function saleBindShell() {
   iq.onkeydown = e => { const L = saleUi.il || []; if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); saleUi.ik = saleUi.ikOn || saleUi.iq ? Math.max(0, Math.min(L.length - 1, (saleUi.ik || 0) + (e.key === 'ArrowDown' ? 1 : -1))) : 0; saleUi.ikOn = true; $$('#swI tr.kb').forEach(r => r.classList.remove('kb')); const r = $$('#swI tbody tr')[saleUi.ik]; if (r) { r.classList.add('kb'); r.scrollIntoView({ block: 'nearest' }); } }
     else if (e.key === 'Enter') { e.preventDefault(); const o = L[saleUi.ik || 0]; if (o) { iq.value = ''; saleUi.iq = ''; saleToggleItem(o.c, true); } } else if (e.key === 'Escape') { iq.value = ''; saleUi.iq = ''; saleRenderI(); } };
   $('#sIAll').onchange = e => { saleUi.allItems = e.target.checked; saleRenderI(); };
-  $('#swIH').onclick = e => { if (e.target.closest('#sCustChg')) { if (D.lines.length && !confirm('담은 품목을 비우고 거래처를 바꿀까요?')) return; D.cust = ''; D.lines = []; D.memo = ''; D.editOf = ''; saleUi.step = 'c'; saleSave(); renderSale(); const q = $('#sQ'); if (q) q.focus(); } };
+  $('#swIH').onclick = e => { if (e.target.closest('#sCustChg')) { if (D.lines.length && !confirm('담은 품목을 비우고 거래처를 바꿀까요?')) return; D.cust = ''; D.lines = []; D.memo = ''; D.editOf = ''; D.replaces = ''; saleUi.step = 'c'; saleSave(); renderSale(); const q = $('#sQ'); if (q) q.focus(); } };
   $('#swI').onclick = e => { const r = e.target.closest('[data-sitem]'); if (r) saleToggleItem(r.dataset.sitem, false); };
   /* 주문서 · 저장한 판매 */
   $$('#saleNew [data-srtab]').forEach(b => b.onclick = () => { saleUi.rtab = b.dataset.srtab; saleRenderS(); });
@@ -5414,9 +5425,11 @@ function saleBindShell() {
     if (d.sstep != null) { const l = D.lines[+d.sstep]; const v = Math.max(0, (Number(l.qty) || 0) + Number(d.d)); l.qty = v ? String(v) : ''; const f = $(`#saleNew [data-sqty="${d.sstep}"]`); if (f) f.value = l.qty; upd(+d.sstep); }
     else if (d.sother != null) { const l = D.lines[+d.sother]; l.price = l.other; l.pFrom = 'other'; saleSave(); saleRenderS(); }
     else if (d.sdel != null) { D.lines.splice(+d.sdel, 1); saleSave(); saleRenderS(); saleRenderI(); }
-    else if (b.id === 'sClear') { D.lines = []; D.memo = ''; D.editOf = ''; saleSave(); saleRenderS(); saleRenderI(); }
+    else if (b.id === 'sFixCancel') { X.draft = { date: D.date, dateOn: today(), cust: '', lines: [], memo: '' }; saleUi.step = 'c'; saleSave(); renderSale(); }
+    else if (b.id === 'sClear') { D.lines = []; D.memo = ''; D.editOf = ''; D.replaces = ''; saleSave(); saleRenderS(); saleRenderI(); }
     else if (b.id === 'sOk') saleConfirm();
     else if (d.sdlv) { D.dlv = D.dlv === d.sdlv ? '' : d.sdlv; saleSave(); $$('#swS [data-sdlv]').forEach(x => { const on = x.dataset.sdlv === D.dlv; x.classList.toggle('on', on); x.setAttribute('aria-checked', on); }); }
+    else if (d.sfix) { if (D.lines.length && !D.replaces && !confirm('지금 담은 품목을 비우고 이 전표를 고칠까요?')) return; saleLoadFix(X.log.find(x => x.id === d.sfix)); }
     else if (d.sretry) { const en = X.log.find(x => x.id === d.sretry); if (!en) return; en.status = 'queued'; en.err = ''; saleSave(); saleRenderS(); saleSend(en).then(() => saleRenderS()); }
     else if (d.sldel) { if (!saleDelete(X.log.find(x => x.id === d.sldel))) return; saleSave(); saleRenderS(); saleRenderC(); $('#swK').innerHTML = saleKpi(); }
     else if (d.sjson) { const en = X.log.find(x => x.id === d.sjson); if (en) saleModal(`<h3>이카운트로 보낼 내용 (3단계 미리보기)</h3><div class="muted" style="font-size:12px;margin-bottom:6px">Sale/SaveSale · 지금은 보내지 않습니다 · 배송일자·배송현황·전달사항·출고박스는 이카운트 입력화면의 칸 이름(추가항목)을 확인한 뒤 연결합니다</div><pre class="sjson">${esc(JSON.stringify({ SaleList: saleBulk(en).map(b => ({ BulkDatas: b })) }, null, 1))}</pre><div class="sw-ma"><button type="button" class="btn" data-mclose>닫기</button></div>`); }
