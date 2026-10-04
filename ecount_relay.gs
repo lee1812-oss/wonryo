@@ -5,6 +5,9 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v3.7: 발주 회신(reply) — 확인·배송 안내·거래명세표를 거래처 주문서에 보여 줌 (orderDone에 reply)
+ * v3.7: 드라이브에서 단가표 가져오기(catDriveList · catDriveRead) — 내 드라이브의 「…단가표….json」 파일을 읽음
+ *       ※ 사진·단가표가 안 되면: 위 함수 목록에서 authorizeDrive 를 골라 ▷실행 → 권한 허용 (드라이브 권한은 배포만으로는 안 생김)
  * v3.6: 거래처 안내(신제품 출시 등) — 모든 주문서 맨 위에 보임, 기존 링크 그대로 (putNotices · getNotices)
  * v3.6: 단가표(카탈로그) — 거래처 주문서에서 빵을그리다 제품 전체를 보고 주문·샘플 신청 (putCatalog · getCatalog, 사진은 cat_<id>로 같은 사진 보관)
  * v3.5: 주문서 품목 사진 — 구글 드라이브 「빵을그리다 주문서 사진」 폴더에 품목코드.jpg로 보관(링크가 있는 사람 보기), orderForm에 그 주문서 품목의 사진 id를 함께 줌
@@ -25,6 +28,9 @@
  * 배포: 배포 → 배포 관리 → 연필(수정) → 버전 「새 버전」 → 배포  (주소는 그대로 유지)
  */
 
+// 드라이브 권한 받기 — 편집기에서 이 함수를 골라 ▷실행 하고 「허용」을 누르면 사진·단가표 가져오기가 됩니다
+function authorizeDrive() { DriveApp.getRootFolder(); imgDir_(); return 'ok'; }
+
 function doPost(e) {
   var out;
   try { out = handle_(JSON.parse((e && e.postData && e.postData.contents) || '{}')); }
@@ -33,7 +39,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3.6 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3.7 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -107,7 +113,11 @@ function catPut_(c) { var old = props_().getProperty(CAT_ + 'meta'); if (old) { 
 function noticesGet_() { try { return JSON.parse(props_().getProperty('ord:notices') || '[]'); } catch (e) { return []; } }
 function noticesLive_(im) { var t = ymdK_(); return noticesGet_().filter(function (n) { return n.on !== false && (!n.from || n.from <= t) && (!n.to || n.to >= t); }).map(function (n) { return { id: n.id, title: n.title, body: n.body || '', cat: n.cat || '', img: n.cat ? (im['cat_' + n.cat] || '') : '', from: n.from || '', pin: !!n.pin }; }); }
 function catPublic_(cat, im) { if (!cat || cat.on === false) return null; return { title: cat.title, items: (cat.items || []).filter(function (it) { return !it.hide; }).map(function (it) { return { id: it.id, grp: it.grp, name: it.name, spec: it.spec || '', pe: it.pe == null ? null : it.pe, pb: it.pb == null ? null : it.pb, bq: it.bq || null, unit: it.unit || 'Box', img: im['cat_' + it.id] || '' }; }) }; }
-function ordView_(o) { return { id: o.id, at: o.at, ship: o.ship, memo: o.memo || '', lines: o.lines, status: o.status, slip: o.slip || '', doneAt: o.doneAt || '', note: o.note || '' }; }
+function ordView_(o) { return { id: o.id, at: o.at, ship: o.ship, memo: o.memo || '', lines: o.lines, status: o.status, slip: o.slip || '', doneAt: o.doneAt || '', note: o.note || '', reply: o.reply || null }; }
+function reply_(old, r) { var o = old || {}, s = function (v, n) { return String(v == null ? '' : v).slice(0, n); };
+  if (r.msg != null) o.msg = s(r.msg, 400); if (r.st != null) o.st = s(r.st, 8); if (r.ship != null && /^\d{4}-\d{2}-\d{2}$/.test(r.ship)) o.ship = r.ship; if (r.dlv != null) o.dlv = s(r.dlv, 12); if (r.box != null) o.box = Math.max(0, Math.min(9999, Math.floor(Number(r.box) || 0)));
+  if (r.slip != null) o.slip = s(r.slip, 60); if (r.lines) { o.lines = r.lines.slice(0, 80).map(function (l) { return [s(l[0], 60), num_(l[1]), num_(l[2]), num_(l[3]), num_(l[4])]; }); o.sup = num_(r.sup); o.vat = num_(r.vat); }
+  o.at = new Date().toISOString(); return o; }
 
 function handle_(req) {
   // v3.2: 로그인 화면 — 아이디 하나의 잠긴 계정 값만 돌려줌 (열쇠 없이, 목록은 주지 않음)
@@ -159,7 +169,7 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 3.6, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 3.7, agentSeen: agentSeen_(), agentVer: agentVer_() };
   // v3.4: 주문 링크 관리 (통합재고관리)
   if (req.action === 'putOrderForm') { var t3 = tok_(req.t), f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
     var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3])]; }),
@@ -180,6 +190,12 @@ function handle_(req) {
   if (req.action === 'delItemImg') { var code7 = String(req.code || ''), map7 = imgMap_(); if (map7[code7]) { try { DriveApp.getFileById(map7[code7]).setTrashed(true); } catch (e) {} delete map7[code7]; props_().setProperty(IMG_MAP_, JSON.stringify(map7)); } return { ok: true }; }
   // v3.6: 단가표(카탈로그)
   if (req.action === 'getCatalog') return { ok: true, cat: catGet_() };
+  if (req.action === 'catDriveList') { var it9 = DriveApp.searchFiles("title contains '단가표' and trashed = false"), L9 = [];
+    while (it9.hasNext() && L9.length < 40) { var f9 = it9.next(); if (!/\.json$/i.test(f9.getName())) continue; L9.push({ id: f9.getId(), name: f9.getName(), at: f9.getLastUpdated().toISOString(), size: f9.getSize() }); }
+    L9.sort(function (a, b) { return a.at < b.at ? 1 : -1; }); return { ok: true, files: L9.slice(0, 10) }; }
+  if (req.action === 'catDriveRead') { var fr = DriveApp.getFileById(String(req.id || '')); if (fr.getSize() > 4000000) return { ok: false, error: '파일이 너무 큽니다' };
+    var jr; try { jr = JSON.parse(fr.getBlob().getDataAsString('UTF-8')); } catch (e) { return { ok: false, error: '단가표 파일을 읽지 못했습니다' }; }
+    if (!jr || jr.kind !== 'bggd-catalog') return { ok: false, error: '빵을그리다 단가표 파일이 아닙니다' }; return { ok: true, cat: jr, name: fr.getName() }; }
   if (req.action === 'getNotices') return { ok: true, notices: noticesGet_() };
   if (req.action === 'putNotices') { var ns = (req.notices || []).slice(0, 30).map(function (n) { return { id: String(n.id || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20), title: String(n.title || '').slice(0, 60), body: String(n.body || '').slice(0, 500), cat: String(n.cat || '').slice(0, 20), from: /^\d{4}-\d{2}-\d{2}$/.test(n.from || '') ? n.from : '', to: /^\d{4}-\d{2}-\d{2}$/.test(n.to || '') ? n.to : '', on: n.on !== false, pin: !!n.pin, at: String(n.at || new Date().toISOString()).slice(0, 30) }; }).filter(function (n) { return n.id && n.title; });
     var jsn = JSON.stringify(ns); if (jsn.length > 8800) return { ok: false, error: '안내가 너무 깁니다 — 오래된 안내를 지워 주세요' }; props_().setProperty('ord:notices', jsn); return { ok: true, n: ns.length }; }
@@ -194,7 +210,7 @@ function handle_(req) {
     return { ok: true, orders: ordList_(function (o) { return o.status === 'new' || new Date(o.at).getTime() >= since; }).slice(0, 200).map(function (o) { var v = ordView_(o); v.cust = o.cust; v.name = o.name; v.tok = o.tok; v.who = o.who || ''; return v; }) }; }
   if (req.action === 'orderDone') { var lk3 = LockService.getScriptLock(); lk3.waitLock(10000);
     try { var ov = props_().getProperty(ORD_ + String(req.id || '')); if (!ov) return { ok: false, error: '없는 주문입니다' }; var o3 = JSON.parse(ov);
-      if (req.status) o3.status = String(req.status).slice(0, 12); if (req.slip != null) o3.slip = String(req.slip).slice(0, 60); if (req.note != null) o3.note = String(req.note).slice(0, 200);
+      if (req.status) o3.status = String(req.status).slice(0, 12); if (req.slip != null) o3.slip = String(req.slip).slice(0, 60); if (req.note != null) o3.note = String(req.note).slice(0, 200); if (req.reply) o3.reply = reply_(o3.reply, req.reply);
       o3.doneAt = new Date().toISOString(); o3.by = String(req.by || '').slice(0, 30); props_().setProperty(ORD_ + o3.id, JSON.stringify(o3)); return { ok: true, order: ordView_(o3) }; } finally { lk3.releaseLock(); } }
   // 생산일지 설정 받기 (모든 기기)
   if (req.action === 'getCfg') { var meta = props_().getProperty('cfg:meta'); if (!meta) return { ok: true, cfg: null };
