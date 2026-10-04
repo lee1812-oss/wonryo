@@ -53,6 +53,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
 .sheet{position:fixed;inset:0;z-index:20;background:rgba(16,24,40,.45);display:flex;align-items:flex-end;justify-content:center}.sheet[hidden]{display:none}
 .sheet>div{background:#fff;width:100%;max-width:640px;border-radius:18px 18px 0 0;padding:18px 16px calc(16px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto}
 .sheet h3{margin:0 0 4px;font-size:17px}.sl{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0}.sl td{padding:7px 4px;border-bottom:1px solid var(--line2)}.sl td:last-child{text-align:right;font-weight:800;white-space:nowrap}
+.cfl{max-height:52vh;overflow:auto;margin:8px 0;border-top:1px solid var(--line2)}.cf{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line2)}.cf .cn{flex:1 1 auto;min-width:0;font-size:14px}.cf .cn b{display:block}.cf .cn span{display:block;font-size:12.5px;color:var(--ink2)}.cf .cn em{font-style:normal;color:var(--ink3)}.cf .st{flex:0 0 auto}.cx{flex:0 0 auto;width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:15px}.ctot{text-align:right;font-size:14px}.ctot span{display:block;font-size:12px;color:var(--ink3)}
 .sheet .btns{display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-top:12px}.sheet .btn{height:50px;font-size:16px}
 .note{font-size:12.5px;color:var(--warn);background:var(--warn-bg);border-radius:10px;padding:8px 10px;margin-bottom:12px;line-height:1.5}
 .err{color:var(--minus);font-size:13px;margin-top:6px}
@@ -104,7 +105,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   var norm = function (x) { return String(x || '').toLowerCase().replace(/[\s()·,./_-]/g, ''); };
   /* 장바구니 한 줄: 거래처 품목 「코드」, 단가표 제품 「cat:id」, 샘플 「cat:id|s」 */
   function ent(k) { if (k.indexOf('cat:') === 0) { var s2 = /\|s$/.test(k), id = k.slice(4).replace(/\|s$/, ''), c = CAT[id]; if (!c) return null; return { k: k, sub: s2 ? 's' : 'c', id: 'cat:' + id, name: c.name + (c.spec ? ' (' + c.spec + ')' : ''), img: c.img, price: s2 ? 0 : null, c: c }; }
-    var it = F.items.filter(function (x) { return x[0] === k; })[0]; return it ? { k: k, sub: '', id: k, name: it[1], img: (F.imgs || {})[k], price: it[2] } : null; }
+    var it = F.items.filter(function (x) { return x[0] === k; })[0]; return it ? { k: k, sub: '', id: k, name: it[1], img: (F.imgs || {})[k], price: it[2], pd: it[4] || '' } : null; }
   function picked() { return Object.keys(st.q).filter(function (k) { return st.q[k] > 0; }).map(ent).filter(Boolean); }
   function sumHtml() { var p = picked(), n = p.reduce(function (t, e) { return t + st.q[e.k]; }, 0), a = F.price ? p.reduce(function (t, e) { return t + (e.sub ? 0 : (e.price || 0) * st.q[e.k]); }, 0) : 0, ns = p.filter(function (e) { return e.sub === 's'; }).length;
     $('#sum').innerHTML = p.length ? '<b>' + p.length + '품목 · ' + n + '개' + (ns ? ' · 샘플 ' + ns : '') + '</b>' + (F.price ? '공급가 ' + won(a) + '원 (부가세 별도)' : (st.ship ? '배송 ' + esc(md(new Date(st.ship + 'T00:00:00Z'))) : '배송일을 고르세요')) : '<b>품목을 담아 주세요</b>수량을 넣으면 여기에 모입니다';
@@ -177,20 +178,29 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   }
   function sheet(html, wide) { if (!html) { $('#sheet').hidden = true; $('#sheet').classList.remove('wide'); return; } $('#sheetIn').innerHTML = html; $('#sheetIn').onclick = null; $('#sheet').classList.toggle('wide', !!wide); $('#sheet').hidden = false; }
   $('#sheet').onclick = function (e) { if (e.target.id === 'sheet') { var w = $('#sheet').classList.contains('wide'); sheet(); if (w) render(); } };
-  $('#go').onclick = function () { var p = picked(); if (!p.length || !st.ship) return; if (!cid) cid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    var a = F.price ? p.reduce(function (t, e) { return t + (e.sub ? 0 : (e.price || 0) * st.q[e.k]); }, 0) : 0;
-    sheet('<h3>주문을 확정할까요?</h3><div style="color:var(--ink2);font-size:14px">' + esc(F.name) + ' · 배송 <b>' + esc(md(new Date(st.ship + 'T00:00:00Z'))) + '</b></div><table class="sl">' + p.map(function (e) { return '<tr><td>' + (e.sub === 's' ? '<i class="tg smp">샘플</i> ' : e.sub === 'c' ? '<i class="tg cat">추가</i> ' : '') + esc(e.name) + '</td><td>' + st.q[e.k] + '</td></tr>'; }).join('') + '</table>' +
-      (F.price ? '<div style="text-align:right;font-size:14px">공급가 <b>' + won(a) + '원</b> <span style="color:var(--ink3)">(부가세 별도' + (p.some(function (e) { return e.sub === 'c'; }) ? ' · 추가 제품 제외' : '') + ')</span></div>' : '') + (st.memo ? '<div style="font-size:13px;color:var(--ink2);margin-top:6px">요청사항: ' + esc(st.memo) + '</div>' : '') +
-      '<div class="err" id="sErr"></div><div class="btns"><button class="btn" id="sBack">수정</button><button class="btn pri" id="sOk">주문 확정</button></div>');
-    $('#sBack').onclick = function () { sheet(); };
-    $('#sOk').onclick = function () { var b = $('#sOk'); b.disabled = true; b.textContent = '보내는 중…';
+  /* 주문 확정 화면 — 여기서 바로 수량 고치기·빼기. 단가는 이 거래처가 가장 최근에 산 날의 단가 */
+  function confirmSheet() { var p = picked(); if (!p.length || !st.ship) { sheet(); render(); return; }
+    var a = p.reduce(function (t, e) { return t + (e.sub ? 0 : (e.price || 0) * st.q[e.k]); }, 0), noP = p.some(function (e) { return !e.sub && e.price == null; });
+    sheet('<h3>주문을 확정할까요?</h3><div style="color:var(--ink2);font-size:14px">' + esc(F.name) + ' · 배송 <b>' + esc(md(new Date(st.ship + 'T00:00:00Z'))) + '</b> <span style="font-size:12px;color:var(--ink3)">여기서 바로 수량을 고치거나 뺄 수 있어요</span></div><div class="cfl">' +
+      p.map(function (e) { var q = st.q[e.k], pr = !e.sub && F.price && e.price != null;
+        return '<div class="cf"><div class="cn">' + (e.sub === 's' ? '<i class="tg smp">샘플</i> ' : e.sub === 'c' ? '<i class="tg cat">추가</i> ' : '') + '<b>' + esc(e.name) + '</b>' + (pr ? '<span>' + won(e.price) + '원' + (e.pd ? ' <em>(' + esc(e.pd.slice(5).replace('-', '/')) + ' 단가)</em>' : '') + ' · <b>' + won(e.price * q) + '원</b></span>' : e.sub === 's' ? '<span>샘플 · 무상</span>' : e.sub === 'c' ? '<span>단가는 확인 후 알려 드려요</span>' : '') + '</div>' +
+          '<div class="st"><button data-cd="-1" data-ck="' + esc(e.k) + '" aria-label="줄이기">−</button><input inputmode="numeric" data-ci="' + esc(e.k) + '" value="' + q + '" aria-label="' + esc(e.name) + ' 수량"><button data-cd="1" data-ck="' + esc(e.k) + '" aria-label="늘리기">+</button></div><button class="cx" data-cx="' + esc(e.k) + '" aria-label="' + esc(e.name) + ' 빼기">🗑</button></div>'; }).join('') + '</div>' +
+      (F.price ? '<div class="ctot">공급가 <b id="cTot">' + won(a) + '원</b> <span>부가세 ' + won(Math.round(a / 10)) + '원 별도' + (p.some(function (e) { return e.sub === 'c'; }) || noP ? ' · 단가 없는 품목 제외' : '') + '</span></div>' : '') + (st.memo ? '<div style="font-size:13px;color:var(--ink2);margin-top:6px">요청사항: ' + esc(st.memo) + '</div>' : '') +
+      '<div class="err" id="sErr"></div><div class="btns"><button class="btn" id="sBack">더 담기</button><button class="btn pri" id="sOk">주문 확정 (' + p.length + '품목)</button></div>');
+    var box = $('#sheetIn'), edit = function (k, v) { cid = ''; v = Math.max(0, Math.min(9999, Math.floor(Number(v) || 0))); if (v) st.q[k] = v; else delete st.q[k]; keep(); };
+    box.onclick = function (ev) { var b = ev.target.closest('[data-cd]'); if (b) { var k = b.getAttribute('data-ck'), nv = (st.q[k] || 0) + Number(b.getAttribute('data-cd')); if (nv < 1 && !confirm('이 품목을 뺄까요?')) return; edit(k, nv); confirmSheet(); return; }
+      var x = ev.target.closest('[data-cx]'); if (x) { edit(x.getAttribute('data-cx'), 0); confirmSheet(); } };
+    box.querySelectorAll('[data-ci]').forEach(function (i) { i.onchange = function () { i.value = i.value.replace(/[^\d]/g, ''); if (!(+i.value) && !confirm('수량이 0이면 이 품목을 뺍니다. 뺄까요?')) { i.value = st.q[i.getAttribute('data-ci')]; return; } edit(i.getAttribute('data-ci'), i.value); confirmSheet(); }; i.onfocus = function () { i.select(); }; });
+    $('#sBack').onclick = function () { sheet(); render(); };
+    $('#sOk').onclick = function () { var b = $('#sOk'); b.disabled = true; b.textContent = '보내는 중…'; if (!cid) cid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       call({ action: 'orderSubmit', t: T, cid: cid, ship: st.ship, memo: st.memo, who: st.who, lines: p.map(function (e) { return e.sub === 's' ? [e.id, st.q[e.k], 's'] : [e.id, st.q[e.k]]; }) }).then(function (r) {
         if (!r || !r.ok) throw new Error((r && r.error) || '주문을 보내지 못했습니다');
         cid = ''; var o = r.order; st.q = {}; st.memo = ''; keep(); ORD.unshift(o);
-        sheet('<div class="msg" style="padding:16px 4px"><b>✓ 주문이 접수되었습니다</b>배송 ' + esc(md(new Date(o.ship + 'T00:00:00Z'))) + ' · ' + o.lines.length + '품목<br>빵을그리다에서 확인하면 「확인 완료」로 바뀝니다.<br><span style="font-size:12px;color:var(--ink3)">주문번호 ' + esc(o.id) + '</span></div><button class="btn pri" id="sDone" style="width:100%;height:50px">확인</button>');
+        sheet('<div class="msg" style="padding:16px 4px"><b>✓ 주문이 접수되었습니다</b>배송 ' + esc(md(new Date(o.ship + 'T00:00:00Z'))) + ' · ' + o.lines.length + '품목<br>빵을그리다에서 확인하면 「발주 확인」으로 바뀝니다.<br><span style="font-size:12px;color:var(--ink3)">주문번호 ' + esc(o.id) + '</span></div><button class="btn pri" id="sDone" style="width:100%;height:50px">확인</button>');
         $('#sDone').onclick = function () { sheet(); render(); window.scrollTo(0, 0); };
       }).catch(function (er) { b.disabled = false; b.textContent = '다시 보내기'; $('#sErr').textContent = er.message + ' (같은 주문이 두 번 들어가지 않으니 다시 눌러도 됩니다)'; }); };
-  };
+  }
+  $('#go').onclick = confirmSheet;
   function fail(m) { $('#who').textContent = '주문서를 열 수 없습니다'; $('#app').innerHTML = '<div class="msg"><b>주문서를 열 수 없습니다</b>' + esc(m) + '<br><br>빵을그리다 ☎ 031-762-1533</div>'; }
   if (!T) { fail('주소가 올바르지 않습니다. 받으신 주문 링크를 다시 눌러 주세요.'); return; }
   load();
