@@ -1238,8 +1238,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '168';
-const APP_BUILT = '2026-10-05 06:10';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '169';
+const APP_BUILT = '2026-10-05 06:50';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -5384,6 +5384,7 @@ function saleDoSave() {
   const mode = X.cfg.mode || 'practice'; if (mode !== 'practice') { en.status = 'queued'; en.test = mode === 'test'; }
   if (D.replaces) { const old = X.log.find(e => e.id === D.replaces); if (old) en.replOld = { id: old.id, slip: old.slip || '', total: old.sup + old.vat, test: !!old.test, date: old.date, custName: old.custName }; X.log = X.log.filter(e => e.id !== D.replaces); }
   X.log = X.log.filter(e => e.id !== en.id); X.log.unshift(en); X.log = X.log.slice(0, 2000); if (en.dlv) { X.pref = X.pref || {}; X.pref[en.cust] = Object.assign(X.pref[en.cust] || {}, { dlv: en.dlv }); }
+  if (en.status === 'queued' && !en.test && (saleUi.ordForms || []).some(f => f.cust === en.cust)) { const pr = {}; en.lines.forEach(l => { if (l.price > 0) pr[l.code] = [l.price, en.ship || en.date]; }); prodRelayCall({ action: 'updFormPrices', cust: en.cust, prices: pr }).catch(() => {}); }   /* v169: 주문 링크 단가 = 가장 최근 판매 단가 */
   if (en.ordId) { const o0 = (saleUi.ord || []).find(o => o.id === en.ordId), rp = Object.assign(saleReplyOf(en), (o0 && o0.reply && o0.reply.st) ? {} : { st: 'ok' }, (o0 && o0.reply && o0.reply.msg) ? {} : { msg: saleReplyMsg(en.ship || en.date) }); saleOrdMark(en.ordId, { status: 'accepted', reply: rp }).then(() => saleOrdFetch(true)); }
   X.draft = { date: D.date, dateOn: today(), cust: '', lines: [], memo: '' }; saleUi.q = ''; saleUi.iq = ''; saleUi.step = 'c'; saleSave(); saleModal();
   renderSale(); if (en.status === 'queued') { toast(`${en.custName} ${saleWon(t.s + t.v)}원 — 이카운트로 보내는 중`); saleSend(en).then(() => { if (S.ui.menu === 'sale') saleRenderS(); }); } else toast(`${en.custName} ${saleWon(t.s + t.v)}원 저장 (연습)`); const q = $('#sQ'); if (q && window.innerWidth >= 900) q.focus();
@@ -5565,7 +5566,7 @@ function saleOrdEditor(form) {   /* form: 기존 링크(수정, 한 곳) 또는 
   const X = saleS(), ix = saleIndex(), has = new Set((saleUi.ordForms || []).map(f => f.cust));
   const custs = Object.keys(X.cust).map(c => ({ c, n: X.cust[c][0], x: (ix.C[c] || {}).n90 || 0, all: (ix.C[c] || {}).n || 0, last: (ix.C[c] || {}).last || '' })).filter(o => o.all > 0).sort((a, b) => b.x - a.x || b.all - a.all);
   const box = $('#soM'); const close = () => { box.hidden = true; box.innerHTML = ''; };
-  const st = { sel: new Set(form ? [form.cust] : []), q: '', dmode: 'auto', fdays: form ? form.days.slice() : [3, 5], lead: form ? form.lead : 1, cut: form ? form.cut : 15, price: !!(form && form.price), note: form ? form.note || '' : '', codes: null, onlyNew: true };
+  const st = { sel: new Set(form ? [form.cust] : []), q: '', dmode: 'auto', fdays: form ? form.days.slice() : [3, 5], lead: form ? form.lead : 1, cut: form ? form.cut : 15, price: form ? !!form.price : true, note: form ? form.note || '' : '', codes: null, onlyNew: true };
   const wdTxt = ds => ds.map(i => '일월화수목금토'[i]).join('·');
   const keepSettings = () => { const g = id => $('#' + id); if (g('soLead')) st.lead = +g('soLead').value; if (g('soCut')) st.cut = +g('soCut').value; if (g('soPrice')) st.price = g('soPrice').checked; if (g('soNote')) st.note = g('soNote').value;
     if ($$('#soM [data-sowd]').length) st.fdays = $$('#soM [data-sowd]').filter(c => c.checked).map(c => +c.dataset.sowd); if ($$('#soM [data-soit]').length) st.codes = $$('#soM [data-soit]').filter(c => c.checked).map(c => c.dataset.soit); };
@@ -5617,7 +5618,7 @@ function saleOrdEditor(form) {   /* form: 기존 링크(수정, 한 곳) 또는 
           const days = sel.length > 1 && !form && st.dmode === 'auto' ? d.days : st.fdays;
           const lastD = codes.reduce((m, cd) => { const y = cu.items[cd]; return y && y.last > m ? y.last : m; }, '');
           const t = form ? form.t : saleOrdTok();
-          const f = { cust, name: saleCustName(cust), items: codes.map(cd => { const y = cu.items[cd] || {}; return [cd, saleItemName(cd), y.price != null ? y.price : null, y.lastQty || null]; }), days, cut: st.cut, lead: st.lead, price: st.price, last: codes.filter(cd => cu.items[cd] && cu.items[cd].last === lastD).map(cd => [cd, cu.items[cd].lastQty || 0]), note: st.note.trim(), on: form ? form.on !== false : true };
+          const f = { cust, name: saleCustName(cust), items: codes.map(cd => { const y = cu.items[cd] || {}; return [cd, saleItemName(cd), y.price != null ? y.price : null, y.lastQty || null, y.pDate || '']; }), days, cut: st.cut, lead: st.lead, price: st.price, last: codes.filter(cd => cu.items[cd] && cu.items[cd].last === lastD).map(cd => [cd, cu.items[cd].lastQty || 0]), note: st.note.trim(), on: form ? form.on !== false : true };
           const r = await prodRelayCall({ action: 'putOrderForm', t, form: f }); if (!r || !r.ok) throw new Error((r && r.error) || '중계가 거절했습니다');
           X.ordCodes = X.ordCodes || {}; X.ordCodes[t] = codes; ok++;
         } catch (e) { fails.push(`${saleCustName(cust)}: ${/알 수 없는 요청/.test(e.message) ? '중계를 새 버전(3.4)으로 배포해야 합니다' : e.message}`); } }
