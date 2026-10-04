@@ -55,6 +55,21 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
 .note{font-size:12.5px;color:var(--warn);background:var(--warn-bg);border-radius:10px;padding:8px 10px;margin-bottom:12px;line-height:1.5}
 .err{color:var(--minus);font-size:13px;margin-top:6px}
 .foot{text-align:center;font-size:12px;color:var(--ink3);margin-top:16px}
+.ntc{display:flex;gap:12px;background:#FFF8E6;border:1px solid #F0D9A8;border-radius:14px;padding:12px;margin-bottom:12px}.ntc img{width:84px;height:84px;border-radius:10px;object-fit:cover;flex:0 0 auto;background:#fff}.ntc b{display:block;font-size:15px}.ntc p{margin:4px 0 0;font-size:13.5px;color:var(--ink2);white-space:pre-wrap;line-height:1.5}.ntc .nb{display:flex;gap:6px;margin-top:8px}
+.ntc-more{display:block;width:100%;text-align:left;font-size:12.5px;color:var(--ink2);padding:6px 4px;margin:-4px 0 8px}
+.btn.sm{height:32px;padding:0 10px;font-size:13px}.btn.smp{background:#FFF1D6;border-color:#E8C98E;color:#8A5A00}
+.card h2 .cat-open{margin-left:auto;height:32px;font-size:13px;color:var(--accent);border-color:var(--accent)}
+.sub-h{font-size:12px;font-weight:800;color:var(--ink3);margin:10px 0 2px}
+.tg.smp{background:#FFF1D6;color:#8A5A00}.tg.cat{background:#E6F0FB;color:#1F5FA8}
+.cgrid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:6px}.cgrid.big{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.cc{border:1px solid var(--line);border-radius:12px;padding:8px;background:#fff;display:flex;gap:10px;align-items:center}.cc.on{border-color:var(--accent);background:#F4FBF8}
+.cgrid.big .cc{flex-direction:column;align-items:stretch;gap:6px}.cgrid.big .cc .pic{width:100%;height:auto;aspect-ratio:1/1;border-radius:10px}
+.pic.none{display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink3);background:var(--bg)}.cc.sm .pic{width:56px;height:56px}
+.ci{min-width:0;flex:1 1 auto}.ci b{display:block;font-size:14px;line-height:1.3;word-break:keep-all}.ci span{display:block;font-size:12px;color:var(--ink3)}.ci em{display:block;font-style:normal;font-size:12.5px;color:#B23A1E;font-weight:700;margin-top:2px}.ci small{font-size:10.5px;color:var(--ink3)}
+.cb{display:flex;gap:6px;flex:0 0 auto}.cgrid.big .cb .btn{flex:1 1 0}.cc.sm .cb{flex-direction:column}
+.sheet.wide>div{max-width:900px;max-height:92vh}.cat-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}.cat-h h3{margin:0;flex:1 1 auto}.cat-h h3 span{font-size:12px;color:var(--ink3);font-weight:600}
+.cat-tabs{display:flex;gap:4px;margin-bottom:8px}.cat-tabs button{padding:7px 14px;border-radius:999px;border:1px solid var(--line);font-weight:700;font-size:13.5px}.cat-tabs button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.muted-s{font-size:12px;color:var(--ink3);margin-bottom:8px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -73,9 +88,9 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var IMG = function (id, w) { return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w' + (w || 200); };   /* 품목 사진: 구글 드라이브(중계가 보관) */
   var won = function (n) { return Math.round(n || 0).toLocaleString('ko-KR'); };
-  var LS = 'bggd_order_' + T.slice(0, 10), F = null, ORD = [], st = { q: {}, ship: '', memo: '', who: '', find: '' }, cid = '';
-  function load() { try { var o = JSON.parse(localStorage.getItem(LS) || 'null'); if (o) { st.q = o.q || {}; st.memo = o.memo || ''; st.who = o.who || ''; st.ship = o.ship || ''; } } catch (e) {} }
-  function keep() { try { localStorage.setItem(LS, JSON.stringify({ q: st.q, memo: st.memo, who: st.who, ship: st.ship })); } catch (e) {} }
+  var LS = 'bggd_order_' + T.slice(0, 10), F = null, ORD = [], st = { q: {}, ship: '', memo: '', who: '', find: '', seen: [] }, cid = '', CAT = {}, catGrp = '';
+  function load() { try { var o = JSON.parse(localStorage.getItem(LS) || 'null'); if (o) { st.q = o.q || {}; st.memo = o.memo || ''; st.who = o.who || ''; st.ship = o.ship || ''; st.seen = o.seen || []; } } catch (e) {} }
+  function keep() { try { localStorage.setItem(LS, JSON.stringify({ q: st.q, memo: st.memo, who: st.who, ship: st.ship, seen: st.seen })); } catch (e) {} }
   function call(body) { return fetch(RELAY, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) }).then(function (r) { return r.json(); }); }
   function ymd(d) { return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
   /* 주문 가능한 배송일: 허용 요일 · (배송일 - lead일) cut시(한국 시각) 전 — 중계와 같은 규칙 */
@@ -84,44 +99,81 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
       var dl = Date.UTC(y, m, d0 + i - (F.lead || 0), F.cut == null ? 15 : F.cut) - 9 * 3600000; if (now < dl) out.push({ v: ymd(d), d: d, dl: new Date(dl + 9 * 3600000) }); }
     return out; }
   function md(d) { return (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + '(' + WD[d.getUTCDay()] + ')'; }
-  function picked() { return F.items.filter(function (it) { return (st.q[it[0]] || 0) > 0; }); }
-  function sumHtml() { var p = picked(), n = p.reduce(function (t, it) { return t + st.q[it[0]]; }, 0), a = F.price ? p.reduce(function (t, it) { return t + (it[2] || 0) * st.q[it[0]]; }, 0) : 0;
-    $('#sum').innerHTML = p.length ? '<b>' + p.length + '품목 · ' + n + '개</b>' + (F.price ? '공급가 ' + won(a) + '원 (부가세 별도)' : (st.ship ? '배송 ' + esc(md(new Date(st.ship + 'T00:00:00Z'))) : '배송일을 고르세요')) : '<b>품목을 담아 주세요</b>수량을 넣으면 여기에 모입니다';
+  var norm = function (x) { return String(x || '').toLowerCase().replace(/[\s()·,./_-]/g, ''); };
+  /* 장바구니 한 줄: 거래처 품목 「코드」, 단가표 제품 「cat:id」, 샘플 「cat:id|s」 */
+  function ent(k) { if (k.indexOf('cat:') === 0) { var s2 = /\|s$/.test(k), id = k.slice(4).replace(/\|s$/, ''), c = CAT[id]; if (!c) return null; return { k: k, sub: s2 ? 's' : 'c', id: 'cat:' + id, name: c.name + (c.spec ? ' (' + c.spec + ')' : ''), img: c.img, price: s2 ? 0 : null, c: c }; }
+    var it = F.items.filter(function (x) { return x[0] === k; })[0]; return it ? { k: k, sub: '', id: k, name: it[1], img: (F.imgs || {})[k], price: it[2] } : null; }
+  function picked() { return Object.keys(st.q).filter(function (k) { return st.q[k] > 0; }).map(ent).filter(Boolean); }
+  function sumHtml() { var p = picked(), n = p.reduce(function (t, e) { return t + st.q[e.k]; }, 0), a = F.price ? p.reduce(function (t, e) { return t + (e.sub ? 0 : (e.price || 0) * st.q[e.k]); }, 0) : 0, ns = p.filter(function (e) { return e.sub === 's'; }).length;
+    $('#sum').innerHTML = p.length ? '<b>' + p.length + '품목 · ' + n + '개' + (ns ? ' · 샘플 ' + ns : '') + '</b>' + (F.price ? '공급가 ' + won(a) + '원 (부가세 별도)' : (st.ship ? '배송 ' + esc(md(new Date(st.ship + 'T00:00:00Z'))) : '배송일을 고르세요')) : '<b>품목을 담아 주세요</b>수량을 넣으면 여기에 모입니다';
     $('#go').disabled = !p.length || !st.ship; }
+  function row(k, name, sub, img, tag) { var v = st.q[k] || 0;
+    return '<div class="it' + (v ? ' on' : '') + '">' + (img ? '<button class="pic" data-pic="' + esc(img) + '" data-nm="' + esc(name) + '" aria-label="' + esc(name) + ' 사진 크게"><img src="' + IMG(img, 160) + '" alt="" loading="lazy"></button>' : '') + '<div class="nm"><b>' + (tag || '') + esc(name) + '</b><span>' + sub + '</span></div><div class="st"><button data-d="-1" data-c="' + esc(k) + '" aria-label="줄이기">−</button><input inputmode="numeric" data-c="' + esc(k) + '" value="' + (v || '') + '" placeholder="0" aria-label="' + esc(name) + ' 수량"><button data-d="1" data-c="' + esc(k) + '" aria-label="늘리기">+</button></div></div>'; }
+  function catPrice(c) { return (c.pe != null ? '개당 ' + won(c.pe) + '원' : '') + (c.pb != null ? (c.pe != null ? ' · ' : '') + esc(c.unit || 'Box') + (c.bq ? '(' + c.bq + 'ea)' : '') + ' ' + won(c.pb) + '원' : ''); }
+  function catCard(c, small) { var kq = st.q['cat:' + c.id] || 0, ks = st.q['cat:' + c.id + '|s'] || 0;
+    return '<div class="cc' + (small ? ' sm' : '') + (kq || ks ? ' on' : '') + '" id="cc_' + esc(c.id) + '">' + (c.img ? '<button class="pic" data-pic="' + esc(c.img) + '" data-nm="' + esc(c.name) + '"><img src="' + IMG(c.img, small ? 160 : 400) + '" alt="" loading="lazy"></button>' : '<div class="pic none">사진 준비 중</div>') +
+      '<div class="ci"><b>' + esc(c.name) + '</b><span>' + esc(c.spec || '') + '</span><em>' + catPrice(c) + '</em>' + (c.pe != null || c.pb != null ? '<small>VAT 별도 · 단가표 기준</small>' : '') + '</div>' +
+      '<div class="cb"><button class="btn sm' + (kq ? ' pri' : '') + '" data-cadd="' + esc(c.id) + '">' + (kq ? '담음 ' + kq : '담기') + '</button><button class="btn sm' + (ks ? ' smp' : '') + '" data-csmp="' + esc(c.id) + '">' + (ks ? '✓ 샘플' : '샘플 신청') + '</button></div></div>'; }
+  function noticesHtml() { var N = (F.notices || []).filter(function (n) { return st.seen.indexOf(n.id) < 0 || n.pin; }), hid = (F.notices || []).length - N.length;
+    return (N.length ? N.map(function (n) { var c = n.cat && CAT[n.cat]; return '<section class="ntc">' + (c && c.img ? '<img src="' + IMG(c.img, 300) + '" alt="">' : '') + '<div><b>📢 ' + esc(n.title) + '</b>' + (n.body ? '<p>' + esc(n.body) + '</p>' : '') + '<div class="nb">' + (c ? '<button class="btn sm pri" data-ncat="' + esc(n.cat) + '">제품 보기</button>' : '') + (n.pin ? '' : '<button class="btn sm" data-nx="' + esc(n.id) + '">닫기</button>') + '</div></div></section>'; }).join('') : '') +
+      (hid > 0 ? '<button class="ntc-more" id="ntcAll">📢 지난 안내 ' + hid + '개 다시 보기</button>' : ''); }
   function render() {
     var days = shipDays(); if (!days.some(function (x) { return x.v === st.ship; })) st.ship = days[0] ? days[0].v : '';
-    var q = st.find.trim().toLowerCase().replace(/\s/g, ''), list = F.items.filter(function (it) { return !q || String(it[1]).toLowerCase().replace(/\s/g, '').indexOf(q) >= 0 || String(it[0]).toLowerCase().indexOf(q) >= 0; });
+    var q = norm(st.find), list = F.items.filter(function (it) { return !q || norm(it[1]).indexOf(q) >= 0 || norm(it[0]).indexOf(q) >= 0; });
+    var catAll = Object.keys(CAT).map(function (id) { return CAT[id]; }), catHit = q ? catAll.filter(function (c) { return norm(c.name + c.spec).indexOf(q) >= 0; }) : [];
+    var extra = Object.keys(st.q).filter(function (k) { return k.indexOf('cat:') === 0 && st.q[k] > 0; }).map(ent).filter(Boolean);
     var hasLast = (F.last || []).some(function (x) { return x[1] > 0; });
-    $('#app').innerHTML = (F.note ? '<div class="note">' + esc(F.note) + '</div>' : '') +
+    $('#app').innerHTML = noticesHtml() + (F.note ? '<div class="note">' + esc(F.note) + '</div>' : '') +
       '<section class="card"><h2>배송일 <span>' + (days.length ? '마감 전 날짜만 고를 수 있어요' : '') + '</span></h2>' + (days.length ? '<div class="days">' + days.map(function (x) { return '<button class="day' + (x.v === st.ship ? ' on' : '') + '" data-day="' + x.v + '"><b>' + md(x.d) + '</b><i>' + (x.dl.getUTCMonth() + 1) + '/' + x.dl.getUTCDate() + ' ' + x.dl.getUTCHours() + '시 마감</i></button>'; }).join('') + '</div>' : '<div class="err">지금 고를 수 있는 배송일이 없습니다 — 빵을그리다에 문의해 주세요</div>') + '</section>' +
-      '<section class="card"><h2>품목 <span>' + F.items.length + '가지</span></h2><div class="tools">' + (F.items.length > 10 ? '<input id="find" placeholder="품목 찾기" value="' + esc(st.find) + '">' : '<span style="flex:1"></span>') + (hasLast ? '<button class="btn" id="last">지난번과 같이</button>' : '') + (picked().length ? '<button class="btn" id="clr">비우기</button>' : '') + '</div>' +
-      '<div id="items">' + list.map(function (it) { var v = st.q[it[0]] || 0; var im = (F.imgs || {})[it[0]]; return '<div class="it' + (v ? ' on' : '') + '">' + (im ? '<button class="pic" data-pic="' + esc(im) + '" data-nm="' + esc(it[1]) + '" aria-label="' + esc(it[1]) + ' 사진 크게"><img src="' + IMG(im, 160) + '" alt="" loading="lazy"></button>' : '') + '<div class="nm"><b>' + esc(it[1]) + '</b><span>' + (F.price && it[2] != null ? won(it[2]) + '원' : '') + (it[3] ? (F.price && it[2] != null ? ' · ' : '') + '지난번 ' + it[3] : '') + '</span></div><div class="st"><button data-d="-1" data-c="' + esc(it[0]) + '" aria-label="줄이기">−</button><input inputmode="numeric" data-c="' + esc(it[0]) + '" value="' + (v || '') + '" placeholder="0" aria-label="' + esc(it[1]) + ' 수량"><button data-d="1" data-c="' + esc(it[0]) + '" aria-label="늘리기">+</button></div></div>'; }).join('') + (list.length ? '' : '<div class="msg">찾는 품목이 없습니다</div>') + '</div></section>' +
-      '<section class="card"><h2>요청사항 <span>선택</span></h2><textarea id="memo" placeholder="예: 오전 배송 부탁드려요">' + esc(st.memo) + '</textarea><div class="row2"><label for="whoIn">주문하시는 분</label><input id="whoIn" value="' + esc(st.who) + '" placeholder="이름 (선택)"></div></section>' +
+      '<section class="card"><h2>품목 <span>' + F.items.length + '가지</span>' + (catAll.length ? '<button class="btn sm cat-open" id="catOpen">＋ 빵을그리다 제품 보기</button>' : '') + '</h2><div class="tools"><input id="find" placeholder="' + (catAll.length ? '품목·제품 찾기 (전체 제품 포함)' : '품목 찾기') + '" value="' + esc(st.find) + '">' + (hasLast ? '<button class="btn" id="last">지난번과 같이</button>' : '') + (picked().length ? '<button class="btn" id="clr">비우기</button>' : '') + '</div>' +
+      '<div id="items">' + (extra.length ? '<div class="sub-h">추가한 제품</div>' + extra.map(function (e) { return row(e.k, e.name, e.sub === 's' ? '샘플 신청' : catPrice(e.c), e.img, e.sub === 's' ? '<i class="tg smp">샘플</i> ' : '<i class="tg cat">추가</i> '); }).join('') + '<div class="sub-h">' + esc(F.name) + ' 품목</div>' : '') +
+        list.map(function (it) { return row(it[0], it[1], (F.price && it[2] != null ? won(it[2]) + '원' : '') + (it[3] ? (F.price && it[2] != null ? ' · ' : '') + '지난번 ' + it[3] : ''), (F.imgs || {})[it[0]]); }).join('') +
+        (q && !list.length && !catHit.length ? '<div class="msg">찾는 품목이 없습니다</div>' : '') +
+        (catHit.length ? '<div class="sub-h">빵을그리다 전체 제품에서 찾음 ' + catHit.length + '</div><div class="cgrid">' + catHit.map(function (c) { return catCard(c, true); }).join('') + '</div>' : '') + '</div></section>' +
+      '<section class="card"><h2>요청사항 <span>선택</span></h2><textarea id="memo" placeholder="예: 오전 배송 부탁드려요 · 샘플 받아 보고 싶어요">' + esc(st.memo) + '</textarea><div class="row2"><label for="whoIn">주문하시는 분</label><input id="whoIn" value="' + esc(st.who) + '" placeholder="이름 (선택)"></div></section>' +
       (ORD.length ? '<section class="card"><h2>최근 주문</h2>' + ORD.map(function (o) { var s = o.status === 'new' ? '<i class="tg new">접수됨</i>' : o.status === 'reject' ? '<i class="tg bad">반려</i>' : o.slip ? '<i class="tg ok">출고 준비 (전표 ' + esc(o.slip) + ')</i>' : '<i class="tg ok">확인 완료</i>';
-        return '<div class="ord"><div class="h"><b>배송 ' + esc(md(new Date(o.ship + 'T00:00:00Z'))) + '</b>' + s + '</div><div class="l">' + o.lines.map(function (l) { return esc(l[1]) + ' ' + l[2]; }).join(' · ') + '</div><div class="l">' + esc(new Date(o.at).toLocaleString('ko-KR')) + ' 주문' + (o.note ? ' · ' + esc(o.note) : '') + '</div></div>'; }).join('') + '</section>' : '') +
+        return '<div class="ord"><div class="h"><b>배송 ' + esc(md(new Date(o.ship + 'T00:00:00Z'))) + '</b>' + s + '</div><div class="l">' + o.lines.map(function (l) { return esc(l[1]) + ' ' + l[2] + (l[3] === 's' ? '(샘플)' : ''); }).join(' · ') + '</div><div class="l">' + esc(new Date(o.at).toLocaleString('ko-KR')) + ' 주문' + (o.note ? ' · ' + esc(o.note) : '') + '</div></div>'; }).join('') + '</section>' : '') +
       '<div class="foot">빵을그리다(주) · ☎ 031-762-1533<br>이 주소는 거래처 전용입니다. 다른 곳에 공유하지 마세요.</div>';
     $('#bar').hidden = false; sumHtml(); bind(); }
   function setQ(c, v) { v = Math.max(0, Math.min(9999, Math.floor(Number(v) || 0))); if (v) st.q[c] = v; else delete st.q[c]; keep();
     var inp = document.querySelector('#items input[data-c="' + CSS.escape(c) + '"]'); if (inp && document.activeElement !== inp) inp.value = v || ''; if (inp) inp.closest('.it').classList.toggle('on', !!v); sumHtml(); }
+  function picSheet(id, nm) { sheet('<img src="' + IMG(id, 1000) + '" alt="" style="width:100%;border-radius:12px;background:#f3f3f3"><div style="font-weight:800;margin:10px 2px">' + esc(nm) + '</div><button class="btn" style="width:100%;height:46px" id="picX">닫기</button>'); $('#picX').onclick = function () { sheet(); }; }
+  function catToggle(id, smp) { var k = 'cat:' + id + (smp ? '|s' : ''); if (smp) { if (st.q[k]) delete st.q[k]; else st.q[k] = 1; } else st.q[k] = (st.q[k] || 0) + 1; keep(); }
+  function catSheet(focus) { var all = Object.keys(CAT).map(function (id) { return CAT[id]; }), grps = []; all.forEach(function (c) { if (grps.indexOf(c.grp) < 0) grps.push(c.grp); });
+    if (focus && CAT[focus]) catGrp = CAT[focus].grp; if (grps.indexOf(catGrp) < 0) catGrp = grps[0] || '';
+    var L = all.filter(function (c) { return c.grp === catGrp; });
+    sheet('<div class="cat-h"><h3>빵을그리다 제품 <span>' + esc((F.cat && F.cat.title) || '') + '</span></h3><button class="btn sm" id="catX">다 골랐어요</button></div>' + (grps.length > 1 ? '<div class="cat-tabs">' + grps.map(function (g) { return '<button class="' + (g === catGrp ? 'on' : '') + '" data-cg="' + esc(g) + '">' + esc(g) + '</button>'; }).join('') + '</div>' : '') +
+      '<div class="muted-s">「담기」는 이번 주문에 넣고, 「샘플 신청」은 맛보기로 받아 볼 제품입니다. 단가는 VAT 별도 단가표 기준이며 거래처마다 다를 수 있습니다.</div><div class="cgrid big">' + L.map(function (c) { return catCard(c); }).join('') + '</div>', true);
+    var box = $('#sheetIn'); $('#catX').onclick = function () { sheet(); render(); };
+    box.onclick = function (e) { var t = e.target, b; if ((b = t.closest('[data-cg]'))) { catGrp = b.getAttribute('data-cg'); catSheet(); return; }
+      if ((b = t.closest('[data-pic]'))) { var keepG = catGrp; picSheet(b.getAttribute('data-pic'), b.getAttribute('data-nm')); $('#picX').onclick = function () { catGrp = keepG; catSheet(); }; return; }
+      if ((b = t.closest('[data-cadd]')) || (b = t.closest('[data-csmp]'))) { var id = b.getAttribute('data-cadd') || b.getAttribute('data-csmp'); catToggle(id, !!b.getAttribute('data-csmp')); var card = document.getElementById('cc_' + id); if (card) card.outerHTML = catCard(CAT[id]); sumHtml(); } };
+    if (focus) setTimeout(function () { var el = document.getElementById('cc_' + focus); if (el) el.scrollIntoView({ block: 'center' }); }, 50); }
   function bind() {
     document.querySelectorAll('[data-day]').forEach(function (b) { b.onclick = function () { st.ship = b.getAttribute('data-day'); keep(); document.querySelectorAll('[data-day]').forEach(function (x) { x.classList.toggle('on', x === b); }); sumHtml(); }; });
-    var items = $('#items'); items.onclick = function (e) { var pc = e.target.closest('button[data-pic]'); if (pc) { sheet('<img src="' + IMG(pc.getAttribute('data-pic'), 1000) + '" alt="" style="width:100%;border-radius:12px;background:#f3f3f3"><div style="font-weight:800;margin:10px 2px">' + esc(pc.getAttribute('data-nm')) + '</div><button class="btn" style="width:100%;height:46px" id="picX">닫기</button>'); $('#picX').onclick = function () { sheet(); }; return; } var b = e.target.closest('button[data-d]'); if (!b) return; var c = b.getAttribute('data-c'); setQ(c, (st.q[c] || 0) + Number(b.getAttribute('data-d'))); };
+    var items = $('#items'); items.onclick = function (e) { var t = e.target, pc = t.closest('button[data-pic]'); if (pc) { picSheet(pc.getAttribute('data-pic'), pc.getAttribute('data-nm')); return; }
+      var cb = t.closest('[data-cadd]') || t.closest('[data-csmp]'); if (cb) { catToggle(cb.getAttribute('data-cadd') || cb.getAttribute('data-csmp'), !!cb.getAttribute('data-csmp')); render(); return; }
+      var b = t.closest('button[data-d]'); if (!b) return; var c = b.getAttribute('data-c'); setQ(c, (st.q[c] || 0) + Number(b.getAttribute('data-d'))); };
     items.oninput = function (e) { var i = e.target; if (!i.matches('input[data-c]')) return; i.value = i.value.replace(/[^\d]/g, ''); setQ(i.getAttribute('data-c'), i.value); };
     if ($('#find')) $('#find').oninput = function (e) { st.find = e.target.value; var pos = e.target.selectionStart; render(); var f = $('#find'); f.focus(); try { f.setSelectionRange(pos, pos); } catch (er) {} };
+    if ($('#catOpen')) $('#catOpen').onclick = function () { catSheet(); };
     if ($('#last')) $('#last').onclick = function () { (F.last || []).forEach(function (x) { if (x[1] > 0 && F.items.some(function (it) { return it[0] === x[0]; })) st.q[x[0]] = x[1]; }); keep(); render(); };
     if ($('#clr')) $('#clr').onclick = function () { if (!confirm('담은 수량을 모두 지울까요?')) return; st.q = {}; keep(); render(); };
     $('#memo').oninput = function (e) { st.memo = e.target.value; keep(); }; $('#whoIn').oninput = function (e) { st.who = e.target.value; keep(); };
+    document.querySelectorAll('[data-nx]').forEach(function (b) { b.onclick = function () { st.seen.push(b.getAttribute('data-nx')); keep(); render(); }; });
+    document.querySelectorAll('[data-ncat]').forEach(function (b) { b.onclick = function () { catSheet(b.getAttribute('data-ncat')); }; });
+    if ($('#ntcAll')) $('#ntcAll').onclick = function () { st.seen = []; keep(); render(); };
   }
-  function sheet(html) { if (!html) { $('#sheet').hidden = true; return; } $('#sheetIn').innerHTML = html; $('#sheet').hidden = false; }
-  $('#sheet').onclick = function (e) { if (e.target.id === 'sheet') sheet(); };
+  function sheet(html, wide) { if (!html) { $('#sheet').hidden = true; $('#sheet').classList.remove('wide'); return; } $('#sheetIn').innerHTML = html; $('#sheetIn').onclick = null; $('#sheet').classList.toggle('wide', !!wide); $('#sheet').hidden = false; }
+  $('#sheet').onclick = function (e) { if (e.target.id === 'sheet') { var w = $('#sheet').classList.contains('wide'); sheet(); if (w) render(); } };
   $('#go').onclick = function () { var p = picked(); if (!p.length || !st.ship) return; if (!cid) cid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    var a = F.price ? p.reduce(function (t, it) { return t + (it[2] || 0) * st.q[it[0]]; }, 0) : 0;
-    sheet('<h3>주문을 확정할까요?</h3><div style="color:var(--ink2);font-size:14px">' + esc(F.name) + ' · 배송 <b>' + esc(md(new Date(st.ship + 'T00:00:00Z'))) + '</b></div><table class="sl">' + p.map(function (it) { return '<tr><td>' + esc(it[1]) + '</td><td>' + st.q[it[0]] + '</td></tr>'; }).join('') + '</table>' +
-      (F.price ? '<div style="text-align:right;font-size:14px">공급가 <b>' + won(a) + '원</b> <span style="color:var(--ink3)">(부가세 별도)</span></div>' : '') + (st.memo ? '<div style="font-size:13px;color:var(--ink2);margin-top:6px">요청사항: ' + esc(st.memo) + '</div>' : '') +
+    var a = F.price ? p.reduce(function (t, e) { return t + (e.sub ? 0 : (e.price || 0) * st.q[e.k]); }, 0) : 0;
+    sheet('<h3>주문을 확정할까요?</h3><div style="color:var(--ink2);font-size:14px">' + esc(F.name) + ' · 배송 <b>' + esc(md(new Date(st.ship + 'T00:00:00Z'))) + '</b></div><table class="sl">' + p.map(function (e) { return '<tr><td>' + (e.sub === 's' ? '<i class="tg smp">샘플</i> ' : e.sub === 'c' ? '<i class="tg cat">추가</i> ' : '') + esc(e.name) + '</td><td>' + st.q[e.k] + '</td></tr>'; }).join('') + '</table>' +
+      (F.price ? '<div style="text-align:right;font-size:14px">공급가 <b>' + won(a) + '원</b> <span style="color:var(--ink3)">(부가세 별도' + (p.some(function (e) { return e.sub === 'c'; }) ? ' · 추가 제품 제외' : '') + ')</span></div>' : '') + (st.memo ? '<div style="font-size:13px;color:var(--ink2);margin-top:6px">요청사항: ' + esc(st.memo) + '</div>' : '') +
       '<div class="err" id="sErr"></div><div class="btns"><button class="btn" id="sBack">수정</button><button class="btn pri" id="sOk">주문 확정</button></div>');
     $('#sBack').onclick = function () { sheet(); };
     $('#sOk').onclick = function () { var b = $('#sOk'); b.disabled = true; b.textContent = '보내는 중…';
-      call({ action: 'orderSubmit', t: T, cid: cid, ship: st.ship, memo: st.memo, who: st.who, lines: p.map(function (it) { return [it[0], st.q[it[0]]]; }) }).then(function (r) {
+      call({ action: 'orderSubmit', t: T, cid: cid, ship: st.ship, memo: st.memo, who: st.who, lines: p.map(function (e) { return e.sub === 's' ? [e.id, st.q[e.k], 's'] : [e.id, st.q[e.k]]; }) }).then(function (r) {
         if (!r || !r.ok) throw new Error((r && r.error) || '주문을 보내지 못했습니다');
         cid = ''; var o = r.order; st.q = {}; st.memo = ''; keep(); ORD.unshift(o);
         sheet('<div class="msg" style="padding:16px 4px"><b>✓ 주문이 접수되었습니다</b>배송 ' + esc(md(new Date(o.ship + 'T00:00:00Z'))) + ' · ' + o.lines.length + '품목<br>빵을그리다에서 확인하면 「확인 완료」로 바뀝니다.<br><span style="font-size:12px;color:var(--ink3)">주문번호 ' + esc(o.id) + '</span></div><button class="btn pri" id="sDone" style="width:100%;height:50px">확인</button>');
@@ -132,7 +184,8 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   if (!T) { fail('주소가 올바르지 않습니다. 받으신 주문 링크를 다시 눌러 주세요.'); return; }
   load();
   call({ action: 'orderForm', t: T }).then(function (r) { if (!r || !r.ok) return fail((r && r.error) || '잠시 뒤 다시 열어 주세요.'); F = r.form; ORD = r.orders || []; $('#who').textContent = F.name; document.title = F.name + ' · 빵을그리다 주문서';
-    Object.keys(st.q).forEach(function (c) { if (!F.items.some(function (it) { return it[0] === c; })) delete st.q[c]; }); render(); })
+    CAT = {}; ((F.cat && F.cat.items) || []).forEach(function (c) { CAT[c.id] = c; });
+    Object.keys(st.q).forEach(function (c) { if (!ent(c)) delete st.q[c]; }); render(); })
     .catch(function () { fail('인터넷 연결을 확인하고 다시 열어 주세요.'); });
 })();
 </script>

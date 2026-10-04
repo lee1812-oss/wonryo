@@ -5,6 +5,8 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v3.6: 거래처 안내(신제품 출시 등) — 모든 주문서 맨 위에 보임, 기존 링크 그대로 (putNotices · getNotices)
+ * v3.6: 단가표(카탈로그) — 거래처 주문서에서 빵을그리다 제품 전체를 보고 주문·샘플 신청 (putCatalog · getCatalog, 사진은 cat_<id>로 같은 사진 보관)
  * v3.5: 주문서 품목 사진 — 구글 드라이브 「빵을그리다 주문서 사진」 폴더에 품목코드.jpg로 보관(링크가 있는 사람 보기), orderForm에 그 주문서 품목의 사진 id를 함께 줌
  *       (처음 배포할 때 「구글 드라이브」 사용을 허용해야 합니다)
  * v3.4: 거래처 주문 링크 — 거래처마다 비밀 토큰으로 주문서(orderForm)를 열고 주문(orderSubmit)을 넣음 (열쇠 없이, 토큰 한 곳의 자료만)
@@ -31,7 +33,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3.5 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3.6 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -96,6 +98,15 @@ var IMG_MAP_ = 'oimg:map', IMG_DIR_ = 'oimg:folder';
 function imgMap_() { try { return JSON.parse(props_().getProperty(IMG_MAP_) || '{}'); } catch (e) { return {}; } }
 function imgDir_() { var id = props_().getProperty(IMG_DIR_); if (id) { try { return DriveApp.getFolderById(id); } catch (e) {} }
   var f = DriveApp.createFolder('빵을그리다 주문서 사진'); f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); props_().setProperty(IMG_DIR_, f.getId()); return f; }
+var CAT_ = 'cat:';
+function catGet_() { var meta = props_().getProperty(CAT_ + 'meta'); if (!meta) return null; var m = JSON.parse(meta), parts = []; for (var i = 0; i < m.n; i++) parts.push(props_().getProperty(CAT_ + i) || '');
+  try { m.items = JSON.parse(parts.join('') || '[]'); } catch (e) { m.items = []; } return m; }
+function catPut_(c) { var old = props_().getProperty(CAT_ + 'meta'); if (old) { var om = JSON.parse(old); for (var i = 0; i < om.n; i++) props_().deleteProperty(CAT_ + i); }
+  var js = JSON.stringify(c.items || []), n = 0; for (var p = 0; p < js.length; p += 8000) { props_().setProperty(CAT_ + n, js.slice(p, p + 8000)); n++; }
+  props_().setProperty(CAT_ + 'meta', JSON.stringify({ n: n, title: String(c.title || '').slice(0, 60), on: c.on !== false, at: new Date().toISOString() })); }
+function noticesGet_() { try { return JSON.parse(props_().getProperty('ord:notices') || '[]'); } catch (e) { return []; } }
+function noticesLive_(im) { var t = ymdK_(); return noticesGet_().filter(function (n) { return n.on !== false && (!n.from || n.from <= t) && (!n.to || n.to >= t); }).map(function (n) { return { id: n.id, title: n.title, body: n.body || '', cat: n.cat || '', img: n.cat ? (im['cat_' + n.cat] || '') : '', from: n.from || '', pin: !!n.pin }; }); }
+function catPublic_(cat, im) { if (!cat || cat.on === false) return null; return { title: cat.title, items: (cat.items || []).filter(function (it) { return !it.hide; }).map(function (it) { return { id: it.id, grp: it.grp, name: it.name, spec: it.spec || '', pe: it.pe == null ? null : it.pe, pb: it.pb == null ? null : it.pb, bq: it.bq || null, unit: it.unit || 'Box', img: im['cat_' + it.id] || '' }; }) }; }
 function ordView_(o) { return { id: o.id, at: o.at, ship: o.ship, memo: o.memo || '', lines: o.lines, status: o.status, slip: o.slip || '', doneAt: o.doneAt || '', note: o.note || '' }; }
 
 function handle_(req) {
@@ -107,7 +118,7 @@ function handle_(req) {
     var f1 = JSON.parse(fv); if (f1.on === false) return { ok: false, error: '이 주문 링크는 지금 사용이 멈춰 있습니다 — 빵을그리다에 문의해 주세요' };
     var mine = ordList_(function (o) { return o.tok === t1; }).slice(0, 10).map(ordView_);
     var im1 = imgMap_(), imgs = {}; (f1.items || []).forEach(function (it) { if (im1[it[0]]) imgs[it[0]] = im1[it[0]]; });
-    return { ok: true, form: { name: f1.name, items: f1.items, days: f1.days, cut: f1.cut, lead: f1.lead, price: !!f1.price, last: f1.last || [], note: f1.note || '', imgs: imgs }, orders: mine, now: new Date().toISOString() }; }
+    return { ok: true, form: { name: f1.name, items: f1.items, days: f1.days, cut: f1.cut, lead: f1.lead, price: !!f1.price, last: f1.last || [], note: f1.note || '', imgs: imgs, cat: f1.cat === false ? null : catPublic_(catGet_(), im1), notices: noticesLive_(im1) }, orders: mine, now: new Date().toISOString() }; }
   // v3.4: 거래처 주문 넣기 — 품목은 그 주문서에 있는 것만, 수량 1~9999, 배송일·마감 확인, 같은 cid는 한 번만, 하루 30건까지
   if (req.action === 'orderSubmit') { var t2 = tok_(req.t); var fv2 = t2 && props_().getProperty(ORDF_ + t2); if (!fv2) return { ok: false, error: '주문 링크가 맞지 않습니다' };
     var f2 = JSON.parse(fv2); if (f2.on === false) return { ok: false, error: '이 주문 링크는 사용이 멈춰 있습니다' };
@@ -117,7 +128,10 @@ function handle_(req) {
       var oid = t2.slice(0, 6) + '_' + cid, ex = props_().getProperty(ORD_ + oid); if (ex) return { ok: true, order: ordView_(JSON.parse(ex)), dup: true };
       if (!shipOk_(f2, String(req.ship || ''))) return { ok: false, error: '고른 배송일은 주문 마감이 지났거나 배송하지 않는 날입니다 — 다른 날을 골라 주세요' };
       var codes = {}; (f2.items || []).forEach(function (it) { codes[it[0]] = it[1]; });
-      var lines = []; (req.lines || []).slice(0, 60).forEach(function (l) { var c = String(l && l[0] || ''), q = Math.floor(Number(l && l[1])); if (codes[c] != null && q >= 1 && q <= 9999) lines.push([c, codes[c], q]); });
+      var cat2 = f2.cat === false ? null : catGet_(), cmap = {}; ((cat2 && cat2.on !== false && cat2.items) || []).forEach(function (it) { if (!it.hide) cmap[it.id] = it; });
+      var lines = []; (req.lines || []).slice(0, 80).forEach(function (l) { var c = String(l && l[0] || ''), q = Math.floor(Number(l && l[1])), kd = String(l && l[2] || '') === 's' ? 's' : ''; if (!(q >= 1 && q <= 9999)) return;
+        if (c.indexOf('cat:') === 0) { var ci = cmap[c.slice(4)]; if (!ci) return; lines.push([ci.code || c, ci.name + (ci.spec ? ' (' + ci.spec + ')' : ''), q, kd || 'c']); }   // 단가표 제품: 이카운트 코드가 있으면 그 코드, 없으면 cat:id
+        else if (codes[c] != null) lines.push([c, codes[c], q, kd]); });
       if (!lines.length) return { ok: false, error: '주문할 품목의 수량을 넣어 주세요' };
       var today = ymdK_(), nToday = ordList_(function (o) { return o.tok === t2 && ymdK_(new Date(o.at)) === today; }).length; if (nToday >= 30) return { ok: false, error: '오늘 주문이 너무 많습니다 — 빵을그리다에 문의해 주세요' };
       var o2 = { id: oid, tok: t2, cust: f2.cust, name: f2.name, at: new Date().toISOString(), ship: String(req.ship), memo: String(req.memo || '').slice(0, 300), who: String(req.who || '').slice(0, 30), lines: lines, status: 'new' };
@@ -145,7 +159,7 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 3.5, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 3.6, agentSeen: agentSeen_(), agentVer: agentVer_() };
   // v3.4: 주문 링크 관리 (통합재고관리)
   if (req.action === 'putOrderForm') { var t3 = tok_(req.t), f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
     var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3])]; }),
@@ -164,6 +178,13 @@ function handle_(req) {
       map6[code] = file.getId(); var js6 = JSON.stringify(map6); if (js6.length > 8800) return { ok: false, error: '사진 목록이 가득 찼습니다' }; props_().setProperty(IMG_MAP_, js6);
       return { ok: true, id: file.getId() }; } finally { lk6.releaseLock(); } }
   if (req.action === 'delItemImg') { var code7 = String(req.code || ''), map7 = imgMap_(); if (map7[code7]) { try { DriveApp.getFileById(map7[code7]).setTrashed(true); } catch (e) {} delete map7[code7]; props_().setProperty(IMG_MAP_, JSON.stringify(map7)); } return { ok: true }; }
+  // v3.6: 단가표(카탈로그)
+  if (req.action === 'getCatalog') return { ok: true, cat: catGet_() };
+  if (req.action === 'getNotices') return { ok: true, notices: noticesGet_() };
+  if (req.action === 'putNotices') { var ns = (req.notices || []).slice(0, 30).map(function (n) { return { id: String(n.id || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20), title: String(n.title || '').slice(0, 60), body: String(n.body || '').slice(0, 500), cat: String(n.cat || '').slice(0, 20), from: /^\d{4}-\d{2}-\d{2}$/.test(n.from || '') ? n.from : '', to: /^\d{4}-\d{2}-\d{2}$/.test(n.to || '') ? n.to : '', on: n.on !== false, pin: !!n.pin, at: String(n.at || new Date().toISOString()).slice(0, 30) }; }).filter(function (n) { return n.id && n.title; });
+    var jsn = JSON.stringify(ns); if (jsn.length > 8800) return { ok: false, error: '안내가 너무 깁니다 — 오래된 안내를 지워 주세요' }; props_().setProperty('ord:notices', jsn); return { ok: true, n: ns.length }; }
+  if (req.action === 'putCatalog') { var c8 = req.cat || {}; var items8 = (c8.items || []).slice(0, 300).map(function (it) { return { id: String(it.id).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20), grp: String(it.grp || '완제품').slice(0, 10), name: String(it.name || '').slice(0, 60), spec: String(it.spec || '').slice(0, 40), pe: it.pe == null || it.pe === '' ? null : num_(it.pe), pb: it.pb == null || it.pb === '' ? null : num_(it.pb), bq: it.bq ? num_(it.bq) : null, unit: String(it.unit || 'Box').slice(0, 8), code: String(it.code || '').slice(0, 30), hide: !!it.hide }; }).filter(function (it) { return it.id && it.name; });
+    catPut_({ items: items8, title: c8.title, on: c8.on }); return { ok: true, n: items8.length }; }
   if (req.action === 'setOrderFormOn') { var t5 = tok_(req.t), v5 = t5 && props_().getProperty(ORDF_ + t5); if (!v5) return { ok: false, error: '없는 링크입니다' }; var f5 = JSON.parse(v5); f5.on = !!req.on; props_().setProperty(ORDF_ + t5, JSON.stringify(f5)); return { ok: true }; }
   if (req.action === 'delOrderForm') { var t4 = tok_(req.t); if (t4) props_().deleteProperty(ORDF_ + t4); return { ok: true }; }
   if (req.action === 'listOrderForms') { var af = props_().getProperties(), lf = [];
