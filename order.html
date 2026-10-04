@@ -88,7 +88,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   if (H.get('r')) RELAY = 'https://script.google.com/macros/s/' + H.get('r').replace(/[^A-Za-z0-9_-]/g, '') + '/exec';
   var $ = function (s) { return document.querySelector(s); }, WD = '일월화수목금토';
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
-  var IMG = function (id, w) { return 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w' + (w || 200); };   /* 품목 사진: 구글 드라이브(중계가 보관) */
+  var IMG = function (id, w) { return /^u:/.test(id) ? id.slice(2) : 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w' + (w || 200); };   /* u:주소 = 이 사이트의 단가표 제품 사진(cat/<id>.jpg) */   /* 품목 사진: 구글 드라이브(중계가 보관) */
   var won = function (n) { return Math.round(n || 0).toLocaleString('ko-KR'); };
   var LS = 'bggd_order_' + T.slice(0, 10), F = null, ORD = [], st = { q: {}, ship: '', memo: '', who: '', find: '', seen: [] }, cid = '', CAT = {}, catGrp = '';
   function load() { try { var o = JSON.parse(localStorage.getItem(LS) || 'null'); if (o) { st.q = o.q || {}; st.memo = o.memo || ''; st.who = o.who || ''; st.ship = o.ship || ''; st.seen = o.seen || []; } } catch (e) {} }
@@ -113,11 +113,11 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
     return '<div class="it' + (v ? ' on' : '') + '">' + (img ? '<button class="pic" data-pic="' + esc(img) + '" data-nm="' + esc(name) + '" aria-label="' + esc(name) + ' 사진 크게"><img src="' + IMG(img, 160) + '" alt="" loading="lazy"></button>' : '') + '<div class="nm"><b>' + (tag || '') + esc(name) + '</b><span>' + sub + '</span></div><div class="st"><button data-d="-1" data-c="' + esc(k) + '" aria-label="줄이기">−</button><input inputmode="numeric" data-c="' + esc(k) + '" value="' + (v || '') + '" placeholder="0" aria-label="' + esc(name) + ' 수량"><button data-d="1" data-c="' + esc(k) + '" aria-label="늘리기">+</button></div></div>'; }
   function catPrice(c) { return (c.pe != null ? '개당 ' + won(c.pe) + '원' : '') + (c.pb != null ? (c.pe != null ? ' · ' : '') + esc(c.unit || 'Box') + (c.bq ? '(' + c.bq + 'ea)' : '') + ' ' + won(c.pb) + '원' : ''); }
   function catCard(c, small) { var kq = st.q['cat:' + c.id] || 0, ks = st.q['cat:' + c.id + '|s'] || 0;
-    return '<div class="cc' + (small ? ' sm' : '') + (kq || ks ? ' on' : '') + '" id="cc_' + esc(c.id) + '">' + (c.img ? '<button class="pic" data-pic="' + esc(c.img) + '" data-nm="' + esc(c.name) + '"><img src="' + IMG(c.img, small ? 160 : 400) + '" alt="" loading="lazy"></button>' : '<div class="pic none">사진 준비 중</div>') +
+    return '<div class="cc' + (small ? ' sm' : '') + (kq || ks ? ' on' : '') + '" id="cc_' + esc(c.id) + '">' + (c.img ? '<button class="pic" data-pic="' + esc(c.img) + '" data-nm="' + esc(c.name) + '"><img src="' + IMG(c.img, small ? 160 : 400) + '" alt="" loading="lazy" onerror="var p=this.parentNode;p.className=\'pic none\';p.textContent=\'사진 준비 중\'"></button>' : '<div class="pic none">사진 준비 중</div>') +
       '<div class="ci"><b>' + esc(c.name) + '</b><span>' + esc(c.spec || '') + '</span><em>' + catPrice(c) + '</em>' + (c.pe != null || c.pb != null ? '<small>VAT 별도 · 단가표 기준</small>' : '') + '</div>' +
       '<div class="cb"><button class="btn sm' + (kq ? ' pri' : '') + '" data-cadd="' + esc(c.id) + '">' + (kq ? '담음 ' + kq : '담기') + '</button><button class="btn sm' + (ks ? ' smp' : '') + '" data-csmp="' + esc(c.id) + '">' + (ks ? '✓ 샘플' : '샘플 신청') + '</button></div></div>'; }
   function noticesHtml() { var N = (F.notices || []).filter(function (n) { return st.seen.indexOf(n.id) < 0 || n.pin; }), hid = (F.notices || []).length - N.length;
-    return (N.length ? N.map(function (n) { var c = n.cat && CAT[n.cat]; return '<section class="ntc">' + (c && c.img ? '<img src="' + IMG(c.img, 300) + '" alt="">' : '') + '<div><b>📢 ' + esc(n.title) + '</b>' + (n.body ? '<p>' + esc(n.body) + '</p>' : '') + '<div class="nb">' + (c ? '<button class="btn sm pri" data-ncat="' + esc(n.cat) + '">제품 보기</button>' : '') + (n.pin ? '' : '<button class="btn sm" data-nx="' + esc(n.id) + '">닫기</button>') + '</div></div></section>'; }).join('') : '') +
+    return (N.length ? N.map(function (n) { var c = n.cat && CAT[n.cat]; return '<section class="ntc">' + (c && c.img ? '<img src="' + IMG(c.img, 300) + '" alt="" onerror="this.remove()">' : '') + '<div><b>📢 ' + esc(n.title) + '</b>' + (n.body ? '<p>' + esc(n.body) + '</p>' : '') + '<div class="nb">' + (c ? '<button class="btn sm pri" data-ncat="' + esc(n.cat) + '">제품 보기</button>' : '') + (n.pin ? '' : '<button class="btn sm" data-nx="' + esc(n.id) + '">닫기</button>') + '</div></div></section>'; }).join('') : '') +
       (hid > 0 ? '<button class="ntc-more" id="ntcAll">📢 지난 안내 ' + hid + '개 다시 보기</button>' : ''); }
   function render() {
     var days = shipDays(); if (!days.some(function (x) { return x.v === st.ship; })) st.ship = days[0] ? days[0].v : '';
@@ -195,7 +195,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   if (!T) { fail('주소가 올바르지 않습니다. 받으신 주문 링크를 다시 눌러 주세요.'); return; }
   load();
   call({ action: 'orderForm', t: T }).then(function (r) { if (!r || !r.ok) return fail((r && r.error) || '잠시 뒤 다시 열어 주세요.'); F = r.form; ORD = r.orders || []; $('#who').textContent = F.name; document.title = F.name + ' · 빵을그리다 주문서';
-    CAT = {}; ((F.cat && F.cat.items) || []).forEach(function (c) { CAT[c.id] = c; });
+    CAT = {}; ((F.cat && F.cat.items) || []).forEach(function (c) { if (!c.img) c.img = 'u:cat/' + encodeURIComponent(c.id) + '.jpg'; CAT[c.id] = c; });   /* 드라이브 사진이 없으면 이 사이트의 제품 사진 */
     Object.keys(st.q).forEach(function (c) { if (!ent(c)) delete st.q[c]; }); render(); })
     .catch(function () { fail('인터넷 연결을 확인하고 다시 열어 주세요.'); });
 })();

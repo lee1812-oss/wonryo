@@ -102,8 +102,8 @@ function ordList_(filter) { var all = props_().getProperties(), out = [], cut = 
   return out.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); }); }
 var IMG_MAP_ = 'oimg:map', IMG_DIR_ = 'oimg:folder';
 function imgMap_() { try { return JSON.parse(props_().getProperty(IMG_MAP_) || '{}'); } catch (e) { return {}; } }
-function imgDir_() { var id = props_().getProperty(IMG_DIR_); if (id) { try { return DriveApp.getFolderById(id); } catch (e) {} }
-  var f = DriveApp.createFolder('빵을그리다 주문서 사진'); f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); props_().setProperty(IMG_DIR_, f.getId()); return f; }
+function imgDir_() { var id = props_().getProperty(IMG_DIR_); if (id) { try { var d = DriveApp.getFolderById(id); if (!d.isTrashed()) return d; } catch (e) {} }
+  var f = DriveApp.createFolder('빵을그리다 주문서 사진'); try { f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) {} props_().setProperty(IMG_DIR_, f.getId()); return f; }
 var CAT_ = 'cat:';
 function catGet_() { var meta = props_().getProperty(CAT_ + 'meta'); if (!meta) return null; var m = JSON.parse(meta), parts = []; for (var i = 0; i < m.n; i++) parts.push(props_().getProperty(CAT_ + i) || '');
   try { m.items = JSON.parse(parts.join('') || '[]'); } catch (e) { m.items = []; } return m; }
@@ -184,7 +184,7 @@ function handle_(req) {
     var lk6 = LockService.getScriptLock(); lk6.waitLock(20000);
     try { var dir = imgDir_(), map6 = imgMap_(); if (map6[code]) { try { DriveApp.getFileById(map6[code]).setTrashed(true); } catch (e) {} }
       var blob = Utilities.newBlob(Utilities.base64Decode(m6[2]), 'image/' + m6[1], code.replace(/[^A-Za-z0-9_.-]/g, '_') + '.' + (m6[1] === 'jpeg' ? 'jpg' : m6[1]));
-      var file = dir.createFile(blob); file.setDescription(String(req.name || '').slice(0, 100)); file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      var file = dir.createFile(blob); file.setDescription(String(req.name || '').slice(0, 100)); try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { file.setTrashed(true); return { ok: false, error: '드라이브가 「링크가 있는 모든 사용자」 공유를 막았습니다: ' + e.message }; }
       map6[code] = file.getId(); var js6 = JSON.stringify(map6); if (js6.length > 8800) return { ok: false, error: '사진 목록이 가득 찼습니다' }; props_().setProperty(IMG_MAP_, js6);
       return { ok: true, id: file.getId() }; } finally { lk6.releaseLock(); } }
   if (req.action === 'delItemImg') { var code7 = String(req.code || ''), map7 = imgMap_(); if (map7[code7]) { try { DriveApp.getFileById(map7[code7]).setTrashed(true); } catch (e) {} delete map7[code7]; props_().setProperty(IMG_MAP_, JSON.stringify(map7)); } return { ok: true }; }
