@@ -711,7 +711,7 @@ body.sale-on main>section.view{max-width:none}
 .sw-ttl{display:flex;align-items:center;gap:8px}.sw-ttl h2{margin:0;font-size:17px;letter-spacing:-.3px}
 .sw-badge{font-size:11px;font-weight:700;color:var(--warn);background:var(--warn-bg);border:1px solid #E8C98E;border-radius:999px;padding:2px 8px;white-space:nowrap}
 .sw-date{display:flex;align-items:center;gap:4px}.sw-date input{height:32px;border:1px solid var(--line);border-radius:8px;padding:0 6px;font-weight:700;background:#fff}.sw-date .btn{min-height:32px;padding:3px 9px}
-.sw-wd{font-weight:800;color:var(--brand);min-width:16px;text-align:center}
+.sw-dl{font-size:12px;font-weight:700;color:var(--ink2);margin:0 2px 0 4px}.sw-wd{font-weight:800;color:var(--brand);min-width:16px;text-align:center}
 .sw-who{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink2)}.sw-who input{width:96px;height:32px;border:1px solid var(--line);border-radius:8px;padding:0 8px;background:#fff}
 .sw-tools{display:flex;align-items:center;gap:6px;margin-left:auto}
 .sw-data{font-size:12px;color:var(--ink2);white-space:nowrap}.sw-data.none{color:var(--warn);font-weight:700}
@@ -1210,8 +1210,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '157';
-const APP_BUILT = '2026-10-04 09:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '158';
+const APP_BUILT = '2026-10-04 10:10';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -5004,7 +5004,7 @@ const saleUi = { q: '', iq: '', confirm: false, allCust: false, allItems: false,
 function saleS() {
   if (!SL) { try { SL = JSON.parse(localStorage.getItem(SALE_KEY) || 'null'); } catch (e) {} }
   if (!SL || typeof SL !== 'object') SL = {};
-  SL.rows = SL.rows || []; SL.cust = SL.cust || {}; SL.items = SL.items || {}; SL.files = SL.files || []; SL.log = SL.log || []; SL.cfg = SL.cfg || {}; if (SL.cfg.wh == null) SL.cfg.wh = '00017'; if (SL.cfg.emp == null) SL.cfg.emp = '12312';
+  SL.rows = SL.rows || []; SL.cust = SL.cust || {}; SL.items = SL.items || {}; SL.files = SL.files || []; SL.log = SL.log || []; SL.cfg = SL.cfg || {}; if (SL.cfg.odField == null) SL.cfg.odField = 'ADD_DATE_01_T'; if (SL.cfg.wh == null) SL.cfg.wh = '00017'; if (SL.cfg.emp == null) SL.cfg.emp = '12312';
   if (!SL.draft) SL.draft = { date: today(), cust: '', lines: [], memo: '' };
   if (SL.draft.dateOn !== today()) { SL.draft.date = today(); SL.draft.dateOn = today(); }   /* 다음 날 열면 오늘로 */
   return SL;
@@ -5068,7 +5068,7 @@ function saleTotals(lines) { return lines.reduce((t, l) => { const a = saleLineA
 /* 3단계(이카운트 Sale/SaveSale)로 보낼 줄 — 지금은 미리보기만 */
 function saleBulk(en) {
   const cfg = saleS().cfg;
-  return en.lines.map(l => { const a = saleLineAmt(l); return { UPLOAD_SER_NO: '1', IO_DATE: en.date.replace(/-/g, ''), CUST: en.cust, CUST_DES: en.custName, EMP_CD: cfg.emp || '', WH_CD: cfg.wh || '', PROD_CD: l.code, PROD_DES: l.name, QTY: String(l.qty), PRICE: String(l.price), SUPPLY_AMT: String(a.s), VAT_AMT: String(a.v), REMARKS: en.memo || '' }; });
+  return en.lines.map(l => { const a = saleLineAmt(l); const r = { UPLOAD_SER_NO: '1', IO_DATE: String(en.ship || en.date).replace(/-/g, ''), CUST: en.cust, CUST_DES: en.custName, EMP_CD: cfg.emp || '', WH_CD: cfg.wh || '', PROD_CD: l.code, PROD_DES: l.name, QTY: String(l.qty), PRICE: String(l.price), SUPPLY_AMT: String(a.s), VAT_AMT: String(a.v), REMARKS: en.memo || '' }; if (cfg.odField) r[cfg.odField] = en.date.replace(/-/g, ''); return r; });   /* v158: 이카운트 양식의 일자 = 「배송일자」, 발주날짜 = 추가 날짜 칸 */
 }
 function saleAddLine(code) {
   const X = saleS(), D = X.draft; if (D.lines.some(l => l.code === code)) return;
@@ -5112,14 +5112,14 @@ function renderSale() {
   box.innerHTML = `<div class="sw" data-step="${saleUi.step}">
   <div class="sw-bar">
     <div class="sw-ttl"><h2>판매 입력</h2><span class="sw-badge m-${esc(X.cfg.mode || 'practice')}" title="⚙ 에서 바꿉니다">${({ practice: '연습 · 이카운트 미전송', test: '이카운트 테스트 서버', real: '이카운트 실제 입력' })[X.cfg.mode || 'practice']}</span></div>
-    <div class="sw-date"><button type="button" class="btn sm" data-sday="-1" aria-label="전일">‹</button><input type="date" id="sDate" value="${esc(D.date)}" aria-label="판매일"><span class="sw-wd">${esc(WD[new Date(D.date + 'T00:00:00').getDay()])}</span><button type="button" class="btn sm" data-sday="1" aria-label="익일">›</button><button type="button" class="btn sm${D.date === today() ? ' primary' : ''}" data-sday="0">오늘</button></div>
+    <div class="sw-date"><button type="button" class="btn sm" data-sday="-1" aria-label="전일">‹</button><span class="sw-dl">발주일</span><input type="date" id="sDate" value="${esc(D.date)}" aria-label="발주일 (주문받은 날)"><span class="sw-wd">${esc(WD[new Date(D.date + 'T00:00:00').getDay()])}</span><button type="button" class="btn sm" data-sday="1" aria-label="익일">›</button><button type="button" class="btn sm${D.date === today() ? ' primary' : ''}" data-sday="0">오늘</button></div>
     <label class="sw-who">입력자<input id="sWho" value="${esc(S.settings.reporter || '')}" placeholder="이름"></label>
     <div class="sw-tools">
       <span class="sw-data${has ? '' : ' none'}" title="${X.files.slice(0, 4).map(f => `${f.name} (${f.from}~${f.to}, ${f.n}줄)`).join('\n')}">${has ? `판매현황 ${esc(saleMD(X.rows[0][0]))}~${esc(saleMD(X.rows[X.rows.length - 1][0]))} · 거래처 ${Object.keys(X.cust).length}` : '판매현황 자료 없음'}</span>
       <label class="btn sm${has ? '' : ' primary'}" title="이카운트 영업관리 → 판매현황 (일별·거래처별·품목별) 엑셀. 5,000줄이 넘으면 기간을 나눠 여러 번 올리면 이어 붙입니다.">${has ? '자료 갱신' : '판매현황 올리기'}<input type="file" id="saleFile" accept=".xlsx,.xls" multiple hidden></label>
       <details class="sw-cfg"><summary class="btn sm" aria-label="설정">⚙</summary><div class="sw-pop">
         <b>이카운트 전송 설정</b><div class="sw-mode" role="radiogroup" aria-label="전송 방식">${[['practice', '연습', '이 기기에만 저장'], ['test', '테스트', '이카운트 테스트 서버(실데이터 아님)'], ['real', '실제 입력', '이카운트 판매입력에 전표 생성']].map(([k, n, t]) => `<button type="button" role="radio" aria-checked="${(X.cfg.mode || 'practice') === k}" class="${(X.cfg.mode || 'practice') === k ? 'on' : ''}" data-smode="${k}" title="${t}">${n}</button>`).join('')}</div>
-        <div class="muted" style="font-size:11.5px" id="swAgent">${saleAgentText()}</div><button type="button" class="btn xs" id="sPerm">판매입력 권한 확인</button><div class="sw-perm" id="swPerm">${esc(saleUi.perm || '')}</div><label>출하창고 코드 (WH_CD)<input id="sWh" value="${esc(X.cfg.wh || '')}"></label><label>담당 사원코드 (EMP_CD)<input id="sEmp" value="${esc(X.cfg.emp || '')}"></label>
+        <div class="muted" style="font-size:11.5px" id="swAgent">${saleAgentText()}</div><button type="button" class="btn xs" id="sPerm">판매입력 권한 확인</button><div class="sw-perm" id="swPerm">${esc(saleUi.perm || '')}</div><label>출하창고 코드 (WH_CD)<input id="sWh" value="${esc(X.cfg.wh || '')}"></label><label>담당 사원코드 (EMP_CD)<input id="sEmp" value="${esc(X.cfg.emp || '')}"></label><label>발주날짜 칸 이름 (이카운트 추가 날짜 항목)<input id="sOdF" value="${esc(X.cfg.odField || '')}" placeholder="ADD_DATE_01_T"></label>
         <div class="muted" style="font-size:11.5px">판매현황 자료·입력 기록은 이 기기에만 저장됩니다.</div>${has ? '<button type="button" class="btn xs danger" id="saleWipe">판매현황 자료 지우기</button>' : ''}</div></details>
     </div>
   </div>
@@ -5212,7 +5212,7 @@ function saleRenderS() {
       <span class="sw-ga num" data-samt="${k}">${a.s ? saleWon(a.s) : ''}</span><button type="button" class="sw-gx" data-sdel="${k}" aria-label="${esc(l.name)} 빼기">×</button></div>`; }).join('')
     : `<div class="sw-empty">${D.cust ? '가운데 목록에서 품목을 누르면 여기에 담깁니다.' : '거래처를 고르고 품목을 담으세요.'}</div>`}</div>
   <div class="sw-foot"><div class="sw-tot" id="sTot">${saleTotHtml(t)}</div>
-    ${D.cust ? `<div class="sw-ship"><label class="sw-sd" title="배송일자">배송<input type="date" id="sShip" value="${esc(D.ship || D.date)}"></label><div class="sw-dlv" role="radiogroup" aria-label="배송현황">${SALE_DLV.map(v => `<button type="button" role="radio" aria-checked="${D.dlv === v}" class="${D.dlv === v ? 'on' : ''}" data-sdlv="${v}">${v}</button>`).join('')}</div><label class="sw-box">박스<input inputmode="numeric" id="sBox" value="${esc(D.box || '')}" placeholder="0"></label></div>
+    ${D.cust ? `<div class="sw-ship"><label class="sw-sd" title="배송일자 — 이카운트 전표 일자">배송일<input type="date" id="sShip" value="${esc(D.ship || D.date)}"></label><div class="sw-dlv" role="radiogroup" aria-label="배송현황">${SALE_DLV.map(v => `<button type="button" role="radio" aria-checked="${D.dlv === v}" class="${D.dlv === v ? 'on' : ''}" data-sdlv="${v}">${v}</button>`).join('')}</div><label class="sw-box">박스<input inputmode="numeric" id="sBox" value="${esc(D.box || '')}" placeholder="0"></label></div>
 ` : ''}<div class="sw-memos">${D.cust ? `<input class="sw-memo" id="sNote" value="${esc(D.note || '')}" placeholder="담당자 전달사항" title="예: 출고 후 사진 확인 요망" aria-label="담당자 전달사항">` : ''}<input class="sw-memo" id="sMemo" value="${esc(D.memo || '')}" placeholder="적요 · 메모" aria-label="적요"></div>
     <div class="sw-act"><button type="button" class="btn" id="sClear"${D.lines.length || D.cust ? '' : ' disabled'}>비우기</button><button type="button" class="btn primary" id="sOk"${D.lines.length ? '' : ' disabled'}>확인 <small>Ctrl+Enter</small></button></div></div>`;
 }
@@ -5228,7 +5228,7 @@ function saleConfirm() {
   saleModal(`<h3>판매 저장 확인</h3><div class="sw-mh"><b>${esc(saleCustName(D.cust))}</b> · ${esc(D.date)} (${esc(WD[new Date(D.date + 'T00:00:00').getDay()])})</div>
     <table class="sw-t mt"><thead><tr><th>품목</th><th class="r">수량</th><th class="r">단가</th><th class="r">공급가액</th><th class="r">부가세</th></tr></thead><tbody>${D.lines.map(l => { const a = saleLineAmt(l); return `<tr><td>${esc(l.name)}<span class="sw-ic">${esc(l.code)}</span></td><td class="r num">${fmt(l.qty)}</td><td class="r num">${saleWon(l.price)}</td><td class="r num">${saleWon(a.s)}</td><td class="r num">${saleWon(a.v)}</td></tr>`; }).join('')}</tbody>
     <tfoot><tr><td>합계 ${D.lines.length}품목</td><td></td><td></td><td class="r num">${saleWon(t.s)}</td><td class="r num">${saleWon(t.v)}</td></tr></tfoot></table>
-    <div class="sw-mt">총 <b>${saleWon(t.s + t.v)}</b>원 <span class="muted">(부가세 별도 단가 · 부가세는 이카운트 계산과 1원 차이 날 수 있음)</span></div>${(X.cfg.mode || 'practice') === 'real' ? `<div class="sw-warn">저장하면 이카운트 판매입력에 <b>전표가 바로 만들어집니다</b> (출하창고 ${esc(X.cfg.wh || '—')} · 담당 ${esc(X.cfg.emp || '—')}). 보낸 뒤 수정·삭제는 이카운트에서 해야 합니다.${saleUi.agent && (saleUi.agent.ver || 2) < 3 ? '<br><b>사무실 PC 전송기가 v3가 아니라 보내지지 않고 대기합니다.</b>' : ''}</div>` : ''}<div class="sw-mx">배송일 <b>${esc(D.ship || D.date)}</b> · 배송현황 <b>${esc(D.dlv || '미선택')}</b>${Number(D.box) ? ` · 출고박스 <b>${fmt(D.box)}</b>` : ''}${D.note ? `<br>전달사항: ${esc(D.note)}` : ''}${D.memo ? `<br>적요: ${esc(D.memo)}` : ''}</div>
+    <div class="sw-mt">총 <b>${saleWon(t.s + t.v)}</b>원 <span class="muted">(부가세 별도 단가 · 부가세는 이카운트 계산과 1원 차이 날 수 있음)</span></div>${(X.cfg.mode || 'practice') === 'real' ? `<div class="sw-warn">저장하면 이카운트 판매입력에 <b>전표가 바로 만들어집니다</b> (출하창고 ${esc(X.cfg.wh || '—')} · 담당 ${esc(X.cfg.emp || '—')}). 보낸 뒤 수정·삭제는 이카운트에서 해야 합니다.${saleUi.agent && (saleUi.agent.ver || 2) < 3 ? '<br><b>사무실 PC 전송기가 v3가 아니라 보내지지 않고 대기합니다.</b>' : ''}</div>` : ''}<div class="sw-mx">발주날짜 <b>${esc(D.date)}</b> · 배송일자(이카운트 일자) <b>${esc(D.ship || D.date)}</b> · 배송현황 <b>${esc(D.dlv || '미선택')}</b>${Number(D.box) ? ` · 출고박스 <b>${fmt(D.box)}</b>` : ''}${D.note ? `<br>전달사항: ${esc(D.note)}` : ''}${D.memo ? `<br>적요: ${esc(D.memo)}` : ''}</div>
     <div class="sw-ma"><button type="button" class="btn" data-mclose>돌아가 고치기 <small>Esc</small></button><button type="button" class="btn primary" id="sSave">${(X.cfg.mode || 'practice') === 'practice' ? '저장 (연습)' : (X.cfg.mode === 'test' ? '이카운트 테스트 서버로 보내기' : '이카운트 판매입력으로 보내기')} <small>Enter</small></button></div>`);
   $('#sSave').onclick = saleDoSave; setTimeout(() => $('#sSave') && $('#sSave').focus(), 0);
 }
@@ -5372,6 +5372,7 @@ function saleBindShell() {
   if ($('#saleWipe')) $('#saleWipe').onclick = () => { if (!confirm('올린 판매현황 자료를 이 기기에서 지울까요? (저장한 판매 입력은 남습니다)')) return; X.rows = []; X.cust = {}; X.items = {}; X.files = []; saleIdx = null; saleSave(); renderSale(); };
   if ($('#sWh')) $('#sWh').onchange = e => { X.cfg.wh = e.target.value.trim(); saleSave(); };
   if ($('#sEmp')) $('#sEmp').onchange = e => { X.cfg.emp = e.target.value.trim(); saleSave(); };
+  if ($('#sOdF')) $('#sOdF').onchange = e => { X.cfg.odField = e.target.value.trim().toUpperCase(); saleSave(); };
   if ($('#sPerm')) $('#sPerm').onclick = saleCheckPerm;
   $$('#saleNew [data-smode]').forEach(b => b.onclick = () => { const m = b.dataset.smode; if (m === 'real' && X.cfg.mode !== 'real' && !confirm('실제 입력으로 바꿀까요? 이제부터 저장하면 이카운트 판매입력에 전표가 바로 만들어집니다.')) return; X.cfg.mode = m; saleSave(); renderSale(); const c = $('#saleNew .sw-cfg'); if (c) c.open = true; });
   if (!saleUi.agentAsked && String(prodS().cfg.relayUrl || '').trim()) { saleUi.agentAsked = true; prodRelayCall({ action: 'ping' }).then(r => { if (r && r.ok) { saleUi.agent = { seen: r.agentSeen, ver: r.agentVer }; const ag = $('#swAgent'); if (ag) ag.innerHTML = saleAgentText(); } }).catch(() => {}); }
