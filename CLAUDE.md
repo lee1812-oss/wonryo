@@ -10,3 +10,7 @@
 ## 배포할 때마다
 - `index.html`의 `APP_VER`(+1)과 `APP_BUILT`(한국 시각 `YYYY-MM-DD HH:MM`)를 함께 바꿈 — 머리글 전화번호 아래에 「v버전 · 시각 업데이트」로 보임.
 - `sw.js`의 `CACHE` 이름 숫자도 +1.
+
+## 거래처 주문서 (order.html)
+- `order.html`의 `RELAY` 주소는 `index.html`의 `DEFAULT_RELAY_URL`과 글자 하나까지 같아야 함 (손으로 옮겨 적지 말고 복사 — 2026-10-04 `9O8`/`908` 오타로 주문서가 안 열린 적 있음).
+- 거래처 링크: `https://lee1812-oss.github.io/wonryo/order.html#t=<토큰>` — 주문서·주문은 중계(3.4 이상)에 보관.

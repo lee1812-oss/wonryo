@@ -8,14 +8,22 @@
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#173F4B">
 <title>빵을그리다 주문서</title>
-<link rel="icon" href="logo_192.png">
+<link rel="icon" href="icon_192.png">
+<link rel="apple-touch-icon" href="icon_192.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="빵을그리다">
+<meta property="og:title" content="빵을그리다 주문서">
+<meta property="og:description" content="거래처 전용 주문서 — 눌러서 주문하세요">
+<meta property="og:image" content="https://lee1812-oss.github.io/wonryo/brand_logo.png">
+<meta property="og:image:width" content="256">
+<meta property="og:image:height" content="256">
 <style>
 :root{--bg:#EEF1F3;--paper:#fff;--ink:#16232B;--ink2:#4A5A65;--ink3:#8291A0;--line:#D6DDE3;--line2:#EAEEF1;--brand:#173F4B;--accent:#0E7C6B;--accent-bg:#E3F3EF;--warn:#A86A12;--warn-bg:#FBF1DF;--minus:#B23A3A;--minus-bg:#FBE9E9;
   --font:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif}
 *{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;-webkit-text-size-adjust:100%;font-variant-numeric:tabular-nums}
 button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}input,textarea{font:inherit}
 .top{background:var(--brand);color:#fff;padding:14px 16px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
-.top img{width:40px;height:40px;border-radius:10px;background:#fff}.top h1{margin:0;font-size:17px;letter-spacing:-.3px}.top small{display:block;font-size:13px;opacity:.8;margin-top:1px}
+.top img{width:44px;height:44px;border-radius:11px;background:#FBF6EE;object-fit:contain}.top h1{margin:0;font-size:17px;letter-spacing:-.3px}.top small{display:block;font-size:13px;opacity:.8;margin-top:1px}
 main{max-width:640px;margin:0 auto;padding:12px 16px 120px}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .card h2{margin:0 0 10px;font-size:15px;display:flex;align-items:center;gap:8px}.card h2 span{font-size:12px;color:var(--ink3);font-weight:600}
@@ -47,7 +55,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
 </style>
 </head>
 <body>
-<header class="top"><img src="logo_192.png" alt=""><div><h1>빵을그리다 주문서</h1><small id="who">불러오는 중…</small></div></header>
+<header class="top"><img src="brand_logo.png" alt="빵을그리다"><div><h1>빵을그리다 주문서</h1><small id="who">불러오는 중…</small></div></header>
 <main id="app"><div class="msg">주문서를 불러오는 중입니다…</div></main>
 <div class="bar" id="bar" hidden><div><div class="sum" id="sum"></div><button class="btn pri" id="go" disabled>주문하기</button></div></div>
 <div class="sheet" id="sheet" hidden><div id="sheetIn"></div></div>
@@ -55,7 +63,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
 /* 빵을그리다 거래처 주문서 — 주소의 #t=토큰 으로 그 거래처의 주문서만 열림. 이 파일에는 거래처·품목 자료가 없음 */
 (function () {
   'use strict';
-  var RELAY = 'https://script.google.com/macros/s/AKfycbwc4iYf-iUXLIkw_9mENM2nRyX5BNdz4TveLP5cKE-5CXd2hiTQ34kDxSanQFJk908S3g/exec';
+  var RELAY = 'https://script.google.com/macros/s/AKfycbwc4iYf-iUXLIkw_9mENM2nRyX5BNdz4TveLP5cKE-5CXd2hiTQ34kDxSanQFJk9O8S3g/exec';
   var H = new URLSearchParams(location.hash.replace(/^#/, '')), T = (H.get('t') || '').replace(/[^A-Za-z0-9_-]/g, '');
   if (H.get('r')) RELAY = 'https://script.google.com/macros/s/' + H.get('r').replace(/[^A-Za-z0-9_-]/g, '') + '/exec';
   var $ = function (s) { return document.querySelector(s); }, WD = '일월화수목금토';
