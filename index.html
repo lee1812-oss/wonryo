@@ -842,6 +842,11 @@ header.top .brand .hver{font-size:11px;color:rgba(255,255,255,.62);margin-top:1p
 .sw-mb.sk-drag{outline:3px dashed var(--accent);outline-offset:-6px}
 .so-cus{max-height:34vh;overflow:auto;border:1px solid var(--line2);border-radius:8px;padding:4px}.so-cu{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;font-size:13px;cursor:pointer}.so-cu:hover{background:var(--bg)}.so-cu.on{background:var(--accent-bg)}.so-cu span{flex:1 1 auto;min-width:0;font-weight:700}.so-cu em{font-style:normal;font-size:11px;color:var(--ink3);white-space:nowrap}
 .so-n{margin-left:auto;color:var(--accent);white-space:nowrap}.so-r{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;margin-left:10px;font-weight:600}
+.so-img summary{cursor:pointer;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.so-ig{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}.so-it{display:flex;gap:8px;align-items:center;border:1px solid var(--line2);border-radius:10px;padding:6px;background:#fff}.so-it.none{border-style:dashed;border-color:#E8C98E}
+.so-it img,.so-ph{width:64px;height:64px;border-radius:8px;object-fit:cover;flex:0 0 auto;background:var(--bg)}.so-ph{display:flex;align-items:center;justify-content:center;font-size:10.5px;color:var(--ink3);text-align:center}
+.so-in{min-width:0;flex:1 1 auto}.so-in b{display:block;font-size:12.5px;line-height:1.3;word-break:keep-all;overflow-wrap:anywhere}.so-in span{font-size:11px;color:var(--ink3)}.so-in div{display:flex;gap:4px;margin-top:4px}
+.so-mt{max-height:52vh;overflow:auto;border:1px solid var(--line2);border-radius:8px;padding:4px}.so-mr{display:flex;align-items:center;gap:8px;padding:5px;border-bottom:1px solid var(--line2);font-size:13px}.so-mr img{width:48px;height:48px;border-radius:6px;object-fit:cover}.so-mr em{display:block;font-style:normal;font-size:11px;color:var(--ink3)}
 </style>
 </head>
 <body>
@@ -1230,8 +1235,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '164';
-const APP_BUILT = '2026-10-05 03:18';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '165';
+const APP_BUILT = '2026-10-05 03:27';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -5521,7 +5526,7 @@ async function saleOrdFetch(silent) {
   try { const [a, b] = await Promise.all([prodRelayCall({ action: 'orders', days: 14 }), prodRelayCall({ action: 'listOrderForms' })]);
     if (!a || !a.ok) throw new Error((a && a.error) || '중계가 거절했습니다'); if (/알 수 없는 요청/.test(a.error || '')) throw new Error('중계를 새 버전(3.4)으로 배포해야 합니다');
     const before = new Set((saleUi.ord || []).filter(o => o.status === 'new').map(o => o.id));
-    saleUi.ord = a.orders || []; saleUi.ordForms = (b && b.ok && b.forms) || []; saleUi.ordAt = new Date().toISOString(); saleUi.ordErr = '';
+    saleUi.ord = a.orders || []; saleUi.ordForms = (b && b.ok && b.forms) || []; if (S.ui.prodTab === 'pord') await saleImgFetch(); saleUi.ordAt = new Date().toISOString(); saleUi.ordErr = '';
     const fresh = saleUi.ord.filter(o => o.status === 'new' && !before.has(o.id)); if (fresh.length && saleUi.ordSeen && !silent) toast(`🛒 새 발주 ${fresh.length}건 — ${fresh.map(o => o.name).slice(0, 2).join(', ')}`); saleUi.ordSeen = true;
   } catch (e) { saleUi.ordErr = /알 수 없는 요청/.test(e.message) ? '중계를 새 버전(3.4)으로 배포해야 주문 링크를 쓸 수 있습니다' : '발주를 불러오지 못했습니다: ' + e.message; }
   const n = (saleUi.ord || []).filter(o => o.status === 'new').length; if (n !== saleUi.ordNew) { saleUi.ordNew = n; try { renderTabs(); } catch (e) {} }
@@ -5613,6 +5618,47 @@ function saleOrdEditor(form) {   /* form: 기존 링크(수정, 한 곳) 또는 
 }
 function saleOrdMsg(f) { const days = (f.days || []).map(i => '일월화수목금토'[i]).join('·');
   return `[빵을그리다] ${f.name} 전용 주문 링크입니다.\n${saleOrdLink(f.t)}\n\n· 배송: ${days} / 배송 ${f.lead ? f.lead + '일 전' : '당일'} ${f.cut}시 마감\n· 「지난번과 같이」 버튼으로 바로 주문하실 수 있어요\n· 주문하시면 접수 → 확인 완료 → 출고 준비 순으로 보입니다\n※ ${f.name} 전용 링크이니 외부에 공유하지 말아 주세요.`; }
+/* v165: 주문서 품목 사진 — 품목 하나에 한 장(모든 거래처 주문서에 같이). 완제품·생지 품목 사진을 가져오거나 직접 올림 → 중계가 구글 드라이브에 보관 */
+const saleImgUrl = (id, w) => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w || 200}`;
+function saleImgCodes() { const X = saleS(), set = new Set(); (saleUi.ordForms || []).forEach(f => (f.codes || (X.ordCodes || {})[f.t] || []).forEach(c => set.add(c))); return [...set].sort((a, b) => saleItemName(a).localeCompare(saleItemName(b), 'ko')); }
+async function saleImgFetch() { try { const r = await prodRelayCall({ action: 'listItemImgs' }); if (r && r.ok) { saleUi.imgs = r.imgs || {}; saleUi.imgErr = ''; } else saleUi.imgErr = /알 수 없는 요청/.test((r && r.error) || '') ? '사진을 쓰려면 중계를 새 버전(3.5)으로 배포해야 합니다' : ((r && r.error) || ''); } catch (e) { saleUi.imgErr = e.message; } }
+function saleFinItems() { try { const F = JSON.parse(localStorage.getItem(FIN_STATE_KEY) || 'null'); return (F && F.items || []).filter(i => i && i.photo && /^data:image\//.test(i.photo)); } catch (e) { return []; } }
+function saleImgResize(src, max) { return new Promise((ok, no) => { const im = new Image(); im.onload = () => { const k = Math.min(1, (max || 800) / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL('image/jpeg', 0.82)); }; im.onerror = () => no(new Error('사진을 읽지 못했습니다')); im.src = src; }); }
+async function saleImgPut(code, data) { const r = await prodRelayCall({ action: 'putItemImg', code, name: saleItemName(code), data }); if (!r || !r.ok) throw new Error(/알 수 없는 요청/.test((r && r.error) || '') ? '중계를 새 버전(3.5)으로 배포해야 합니다' : ((r && r.error) || '중계가 거절했습니다')); saleUi.imgs = saleUi.imgs || {}; saleUi.imgs[code] = r.id; }
+function saleImgMatch() {   /* 주문서 품목 ↔ 완제품·생지 사진: 품목코드가 같으면 바로, 아니면 이름이 아주 비슷한 것(확인 필요) */
+  const fin = saleFinItems(), codes = saleImgCodes(), out = [];
+  codes.forEach(c => { if ((saleUi.imgs || {})[c]) return; const ex = fin.find(i => String(i.code || '').trim() === c); if (ex) { out.push({ code: c, fi: ex, sure: true, s: 1 }); return; }
+    const k = saleKNorm(saleItemName(c)); let best = null; fin.forEach(i => { const s = saleDice(k, saleKNorm(i.name)); if (s >= 0.72 && (!best || s > best.s)) best = { fi: i, s }; }); if (best) out.push({ code: c, fi: best.fi, sure: false, s: best.s }); });
+  return { out, nFin: fin.length };
+}
+function saleImgPanel() {
+  const codes = saleImgCodes(), I = saleUi.imgs || {}, have = codes.filter(c => I[c]).length; if (!codes.length) return '';
+  const sorted = codes.slice().sort((a, b) => (I[a] ? 1 : 0) - (I[b] ? 1 : 0));
+  return `<details class="card so-img"${saleUi.imgOpen ? ' open' : ''}><summary><b>품목 사진</b> <span class="pill ${have === codes.length ? 'ok' : 'warn'}">사진 있음 ${have} / ${codes.length}</span> <span class="muted" style="font-size:12px">품목 하나에 한 번 — 모든 거래처 주문서에 같이 나옵니다</span></summary>
+    ${saleUi.imgErr ? `<div class="sw-err">⚠ ${esc(saleUi.imgErr)}</div>` : ''}
+    <div class="prow" style="margin:8px 0"><button type="button" class="btn sm primary" id="siFin">완제품·생지 사진 가져오기</button><span class="muted" style="font-size:12px">사진이 없는 품목은 📷로 올리세요 (휴대폰은 바로 찍기)</span></div>
+    <div class="so-ig">${sorted.map(c => `<div class="so-it${I[c] ? '' : ' none'}">${I[c] ? `<img src="${saleImgUrl(I[c], 160)}" alt="" loading="lazy">` : '<div class="so-ph">사진 없음</div>'}<div class="so-in"><b>${esc(saleItemName(c))}</b><span>${esc(c)}</span>
+      <div><label class="btn xs">📷 ${I[c] ? '바꾸기' : '올리기'}<input type="file" accept="image/*" data-siup="${esc(c)}" hidden></label>${I[c] ? `<button type="button" class="btn xs danger" data-sidel="${esc(c)}">지우기</button>` : ''}</div></div></div>`).join('')}</div></details>`;
+}
+function saleImgBind(box) {
+  const det = box.querySelector('.so-img'); if (det) det.ontoggle = () => { saleUi.imgOpen = det.open; };
+  $$('#saleOrd [data-siup]').forEach(inp => inp.onchange = async () => { const f = inp.files[0]; inp.value = ''; if (!f) return; const c = inp.dataset.siup; toast('사진 올리는 중…');
+    try { const url = URL.createObjectURL(f); const data = await saleImgResize(url, 800); URL.revokeObjectURL(url); await saleImgPut(c, data); toast(`${saleItemName(c)} 사진을 올렸습니다`); renderSaleOrd(); } catch (e) { toast('올리기 실패: ' + e.message); } });
+  $$('#saleOrd [data-sidel]').forEach(b => b.onclick = async () => { const c = b.dataset.sidel; if (!confirm(`${saleItemName(c)} 사진을 지울까요? 모든 거래처 주문서에서 빠집니다.`)) return; try { await prodRelayCall({ action: 'delItemImg', code: c }); delete (saleUi.imgs || {})[c]; renderSaleOrd(); } catch (e) { toast('실패: ' + e.message); } });
+  const fb = $('#siFin'); if (fb) fb.onclick = () => {
+    const { out, nFin } = saleImgMatch(); const m = $('#soM');
+    if (!nFin) return toast('이 기기의 완제품·생지에 사진이 있는 품목이 없습니다 — 완제품·생지 화면을 한 번 열어 자료를 받은 뒤 다시 누르세요');
+    if (!out.length) return toast('가져올 사진이 없습니다 — 사진 없는 품목과 이름·코드가 맞는 완제품·생지 사진이 없습니다');
+    m.innerHTML = `<div class="sw-mb so-ed" role="dialog" aria-modal="true"><h3>완제품·생지 사진 가져오기</h3><div class="muted" style="font-size:12.5px;margin-bottom:8px">품목코드가 같은 것은 미리 체크했습니다. 이름만 비슷한 것은 사진을 보고 맞으면 체크하세요.</div>
+      <div class="so-mt">${out.map((x, i) => `<label class="so-mr"><input type="checkbox" data-sim="${i}"${x.sure ? ' checked' : ''}><img src="${x.fi.photo}" alt=""><span><b>${esc(saleItemName(x.code))}</b><em>${esc(x.code)} ← 완제품·생지 「${esc(x.fi.name)}」${x.sure ? ' · 코드 같음' : ` · 이름 비슷 ${Math.round(x.s * 100)}%`}</em></span></label>`).join('')}</div>
+      <div class="muted" style="font-size:11.5px;margin-top:6px">완제품·생지 사진은 작게(112×112) 저장되어 있어 크게 보면 흐릴 수 있습니다. 크게 보여 줄 품목은 나중에 📷로 원본을 올리세요.</div>
+      <div class="sw-ma"><span class="muted" id="simProg" style="margin-right:auto;font-size:12.5px"></span><button type="button" class="btn" id="simX">취소</button><button type="button" class="btn primary" id="simOk">체크한 사진 올리기</button></div></div>`;
+    m.hidden = false; const close = () => { m.hidden = true; m.innerHTML = ''; }; $('#simX').onclick = close; m.onclick = e => { if (e.target === m) close(); };
+    $('#simOk').onclick = async () => { const pick = $$('#soM [data-sim]').filter(c => c.checked).map(c => out[+c.dataset.sim]); if (!pick.length) return close(); const b = $('#simOk'); b.disabled = true; let ok = 0; const fails = [];
+      for (let i = 0; i < pick.length; i++) { $('#simProg').textContent = `올리는 중… ${i + 1}/${pick.length}`; try { await saleImgPut(pick[i].code, await saleImgResize(pick[i].fi.photo, 800)); ok++; } catch (e) { fails.push(e.message); if (/배포/.test(e.message)) break; } }
+      close(); toast(fails.length ? `${ok}개 올림 · 실패 ${fails.length} — ${fails[0]}` : `완제품·생지 사진 ${ok}개를 주문서에 넣었습니다`); renderSaleOrd(); };
+  };
+}
 function renderSaleOrd() {
   const box = $('#saleOrd'); if (!box) return; saleOrdPoll();
   const X = saleS(), L = saleUi.ord || [], F = (saleUi.ordForms || []).slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
@@ -5629,6 +5675,7 @@ function renderSaleOrd() {
   <div class="card"><h2 style="margin:0 0 8px">새 발주 <span class="pill ${nw.length ? 'warn' : ''}">${nw.length}건</span></h2>
     ${nw.length ? `<div class="so-grid">${nw.map(card).join('')}</div>` : '<div class="sw-empty">새로 들어온 발주가 없습니다.</div>'}</div>
   ${done.length ? `<details class="card"><summary style="cursor:pointer;font-weight:800">처리한 발주 (최근 14일 ${done.length}건)</summary><table class="sl-t" style="margin-top:8px"><thead><tr><th>주문</th><th>거래처</th><th>배송</th><th>품목</th><th class="c">처리</th></tr></thead><tbody>${done.map(o => `<tr><td class="num">${esc(hmOf(o.at))}</td><td><b>${esc(o.name)}</b></td><td class="num">${esc(md(o.ship))}</td><td class="sl-it">${esc(o.lines.map(l => l[1] + ' ' + l[2]).join(', '))}</td><td class="c">${o.status === 'reject' ? `<i class="tg bad">반려</i>${o.note ? ' ' + esc(o.note) : ''}` : o.slip ? `<i class="tg ok">${esc(o.slip)}</i>` : '<i class="tg ok">확인</i>'}</td></tr>`).join('')}</tbody></table></details>` : ''}
+  ${saleImgPanel()}
   <div class="card"><h2 style="margin:0 0 8px">주문 링크 <span class="pill">${F.length}곳</span></h2>
     ${F.length ? `<table class="sl-t"><thead><tr><th>거래처</th><th class="c">품목</th><th class="c">배송 요일</th><th class="c">마감</th><th class="c">단가</th><th class="c">상태</th><th></th></tr></thead><tbody>${F.map(f => `<tr><td><b>${esc(f.name)}</b></td><td class="c">${f.n}</td><td class="c">${(f.days || []).map(i => '일월화수목금토'[i]).join('·')}</td><td class="c">${f.lead ? f.lead + '일 전' : '당일'} ${f.cut}시</td><td class="c">${f.price ? '보임' : '—'}</td><td class="c">${f.on ? '<i class="tg ok">사용 중</i>' : '<i class="tg">멈춤</i>'}</td>
       <td class="so-act"><button type="button" class="btn xs primary" data-somsg="${esc(f.t)}">안내문 복사</button><button type="button" class="btn xs" data-solink="${esc(f.t)}">링크 복사</button><button type="button" class="btn xs" data-soopen="${esc(f.t)}">열어 보기</button><button type="button" class="btn xs" data-soedit="${esc(f.t)}">고치기</button><button type="button" class="btn xs" data-sotog="${esc(f.t)}">${f.on ? '멈춤' : '다시 사용'}</button><button type="button" class="btn xs danger" data-sodel="${esc(f.t)}">삭제</button></td></tr>`).join('')}</tbody></table>`
@@ -5638,7 +5685,7 @@ function renderSaleOrd() {
 </div>`;
   const byT = t => F.find(f => f.t === t), byId = id => L.find(o => o.id === id);
   const copy = async (txt, ok) => { try { await navigator.clipboard.writeText(txt); toast(ok); } catch (e) { prompt('아래 내용을 복사하세요', txt); } };
-  $('#soRe').onclick = () => saleOrdFetch(); $('#soNew').onclick = () => saleOrdEditor(null);
+  $('#soRe').onclick = () => saleOrdFetch(); $('#soNew').onclick = () => saleOrdEditor(null); saleImgBind(box);
   box.onclick = async e => { const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
     if (d.soload) saleLoadOrder(byId(d.soload));
     else if (d.soreject) { const r = prompt('반려 사유 (거래처 주문 화면에 보입니다)', '전화로 확인 부탁드립니다'); if (r == null) return; await saleOrdMark(d.soreject, { status: 'reject', note: r }); saleOrdFetch(true); }
