@@ -1240,8 +1240,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '172';
-const APP_BUILT = '2026-10-05 10:25';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '173';
+const APP_BUILT = '2026-10-05 11:30';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -2403,7 +2403,7 @@ function prodHoldUntil(date) { const c = prodS().cfg; if (c.batch === false) ret
   const ms = Date.parse(`${date}T${t}:00+09:00`); return isFinite(ms) && ms > Date.now() ? ms : 0; }
 function prodHoldText(en) { if (!(en.holdUntil > Date.now())) return ''; const d = new Date(en.holdUntil); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
 /* v172: 머리글에 중계(구글 Apps Script) 버전 — 저장소의 ecount_relay.gs보다 낮으면 「새 버전 배포 필요」 */
-const RELAY_WANT = 3.9;
+const RELAY_WANT = 4.0;
 async function hdrRelayVer() { const hv = document.getElementById('hVer'); if (!hv) return; const base = `v${APP_VER} · ${APP_BUILT} 업데이트`;
   try { if (!String(prodS().cfg.relayUrl || '').trim() || !prodKey()) return false; const r = await prodRelayCall({ action: 'ping' }); const v = r && r.ok ? Number(r.version) || 0 : 0; if (!v) return false;
     hv.innerHTML = `${esc(base)} · <b class="${v >= RELAY_WANT ? 'rv-ok' : 'rv-old'}">중계 ${v}${v >= RELAY_WANT ? '' : ` → ${RELAY_WANT} 배포 필요`}</b>`; hv.title = v >= RELAY_WANT ? `앱 v${APP_VER} · 중계 ${v} (최신)` : `중계가 ${v}입니다 — Apps Script에서 ${RELAY_WANT}로 새 버전 배포가 필요합니다`; return true; } catch (e) { return false; } }
@@ -5696,7 +5696,8 @@ async function saleCatImport(file) { let J; try { J = JSON.parse(await file.text
 async function saleCatPhotos(list, prog) {   /* 단가표 제품 사진 → 중계(드라이브). 사진은 파일 안 img(data:) 또는 이 사이트의 cat/<id>.jpg */
   let ok = 0; const fails = [];
   for (let i = 0; i < list.length; i++) { const it = list[i], src = it.img && /^data:image\//.test(it.img) ? it.img : (it.src || `cat/${it.id}.jpg`); if (prog) prog(i, list.length, it.name);
-    try { await saleImgPut('cat_' + it.id, await saleImgResize(src, 800), it.name); ok++; } catch (e) { fails.push(saleDriveErr(e.message)); if (/배포|authorizeDrive/.test(fails[fails.length - 1]) || fails.length >= 3 && !ok) break; } }
+    if (it.nopic) continue; let data; try { data = await saleImgResize(src, 800); } catch (e) { continue; }   /* 사진이 없는 제품(생지 등)은 건너뜀 */
+    try { await saleImgPut('cat_' + it.id, data, it.name); ok++; } catch (e) { fails.push(saleDriveErr(e.message)); if (/배포|authorizeDrive/.test(fails[fails.length - 1]) || fails.length >= 3 && !ok) break; } }
   saleUi.catImgErr = fails.length ? fails[0] : ''; return { ok, fails };
 }
 async function saleCatImportJ(J) {
@@ -5706,7 +5707,7 @@ async function saleCatImportJ(J) {
   const m = $('#soM'); m.innerHTML = `<div class="sw-mb" role="dialog" aria-modal="true"><h3>단가표 넣는 중</h3><div id="ciProg" class="muted">사진 올리는 중…</div></div>`; m.hidden = false;
   const { ok, fails } = await saleCatPhotos(items, (i, n, nm) => { $('#ciProg').textContent = `사진 올리는 중… ${i + 1}/${n} ${nm}`; });
   const merged = (cur.items || []).filter(i => !items.some(n => n.id === i.id));
-  items.forEach(n => { const o = old.get(n.id) || {}; merged.push({ id: n.id, grp: n.grp || '완제품', name: n.name, spec: n.spec || '', pe: n.pe == null ? null : n.pe, pb: n.pb == null ? null : n.pb, bq: n.bq || null, unit: n.unit || 'Box', code: o.code || saleCatGuess(n.name, n.grp), hide: !!o.hide }); });
+  items.forEach(n => { const o = old.get(n.id) || {}; merged.push({ id: n.id, grp: n.grp || '완제품', name: n.name, spec: n.spec || '', pe: n.pe == null ? null : n.pe, pb: n.pb == null ? null : n.pb, bq: n.bq || null, unit: n.unit || 'Box', sub: n.sub || '', dim: n.dim || '', dt: n.dt || J.date || '', code: o.code || saleCatGuess(n.name, n.grp), hide: !!o.hide }); });
   try { await saleCatSave({ title: cur.title || J.title || '', on: cur.on !== false, items: merged }); m.hidden = true; m.innerHTML = ''; saleUi.catOpen = true;
     toast(fails.length ? `제품 ${items.length}개 · 사진 ${ok}장 넣음 (사진 실패 ${fails.length} — ${fails[0]})` : `단가표 제품 ${items.length}개와 사진 ${ok}장을 넣었습니다 — 모든 거래처 주문서에 바로 보입니다`); }
   catch (e) { m.hidden = true; m.innerHTML = ''; toast('단가표 저장 실패: ' + e.message); }
