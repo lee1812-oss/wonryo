@@ -43,3 +43,9 @@
 - 알림 소리: PC마다 localStorage bggd_snd {ord, msg, vol, rep, ordName, msgName} — 알림창 🔊(또는 운영 상태 「🔊 소리 고르기」)에서. v195: 앱이 만드는 소리 16가지(SALE_SND, _sT로 음 합성) + 「내 소리」 파일(mp3·wav, 1MB·8초 이하, IndexedDB bggd_snd에 저장, decodeAudioData로 재생).
 - 자주 쓰는 답장 문구(v193): 대화 화면 입력칸 위 단추(누르면 바로 보냄), 「✎ 문구 관리」에서 추가·고치기·삭제 — PC마다 localStorage bggd_qr (기본: 「네 확인 후 말씀드리겠습니다.」「감사합니다.」). 이카운트 메신저와는 연결 불가(공개 API 없음).
 - 빠른 알림(v194, 중계 5.2): 앱이 10초마다 pulse(pl:o 주문·pl:c 대화 바뀐 시각만)를 묻고, 바뀌었을 때만 orders 전체를 받음. pulse 때 adm:last 기록 → 3분 안에 앱이 켜져 있으면 거래처 메시지 메일은 생략. 거래처 주문서는 보내기 누르면 말풍선 먼저 보이고(보내는 중…), 15분 안에 대화했으면 5초마다 답장 확인(아니면 30초).
+
+## 거래처 주문 앱 (바탕화면 설치, v199)
+- order.webmanifest(이름 「빵을그리다 주문」, start_url `./order.html?app=1`, scope `./order.html`) + order-sw.js(주문서 화면만, 네트워크 우선·끊기면 저장본) + 아이콘 order_192/512/maskable/apple.png(크루아상+「빵을그리다」).
+- 주문서가 토큰을 localStorage `bggd_app_t`에 저장 → 앱 아이콘(?app=1)으로 열면 마지막 링크로 바로 열림. 처음이면 「주문서 링크를 한 번 눌러 열어 주세요」.
+- 주문서 맨 위 「📲 바탕화면에 앱 설치」 배너(✕ 누르면 7일 숨김, 설치하면 안 보임): 안드로이드 크롬 = 설치 창(beforeinstallprompt), 카카오톡 안 = `kakaotalk://web/openExternal?url=`로 다른 브라우저, 아이폰 = 사파리 공유 → 홈 화면에 추가 안내(아이폰은 manifest를 안 넣어 #t= 주소째로 저장), 삼성 인터넷 = ≡ → 현재 페이지 추가.
+- 플레이스토어 등록(검색 노출)은 이 웹앱을 PWABuilder로 포장 — 개발자 계정 25달러, 개인 계정은 테스터 12명·14일(회사 계정은 D-U-N-S), 도메인 루트의 assetlinks 필요(도메인 구매 후).
