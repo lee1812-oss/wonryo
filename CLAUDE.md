@@ -60,3 +60,10 @@
 - 구글 하루 한도 절약: pulse(pl:o·pl:c·adm:last)·대화(cv:chat…)·대화용 링크 확인(fl:토큰)은 CacheService. 링크 저장·멈춤·삭제 때 formLiteDrop_.
 - 주문 줄 [코드, 이름, 수량, 종류, 주문 시점 단가] (단가표 추가 품목은 null, 샘플 0) → 발주 카드 「주문 시점 공급가액」. 거래처 수정 시 이전 내용 o.hist(최근 5개) → 발주 카드 「이력 보기」.
 - 백업에서 되살리기(backupList/backupRestore, confirm '되살리기', 되돌리기 전 상태도 relay_backup_before_restore_*로 남김). 공휴일 불러오기(앱 KR_HOLI 2026~2027 — 해마다 다음 해 추가). 앱은 확인 안 한 발주가 30분 넘으면 30분마다 다시 알림.
+
+## 중계 5.5 (v205~v206) — 편의 묶음
+- 거래처 주문서: 확인된 주문에 「✓ 잘 받았어요」(orderAck → o.ack) / 「⚠ 문제 있어요」(orderClaim → o.claim {msg, imgs 드라이브 clm_…(사진 3장, 1280px JPEG로 줄여 보냄), st open/done, reply}) / 「💬 이 주문 문의」(대화 칸에 「[날짜 배송 주문]」 채움).
+- 관리: 발주 접수 맨 위 「⚠ 거래처 문제 신고」 카드(claimReply: 답하고 처리 완료 / 답만), 알림창에도 표시. 처리 중 신고가 있는 주문은 보관 이동·orders 목록에서 빠지지 않음.
+- 여러 발주 차례 입력: 새 발주 카드 체크 → 「선택한 n건 차례로 이카운트 입력」(saleQueueStart) — 같은 거래처·같은 배송일은 한 전표로 합침(D.ordIds → 저장 때 모두 accepted, 전송 완료 때 모두 done), 저장하면 다음 발주 자동으로 열림. 카드의 💬 = 그 거래처 대화.
+- 배송일별 생산 합계에 완제품·생지 재고 비교: finished.html finSummary가 stk {이카운트코드: [수량, 단위, 안전재고]}·stkAt 를 보냄(완제품 화면을 열어야 갱신, S.finSum) → 앞 배송일 누적이 재고보다 많으면 「⚠ n박스 부족」.
+- v206 화면: html,body{height:100%} 때문에 머리글 고정이 한 화면만큼만 되던 것 → body min-height. 넓은 화면 머리글 낮게, 왼쪽 메뉴 좁게(body.navmini, --side-w 76px, 맨 위 「»」로 넓히기, S.ui.navMini).
