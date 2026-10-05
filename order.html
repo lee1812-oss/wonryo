@@ -291,10 +291,18 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   function fail(m) { $('#who').textContent = '주문서를 열 수 없습니다'; $('#app').innerHTML = '<div class="msg"><b>주문서를 열 수 없습니다</b>' + esc(m) + '<br><br>빵을그리다 ☎ 031-762-1533</div>'; }
   if (!T) { fail('주소가 올바르지 않습니다. 받으신 주문 링크를 다시 눌러 주세요.'); return; }
   load();
-  call({ action: 'orderForm', t: T }).then(function (r) { if (!r || !r.ok) return fail((r && r.error) || '잠시 뒤 다시 열어 주세요.'); F = r.form; F.price = true; ORD = r.orders || [];   /* v175: 단가·금액은 항상 보임 */ $('#who').textContent = F.name; document.title = F.name + ' · 빵을그리다 주문서';
+  /* v186: 지난번 주문서를 이 기기에 두고 바로 보여 줌 → 중계(구글)가 깨어나는 2~5초를 기다리지 않음. 최신 내용이 오면 바꿔 넣음 */
+  var FC = 'bggd_form_' + T.slice(0, 10), shown = '', later = false;
+  function apply(form, orders) { F = form; F.price = true; ORD = orders || []; $('#who').textContent = F.name; document.title = F.name + ' · 빵을그리다 주문서';
     CAT = {}; ((F.cat && F.cat.items) || []).forEach(function (c) { if (!c.img && /^F\d+$/.test(c.id)) c.img = 'u:cat/' + encodeURIComponent(c.id) + '.jpg'; CAT[c.id] = c; });   /* 드라이브 사진이 없으면 이 사이트의 제품 사진 */
-    Object.keys(st.q).forEach(function (c) { if (!ent(c)) delete st.q[c]; }); render(); })
-    .catch(function () { fail('인터넷 연결을 확인하고 다시 열어 주세요.'); });
+    Object.keys(st.q).forEach(function (c) { if (!ent(c)) delete st.q[c]; });
+    var a = document.activeElement; if (a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('#app').contains(a)) { later = true; return; } render(); }   /* 입력 중이면 다 쓴 뒤에 바꿈 */
+  document.addEventListener('focusout', function () { if (later && F) { later = false; setTimeout(function () { var a = document.activeElement; if (!a || !/^(INPUT|TEXTAREA)$/.test(a.tagName)) render(); else later = true; }, 0); } });
+  try { var c0 = JSON.parse(localStorage.getItem(FC) || 'null'); if (c0 && c0.form) { shown = JSON.stringify(c0); apply(c0.form, c0.orders); } } catch (e) {}
+  call({ action: 'orderForm', t: T }).then(function (r) { if (!r || !r.ok) { if (shown) { try { localStorage.removeItem(FC); } catch (e) {} } return fail((r && r.error) || '잠시 뒤 다시 열어 주세요.'); }
+    var v = { form: r.form, orders: r.orders || [] }, js = JSON.stringify(v); try { localStorage.setItem(FC, js); } catch (e) {}
+    if (js !== shown) apply(v.form, v.orders); })
+    .catch(function () { if (!shown) fail('인터넷 연결을 확인하고 다시 열어 주세요.'); });
 })();
 </script>
 </body>
