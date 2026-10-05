@@ -72,6 +72,20 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
 .cb{display:flex;gap:6px;flex:0 0 auto}.cgrid.big .cb .btn{flex:1 1 0}.cc.sm .cb{flex-direction:column}
 .sheet.wide>div{max-width:900px;max-height:92vh}.cat-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}.cat-h h3{margin:0;flex:1 1 auto}.cat-h h3 span{font-size:12px;color:var(--ink3);font-weight:600}
 .cat-tabs{display:flex;gap:4px;margin-bottom:8px}.cat-tabs button{padding:7px 14px;border-radius:999px;border:1px solid var(--line);font-weight:700;font-size:13.5px}.cat-tabs button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.cat-tabs button small{font-weight:600;opacity:.75;margin-left:2px}
+.cat-f{margin-bottom:8px}.cat-f input{width:100%;height:40px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:15px}.cat-sub{display:flex;gap:5px;overflow-x:auto;margin-top:7px;padding-bottom:2px;scrollbar-width:none}.cat-sub button{flex:0 0 auto;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:700;color:var(--ink2)}.cat-sub button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.cat-h .btn{height:34px;font-size:13px;white-space:nowrap}
+.crl{border-top:1px solid var(--line2)}.cr{display:grid;grid-template-columns:1fr auto;grid-template-areas:"n b" "p b";gap:2px 10px;align-items:center;padding:10px 2px;border-bottom:1px solid var(--line2)}.cr.on{background:#F4FBF8}
+.cr-n{grid-area:n;min-width:0}.cr-n b{display:block;font-size:15px}.cr-m{display:block;font-size:12px;color:var(--ink3);margin-top:1px}.cr-w,.cr-k,.cr-d{display:none}
+.cr-p{grid-area:p;display:flex;gap:10px;font-size:13.5px;font-weight:800;color:var(--minus,#B42318)}.cr-p span i{font-style:normal;font-weight:600;font-size:11px;color:var(--ink3);margin-left:3px}.cr .cb{grid-area:b;flex-direction:column}.cr .cb .btn{height:32px;font-size:12.5px;padding:0 10px}
+.cr-h{display:none}.cr-s{position:sticky;top:-18px;background:#fff;z-index:1;font-size:12.5px;font-weight:800;color:var(--accent);padding:10px 2px 4px;border-bottom:2px solid var(--accent)}
+@media (min-width:760px){.cr{grid-template-columns:minmax(0,2.4fr) 70px 86px minmax(0,1.6fr) 190px 170px;grid-template-areas:"n w k d p b";gap:10px}.cr-w,.cr-k,.cr-d{display:block;font-size:13px;color:var(--ink2)}.cr-d{font-size:12px}.cr-m{display:none}.cr-p{justify-content:flex-end}.cr-p span{width:90px;text-align:right}.cr-p span i{display:none}.cr .cb{flex-direction:row}
+  .cr-h{display:grid;font-size:12px;font-weight:800;color:var(--ink3);background:#F7F5F1;padding:7px 2px}.cr-h .cr-n,.cr-h .cr-p{font-size:12px}.cr-h .cr-p{color:var(--ink3)}.cr-h .cr-w,.cr-h .cr-k,.cr-h .cr-d{font-size:12px;color:var(--ink3)}.cr-s{top:-18px}}
+.pp-wrap{position:fixed;left:-10000px;top:0}.pp{width:794px;height:1123px;background:#fff;padding:34px 36px 28px;box-sizing:border-box;position:relative;font-family:inherit;color:#1a1a1a}
+.pp-h{display:flex;align-items:center;gap:12px;border-bottom:3px solid #C2410C;padding-bottom:10px;margin-bottom:14px}.pp-h img{height:44px}.pp-h div{flex:1}.pp-h b{display:block;font-size:22px}.pp-h span{font-size:12px;color:#666}.pp-h em{font-style:normal;font-size:11px;color:#666;text-align:right}
+.pp-g{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.pp-c{border:1px solid #e5e1da;border-radius:8px;padding:6px;height:226px;box-sizing:border-box;overflow:hidden}.pp-c img,.pp-np{width:100%;height:122px;object-fit:contain;background:#faf8f5;border-radius:6px;display:block}.pp-np{display:flex;align-items:center;justify-content:center;font-size:11px;color:#999}.pp-c b{display:block;font-size:13px;margin-top:5px;line-height:1.25}.pp-c span{display:block;font-size:10.5px;color:#777}.pp-c em{display:block;font-style:normal;font-size:11.5px;font-weight:700;color:#B42318}
+.pp-t{width:100%;border-collapse:collapse;font-size:12px}.pp-t th{background:#3B2A1E;color:#fff;padding:6px 5px;font-size:11.5px}.pp-t td{border-bottom:1px solid #e5e1da;padding:5px 5px;height:15px}.pp-t td.n{text-align:right}.pp-t td.b{font-weight:800;background:#FFF6DC}.pp-s td{background:#F3EEE6;font-weight:800;color:#7A4A12;font-size:11.5px}
+.pp-f{position:absolute;left:36px;right:36px;bottom:16px;font-size:10px;color:#888;border-top:1px solid #eee;padding-top:5px}
 .muted-s{font-size:12px;color:var(--ink3);margin-bottom:8px;line-height:1.5}
 </style>
 </head>
@@ -113,11 +127,21 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
     $('#go').disabled = !p.length || !st.ship; }
   function row(k, name, sub, img, tag) { var v = st.q[k] || 0;
     return '<div class="it' + (v ? ' on' : '') + '">' + (img ? '<button class="pic" data-pic="' + esc(img) + '" data-nm="' + esc(name) + '" aria-label="' + esc(name) + ' 사진 크게"><img src="' + IMG(img, 160) + '" alt="" loading="lazy"></button>' : '') + '<div class="nm"><b>' + (tag || '') + esc(name) + '</b><span>' + sub + '</span></div><div class="st"><button data-d="-1" data-c="' + esc(k) + '" aria-label="줄이기">−</button><input inputmode="numeric" data-c="' + esc(k) + '" value="' + (v || '') + '" placeholder="0" aria-label="' + esc(name) + ' 수량"><button data-d="1" data-c="' + esc(k) + '" aria-label="늘리기">+</button></div></div>'; }
-  function catPrice(c) { return (c.pe != null ? '개당 ' + won(c.pe) + '원' : '') + (c.pb != null ? (c.pe != null ? ' · ' : '') + esc(c.unit || 'Box') + (c.bq ? '(' + c.bq + 'ea)' : '') + ' ' + won(c.pb) + '원' : ''); }
-  function catCard(c, small) { var kq = st.q['cat:' + c.id] || 0, ks = st.q['cat:' + c.id + '|s'] || 0;
-    return '<div class="cc' + (small ? ' sm' : '') + (kq || ks ? ' on' : '') + '" id="cc_' + esc(c.id) + '">' + (c.img ? '<button class="pic" data-pic="' + esc(c.img) + '" data-nm="' + esc(c.name) + '"><img src="' + IMG(c.img, small ? 160 : 400) + '" alt="" loading="lazy" onerror="var p=this.parentNode;p.className=\'pic none\';p.textContent=\'사진 준비 중\'"></button>' : '<div class="pic none">사진 준비 중</div>') +
-      '<div class="ci"><b>' + esc(c.name) + '</b><span>' + esc(c.spec || '') + '</span><em>' + catPrice(c) + '</em>' + (c.pe != null || c.pb != null ? '<small>VAT 별도 · 단가표 기준</small>' : '') + '</div>' +
-      '<div class="cb"><button class="btn sm' + (kq ? ' pri' : '') + '" data-cadd="' + esc(c.id) + '">' + (kq ? '담음 ' + kq : '담기') + '</button><button class="btn sm' + (ks ? ' smp' : '') + '" data-csmp="' + esc(c.id) + '">' + (ks ? '✓ 샘플' : '샘플 신청') + '</button></div></div>'; }
+  function unitTxt(c) { return c.unit === 'Box' ? '박스' : (c.unit || '박스'); }
+  function catPrice(c) { return (c.pe != null ? '개당 ' + won(c.pe) + '원' : '') + (c.pb != null ? (c.pe != null ? ' · ' : '') + esc(unitTxt(c)) + (c.bq ? '(' + c.bq + '개)' : '') + ' ' + won(c.pb) + '원' : ''); }
+  function catNote(c) { return c.grp === '완제품' ? 'VAT 별도 · 단가표 기준' : '단가표 기준'; }
+  function catMeta(c) { return [c.spec, c.bq ? c.bq + '개/' + unitTxt(c) : '', c.dim].filter(Boolean).map(esc).join(' · '); }
+  function catBtns(c) { var kq = st.q['cat:' + c.id] || 0, ks = st.q['cat:' + c.id + '|s'] || 0;
+    return '<div class="cb"><button class="btn sm' + (kq ? ' pri' : '') + '" data-cadd="' + esc(c.id) + '">' + (kq ? '담음 ' + kq : '담기') + '</button><button class="btn sm' + (ks ? ' smp' : '') + '" data-csmp="' + esc(c.id) + '">' + (ks ? '✓ 샘플' : '샘플 신청') + '</button></div>'; }
+  function hasPic(c) { return !!c.img; }
+  /* 사진 없는 제품(생지 등)은 한 줄로 — 휴대폰은 카드, PC는 표처럼 칸이 맞음 */
+  function catRow(c) { var on = st.q['cat:' + c.id] || st.q['cat:' + c.id + '|s'];
+    return '<div class="cr' + (on ? ' on' : '') + '" id="cc_' + esc(c.id) + '"><div class="cr-n"><b>' + esc(c.name) + '</b><span class="cr-m">' + catMeta(c) + '</span></div>' +
+      '<div class="cr-w">' + esc(c.spec || '') + '</div><div class="cr-k">' + (c.bq ? c.bq + '개/' + esc(unitTxt(c)) : esc(unitTxt(c))) + '</div><div class="cr-d">' + esc(c.dim || '') + '</div>' +
+      '<div class="cr-p"><span class="cr-pe">' + (c.pe != null ? won(c.pe) + '원' : '—') + '<i>개당</i></span><span class="cr-pb">' + (c.pb != null ? won(c.pb) + '원' : '—') + '<i>' + esc(unitTxt(c)) + '</i></span></div>' + catBtns(c) + '</div>'; }
+  function catCard(c, small) { if (!hasPic(c)) return catRow(c); var kq = st.q['cat:' + c.id] || 0, ks = st.q['cat:' + c.id + '|s'] || 0;
+    return '<div class="cc' + (small ? ' sm' : '') + (kq || ks ? ' on' : '') + '" id="cc_' + esc(c.id) + '"><button class="pic" data-pic="' + esc(c.img) + '" data-nm="' + esc(c.name) + '"><img src="' + IMG(c.img, small ? 160 : 400) + '" alt="" loading="lazy" onerror="var p=this.parentNode;p.className=\'pic none\';p.textContent=\'사진 준비 중\'"></button>' +
+      '<div class="ci"><b>' + esc(c.name) + '</b><span>' + esc(c.spec || '') + '</span><em>' + catPrice(c) + '</em>' + (c.pe != null || c.pb != null ? '<small>' + catNote(c) + '</small>' : '') + '</div>' + catBtns(c) + '</div>'; }
   function noticesHtml() { var N = (F.notices || []).filter(function (n) { return st.seen.indexOf(n.id) < 0 || n.pin; }), hid = (F.notices || []).length - N.length;
     return (N.length ? N.map(function (n) { var c = n.cat && CAT[n.cat]; return '<section class="ntc">' + (c && c.img ? '<img src="' + IMG(c.img, 300) + '" alt="" onerror="this.remove()">' : '') + '<div><b>📢 ' + esc(n.title) + '</b>' + (n.body ? '<p>' + esc(n.body) + '</p>' : '') + '<div class="nb">' + (c ? '<button class="btn sm pri" data-ncat="' + esc(n.cat) + '">제품 보기</button>' : '') + (n.pin ? '' : '<button class="btn sm" data-nx="' + esc(n.id) + '">닫기</button>') + '</div></div></section>'; }).join('') : '') +
       (hid > 0 ? '<button class="ntc-more" id="ntcAll">📢 지난 안내 ' + hid + '개 다시 보기</button>' : ''); }
@@ -151,16 +175,51 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
     var inp = document.querySelector('#items input[data-c="' + CSS.escape(c) + '"]'); if (inp && document.activeElement !== inp) inp.value = v || ''; if (inp) inp.closest('.it').classList.toggle('on', !!v); sumHtml(); }
   function picSheet(id, nm) { sheet('<img src="' + IMG(id, 1000) + '" alt="" style="width:100%;border-radius:12px;background:#f3f3f3"><div style="font-weight:800;margin:10px 2px">' + esc(nm) + '</div><button class="btn" style="width:100%;height:46px" id="picX">닫기</button>'); $('#picX').onclick = function () { sheet(); }; }
   function catToggle(id, smp) { var k = 'cat:' + id + (smp ? '|s' : ''); if (smp) { if (st.q[k]) delete st.q[k]; else st.q[k] = 1; } else st.q[k] = (st.q[k] || 0) + 1; keep(); }
-  function catSheet(focus) { var all = Object.keys(CAT).map(function (id) { return CAT[id]; }), grps = []; all.forEach(function (c) { if (grps.indexOf(c.grp) < 0) grps.push(c.grp); });
-    if (focus && CAT[focus]) catGrp = CAT[focus].grp; if (grps.indexOf(catGrp) < 0) catGrp = grps[0] || '';
-    var L = all.filter(function (c) { return c.grp === catGrp; });
-    sheet('<div class="cat-h"><h3>빵을그리다 제품 <span>' + esc((F.cat && F.cat.title) || '') + '</span></h3><button class="btn sm" id="catX">다 골랐어요</button></div>' + (grps.length > 1 ? '<div class="cat-tabs">' + grps.map(function (g) { return '<button class="' + (g === catGrp ? 'on' : '') + '" data-cg="' + esc(g) + '">' + esc(g) + '</button>'; }).join('') + '</div>' : '') +
-      '<div class="muted-s">「담기」는 이번 주문에 넣고, 「샘플 신청」은 맛보기로 받아 볼 제품입니다. 단가는 VAT 별도 단가표 기준이며 거래처마다 다를 수 있습니다.</div><div class="cgrid big">' + L.map(function (c) { return catCard(c); }).join('') + '</div>', true);
-    var box = $('#sheetIn'); $('#catX').onclick = function () { sheet(); render(); };
-    box.onclick = function (e) { var t = e.target, b; if ((b = t.closest('[data-cg]'))) { catGrp = b.getAttribute('data-cg'); catSheet(); return; }
+  var catSub = '', catQ = '';
+  function catGroups() { var g = [], O = ['완제품', '생지']; Object.keys(CAT).forEach(function (id) { if (g.indexOf(CAT[id].grp) < 0) g.push(CAT[id].grp); }); return g.sort(function (a, b) { return (O.indexOf(a) + 1 || 9) - (O.indexOf(b) + 1 || 9); }); }
+  function grpDate(g) { var d = ''; Object.keys(CAT).forEach(function (id) { var c = CAT[id]; if (c.grp === g && c.dt && c.dt > d) d = c.dt; }); return d ? d.replace(/-/g, '.') + ' 기준' : ''; }
+  function catSheet(focus) { var all = Object.keys(CAT).map(function (id) { return CAT[id]; }), grps = catGroups();
+    if (focus && CAT[focus]) { catGrp = CAT[focus].grp; catSub = ''; catQ = ''; } if (grps.indexOf(catGrp) < 0) catGrp = grps[0] || '';
+    var G = all.filter(function (c) { return c.grp === catGrp; }), subs = []; G.forEach(function (c) { if (c.sub && subs.indexOf(c.sub) < 0) subs.push(c.sub); }); if (subs.indexOf(catSub) < 0) catSub = '';
+    var q = norm(catQ), L = G.filter(function (c) { return (!catSub || c.sub === catSub) && (!q || norm(c.name + c.spec + (c.sub || '')).indexOf(q) >= 0); }), list = G.filter(hasPic).length < G.length / 2;
+    var body = list ? '<div class="crl"><div class="cr cr-h"><div class="cr-n">품목</div><div class="cr-w">중량</div><div class="cr-k">포장</div><div class="cr-d">규격(mm)</div><div class="cr-p"><span>개당</span><span>봉·박스</span></div><div class="cb"></div></div>' +
+        (catSub || q ? L.map(catRow).join('') : subs.length ? subs.map(function (sb) { return '<div class="cr-s">' + esc(sb) + '</div>' + L.filter(function (c) { return c.sub === sb; }).map(catRow).join(''); }).join('') + L.filter(function (c) { return !c.sub; }).map(catRow).join('') : L.map(catRow).join('')) + '</div>'
+      : '<div class="cgrid big">' + L.map(function (c) { return catCard(c); }).join('') + '</div>';
+    sheet('<div class="cat-h"><h3>빵을그리다 제품 <span>' + esc(grpDate(catGrp)) + '</span></h3><button class="btn sm" id="catPdf">⬇ 단가표 PDF</button><button class="btn sm pri" id="catX">다 골랐어요</button></div>' +
+      (grps.length > 1 ? '<div class="cat-tabs">' + grps.map(function (g) { return '<button class="' + (g === catGrp ? 'on' : '') + '" data-cg="' + esc(g) + '">' + esc(g) + ' <small>' + all.filter(function (c) { return c.grp === g; }).length + '</small></button>'; }).join('') + '</div>' : '') +
+      '<div class="cat-f"><input id="catFind" placeholder="' + esc(catGrp) + ' 안에서 찾기" value="' + esc(catQ) + '">' + (subs.length ? '<div class="cat-sub"><button class="' + (catSub ? '' : 'on') + '" data-cs="">전체</button>' + subs.map(function (sb) { return '<button class="' + (sb === catSub ? 'on' : '') + '" data-cs="' + esc(sb) + '">' + esc(sb) + '</button>'; }).join('') + '</div>' : '') + '</div>' +
+      '<div class="muted-s">「담기」는 이번 주문에 넣고, 「샘플 신청」은 맛보기로 받아 볼 제품입니다. 단가는 단가표 기준이며 거래처마다 다를 수 있습니다.</div>' + (L.length ? body : '<div class="msg">찾는 제품이 없습니다</div>'), true);
+    var box = $('#sheetIn'); $('#catX').onclick = function () { sheet(); render(); }; $('#catPdf').onclick = catPdf;
+    var cf = $('#catFind'); cf.oninput = function () { catQ = cf.value; var pos = cf.selectionStart; catSheet(); var f = $('#catFind'); f.focus(); try { f.setSelectionRange(pos, pos); } catch (er) {} };
+    box.onclick = function (e) { var t = e.target, b; if ((b = t.closest('[data-cg]'))) { catGrp = b.getAttribute('data-cg'); catSub = ''; catQ = ''; catSheet(); box.scrollTop = 0; return; }
+      if ((b = t.closest('[data-cs]'))) { catSub = b.getAttribute('data-cs'); catSheet(); return; }
       if ((b = t.closest('[data-pic]'))) { var keepG = catGrp; picSheet(b.getAttribute('data-pic'), b.getAttribute('data-nm')); $('#picX').onclick = function () { catGrp = keepG; catSheet(); }; return; }
       if ((b = t.closest('[data-cadd]')) || (b = t.closest('[data-csmp]'))) { var id = b.getAttribute('data-cadd') || b.getAttribute('data-csmp'); catToggle(id, !!b.getAttribute('data-csmp')); var card = document.getElementById('cc_' + id); if (card) card.outerHTML = catCard(CAT[id]); sumHtml(); } };
     if (focus) setTimeout(function () { var el = document.getElementById('cc_' + focus); if (el) el.scrollIntoView({ block: 'center' }); }, 50); }
+  /* 단가표 PDF — 이 기기에서 바로 만듦(가격은 중계에서 받은 것, 저장소엔 없음). 사진은 같은 사이트의 cat/<id>.jpg */
+  function loadJs(u) { return new Promise(function (ok, no) { var x = document.createElement('script'); x.src = u; x.onload = ok; x.onerror = function () { no(new Error('PDF 도구를 받지 못했습니다')); }; document.head.appendChild(x); }); }
+  var PDF_JS = ['https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'];
+  function pdfPages() { var all = Object.keys(CAT).map(function (id) { return CAT[id]; }), pages = [], today = new Date(), td = today.getFullYear() + '.' + (today.getMonth() + 1) + '.' + today.getDate();
+    var head = function (g, n, tot) { return '<div class="pp-h"><img src="brand_logo.png" alt=""><div><b>빵을그리다 ' + esc(g) + ' 단가표</b><span>' + esc(grpDate(g)) + (g === '완제품' ? ' · VAT 별도' : '') + '</span></div><em>☎ 031-762-1533<br>' + n + ' / ' + tot + '</em></div>'; };
+    var foot = '<div class="pp-f">빵을그리다(주) · 받은 날 ' + td + ' · 단가는 단가표 기준이며 거래처마다 다를 수 있습니다</div>';
+    catGroups().forEach(function (g) { var G = all.filter(function (c) { return c.grp === g; });
+      if (G.filter(hasPic).length >= G.length / 2) { for (var i = 0, n = Math.ceil(G.length / 16); i < n; i++) pages.push({ g: g, html: '<div class="pp-g">' + G.slice(i * 16, i * 16 + 16).map(function (c) { var src = /^F\d+$/.test(c.id) ? 'cat/' + c.id + '.jpg' : '';
+          return '<div class="pp-c">' + (src ? '<img src="' + src + '" alt="">' : '<div class="pp-np">사진 준비 중</div>') + '<b>' + esc(c.name) + '</b><span>' + esc(c.spec || '') + '</span><em>' + (c.pe != null ? '개당 ' + won(c.pe) + '원' : '') + '</em><em>' + (c.pb != null ? esc(unitTxt(c)) + (c.bq ? '(' + c.bq + '개)' : '') + ' ' + won(c.pb) + '원' : '') + '</em></div>'; }).join('') + '</div>' }); }
+      else { var rows = [], last = null; G.forEach(function (c) { if (c.sub && c.sub !== last) { rows.push('<tr class="pp-s"><td colspan="6">' + esc(c.sub) + '</td></tr>'); last = c.sub; } rows.push('<tr><td>' + esc(c.name) + '</td><td>' + esc(c.spec || '') + '</td><td>' + (c.bq ? c.bq + '개/' + esc(unitTxt(c)) : esc(unitTxt(c))) + '</td><td>' + esc(c.dim || '') + '</td><td class="n">' + (c.pe != null ? won(c.pe) : '') + '</td><td class="n b">' + (c.pb != null ? won(c.pb) : '') + '</td></tr>'); });
+        var th = '<tr><th>품목명</th><th>중량</th><th>포장</th><th>규격(mm)</th><th>개당</th><th>봉·박스</th></tr>'; for (var k = 0; k < rows.length; k += 34) pages.push({ g: g, html: '<table class="pp-t"><thead>' + th + '</thead><tbody>' + rows.slice(k, k + 34).join('') + '</tbody></table>' }); } });
+    var byG = {}; pages.forEach(function (p) { byG[p.g] = (byG[p.g] || 0) + 1; }); var seen = {};
+    return pages.map(function (p) { seen[p.g] = (seen[p.g] || 0) + 1; return '<div class="pp">' + head(p.g, seen[p.g], byG[p.g]) + p.html + foot + '</div>'; }); }
+  function catPdf() { var b = $('#catPdf'); if (b.disabled) return; b.disabled = true; var t0 = b.textContent; b.textContent = 'PDF 만드는 중…';
+    var wrap = document.createElement('div'); wrap.className = 'pp-wrap'; wrap.innerHTML = pdfPages().join(''); document.body.appendChild(wrap);
+    var done = function (msg) { b.disabled = false; b.textContent = t0; wrap.remove(); if (msg) alert(msg); };
+    Promise.all(PDF_JS.map(loadJs)).then(function () { return Promise.all([].slice.call(wrap.querySelectorAll('img')).map(function (im) { return im.complete ? 0 : new Promise(function (ok) { im.onload = im.onerror = ok; }); })); }).then(function () {
+      var pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' }), pp = [].slice.call(wrap.querySelectorAll('.pp')), i = 0;
+      var next = function () { if (i >= pp.length) { var nm = '빵을그리다_단가표_' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '.pdf';
+          if (/KAKAOTALK/i.test(navigator.userAgent)) { var u = pdf.output('bloburl'); done(); sheet('<h3>단가표 PDF</h3><div class="muted-s">카카오톡 안에서는 파일 저장이 안 될 수 있어요. 아래 「PDF 열기」로 보거나, 「크롬·사파리로 열기」 후 다시 받아 주세요.</div><div class="btns"><a class="btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none;color:inherit" href="kakaotalk://web/openExternal?url=' + encodeURIComponent(location.href) + '">크롬·사파리로 열기</a><a class="btn pri" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="' + u + '" target="_blank" download="' + nm + '">PDF 열기</a></div>'); return; }
+          pdf.save(nm); done(); return; }
+        b.textContent = 'PDF 만드는 중… ' + (i + 1) + '/' + pp.length;
+        window.html2canvas(pp[i], { scale: 2, backgroundColor: '#ffffff', useCORS: true }).then(function (cv) { if (i) pdf.addPage(); pdf.addImage(cv.toDataURL('image/jpeg', 0.86), 'JPEG', 0, 0, 210, 297); i++; next(); }).catch(function (e) { done('PDF를 만들지 못했습니다: ' + e.message); }); };
+      next(); }).catch(function (e) { done(e.message + ' — 인터넷 연결을 확인하고 다시 눌러 주세요.'); }); }
   function bind() {
     document.querySelectorAll('[data-day]').forEach(function (b) { b.onclick = function () { st.ship = b.getAttribute('data-day'); keep(); document.querySelectorAll('[data-day]').forEach(function (x) { x.classList.toggle('on', x === b); }); sumHtml(); }; });
     var items = $('#items'); items.onclick = function (e) { var t = e.target, pc = t.closest('button[data-pic]'); if (pc) { picSheet(pc.getAttribute('data-pic'), pc.getAttribute('data-nm')); return; }
@@ -208,7 +267,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   if (!T) { fail('주소가 올바르지 않습니다. 받으신 주문 링크를 다시 눌러 주세요.'); return; }
   load();
   call({ action: 'orderForm', t: T }).then(function (r) { if (!r || !r.ok) return fail((r && r.error) || '잠시 뒤 다시 열어 주세요.'); F = r.form; ORD = r.orders || []; $('#who').textContent = F.name; document.title = F.name + ' · 빵을그리다 주문서';
-    CAT = {}; ((F.cat && F.cat.items) || []).forEach(function (c) { if (!c.img) c.img = 'u:cat/' + encodeURIComponent(c.id) + '.jpg'; CAT[c.id] = c; });   /* 드라이브 사진이 없으면 이 사이트의 제품 사진 */
+    CAT = {}; ((F.cat && F.cat.items) || []).forEach(function (c) { if (!c.img && /^F\d+$/.test(c.id)) c.img = 'u:cat/' + encodeURIComponent(c.id) + '.jpg'; CAT[c.id] = c; });   /* 드라이브 사진이 없으면 이 사이트의 제품 사진 */
     Object.keys(st.q).forEach(function (c) { if (!ent(c)) delete st.q[c]; }); render(); })
     .catch(function () { fail('인터넷 연결을 확인하고 다시 열어 주세요.'); });
 })();
