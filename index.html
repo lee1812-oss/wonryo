@@ -1272,8 +1272,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '208';
-const APP_BUILT = '2026-10-06 10:10';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '209';
+const APP_BUILT = '2026-10-06 11:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -2443,7 +2443,7 @@ function prodHoldUntil(date) { const c = prodS().cfg; if (c.batch === false) ret
   const ms = Date.parse(`${date}T${t}:00+09:00`); return isFinite(ms) && ms > Date.now() ? ms : 0; }
 function prodHoldText(en) { if (!(en.holdUntil > Date.now())) return ''; const d = new Date(en.holdUntil); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
 /* v172: 머리글에 중계(구글 Apps Script) 버전 — 저장소의 ecount_relay.gs보다 낮으면 「새 버전 배포 필요」 */
-const RELAY_WANT = 5.5;
+const RELAY_WANT = 5.6;
 async function hdrRelayVer() { const hv = document.getElementById('hVer'); if (!hv) return; const base = `v${APP_VER} · ${APP_BUILT} 업데이트`;
   try { if (!String(prodS().cfg.relayUrl || '').trim() || !prodKey()) return false; const r = await prodRelayCall({ action: 'ping' }); const v = r && r.ok ? Number(r.version) || 0 : 0; if (!v) return false;
     hv.innerHTML = `${esc(base)} · <b class="${v >= RELAY_WANT ? 'rv-ok' : 'rv-old'}">중계 ${v.toFixed(1)}${v >= RELAY_WANT ? '' : ` → ${RELAY_WANT.toFixed(1)} 배포 필요`}</b>`; if (!saleUi.bootPoll) { saleUi.bootPoll = true; try { saleOrdPoll(); saleSyncSoon(1500); } catch (e) {} }
@@ -5609,7 +5609,7 @@ async function saleOrdFetch(silent) {
   try { const [a, b, hd] = await Promise.all([prodRelayCall({ action: 'orders', days: 14 }), prodRelayCall({ action: 'listOrderForms' }), prodRelayCall({ action: 'getHolidays' }).catch(() => null)]); if (hd && hd.ok) saleUi.holidays = hd.holidays || [];
     if (!a || !a.ok) throw new Error((a && a.error) || '중계가 거절했습니다'); if (/알 수 없는 요청/.test(a.error || '')) throw new Error('중계를 새 버전(3.4)으로 배포해야 합니다');
     const before = new Set((saleUi.ord || []).filter(o => o.status === 'new').map(o => o.id));
-    saleUi.ord = a.orders || []; saleUi.ordForms = (b && b.ok && b.forms) || []; saleUi.use = a.use || 0; saleUi.useLim = a.limit || 500000; if (a.alert) saleUi.alert = a.alert; if (a.shop) saleUi.shop = a.shop; if ('trig' in a) saleUi.trig = a.trig; if ('mailLeft' in a) saleUi.mailLeft = a.mailLeft; if (S.ui.prodTab === 'pord') await Promise.all([saleImgFetch(), saleCatFetch()]); saleUi.ordAt = new Date().toISOString(); saleUi.ordErr = '';
+    saleUi.ord = a.orders || []; saleUi.ordForms = (b && b.ok && b.forms) || []; saleUi.use = a.use || 0; saleUi.useLim = a.limit || 500000; if (a.alert) saleUi.alert = a.alert; if (a.shop) saleUi.shop = a.shop; if ('bal' in a) saleUi.bal = a.bal; if (a.alim) saleUi.alim = a.alim; if ('trig' in a) saleUi.trig = a.trig; if ('mailLeft' in a) saleUi.mailLeft = a.mailLeft; if (S.ui.prodTab === 'pord') await Promise.all([saleImgFetch(), saleCatFetch()]); saleUi.ordAt = new Date().toISOString(); saleUi.ordErr = '';
     const fresh = saleUi.ord.filter(o => o.status === 'new' && !before.has(o.id)); if (fresh.length && saleUi.ordSeen) { const msg = `새 발주 ${fresh.length}건 — ${fresh.map(o => o.name).slice(0, 2).join(', ')}`; if (!silent) toast('🛒 ' + msg); saleNotify(msg, fresh); } saleUi.ordSeen = true;
     /* v204: 확인 안 한 발주가 30분 넘게 있으면 30분마다 다시 알림 */
     const stale = saleUi.ord.filter(o => o.status === 'new' && !(o.reply && o.reply.st) && Date.now() - new Date(o.editedAt || o.at).getTime() > 30 * 60e3);
@@ -6138,6 +6138,29 @@ function saleQueueNext() { const q = saleUi.loadQ || []; if (!q.length) return; 
       if (l[3] === 's') { D.lines.push({ code: l[0], name: saleItemName(l[0]), qty: String(l[2]), price: '0', pFrom: 'manual', smp: true }); return; } saleAddLine(l[0]); const ln = D.lines.find(x => x.code === l[0] && !x.smp); if (ln) ln.qty = String((Number(ln.qty) || 0) + l[2]); });
       if (o.memo) memo.push(o.memo); }); if (memo.length) D.memo = [D.memo, memo.join(' / ')].filter(Boolean).join(' / '); D.ordIds = os.map(o => o.id); saleSave(); renderAll(); toast(`${os[0].name} 발주 ${os.length}건을 한 전표로 합쳤습니다`); }
   if (saleUi.loadQ.length) setTimeout(() => toast(`차례로 입력 중 — 이것 저장하면 다음 발주가 열립니다 (남은 ${saleUi.loadQ.length}건)`), 1600); }
+/* v207: 미수금(이카운트 채권 엑셀) — 거래처 코드별 잔액 */
+function saleBalOf(cust) { const B = saleUi.bal; return B && B.b && B.b[cust] != null ? B.b[cust] : null; }
+async function saleBalUpload(file) { try { const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' }), ws = wb.Sheets[wb.SheetNames[0]], R = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null });
+    let hi = -1, cC = -1, cN = -1, cA = -1; for (let i = 0; i < Math.min(R.length, 15) && hi < 0; i++) { const r = (R[i] || []).map(x => String(x == null ? '' : x).replace(/\s/g, ''));
+      const a = r.findIndex(x => /거래처코드|코드/.test(x)), n = r.findIndex(x => /거래처명|거래처$|상호/.test(x)); let m = -1; r.forEach((x, j) => { if (/잔액|미수|채권/.test(x)) m = j; }); if ((a >= 0 || n >= 0) && m >= 0) { hi = i; cC = a; cN = n; cA = m; } }
+    if (hi < 0) throw new Error('「거래처」와 「잔액(미수금)」 칸을 찾지 못했습니다 — 이카운트 채권(미수금) 현황 엑셀을 올려 주세요');
+    const X = saleS(), byName = {}, want = new Set((saleUi.ordForms || []).map(f => f.cust)), b = {}; Object.keys(X.cust).forEach(c => { byName[saleNorm(X.cust[c][0])] = c; }); let n = 0, miss = 0;
+    R.slice(hi + 1).forEach(r => { if (!r) return; const code = cC >= 0 && r[cC] != null ? String(r[cC]).trim() : '', nm = cN >= 0 && r[cN] != null ? String(r[cN]).trim() : '', c = (code && X.cust[code]) ? code : byName[saleNorm(nm)] || code;
+      const v = Number(String(r[cA] == null ? '' : r[cA]).replace(/[,\s원]/g, '')); if (!c || !isFinite(v) || /합계|소계/.test(nm + code)) return; if (!want.has(c)) { miss++; return; } b[c] = Math.round(v); n++; });
+    if (!n) throw new Error('주문 링크 있는 거래처를 엑셀에서 찾지 못했습니다');
+    const r = await prodRelayCall({ action: 'putBalances', b, at: today() }); if (!r || !r.ok) throw new Error(/알 수 없는 요청/.test((r && r.error) || '') ? '중계를 새 버전(5.6)으로 배포해야 합니다' : (r && r.error) || '실패');
+    saleUi.bal = Object.assign({}, saleUi.bal || {}, { b, at: r.at, show: r.show }); toast(`미수금 ${n}곳을 올렸습니다${miss ? ` (주문 링크 없는 거래처 ${miss}곳은 뺌)` : ''}`); renderSaleOrd(); } catch (e) { toast('실패: ' + e.message); } }
+/* v207: 링크별 비밀번호·알림톡 휴대폰 */
+function saleFxEditor(f) { if (!f) return; modal(`<h3>${esc(f.name)} — 주문서 설정</h3>
+  <div class="field" style="margin:8px 0"><b>🔒 비밀번호 (숫자 4~8자리)</b><div class="muted" style="font-size:12.5px">링크가 다른 사람에게 퍼져도 비밀번호를 모르면 주문할 수 없습니다. 거래처에 전화·문자로 따로 알려 주세요.</div>
+    <div class="prow" style="margin-top:6px">${f.pin ? '<span class="pill ok">걸려 있음</span>' : '<span class="pill">없음</span>'}<input id="fxPin" inputmode="numeric" maxlength="8" placeholder="${f.pin ? '바꿀 때만 입력' : '예: 1533'}" style="width:140px"><button type="button" class="btn xs primary" data-fxpin="1">${f.pin ? '바꾸기' : '걸기'}</button>${f.pin ? '<button type="button" class="btn xs danger" data-fxpinoff="1">풀기</button>' : ''}</div></div>
+  <div class="field" style="margin:14px 0 8px"><b>📱 카카오 알림톡</b><div class="muted" style="font-size:12.5px">발주 확인·출고·주문 마감 3시간 전(그 배송일 주문이 아직 없을 때)에 이 번호로 카톡 알림이 갑니다 ${(saleUi.alim || {}).on ? '' : '<b style="color:var(--warn)">(알림톡 설정이 아직 없음 — 운영 상태 참고)</b>'}</div>
+    <div class="prow" style="margin-top:6px"><input id="fxPh" inputmode="tel" value="${esc(f.ph || '')}" placeholder="010-0000-0000" style="width:160px"><label style="display:flex;gap:4px;align-items:center"><input type="checkbox" id="fxAl"${f.al ? ' checked' : ''}> 알림톡 받기</label><button type="button" class="btn xs primary" data-fxph="1">저장</button></div></div>
+  <div class="btns" style="margin-top:12px"><button class="btn" onclick="closeModal()">닫기</button></div>`);
+  const put = async (body, msg) => { try { const r = await prodRelayCall(Object.assign({ action: 'setFormExtra', t: f.t }, body)); if (!r || !r.ok) throw new Error(/알 수 없는 요청/.test((r && r.error) || '') ? '중계를 새 버전(5.6)으로 배포해야 합니다' : (r && r.error) || '실패'); Object.assign(f, r.extra); closeModal(); toast(msg); if (body.pin != null) saleSnapSoon([f.t]); saleOrdFetch(true);   /* 비밀번호를 걸면 빠른 열기 자료도 지움 */ } catch (e) { toast('실패: ' + e.message); } };
+  $('#modalBody [data-fxpin]').onclick = () => { const v = $('#fxPin').value.replace(/\D/g, ''); if (v.length < 4) return toast('숫자 4자리 이상 넣으세요'); put({ pin: v }, `비밀번호를 걸었습니다 — 거래처에 「${v}」를 따로 알려 주세요`); };
+  if ($('#modalBody [data-fxpinoff]')) $('#modalBody [data-fxpinoff]').onclick = () => { if (confirm('비밀번호를 풀까요?')) put({ pin: '' }, '비밀번호를 풀었습니다'); };
+  $('#modalBody [data-fxph]').onclick = () => put({ phone: $('#fxPh').value, alim: $('#fxAl').checked }, '알림톡 설정을 저장했습니다'); }
 function saleOpsHtml() {
   const u = saleUi.use || 0, L = saleUi.useLim || 500000, pct = Math.min(100, Math.round(u / L * 100)), lv = pct >= 85 ? 'bad' : pct >= 65 ? 'warn' : 'ok', al = saleUi.alert || {}, np = window.Notification ? Notification.permission : 'none';
   return `<details class="card so-ops"${saleUi.opsOpen ? ' open' : ''}><summary><b>운영 상태</b> <span class="pill ${lv === 'ok' ? 'ok' : 'warn'}">저장 공간 ${u ? pct + '%' : '—'}</span> <span class="pill ${al.off ? 'warn' : 'ok'}">알림 메일 ${al.off ? '꺼짐' : '켜짐'}</span> <span class="pill ${np === 'granted' ? 'ok' : ''}">PC 알림 ${np === 'granted' ? '켜짐' : '꺼짐'}</span> <span class="pill ${saleUi.syncErr ? 'warn' : 'ok'}">판매 기록 ${saleUi.syncErr ? '공유 안 됨' : '공유 중'}</span></summary>
@@ -6154,6 +6177,10 @@ function saleOpsHtml() {
         <div class="ops-hl">${((saleUi.shop || {}).so || []).length ? saleUi.shop.so.map(k => `<span class="tg bad">${esc(saleSoName(k))} <button type="button" class="lnk" data-opssodel="${esc(k)}" aria-label="품절 풀기">✕</button></span>`).join(' ') : '<span class="muted">품절 품목 없음</span>'}</div>
         <div class="prow">최소 주문 공급가액 <input id="opsMin" inputmode="numeric" value="${(saleUi.shop || {}).min ? fmt(saleUi.shop.min) : ''}" placeholder="없음" style="width:110px">원 <button type="button" class="btn xs" data-opsmin="1">저장</button></div></div>
       <div><b>거래처별 사용 현황</b><span class="muted">링크를 마지막으로 연 날 · 마지막 주문 · 최근 30일 주문 — 오래 안 쓰는 거래처를 챙길 때</span><div><button type="button" class="btn xs" data-opsuse="1">현황 보기</button></div></div>
+      <div><b>💳 미수금 (외상 잔액)</b><span class="muted">이카운트 「채권(미수금) 현황」 엑셀을 올리면 발주 카드·주문 링크에 거래처별 잔액이 보입니다${(saleUi.bal || {}).at ? ` · ${esc(saleUi.bal.at)} 기준 ${Object.keys(saleUi.bal.b || {}).length}곳` : ''}</span>
+        <div class="prow"><label class="btn xs primary" style="cursor:pointer">엑셀 올리기<input type="file" accept=".xlsx,.xls,.csv" data-opsbal="1" hidden></label><label style="display:flex;gap:4px;align-items:center;font-size:12.5px"><input type="checkbox" data-opsbalshow="1"${(saleUi.bal || {}).show ? ' checked' : ''}> 거래처 주문서에도 보이기</label></div></div>
+      <div><b>📱 카카오 알림톡</b><span class="muted">${(saleUi.alim || {}).on ? `✓ 연결됨 · 템플릿 ${['ok', 'out', 'remind'].filter(k => saleUi.alim.tpl[k]).map(k => ({ ok: '발주 확인', out: '출고', remind: '마감 알림' })[k]).join('·') || '없음'}${(saleUi.alim.log || [])[0] ? ` · 최근 ${esc(hmOf(saleUi.alim.log[0].at))} ${saleUi.alim.log[0].ok ? '보냄' : '실패: ' + esc(saleUi.alim.log[0].err)}` : ''}` : '아직 설정 전 — 솔라피 가입·카카오 채널 연결 후 Apps Script 스크립트 속성에 키를 넣으면 켜집니다'} · 받을 휴대폰은 주문 링크의 「🔒 설정」에서</span>
+        <div><button type="button" class="btn xs" data-opsalim="1"${(saleUi.alim || {}).on ? '' : ' disabled'}>시험 보내기</button></div></div>
       <div><b>판매 기록 공유</b><span class="muted">${saleUi.syncErr ? '⚠ ' + esc(saleUi.syncErr) : saleUi.syncAt ? '모든 PC가 같은 판매 목록·설정을 봅니다 · ' + esc(new Date(saleUi.syncAt).toLocaleString('ko-KR')) + ' 맞춤' : '맞추는 중…'}</span><div><button type="button" class="btn xs" data-opssync="1">지금 맞추기</button></div></div>
     </div></details>`;
 }
@@ -6178,6 +6205,9 @@ function saleOpsBind(box) { const d0 = box.querySelector('.so-ops'); if (d0) d0.
   box.querySelectorAll('[data-opssodel]').forEach(b => b.onclick = () => { const S0 = sh0(); putS(Object.assign(S0, { so: S0.so.filter(k => k !== b.dataset.opssodel) })); });
   if (q('[data-opsmin]')) q('[data-opsmin]').onclick = () => putS(Object.assign(sh0(), { min: Number(String(q('#opsMin').value).replace(/[^\d]/g, '')) || 0 }));
   if (q('[data-opsuse]')) q('[data-opsuse]').onclick = saleUsageShow;
+  if (q('[data-opsbal]')) q('[data-opsbal]').onchange = e => { const f = e.target.files[0]; if (f) saleBalUpload(f); e.target.value = ''; };
+  if (q('[data-opsbalshow]')) q('[data-opsbalshow]').onchange = async e => { try { const r = await prodRelayCall({ action: 'putBalances', show: e.target.checked }); if (!r || !r.ok) throw new Error((r && r.error) || '중계 5.6 배포가 필요합니다'); saleUi.bal = Object.assign({}, saleUi.bal || {}, { show: r.show }); toast(r.show ? '거래처 주문서에 잔액이 보입니다' : '거래처 주문서에서 잔액을 숨겼습니다'); } catch (er) { toast('실패: ' + er.message); } };
+  if (q('[data-opsalim]')) q('[data-opsalim]').onclick = async () => { const ph = prompt('시험으로 받을 휴대폰 번호', ''); if (!ph) return; try { const r = await prodRelayCall({ action: 'alimTest', phone: ph, kind: 'ok' }); toast(r && r.ok ? '알림톡을 보냈습니다 — 카톡을 확인하세요' : '실패: ' + ((r && r.error) || '')); saleOrdFetch(true); } catch (e) { toast('실패: ' + e.message); } };
   if (q('[data-opssync]')) q('[data-opssync]').onclick = async () => { saleUi.syncOff = false; await saleSync(); toast(saleUi.syncErr ? '판매 기록 공유 실패: ' + saleUi.syncErr : '판매 기록을 맞췄습니다'); renderSaleOrd(); };
 }
 function saleCatPanel() {
@@ -6231,7 +6261,7 @@ function renderSaleOrd() {
   const X = saleS(), L = saleUi.ord || [], F = (saleUi.ordForms || []).slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   const nw = L.filter(o => o.status === 'new').sort((a, b) => (a.ship > b.ship ? 1 : a.ship < b.ship ? -1 : a.at > b.at ? 1 : -1)), done = L.filter(o => o.status !== 'new').slice(0, 30);
   const md = d => { const t = new Date(d + 'T00:00:00'); return `${t.getMonth() + 1}/${t.getDate()}(${WD[t.getDay()]})`; };
-  const card = o => `<div class="so-c${(saleUi.selQ || []).includes(o.id) ? ' sel' : ''}"><div class="so-h"><label class="so-ck" title="여러 건 골라 차례로 이카운트 입력"><input type="checkbox" data-sosel="${esc(o.id)}"${(saleUi.selQ || []).includes(o.id) ? ' checked' : ''}></label><b>${esc(o.name)}</b><span class="muted so-meta">${esc(hmOf(o.at))} 주문${o.who ? ' · ' + esc(o.who) : ''} · ${o.lines.length}품목 ${o.lines.reduce((t, l) => t + l[2], 0)}개${saleOrdAmt(o) != null ? ` · 주문 시점 공급가액 <b>${fmt(saleOrdAmt(o))}원</b>` : ''}${o.editedAt ? ` · 거래처가 수정함${o.hist && o.hist.length ? ` <button type="button" class="lnk" data-sohist="${esc(o.id)}">이력 보기</button>` : ''}` : ''}${o.repeat && o.repeat.on ? ` · <i class="tg">🔁 ${o.repeat.ev === 14 ? '2주마다' : '매주'} 정기</i>${o.note === '정기 주문 자동' ? ' 자동 접수' : ''}` : ''}</span><span class="so-ship">배송 ${esc(md(o.ship))}</span></div>
+  const card = o => `<div class="so-c${(saleUi.selQ || []).includes(o.id) ? ' sel' : ''}"><div class="so-h"><label class="so-ck" title="여러 건 골라 차례로 이카운트 입력"><input type="checkbox" data-sosel="${esc(o.id)}"${(saleUi.selQ || []).includes(o.id) ? ' checked' : ''}></label><b>${esc(o.name)}</b><span class="muted so-meta">${esc(hmOf(o.at))} 주문${o.who ? ' · ' + esc(o.who) : ''} · ${o.lines.length}품목 ${o.lines.reduce((t, l) => t + l[2], 0)}개${saleOrdAmt(o) != null ? ` · 주문 시점 공급가액 <b>${fmt(saleOrdAmt(o))}원</b>` : ''}${saleBalOf(o.cust) != null ? ` · <span style="color:var(--warn)">미수 ${fmt(saleBalOf(o.cust))}원</span>` : ''}${o.editedAt ? ` · 거래처가 수정함${o.hist && o.hist.length ? ` <button type="button" class="lnk" data-sohist="${esc(o.id)}">이력 보기</button>` : ''}` : ''}${o.repeat && o.repeat.on ? ` · <i class="tg">🔁 ${o.repeat.ev === 14 ? '2주마다' : '매주'} 정기</i>${o.note === '정기 주문 자동' ? ' 자동 접수' : ''}` : ''}</span><span class="so-ship">배송 ${esc(md(o.ship))}</span></div>
     <div class="so-l">${o.lines.map(l => `<span>${l[3] === 's' ? '<i class="tg smp">샘플</i> ' : l[3] === 'c' ? '<i class="tg cat">추가</i> ' : ''}${esc(l[1])} <b>${l[2]}</b></span>`).join('')}</div>${o.memo ? `<div class="so-memo">💬 ${esc(o.memo)}</div>` : ''}
     ${o.reply && o.reply.st ? `<div class="so-rp">✓ 거래처에 회신함 · ${esc(SALE_RST[o.reply.st] || '')}${o.reply.img ? ' · 거래명세표 사진' : ''}</div>` : ''}
     <div class="sw-dea"><button type="button" class="btn sm primary" data-soload="${esc(o.id)}">주문서로 불러오기</button><button type="button" class="btn sm" data-sorep="${esc(o.id)}">${o.reply ? '회신 고치기' : '확인 회신'}</button><button type="button" class="btn sm" data-soreject="${esc(o.id)}">반려</button><button type="button" class="btn sm" data-sochat="${esc(o.tok)}" title="이 거래처와 대화">💬</button></div></div>`;
@@ -6249,7 +6279,7 @@ function renderSaleOrd() {
   ${saleCatPanel()}
   ${saleImgPanel()}
   <div class="card"><h2 style="margin:0 0 8px">주문 링크 <span class="pill">${F.length}곳</span></h2>
-    ${F.length ? `<table class="sl-t"><thead><tr><th>거래처</th><th class="c">품목</th><th class="c">배송 요일</th><th class="c">마감</th><th class="c">상태</th><th></th></tr></thead><tbody>${F.map(f => `<tr><td><b>${esc(f.name)}</b></td><td class="c">${f.n}</td><td class="c">${(f.days || []).map(i => '일월화수목금토'[i]).join('·')}</td><td class="c">${f.lead ? f.lead + '일 전' : '당일'} ${f.cut}시</td><td class="c">${f.on ? '<i class="tg ok">사용 중</i>' : '<i class="tg">멈춤</i>'}</td>
+    ${F.length ? `<table class="sl-t"><thead><tr><th>거래처</th><th class="c">품목</th><th class="c">배송 요일</th><th class="c">마감</th><th class="c">상태</th><th></th></tr></thead><tbody>${F.map(f => `<tr><td><b>${esc(f.name)}</b>${f.pin ? ' <span title="비밀번호 걸림">🔒</span>' : ''}${f.ph && f.al ? ' <span title="알림톡 받음">📱</span>' : ''}${saleBalOf(f.cust) != null ? ` <span class="muted" style="font-size:11.5px">미수 ${fmt(saleBalOf(f.cust))}원</span>` : ''} <button type="button" class="btn xs" data-sofx="${esc(f.t)}" title="비밀번호·알림톡 휴대폰">🔒 설정</button></td><td class="c">${f.n}</td><td class="c">${(f.days || []).map(i => '일월화수목금토'[i]).join('·')}</td><td class="c">${f.lead ? f.lead + '일 전' : '당일'} ${f.cut}시</td><td class="c">${f.on ? '<i class="tg ok">사용 중</i>' : '<i class="tg">멈춤</i>'}</td>
       <td class="so-act"><button type="button" class="btn xs so-kk" data-sokk="${esc(f.t)}">카톡으로 보내기</button><button type="button" class="btn xs primary" data-somsg="${esc(f.t)}">안내문 복사</button><button type="button" class="btn xs" data-solink="${esc(f.t)}">링크 복사</button><button type="button" class="btn xs" data-soopen="${esc(f.t)}">열어 보기</button><button type="button" class="btn xs" data-soedit="${esc(f.t)}">고치기</button><button type="button" class="btn xs" data-sotog="${esc(f.t)}">${f.on ? '멈춤' : '다시 사용'}</button><button type="button" class="btn xs danger" data-sodel="${esc(f.t)}">삭제</button></td></tr>`).join('')}</tbody></table>`
       : `<div class="sw-empty">아직 주문 링크가 없습니다. 「＋ 주문 링크 만들기」로 시범 거래처부터 만들어 보세요.<br><span class="muted">추천: 같은 요일에 꾸준히 주문하는 단골부터</span></div>`}
     <div class="muted" style="font-size:11.5px;margin-top:8px">링크는 거래처마다 다른 비밀 주소입니다. 링크가 새어 나갔으면 삭제하고 새로 만드세요. 거래처 화면에는 그 거래처의 품목만 보입니다. · 「카톡으로 보내기」는 미리보기 카드에 거래처 이름이 나옵니다 <button type="button" class="lnk" data-kkkey="1">${saleS().cfg.kakaoKey ? '카카오 키 바꾸기' : '카카오 키 넣기'}</button></div></div>
@@ -6282,6 +6312,7 @@ function renderSaleOrd() {
     else if (d.kkkey) saleKakaoSetup();
     else if (d.somsg) copy(saleOrdMsg(byT(d.somsg)), '안내문을 복사했습니다 — 거래처 카톡방에 붙여넣으세요');
     else if (d.solink) copy(saleOrdLink(d.solink), '주문 링크를 복사했습니다');
+    else if (d.sofx) saleFxEditor(byT(d.sofx));
     else if (d.soopen) window.open(saleOrdLink(d.soopen), '_blank', 'noopener');
     else if (d.soedit) { const f = byT(d.soedit); saleOrdEditor(Object.assign({}, f, { codes: (X.ordCodes || {})[f.t] || null })); }
     else if (d.sotog || d.sodel) { const t = d.sotog || d.sodel, f = byT(t); if (d.sodel && !confirm(`${f.name} 주문 링크를 삭제할까요? 이 링크로는 더 이상 주문할 수 없습니다.`)) return;

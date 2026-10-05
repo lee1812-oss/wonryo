@@ -68,3 +68,10 @@
 - 배송일별 생산 합계에 완제품·생지 재고 비교: finished.html finSummary가 stk {이카운트코드: [수량, 단위, 안전재고]}·stkAt 를 보냄(완제품 화면을 열어야 갱신, S.finSum) → 앞 배송일 누적이 재고보다 많으면 「⚠ n박스 부족」.
 - v208: 좁은 왼쪽 메뉴 = 2열 타일(--side-w 156px, 모듈 버튼 .menusw·하위 메뉴 .subgrid 모두 2열, 아이콘 위·이름 아래), 타일 높이 clamp(36px,6.4vh,54px)로 창 높이에 맞춰 스크롤 없음.
 - v206 화면: html,body{height:100%} 때문에 머리글 고정이 한 화면만큼만 되던 것 → body min-height. 넓은 화면 머리글 낮게, 왼쪽 메뉴 좁게(body.navmini, --side-w 76px, 맨 위 「»」로 넓히기, S.ui.navMini).
+
+## 중계 5.6 (v209) — 비밀번호·미수금·알림톡·플레이스토어 준비
+- 링크별 추가 설정 fx:<토큰24자> {pin: SHA-256('bggd-pin|'+토큰+'|'+숫자), ph, al} — 주문 링크 저장과 따로(링크 고쳐도 유지). 앱 주문 링크 표 「🔒 설정」(setFormExtra).
+- PIN 건 링크: 공개 요청(PIN_ACTS_)마다 req.pin 확인, 10번 틀리면 10분 잠금(cache pf:). 거래처 주문서는 비밀번호 화면 → localStorage bggd_pin_<토큰10자>, call()이 자동으로 붙임. 빠른 열기 자료(of/)는 만들지 않음(formSnaps null), 비밀번호 걸 때 앱이 다시 올림.
+- 미수금: 앱 운영 상태 「엑셀 올리기」 — 이카운트 채권(미수금) 현황 엑셀에서 「거래처코드/거래처명」+「잔액·미수·채권」 칸을 찾음(주문 링크 있는 거래처만) → putBalances → cfg2:bal {at, show, b}. 발주 카드·링크 표에 「미수 ○원」, show 켜면 거래처 주문서에 「현재 외상 잔액」.
+- 알림톡(솔라피): 스크립트 속성 SOLAPI_KEY·SOLAPI_SECRET·SOLAPI_PFID·SOLAPI_FROM·TPL_OK·TPL_OUT·TPL_REMIND. 변수 #{거래처}·#{배송일}·#{품목}·#{안내}(확인·출고) / #{거래처}·#{배송일}·#{마감}(마감 알림). orderDone 회신 st ok/out 때 종류마다 한 번(o.alim), autoRun의 alimRemind_가 마감 3시간 안 미주문 거래처에 한 번(arm:). 기록 alim:log, 운영 상태 「시험 보내기」(alimTest).
+- privacy.html = 개인정보처리방침(플레이스토어 등록용). 플레이스토어는 도메인 구매 → PWABuilder로 포장 → assetlinks.json 을 도메인 루트 /.well-known 에.
