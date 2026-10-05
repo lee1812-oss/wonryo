@@ -19,4 +19,4 @@
 - 단가표 제품 사진은 드라이브 사진이 없으면 주문서가 사이트의 `cat/<id>.jpg`를 바로 씀 (v168) — 드라이브 업로드 실패와 무관.
 - 중계 드라이브 권한은 배포만으로 안 생김 → Apps Script 편집기에서 `authorizeDrive` 실행 → 허용 (사진 「사진 준비 중」이면 이것부터).
 - 주문 링크 단가(3.8): 품목 [코드, 이름, 단가, 지난수량, 단가날짜] — 실제 판매 저장 때 updFormPrices로 더 최근 단가만 덮어씀. 주문 확정 화면에서 수량 수정·빼기.
-- 발주 회신(3.7): orderDone에 reply {st ok/out/done, msg, ship, dlv, box, lines, sup, vat, slip} → 거래처 주문서 「최근 주문」에 안내·거래명세표.
+- 발주 회신(3.7): orderDone에 reply {st ok/out/done, msg, ship, dlv, box, lines, sup, vat, slip} → 거래처 주문서 「최근 주문」에 안내·거래명세표. 새 발주 카드의 「확인 회신」은 상태를 그대로 두고 회신만(주문서로 불러오기 전 확인용). 3.9: putOrderImg로 이카운트 거래명세표 캡처를 reply.img(드라이브 stm_<주문>.jpg).
