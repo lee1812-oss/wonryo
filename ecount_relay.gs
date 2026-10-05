@@ -5,6 +5,7 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v5.0: 휴무일(cfg2:holidays — 배송일로 못 고름) · 거래처 주문 수정/취소(발주 확인 전까지, editOf·orderCancel) · 월별 주문 내역(orderHistory, 드라이브 보관분 포함)
  * v5.0: 저장 공간 정리(처리 끝난 지 10일 지난 주문 → 드라이브 「빵을그리다 중계 자료/주문 보관」 월별 파일), 매일 백업(14일치), 사용량 표시
  *       새 발주 알림 메일(MailApp, ALERT_EMAIL), 판매 기록·판매 설정을 모든 PC가 함께(드라이브 판매기록 파일 · cfg2:sale)
  *       ※ 처음 한 번: 편집기에서 setupAll 을 골라 ▷실행 → 「허용」(드라이브·메일·외부 연결 권한)
@@ -63,9 +64,9 @@ function maint_(force) { var last = Number(props_().getProperty('mt:last') || 0)
       bd.createFile('relay_backup_' + day + '.json', JSON.stringify({ at: new Date().toISOString(), props: snap }), 'application/json'); props_().setProperty('bk:last', day);
       var fs = bd.getFiles(), list = []; while (fs.hasNext()) { var f = fs.next(); if (/^relay_backup_/.test(f.getName())) list.push(f); } list.sort(function (a, b) { return a.getName() < b.getName() ? 1 : -1; }); list.slice(14).forEach(function (f) { f.setTrashed(true); }); }
   } finally { lk.releaseLock(); } return { moved: moved }; }
-function alertNew_(o) { if (props_().getProperty('ALERT_OFF') === '1') return; var to = alertTo_(); if (!to) return;
+function alertNew_(o, kind) { if (props_().getProperty('ALERT_OFF') === '1') return; var to = alertTo_(); if (!to) return;
   try { var n = o.lines.reduce(function (t, l) { return t + l[2]; }, 0);
-    MailApp.sendEmail({ to: to, subject: '[빵을그리다] 새 발주 — ' + o.name + ' · 배송 ' + o.ship + ' · ' + o.lines.length + '품목 ' + n + '개', name: '빵을그리다 주문서',
+    MailApp.sendEmail({ to: to, subject: '[빵을그리다] ' + (kind ? '발주 ' + kind : '새 발주') + ' — ' + o.name + ' · 배송 ' + o.ship + ' · ' + o.lines.length + '품목 ' + n + '개', name: '빵을그리다 주문서',
       body: o.name + ' 새 발주\n배송일: ' + o.ship + (o.who ? '\n주문자: ' + o.who : '') + '\n\n' + o.lines.map(function (l) { return '· ' + l[1] + '  ' + l[2] + (l[3] === 's' ? ' (샘플)' : l[3] === 'c' ? ' (추가)' : ''); }).join('\n') + (o.memo ? '\n\n요청사항: ' + o.memo : '') + '\n\n통합 재고관리 → 판매 입력 → 발주 접수에서 확인하세요.' }); } catch (e) {} }
 // 드라이브 권한 받기 — 편집기에서 이 함수를 골라 ▷실행 하고 「허용」을 누르면 사진·단가표 가져오기가 됩니다
 // GitHub 열쇠 확인 — 편집기에서 ▷실행 (처음엔 외부 연결 권한 허용)
@@ -76,7 +77,7 @@ var GH_API_ = 'https://api.github.com/repos/lee1812-oss/wonryo';
 function gh_(tok, m, p, b) { var o = { method: m, headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json' }, muteHttpExceptions: true }; if (b) { o.contentType = 'application/json'; o.payload = JSON.stringify(b); }
   var r = UrlFetchApp.fetch(GH_API_ + p, o), c = r.getResponseCode(), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {} if (c >= 300) throw new Error('GitHub ' + c + ': ' + (j.message || '')); return j; }
 function formOut_(f1, im1, catP, ntc) { var imgs = {}; (f1.items || []).forEach(function (it) { if (im1[it[0]]) imgs[it[0]] = im1[it[0]]; });
-  return { name: f1.name, items: f1.items, days: f1.days, cut: f1.cut, lead: f1.lead, price: !!f1.price, last: f1.last || [], note: f1.note || '', imgs: imgs, cat: f1.cat === false ? null : catP, notices: ntc }; }
+  return { name: f1.name, items: f1.items, days: f1.days, cut: f1.cut, lead: f1.lead, price: !!f1.price, last: f1.last || [], note: f1.note || '', imgs: imgs, cat: f1.cat === false ? null : catP, notices: ntc, off: holidays_().filter(function (h) { return h.d >= ymdK_(); }) }; }
 function authorizeDrive() { DriveApp.getRootFolder(); imgDir_(); return 'ok'; }
 
 function doPost(e) {
@@ -137,8 +138,10 @@ function tok_(v) { var t = String(v || '').replace(/[^A-Za-z0-9_-]/g, ''); retur
 function kst_(d) { return new Date((d ? d.getTime() : Date.now()) + 9 * 3600000); }   // 한국 시각을 UTC 필드로
 function ymdK_(d) { var k = kst_(d); return k.getUTCFullYear() + '-' + ('0' + (k.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + k.getUTCDate()).slice(-2); }
 // 배송일이 주문 가능한지: 허용 요일이고, (배송일 - lead일) cutoff시(한국 시각) 전
+function holidays_() { try { return JSON.parse(props_().getProperty('cfg2:holidays') || '[]'); } catch (e) { return []; } }
 function shipOk_(f, ship) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ship || '')) return false;
+  if (holidays_().some(function (h) { return h.d === ship; })) return false;   // v5.0: 휴무일
   var p = ship.split('-'), d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
   if ((f.days || []).indexOf(d.getUTCDay()) < 0) return false;
   var dl = Date.UTC(+p[0], +p[1] - 1, +p[2] - (Number(f.lead) || 0), Number(f.cut == null ? 15 : f.cut), 0) - 9 * 3600000;   // 한국 시각 → UTC
@@ -162,7 +165,7 @@ function catPut_(c) { var old = props_().getProperty(CAT_ + 'meta'); if (old) { 
 function noticesGet_() { try { return JSON.parse(props_().getProperty('ord:notices') || '[]'); } catch (e) { return []; } }
 function noticesLive_(im) { var t = ymdK_(); return noticesGet_().filter(function (n) { return n.on !== false && (!n.from || n.from <= t) && (!n.to || n.to >= t); }).map(function (n) { return { id: n.id, title: n.title, body: n.body || '', cat: n.cat || '', img: n.cat ? (im['cat_' + n.cat] || '') : '', from: n.from || '', pin: !!n.pin, imgs: n.imgs || [], url: n.url || '' }; }); }
 function catPublic_(cat, im) { if (!cat || cat.on === false) return null; return { title: cat.title, items: (cat.items || []).filter(function (it) { return !it.hide; }).map(function (it) { return { id: it.id, grp: it.grp, name: it.name, spec: it.spec || '', pe: it.pe == null ? null : it.pe, pb: it.pb == null ? null : it.pb, bq: it.bq || null, unit: it.unit || 'Box', sub: it.sub || '', dim: it.dim || '', dt: it.dt || '', img: im['cat_' + it.id] || '' }; }) }; }
-function ordView_(o) { return { id: o.id, at: o.at, ship: o.ship, memo: o.memo || '', lines: o.lines, status: o.status, slip: o.slip || '', doneAt: o.doneAt || '', note: o.note || '', reply: o.reply || null }; }
+function ordView_(o) { return { id: o.id, at: o.at, ship: o.ship, memo: o.memo || '', lines: o.lines, status: o.status, slip: o.slip || '', doneAt: o.doneAt || '', note: o.note || '', reply: o.reply || null, editedAt: o.editedAt || '', repeat: o.repeat || null }; }
 function reply_(old, r) { var o = old || {}, s = function (v, n) { return String(v == null ? '' : v).slice(0, n); };
   if (r.msg != null) o.msg = s(r.msg, 400); if (r.st != null) o.st = s(r.st, 8); if (r.ship != null && /^\d{4}-\d{2}-\d{2}$/.test(r.ship)) o.ship = r.ship; if (r.dlv != null) o.dlv = s(r.dlv, 12); if (r.box != null) o.box = Math.max(0, Math.min(9999, Math.floor(Number(r.box) || 0)));
   if (r.slip != null) o.slip = s(r.slip, 60); if (r.lines) { o.lines = r.lines.slice(0, 80).map(function (l) { return [s(l[0], 60), num_(l[1]), num_(l[2]), num_(l[3]), num_(l[4])]; }); o.sup = num_(r.sup); o.vat = num_(r.vat); }
@@ -184,7 +187,10 @@ function handle_(req) {
     var cid = String(req.cid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 30); if (!cid) return { ok: false, error: '주문 번호가 없습니다' };
     var lk2 = LockService.getScriptLock(); lk2.waitLock(15000);
     try {
-      var oid = t2.slice(0, 6) + '_' + cid, ex = props_().getProperty(ORD_ + oid); if (ex) return { ok: true, order: ordView_(JSON.parse(ex)), dup: true };
+      var oid = t2.slice(0, 6) + '_' + cid, ex = props_().getProperty(ORD_ + oid), ed = null;
+      if (req.editOf) { var ev = props_().getProperty(ORD_ + String(req.editOf).replace(/[^A-Za-z0-9_-]/g, '')); ed = ev && JSON.parse(ev); if (!ed || ed.tok !== t2) return { ok: false, error: '고칠 주문을 찾지 못했습니다' };
+        if (ed.status !== 'new' || (ed.reply && ed.reply.st)) return { ok: false, error: '이미 확인된 주문이라 고칠 수 없습니다 — 빵을그리다에 전화로 알려 주세요' }; oid = ed.id; ex = null; }
+      if (ex) return { ok: true, order: ordView_(JSON.parse(ex)), dup: true };
       if (!shipOk_(f2, String(req.ship || ''))) return { ok: false, error: '고른 배송일은 주문 마감이 지났거나 배송하지 않는 날입니다 — 다른 날을 골라 주세요' };
       var codes = {}; (f2.items || []).forEach(function (it) { codes[it[0]] = it[1]; });
       var cat2 = f2.cat === false ? null : catGet_(), cmap = {}; ((cat2 && cat2.on !== false && cat2.items) || []).forEach(function (it) { if (!it.hide) cmap[it.id] = it; });
@@ -192,11 +198,23 @@ function handle_(req) {
         if (c.indexOf('cat:') === 0) { var ci = cmap[c.slice(4)]; if (!ci) return; lines.push([ci.code || c, ci.name + (ci.spec ? ' (' + ci.spec + ')' : ''), q, kd || 'c']); }   // 단가표 제품: 이카운트 코드가 있으면 그 코드, 없으면 cat:id
         else if (codes[c] != null) lines.push([c, codes[c], q, kd]); });
       if (!lines.length) return { ok: false, error: '주문할 품목의 수량을 넣어 주세요' };
-      var today = ymdK_(), nToday = ordList_(function (o) { return o.tok === t2 && ymdK_(new Date(o.at)) === today; }).length; if (nToday >= 30) return { ok: false, error: '오늘 주문이 너무 많습니다 — 빵을그리다에 문의해 주세요' };
+      var today = ymdK_(), nToday = ordList_(function (o) { return o.tok === t2 && ymdK_(new Date(o.at)) === today; }).length; if (!ed && nToday >= 30) return { ok: false, error: '오늘 주문이 너무 많습니다 — 빵을그리다에 문의해 주세요' };
       var o2 = { id: oid, tok: t2, cust: f2.cust, name: f2.name, at: new Date().toISOString(), ship: String(req.ship), memo: String(req.memo || '').slice(0, 300), who: String(req.who || '').slice(0, 30), lines: lines, status: 'new' };
+      if (ed) { o2.at = ed.at; o2.editedAt = new Date().toISOString(); if (ed.repeat) o2.repeat = ed.repeat; }
       props_().setProperty(ORD_ + oid, JSON.stringify(o2));
     } finally { lk2.releaseLock(); }
-    alertNew_(o2); return { ok: true, order: ordView_(o2) }; }
+    alertNew_(o2, ed ? '수정' : ''); return { ok: true, order: ordView_(o2) }; }
+  // v5.0: 거래처가 자기 주문 취소(발주 확인 전까지) · 월별 주문 내역(드라이브 보관분 포함)
+  if (req.action === 'orderCancel') { var t6 = tok_(req.t), lk7 = LockService.getScriptLock(); lk7.waitLock(10000); var oc;
+    try { var cv = props_().getProperty(ORD_ + String(req.id || '').replace(/[^A-Za-z0-9_-]/g, '')); oc = cv && JSON.parse(cv); if (!t6 || !oc || oc.tok !== t6) return { ok: false, error: '주문을 찾지 못했습니다' };
+      if (oc.status !== 'new' || (oc.reply && oc.reply.st)) return { ok: false, error: '이미 확인된 주문이라 취소할 수 없습니다 — 빵을그리다에 전화로 알려 주세요' };
+      oc.status = 'cancel'; oc.doneAt = new Date().toISOString(); oc.note = '거래처가 취소'; props_().setProperty(ORD_ + oc.id, JSON.stringify(oc)); } finally { lk7.releaseLock(); }
+    alertNew_(oc, '취소'); return { ok: true, order: ordView_(oc) }; }
+  if (req.action === 'orderHistory') { var t7 = tok_(req.t), fv7 = t7 && props_().getProperty(ORDF_ + t7); if (!fv7) return { ok: false, error: '주문 링크가 맞지 않습니다' };
+    var mo = /^\d{4}-\d{2}$/.test(req.month || '') ? req.month : ymdK_().slice(0, 7), seen7 = {}, out7 = [];
+    ordList_(function (o) { return o.tok === t7 && String(o.at).slice(0, 7) === mo; }).forEach(function (o) { seen7[o.id] = 1; out7.push(ordView_(o)); });
+    try { fileJson_(subDir_('주문 보관'), 'orders_' + mo + '.json', []).data.forEach(function (o) { if (o.tok === t7 && !seen7[o.id]) out7.push(ordView_(o)); }); } catch (e) {}
+    out7.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); }); return { ok: true, month: mo, orders: out7.slice(0, 200) }; }
   var key = props_().getProperty('API_KEY');
   if (!key) return { ok: false, error: '중계의 스크립트 속성 API_KEY가 비어 있습니다' };
   if (req.key !== key) return { ok: false, error: '열쇠가 맞지 않습니다 — 「공유 저장소 열쇠 복사」 값을 중계의 API_KEY에 넣었는지 확인하세요' };
@@ -258,6 +276,9 @@ function handle_(req) {
         f10.setDescription('거래명세표 · ' + String(o10.name || '').slice(0, 60)); try { f10.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { f10.setTrashed(true); return { ok: false, error: '드라이브가 링크 공유를 막았습니다: ' + e.message }; }
         o10.reply.img = f10.getId(); }
       o10.reply.at = new Date().toISOString(); props_().setProperty(ORD_ + o10.id, JSON.stringify(o10)); return { ok: true, img: o10.reply.img || '' }; } finally { lk10.releaseLock(); } }
+  if (req.action === 'getHolidays') return { ok: true, holidays: holidays_() };
+  if (req.action === 'putHolidays') { var hs = (req.holidays || []).filter(function (h) { return h && /^\d{4}-\d{2}-\d{2}$/.test(h.d || ''); }).map(function (h) { return { d: h.d, n: String(h.n || '').slice(0, 20) }; }).slice(0, 120);
+    hs.sort(function (a, b) { return a.d < b.d ? -1 : 1; }); var cut8 = ymdK_(new Date(Date.now() - 7 * 86400e3)); hs = hs.filter(function (h) { return h.d >= cut8; }); props_().setProperty('cfg2:holidays', JSON.stringify(hs)); return { ok: true, holidays: hs }; }
   // v5.0: 알림 메일 설정 · 지금 정리 · 판매 기록/설정 함께 쓰기
   if (req.action === 'setAlert') { if (req.email != null) { var em = String(req.email).trim(); if (em && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return { ok: false, error: '메일 주소가 올바르지 않습니다' }; if (em) props_().setProperty('ALERT_EMAIL', em.slice(0, 80)); else props_().deleteProperty('ALERT_EMAIL'); }
     if (req.off != null) { if (req.off) props_().setProperty('ALERT_OFF', '1'); else props_().deleteProperty('ALERT_OFF'); } return { ok: true, to: alertTo_(), off: props_().getProperty('ALERT_OFF') === '1' }; }
