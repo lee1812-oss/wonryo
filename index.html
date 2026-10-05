@@ -1272,8 +1272,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '210';
-const APP_BUILT = '2026-10-06 12:10';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '211';
+const APP_BUILT = '2026-10-06 12:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -5675,7 +5675,7 @@ body{margin:0;display:flex;flex-direction:column;overflow:hidden;font:14px/1.5 '
 ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:#D9CDBF;border-radius:6px}::-webkit-scrollbar-track{background:transparent}
 .mh{flex:0 0 auto;background:linear-gradient(135deg,#2E231D 0%,#4A3A30 100%);color:#F6EEE3;padding:11px 12px 11px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(46,35,29,.25)}
 .mh img{width:32px;height:32px;border-radius:9px;background:#FFFBF6;padding:2px;box-shadow:0 0 0 1px rgba(201,163,106,.5)}.mh .tt{flex:1;min-width:0}.mh .tt b{display:block;font-size:15px;font-weight:800;letter-spacing:-.3px}.mh .tt span{display:block;font-size:9.5px;color:#C9A36A;letter-spacing:1.6px;font-weight:600}
-.mh button{width:32px;height:32px;border-radius:50%;border:1px solid rgba(233,215,181,.35);background:transparent;color:#E9D7B5;cursor:pointer;font-size:13px;transition:background .15s}.mh button:hover,.mh button.on{background:rgba(233,215,181,.16)}
+.mt,.mb,.ft{zoom:var(--z,1)}.mh .tt b,.mh .tt span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mh button{white-space:nowrap;padding:0;width:30px;height:30px;flex:0 0 auto;border-radius:50%;border:1px solid rgba(233,215,181,.35);background:transparent;color:#E9D7B5;cursor:pointer;font-size:13px;transition:background .15s}.mh button:hover,.mh button.on{background:rgba(233,215,181,.16)}
 .mt{flex:0 0 auto;display:flex;gap:4px;margin:10px 12px 6px;padding:4px;background:#EAE1D5;border-radius:13px}.mt button{flex:1;border:0;background:none;padding:7px 4px;border-radius:10px;font:inherit;font-size:13px;font-weight:700;color:#7A6D63;cursor:pointer;transition:all .15s}.mt button.on{background:#fff;color:#2A211C;box-shadow:0 1px 4px rgba(46,35,29,.14)}
 .bd{display:inline-block;min-width:19px;padding:0 6px;border-radius:10px;background:#C8562A;color:#fff;font-size:11px;line-height:19px;text-align:center;margin-left:4px;font-weight:800}.bd.z{background:#CFC4B8}
 .mb{flex:1 1 auto;min-height:0;overflow:auto;padding:6px 12px 12px}.mb.cvm{display:flex;flex-direction:column;overflow:hidden;padding-bottom:12px}
@@ -5700,7 +5700,7 @@ async function saleMiniOpen() {
   if (saleMini.win && !saleMini.win.closed) { try { saleMini.win.focus(); } catch (e) {} return; }
   if (!saleMini.logo) fetch('logo_mark.png').then(r => r.blob()).then(b => new Promise(ok => { const f = new FileReader(); f.onload = () => ok(f.result); f.readAsDataURL(b); })).then(u => { saleMini.logo = u; saleMiniRender(); }).catch(() => {});   /* 작은 창은 빈 문서라 그림을 글자 자료로 넣음 */
   let w = null, pip = false;
-  try { if (window.documentPictureInPicture) { w = await documentPictureInPicture.requestWindow({ width: 380, height: 620 }); pip = true; } } catch (e) { w = null; }
+  try { if (window.documentPictureInPicture) { w = await documentPictureInPicture.requestWindow({ width: 400, height: 680, preferInitialWindowPlacement: true });   /* v211: 예전에 작게 줄였던 크기를 기억하지 않고 늘 이 크기로 */ pip = true; } } catch (e) { w = null; }
   if (!w) w = window.open('', 'bggd_mini', 'width=390,height=660'); if (!w) return toast('팝업이 막혔습니다 — 주소창 오른쪽 아이콘에서 팝업 허용');
   const d = w.document; d.title = '빵을그리다 발주 알림'; d.head.innerHTML = `<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>빵을그리다 발주 알림</title><style>${MINI_CSS}</style>`;
   saleMini.win = w; saleMini.pip = pip; w.addEventListener('focus', () => { if (Date.now() - (saleMini.focAt || 0) > 4000) { saleMini.focAt = Date.now(); saleOrdFetch(true); } });   /* 알림창을 누르면 바로 새로 확인 */
@@ -5731,10 +5731,11 @@ function saleMiniRender() { const w = saleMini.win; if (!w || w.closed) { saleMi
     const Q = saleQr();
     body = `<div class="cvh"><button class="bk" data-mback="1" title="목록">‹</button><div class="av">${esc(saleMiniIni(f.name))}</div><b>${esc(f.name)}</b></div>` + (M.qrEdit ? `<div class="cm qm"><b>✎ 자주 쓰는 문구</b><span>고친 내용은 칸을 벗어나면 저장됩니다 · 이 PC에 저장</span>${Q.map((q, i) => `<div class="qrow"><input data-mqi="${i}" value="${esc(q)}" maxlength="200"><button class="btn dg" data-mqdel="${i}">삭제</button></div>`).join('')}<div class="qrow"><input id="mQn" placeholder="새 문구 입력" maxlength="200"><button class="btn p" data-mqadd="1">추가</button></div><div><button class="btn p" data-mqre="1">완료</button></div></div>` : `<div class="cm" id="mCm">${M.chatM.length ? M.chatM.map(x => { const dd = dl(x.at), sep = dd !== lastD ? `<div class="dv">${esc(dd)}</div>` : ''; lastD = dd; return sep + `<div class="bb ${x.w}"${x.w === 'a' ? ` data-mdel="${esc(x.at)}" title="눌러서 지우기"` : ''}>${esc(x.t)}<i>${esc(hmOf(x.at).slice(-5))}</i></div>`; }).join('') : '<div class="em"><i>💬</i>첫 메시지를 보내 보세요</div>'}</div><div class="dh">내 메시지를 누르면 지울 수 있어요 · 거래처 화면에서도 지워집니다</div>`) + `<div class="qr">${M.qrEdit ? '' : Q.map((q, i) => `<button data-mqr="${i}" title="눌러서 바로 보내기">${esc(q)}</button>`).join('')}${M.qrEdit ? '' : '<button class="qe" data-mqre="1">✎ 문구 관리</button>'}</div>
       <div class="cin"><textarea id="mIn" maxlength="400" placeholder="메시지 입력 · Enter 보내기"></textarea><button data-msend="1" title="보내기">➤</button></div>`; }
-  d.body.innerHTML = `<div class="mh">${M.logo ? `<img src="${M.logo}" alt="">` : ''}<div class="tt"><b>빵을그리다 발주</b><span>ORDER DESK</span></div><button class="${M.sndOpen ? 'on' : ''}" data-msnd="1" title="알림 소리">🔊</button><button data-mre="1" title="새로고침">↻</button></div>
+  d.body.innerHTML = `<div class="mh">${M.logo ? `<img src="${M.logo}" alt="">` : ''}<div class="tt"><b>빵을그리다 발주</b><span>ORDER DESK</span></div><button data-mzoom="-1" title="글자 작게" style="font-size:11px">가−</button><button data-mzoom="1" title="글자 크게" style="font-size:14px">가+</button><button data-mbig="1" title="창 크게">⤢</button><button class="${M.sndOpen ? 'on' : ''}" data-msnd="1" title="알림 소리">🔊</button><button data-mre="1" title="새로고침">↻</button></div>
     <div class="mt"><button class="${M.tab === 'ord' ? 'on' : ''}" data-mtab="ord">새 발주 <span class="bd${nw.length ? '' : ' z'}">${nw.length}</span></button><button class="${M.tab === 'chat' ? 'on' : ''}" data-mtab="chat">대화방 <span class="bd${un ? '' : ' z'}">${un}</span></button></div>
     <div class="mb${M.tab === 'chat' && M.chat ? ' cvm' : ''}">${body}</div>${M.tab === 'chat' && M.chat ? '' : `<div class="ft">${saleUi.ordErr ? '⚠ ' + esc(saleUi.ordErr) : `${saleUi.ordAt ? esc(hmOf(saleUi.ordAt).slice(-5)) + ' 확인' : ''} · 30초마다 자동 · 통합 재고관리 탭을 닫지 마세요`}</div>`}`;
   d.title = (nw.length || un ? `(${nw.length}${un ? '·💬' + un : ''}) ` : '') + '빵을그리다 발주 알림';
+  try { d.body.style.setProperty('--z', +localStorage.getItem('bggd_mini_zoom') || 1); } catch (e) {}
   if (keep != null && d.getElementById('mIn')) { const i = d.getElementById('mIn'); i.value = keep; i.focus(); }
   const c2 = d.getElementById('mCm'); if (c2 && atEnd) c2.scrollTop = c2.scrollHeight; if (!c2 && d.querySelector('.mb')) d.querySelector('.mb').scrollTop = sc; }
 /* v193: 자주 쓰는 답장 문구 — 이 PC에 저장, 눌러서 바로 보내기 */
@@ -5748,7 +5749,9 @@ async function saleMiniSend(qt) { const d = saleMini.win && saleMini.win.documen
   if (!qt) i.value = ''; saleMini.chatM = saleMini.chatM.concat([{ w: 'a', t: tx, at: new Date().toISOString() }]); saleMiniRender();
   try { const r = await prodRelayCall({ action: 'chatAdmin', t: saleMini.chat, text: tx }); if (!r || !r.ok) throw new Error((r && r.error) || '보내지 못했습니다'); saleMini.chatM = r.m || saleMini.chatM; saleMiniRender(); }
   catch (e) { saleMini.chatM = saleMini.chatM.slice(0, -1); saleMiniRender(); const j = saleMini.win.document.getElementById('mIn'); if (j && !qt) j.value = tx; saleMini.win.alert('보내지 못했습니다: ' + e.message); } }
-async function saleMiniClick(e) { const t = e.target.closest('[data-mdel],[data-mfdel],[data-mtab],[data-msnd],[data-mre],[data-mt],[data-mok],[data-mchat],[data-mapp],[data-mback],[data-msend],[data-mqr],[data-mqre],[data-mqdel],[data-mqadd]'); if (!t) return; const D = t.dataset, M = saleMini;
+async function saleMiniClick(e) { const t = e.target.closest('[data-mzoom],[data-mbig],[data-mdel],[data-mfdel],[data-mtab],[data-msnd],[data-mre],[data-mt],[data-mok],[data-mchat],[data-mapp],[data-mback],[data-msend],[data-mqr],[data-mqre],[data-mqdel],[data-mqadd]'); if (!t) return; const D = t.dataset, M = saleMini;
+  if (D.mzoom) { const z = Math.max(0.85, Math.min(1.6, (+localStorage.getItem('bggd_mini_zoom') || 1) + 0.1 * D.mzoom)); try { localStorage.setItem('bggd_mini_zoom', z.toFixed(2)); } catch (er) {} M.win.document.body.style.setProperty('--z', z); return; }
+  if (D.mbig) { try { M.win.resizeTo(Math.max(420, M.win.outerWidth), Math.max(720, Math.min(screen.availHeight - 40, 900))); } catch (er) {} return; }
   if (D.mdel) { t.classList.add('sel'); await new Promise(r => setTimeout(r, 30)); if (!M.win.confirm('이 메시지를 지울까요?\n거래처 화면에서도 지워집니다.')) { t.classList.remove('sel'); return; }
     const keepM = M.chatM; M.chatM = M.chatM.filter(x => !(x.w === 'a' && x.at === D.mdel)); saleMiniRender();
     try { const r = await prodRelayCall({ action: 'chatAdmin', t: M.chat, del: D.mdel }); if (!r || !r.ok) throw new Error(/알 수 없는|찾지 못|없는/.test((r && r.error) || '') && !/이미 지워졌/.test(r.error) ? '중계를 새 버전(5.3)으로 배포해야 지울 수 있습니다' : (r && r.error) || '지우지 못했습니다'); if ((r.m || []).some(x => x.w === 'a' && x.at === D.mdel)) throw new Error('중계를 새 버전(5.3)으로 배포해야 지울 수 있습니다'); M.chatM = r.m || M.chatM; saleMiniRender(); }
