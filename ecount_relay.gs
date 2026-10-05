@@ -5,6 +5,7 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v5.3: 대화 메시지 지우기 — 보낸 사람만 자기 메시지를 지움(chatDel 거래처 · chatAdmin del 관리), 양쪽 화면에서 같이 사라짐
  * v5.2: 빠른 알림 — pulse(관리 앱이 10초마다 「바뀐 것 있나」만 묻는 가벼운 요청, pl:o 주문·pl:c 대화 시각) · 관리 앱이 3분 안에 확인 중이면 거래처 메시지 메일은 생략(보내기가 빨라짐)
  * v5.1: 거래처 대화(chat:<토큰16자> — 거래처 주문서 ↔ 앱 발주 알림창, 거래처 글은 알림 메일도) · chatGet/chatSend(거래처) · chatList/chatAdmin/chatRead(관리)
  * v5.0: 품절(cfg2:shop so — 주문서에서 못 담음)·최소 주문 금액(min, 공급가액)·정기 주문(repeat — 매주/2주마다 같은 주문을 발주 확인 뒤 자동으로 다음 회차)·거래처별 사용 현황(usage, seen:)
@@ -90,6 +91,8 @@ function chatPut_(t, c) { c.m = c.m.slice(-40); var js = JSON.stringify(c); whil
 function chatAdd_(t, w, text) { var tx = String(text || '').replace(/\s+$/, '').slice(0, 400); if (!tx.trim()) return null; var lk = LockService.getScriptLock(); lk.waitLock(10000);
   try { var c = chatGet_(t), now = new Date().toISOString(); if (w === 'c') { var rc = c.m.filter(function (x) { return x.w === 'c' && Date.now() - new Date(x.at).getTime() < 600e3; }).length; if (rc >= 15) return { err: '잠시 뒤에 다시 보내 주세요' }; }
     c.m.push({ w: w, t: tx, at: now }); if (w === 'a') c.ra = now; else c.rc = now; chatPut_(t, c); return c; } finally { lk.releaseLock(); } }
+function chatDel_(t, w, at) { var lk = LockService.getScriptLock(); lk.waitLock(10000);
+  try { var c = chatGet_(t), n = c.m.length; c.m = c.m.filter(function (x) { return !(x.w === w && x.at === at); }); if (c.m.length === n) return null; chatPut_(t, c); pulse_('c'); return c; } finally { lk.releaseLock(); } }
 function chatList_() { var all = props_().getProperties(), F = {}, out = [];
   Object.keys(all).forEach(function (k) { if (k.indexOf(ORDF_) === 0) { try { var f = JSON.parse(all[k]); F[k.slice(ORDF_.length).slice(0, 16)] = { t: k.slice(ORDF_.length), name: f.name, cust: f.cust }; } catch (e) {} } });
   Object.keys(all).forEach(function (k) { if (k.indexOf('chat:') !== 0) return; var c; try { c = JSON.parse(all[k]); } catch (e) { return; } var f = F[k.slice(5)]; if (!f || !c.m || !c.m.length) return; var L = c.m[c.m.length - 1];
@@ -117,7 +120,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.2 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.3 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -249,6 +252,7 @@ function handle_(req) {
     pulse_('o'); alertNew_(oc, '취소'); return { ok: true, order: ordView_(oc) }; }
   if (req.action === 'chatGet' || req.action === 'chatSend') { var tc = tok_(req.t), fvc = tc && props_().getProperty(ORDF_ + tc); if (!fvc) return { ok: false, error: '주문 링크가 맞지 않습니다' }; var fc = JSON.parse(fvc);
     if (req.action === 'chatGet') { var cg = chatGet_(tc); return { ok: true, m: cg.m.slice(-30), ra: cg.ra || '' }; }
+    if (req.del) { var cd = chatDel_(tc, 'c', String(req.del)); if (!cd) return { ok: false, error: '이미 지워졌거나 찾을 수 없습니다' }; return { ok: true, m: cd.m.slice(-30), ra: cd.ra || '' }; }
     if (fc.on === false) return { ok: false, error: '이 주문 링크는 사용이 멈춰 있습니다' }; var cs = chatAdd_(tc, 'c', req.text); if (!cs) return { ok: false, error: '내용을 써 주세요' }; if (cs.err) return { ok: false, error: cs.err };
     pulse_('c'); var admAt = Number(props_().getProperty('adm:last') || 0);
     if (props_().getProperty('ALERT_OFF') !== '1' && Date.now() - admAt > 180000) { var toC = alertTo_();   /* 관리 앱이 켜져 있으면 PC 알림으로 충분 — 메일은 앱이 꺼져 있을 때만 */ if (toC) { try { MailApp.sendEmail({ to: toC, subject: '[빵을그리다] 거래처 메시지 — ' + fc.name + ': ' + String(req.text).slice(0, 40), name: '빵을그리다 주문서', body: fc.name + ' 메시지\n\n' + String(req.text).slice(0, 400) + '\n\n통합 재고관리 → 발주 알림창(또는 판매 입력 → 발주 접수)에서 답할 수 있습니다.' }); } catch (e) {} } }
@@ -283,7 +287,7 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 5.2, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 5.3, agentSeen: agentSeen_(), agentVer: agentVer_() };
   // v3.4: 주문 링크 관리 (통합재고관리)
   if (req.action === 'putOrderForm') { var t3 = tok_(req.t), f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
     var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3]), /^\d{4}-\d{2}-\d{2}$/.test(it[4] || '') ? it[4] : '']; }),
@@ -328,7 +332,8 @@ function handle_(req) {
     return { ok: true, o: pp.getProperty('pl:o') || '', c: pp.getProperty('pl:c') || '' }; }
   if (req.action === 'chatList') return { ok: true, chats: chatList_() };
   if (req.action === 'chatAdmin') { var ta = tok_(req.t); if (!ta || !props_().getProperty(ORDF_ + ta)) return { ok: false, error: '없는 링크입니다' }; var ca;
-    if (req.text) { ca = chatAdd_(ta, 'a', req.text); if (!ca) return { ok: false, error: '내용을 써 주세요' }; } else { ca = chatGet_(ta); if (req.read) { ca.ra = new Date().toISOString(); chatPut_(ta, ca); } }
+    if (req.del) { ca = chatDel_(ta, 'a', String(req.del)); if (!ca) return { ok: false, error: '이미 지워졌거나 찾을 수 없습니다' }; }
+    else if (req.text) { ca = chatAdd_(ta, 'a', req.text); if (!ca) return { ok: false, error: '내용을 써 주세요' }; } else { ca = chatGet_(ta); if (req.read) { ca.ra = new Date().toISOString(); chatPut_(ta, ca); } }
     return { ok: true, m: ca.m, rc: ca.rc || '' }; }
   if (req.action === 'getShop') return { ok: true, shop: shop_() };
   if (req.action === 'putShop') { var sp = req.shop || {}, keepS = { so: (sp.so || []).map(function (x) { return String(x).slice(0, 34); }).filter(Boolean).slice(0, 200), min: Math.max(0, Math.min(10000000, Math.floor(Number(sp.min) || 0))), at: new Date().toISOString() };
