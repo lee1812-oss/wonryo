@@ -1242,8 +1242,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '180';
-const APP_BUILT = '2026-10-05 15:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '181';
+const APP_BUILT = '2026-10-05 16:30';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -5659,11 +5659,27 @@ function saleKakaoSetup(then) {
   $('#kkOk').onclick = () => { const k = $('#kkKey').value.trim().replace(/[^A-Za-z0-9]/g, ''); if (k && k.length < 20) return toast('JavaScript 키가 너무 짧습니다 — 앱 키 화면에서 다시 복사해 주세요'); X.cfg.kakaoKey = k; saleSave(); window.__kkInit = ''; close(); renderSaleOrd(); if (k && then) then(); else toast(k ? '카카오 키를 저장했습니다' : '카카오 키를 지웠습니다'); };
 }
 function saleKakaoLoad() { return window.Kakao ? Promise.resolve() : new Promise((ok, no) => { const x = document.createElement('script'); x.src = KAKAO_SDK; x.crossOrigin = 'anonymous'; x.onload = ok; x.onerror = () => no(new Error('카카오 공유 도구를 받지 못했습니다 — 인터넷 연결을 확인해 주세요')); document.head.appendChild(x); }); }
+/* v181: 카톡 카드 그림에 거래처 이름 — 800×400을 이 자리에서 그려 카카오에 올림(Kakao.Share.uploadImage), 안 되면 공통 그림 */
+const saleKkImgs = {};
+function saleKakaoCard(name) { return new Promise(ok => { const W = 800, H = 400, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  g.fillStyle = '#FDF6EC'; g.fillRect(0, 0, W, H); g.fillStyle = '#C2410C'; g.fillRect(0, H - 14, W, 14);
+  const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+  g.save(); g.shadowColor = 'rgba(120,60,10,.18)'; g.shadowBlur = 24; g.shadowOffsetY = 6; g.fillStyle = '#fff'; rr(48, 92, 210, 210, 36); g.fill(); g.restore();
+  const F = '"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif', X = 296, MW = W - X - 40;
+  const fit = (t, max, min, wt) => { let z = max; do { g.font = `${wt} ${z}px ${F}`; if (g.measureText(t).width <= MW) break; z -= 2; } while (z > min); return z; };
+  const draw = () => { g.fillStyle = '#1F2937'; g.textBaseline = 'alphabetic'; const nm = String(name || ''); fit(nm, 58, 26, 800); g.fillText(nm, X, 168, MW);
+    g.font = `800 40px ${F}`; g.fillStyle = '#C2410C'; g.fillText('전용 주문서', X, 228);
+    g.font = `700 26px ${F}`; g.fillStyle = '#7A4A12'; g.fillText('빵을그리다(주)', X, 284); g.font = `500 22px ${F}`; g.fillStyle = '#6B7280'; g.fillText('눌러서 바로 주문하세요 · 단가·합계 바로 확인', X, 322, MW);
+    c.toBlob(b => ok(b ? new File([b], 'order_card.png', { type: 'image/png' }) : null), 'image/png'); };
+  const im = new Image(); im.onload = () => { g.drawImage(im, 68, 112, 170, 170); draw(); }; im.onerror = draw; im.src = 'brand_logo.png'; }); }
+async function saleKakaoCardUrl(name) { if (saleKkImgs[name]) return saleKkImgs[name];
+  try { const file = await saleKakaoCard(name); if (!file || !Kakao.Share.uploadImage) return ''; const r = await Kakao.Share.uploadImage({ file: [file] }); const u = r && r.infos && r.infos.original && r.infos.original.url; if (u) saleKkImgs[name] = u; return u || ''; } catch (e) { return ''; } }
 async function saleKakaoShare(f) {
   if (!f) return; const key = saleS().cfg.kakaoKey; if (!key) return saleKakaoSetup(() => saleKakaoShare(f));
   try { await saleKakaoLoad(); if (window.__kkInit !== key) { if (Kakao.isInitialized()) Kakao.cleanup(); Kakao.init(key); window.__kkInit = key; }
     const url = saleOrdLink(f.t).replace('?s=2#t=', '?s=2&t='), days = (f.days || []).map(i => '일월화수목금토'[i]).join('·');   /* 카톡 카드는 #을 버릴 수 있어 ?t= 로 — 주문서가 열면서 #t= 로 바꿈 */
-    Kakao.Share.sendDefault({ objectType: 'feed', content: { title: `${f.name} 전용 주문서`, description: `빵을그리다 · 배송 ${days} · ${f.lead ? f.lead + '일 전' : '당일'} ${f.cut}시 마감`, imageUrl: ORDER_PAGE.replace(/order\.html$/, 'og_order.png'), imageWidth: 800, imageHeight: 400, link: { mobileWebUrl: url, webUrl: url } }, buttons: [{ title: '주문서 열기', link: { mobileWebUrl: url, webUrl: url } }] });
+    toast('카톡 카드 만드는 중…'); const img = await saleKakaoCardUrl(f.name);
+    Kakao.Share.sendDefault({ objectType: 'feed', content: { title: `${f.name} 전용 주문서`, description: `빵을그리다 · 배송 ${days} · ${f.lead ? f.lead + '일 전' : '당일'} ${f.cut}시 마감`, imageUrl: img || ORDER_PAGE.replace(/order\.html$/, 'og_order.png'), imageWidth: 800, imageHeight: 400, link: { mobileWebUrl: url, webUrl: url } }, buttons: [{ title: '주문서 열기', link: { mobileWebUrl: url, webUrl: url } }] });
   } catch (e) { toast('카톡 보내기 실패: ' + (/domain|도메인|KOE/i.test(e.message) ? '카카오 앱에 사이트 도메인(https://lee1812-oss.github.io)을 등록했는지 확인해 주세요' : e.message)); } }
 function saleOrdMsg(f) { const days = (f.days || []).map(i => '일월화수목금토'[i]).join('·');
   return `[빵을그리다] ${f.name} 전용 주문 링크입니다.\n${saleOrdLink(f.t)}\n\n· 배송: ${days} / 배송 ${f.lead ? f.lead + '일 전' : '당일'} ${f.cut}시 마감\n· 「지난번과 같이」 버튼으로 바로 주문하실 수 있어요\n· 주문하시면 접수 → 확인 완료 → 출고 준비 순으로 보입니다\n※ ${f.name} 전용 링크이니 외부에 공유하지 말아 주세요.`; }
