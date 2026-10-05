@@ -1245,8 +1245,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '189';
-const APP_BUILT = '2026-10-05 21:10';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '190';
+const APP_BUILT = '2026-10-05 21:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -5577,7 +5577,7 @@ async function saleOrdFetch(silent) {
   try { const [a, b, hd] = await Promise.all([prodRelayCall({ action: 'orders', days: 14 }), prodRelayCall({ action: 'listOrderForms' }), prodRelayCall({ action: 'getHolidays' }).catch(() => null)]); if (hd && hd.ok) saleUi.holidays = hd.holidays || [];
     if (!a || !a.ok) throw new Error((a && a.error) || '중계가 거절했습니다'); if (/알 수 없는 요청/.test(a.error || '')) throw new Error('중계를 새 버전(3.4)으로 배포해야 합니다');
     const before = new Set((saleUi.ord || []).filter(o => o.status === 'new').map(o => o.id));
-    saleUi.ord = a.orders || []; saleUi.ordForms = (b && b.ok && b.forms) || []; saleUi.use = a.use || 0; saleUi.useLim = a.limit || 500000; if (a.alert) saleUi.alert = a.alert; if (S.ui.prodTab === 'pord') await Promise.all([saleImgFetch(), saleCatFetch()]); saleUi.ordAt = new Date().toISOString(); saleUi.ordErr = '';
+    saleUi.ord = a.orders || []; saleUi.ordForms = (b && b.ok && b.forms) || []; saleUi.use = a.use || 0; saleUi.useLim = a.limit || 500000; if (a.alert) saleUi.alert = a.alert; if (a.shop) saleUi.shop = a.shop; if (S.ui.prodTab === 'pord') await Promise.all([saleImgFetch(), saleCatFetch()]); saleUi.ordAt = new Date().toISOString(); saleUi.ordErr = '';
     const fresh = saleUi.ord.filter(o => o.status === 'new' && !before.has(o.id)); if (fresh.length && saleUi.ordSeen) { const msg = `새 발주 ${fresh.length}건 — ${fresh.map(o => o.name).slice(0, 2).join(', ')}`; if (!silent) toast('🛒 ' + msg); saleNotify(msg, fresh); } saleUi.ordSeen = true;
   } catch (e) { saleUi.ordErr = /알 수 없는 요청/.test(e.message) ? '중계를 새 버전(3.4)으로 배포해야 주문 링크를 쓸 수 있습니다' : '발주를 불러오지 못했습니다: ' + e.message; }
   const n = (saleUi.ord || []).filter(o => o.status === 'new').length; if (n !== saleUi.ordNew) { saleUi.ordNew = n; try { renderTabs(); } catch (e) {} }
@@ -5899,6 +5899,20 @@ function saleProdSumHtml(L) { const S2 = saleProdSum(L); if (!S2.length) return 
   const md = d => { const x = new Date(d + 'T00:00:00'); return `${x.getMonth() + 1}/${x.getDate()}(${WD[x.getDay()]})`; };
   return `<details class="card so-ps"${saleUi.psOpen !== false ? ' open' : ''}><summary><b>배송일별 생산 합계</b> <span class="muted" style="font-size:12px">주문서로 들어온 발주 기준 (새 발주 + 확인한 발주) — 이만큼 만들어 보내면 됩니다</span><button type="button" class="btn xs" data-psprint="1" style="margin-left:auto">인쇄</button><button type="button" class="btn xs" data-pscopy="1">표 복사</button></summary>
     <div class="ps-g">${S2.map(g => `<div class="ps-d"><h4>${md(g.d)} 배송 <span class="muted">${g.n}곳</span></h4><table class="sl-t"><tbody>${g.items.map(x => `<tr><td>${x.s ? '<i class="tg smp">샘플</i> ' : ''}${esc(x.name)} <span class="muted" style="font-size:11px">${esc(/^cat:/.test(x.code) ? '코드 없음' : x.code)}</span></td><td class="r num"><b>${fmt(x.q)}</b></td><td class="c muted">${x.c}곳</td></tr>`).join('')}</tbody></table></div>`).join('')}</div></details>`; }
+/* v190: 품절 후보 — 주문 링크에 들어 있는 품목(이카운트 코드) + 단가표 제품(cat:id) */
+function saleSoCands() { const out = [], seen = new Set();
+  (saleUi.ordForms || []).forEach(f => (f.codes || []).forEach(c => { if (!seen.has(c)) { seen.add(c); out.push({ k: c, name: saleItemName(c) }); } }));
+  ((saleUi.cat && saleUi.cat.items) || []).forEach(it => { if (it.hide) return; const k = it.code || 'cat:' + it.id; if (!seen.has(k)) { seen.add(k); out.push({ k, name: it.name + (it.spec ? ' ' + it.spec : '') }); } });
+  return out.sort((a, b) => a.name.localeCompare(b.name, 'ko')); }
+function saleSoName(k) { const c = saleSoCands().find(x => x.k === k); return c ? c.name : k; }
+async function saleUsageShow() { modal('<h3>거래처별 사용 현황</h3><div class="muted">불러오는 중…</div>');
+  try { const r = await prodRelayCall({ action: 'usage' }); if (!r || !r.ok) throw new Error(/알 수 없는 요청/.test((r && r.error) || '') ? '중계를 새 버전(5.0)으로 배포해야 합니다' : (r && r.error) || '불러오지 못했습니다');
+    const t = today(), ago = d => { if (!d) return '—'; const n = Math.round((new Date(t + 'T00:00:00') - new Date(d.slice(0, 10) + 'T00:00:00')) / 86400e3); return n <= 0 ? '오늘' : n + '일 전'; };
+    const L = (r.usage || []).sort((a, b) => (b.last || '').localeCompare(a.last || '') || a.name.localeCompare(b.name, 'ko'));
+    const dz = u => u.on && (!u.last || (new Date(t) - new Date(u.last.slice(0, 10))) > 21 * 86400e3);
+    $('#modalBody').classList.add('wide');
+    modal(`<h3>거래처별 사용 현황 <span class="muted" style="font-size:12px">링크 ${L.length}곳 · 3주 넘게 주문 없는 곳은 노란색</span></h3><div style="max-height:62vh;overflow:auto"><table class="sl-t"><thead><tr><th>거래처</th><th class="c">링크 연 날</th><th class="c">마지막 주문</th><th class="r">30일 주문</th><th class="r">30일 수량</th><th class="c">정기</th></tr></thead><tbody>${L.map(u => `<tr${dz(u) ? ' style="background:var(--warn-bg)"' : ''}><td><b>${esc(u.name)}</b>${u.on ? '' : ' <i class="tg">멈춤</i>'}</td><td class="c">${u.seen ? esc(u.seen.slice(5).replace('-', '/')) + ' <span class="muted">' + ago(u.seen) + '</span>' : '<span class="muted">안 열어 봄</span>'}</td><td class="c">${u.last ? esc(u.last.slice(5, 10).replace('-', '/')) + ' <span class="muted">' + ago(u.last) + '</span>' : '—'}</td><td class="r num">${u.n30 ? u.n30 + '건' : '—'}</td><td class="r num">${u.q30 ? fmt(u.q30) : '—'}</td><td class="c">${u.rep ? '🔁' : ''}</td></tr>`).join('')}</tbody></table></div><div class="muted" style="font-size:12px;margin-top:6px">링크 연 날은 중계 5.0 배포 뒤부터 기록됩니다 · 주문은 최근 45일까지 (그 전은 드라이브 보관)</div><div class="btns" style="margin-top:10px"><button class="btn primary" onclick="closeModal()">닫기</button></div>`);
+  } catch (e) { modal(`<h3>거래처별 사용 현황</h3><div class="sw-err">⚠ ${esc(e.message)}</div><div class="btns"><button class="btn" onclick="closeModal()">닫기</button></div>`); } }
 function saleOpsHtml() {
   const u = saleUi.use || 0, L = saleUi.useLim || 500000, pct = Math.min(100, Math.round(u / L * 100)), lv = pct >= 85 ? 'bad' : pct >= 65 ? 'warn' : 'ok', al = saleUi.alert || {}, np = window.Notification ? Notification.permission : 'none';
   return `<details class="card so-ops"${saleUi.opsOpen ? ' open' : ''}><summary><b>운영 상태</b> <span class="pill ${lv === 'ok' ? 'ok' : 'warn'}">저장 공간 ${u ? pct + '%' : '—'}</span> <span class="pill ${al.off ? 'warn' : 'ok'}">알림 메일 ${al.off ? '꺼짐' : '켜짐'}</span> <span class="pill ${np === 'granted' ? 'ok' : ''}">PC 알림 ${np === 'granted' ? '켜짐' : '꺼짐'}</span> <span class="pill ${saleUi.syncErr ? 'warn' : 'ok'}">판매 기록 ${saleUi.syncErr ? '공유 안 됨' : '공유 중'}</span></summary>
@@ -5909,6 +5923,11 @@ function saleOpsHtml() {
       <div><b>휴무일 (배송 안 하는 날)</b><span class="muted">거래처 주문서에서 이 날은 배송일로 고를 수 없습니다</span>
         <div class="prow"><input type="date" id="opsHd"><input id="opsHn" placeholder="이름 (예: 추석)" maxlength="20" style="flex:1 1 100px"><button type="button" class="btn xs primary" data-opshadd="1">추가</button></div>
         <div class="ops-hl">${(saleUi.holidays || []).length ? saleUi.holidays.map(h => `<span class="tg">${esc(h.d.slice(5).replace('-', '/'))} ${esc(h.n || '')} <button type="button" class="lnk" data-opshdel="${esc(h.d)}" aria-label="빼기">✕</button></span>`).join(' ') : '<span class="muted">등록된 휴무일 없음</span>'}</div></div>
+      <div><b>품절 · 최소 주문 금액</b><span class="muted">품절로 둔 품목은 모든 거래처 주문서에서 담을 수 없습니다 (다시 들어오면 ✕로 풀기)</span>
+        <div class="prow"><input id="opsSo" list="opsSoL" placeholder="품목 이름이나 코드" style="flex:1 1 160px"><datalist id="opsSoL">${saleSoCands().map(c => `<option value="${esc(c.name)} [${esc(c.k)}]"></option>`).join('')}</datalist><button type="button" class="btn xs primary" data-opssoadd="1">품절로</button></div>
+        <div class="ops-hl">${((saleUi.shop || {}).so || []).length ? saleUi.shop.so.map(k => `<span class="tg bad">${esc(saleSoName(k))} <button type="button" class="lnk" data-opssodel="${esc(k)}" aria-label="품절 풀기">✕</button></span>`).join(' ') : '<span class="muted">품절 품목 없음</span>'}</div>
+        <div class="prow">최소 주문 공급가액 <input id="opsMin" inputmode="numeric" value="${(saleUi.shop || {}).min ? fmt(saleUi.shop.min) : ''}" placeholder="없음" style="width:110px">원 <button type="button" class="btn xs" data-opsmin="1">저장</button></div></div>
+      <div><b>거래처별 사용 현황</b><span class="muted">링크를 마지막으로 연 날 · 마지막 주문 · 최근 30일 주문 — 오래 안 쓰는 거래처를 챙길 때</span><div><button type="button" class="btn xs" data-opsuse="1">현황 보기</button></div></div>
       <div><b>판매 기록 공유</b><span class="muted">${saleUi.syncErr ? '⚠ ' + esc(saleUi.syncErr) : saleUi.syncAt ? '모든 PC가 같은 판매 목록·설정을 봅니다 · ' + esc(new Date(saleUi.syncAt).toLocaleString('ko-KR')) + ' 맞춤' : '맞추는 중…'}</span><div><button type="button" class="btn xs" data-opssync="1">지금 맞추기</button></div></div>
     </div></details>`;
 }
@@ -5921,6 +5940,14 @@ function saleOpsBind(box) { const d0 = box.querySelector('.so-ops'); if (d0) d0.
   const putH = async L => { try { const r = await prodRelayCall({ action: 'putHolidays', holidays: L }); if (!r || !r.ok) throw new Error((r && r.error) || '중계 5.0 배포가 필요합니다'); saleUi.holidays = r.holidays; saleSnapSoon(null); renderSaleOrd(); } catch (e) { toast('실패: ' + e.message); } };
   if (q('[data-opshadd]')) q('[data-opshadd]').onclick = () => { const d = q('#opsHd').value; if (!d) return toast('날짜를 고르세요'); putH((saleUi.holidays || []).filter(h => h.d !== d).concat([{ d, n: q('#opsHn').value.trim() }])); };
   box.querySelectorAll('[data-opshdel]').forEach(b => b.onclick = () => putH((saleUi.holidays || []).filter(h => h.d !== b.dataset.opshdel)));
+  const putS = async sh => { try { const r = await prodRelayCall({ action: 'putShop', shop: sh }); if (!r || !r.ok) throw new Error(/알 수 없는 요청/.test((r && r.error) || '') ? '중계를 새 버전(5.0)으로 배포해야 합니다' : (r && r.error) || '중계 5.0 배포가 필요합니다'); saleUi.shop = r.shop; saleSnapSoon(null); renderSaleOrd(); toast('저장했습니다 — 거래처 주문서에 바로 반영됩니다'); } catch (e) { toast('실패: ' + e.message); } };
+  const sh0 = () => Object.assign({ so: [], min: 0 }, saleUi.shop || {});
+  if (q('[data-opssoadd]')) q('[data-opssoadd]').onclick = () => { const v = q('#opsSo').value.trim(); if (!v) return toast('품목을 고르세요'); const m = /\[([^\]]+)\]\s*$/.exec(v), C = saleSoCands();
+    const c = m ? C.find(x => x.k === m[1]) : C.find(x => x.k === v || x.name === v) || (C.filter(x => saleNorm(x.name + x.k).includes(saleNorm(v))).length === 1 ? C.find(x => saleNorm(x.name + x.k).includes(saleNorm(v))) : null);
+    if (!c) return toast('목록에서 품목을 골라 주세요'); const S0 = sh0(); if (S0.so.includes(c.k)) return toast('이미 품절로 되어 있습니다'); putS(Object.assign(S0, { so: S0.so.concat([c.k]) })); };
+  box.querySelectorAll('[data-opssodel]').forEach(b => b.onclick = () => { const S0 = sh0(); putS(Object.assign(S0, { so: S0.so.filter(k => k !== b.dataset.opssodel) })); });
+  if (q('[data-opsmin]')) q('[data-opsmin]').onclick = () => putS(Object.assign(sh0(), { min: Number(String(q('#opsMin').value).replace(/[^\d]/g, '')) || 0 }));
+  if (q('[data-opsuse]')) q('[data-opsuse]').onclick = saleUsageShow;
   if (q('[data-opssync]')) q('[data-opssync]').onclick = async () => { saleUi.syncOff = false; await saleSync(); toast(saleUi.syncErr ? '판매 기록 공유 실패: ' + saleUi.syncErr : '판매 기록을 맞췄습니다'); renderSaleOrd(); };
 }
 function saleCatPanel() {
@@ -5975,7 +6002,7 @@ function renderSaleOrd() {
   const nw = L.filter(o => o.status === 'new').sort((a, b) => (a.ship > b.ship ? 1 : a.ship < b.ship ? -1 : a.at > b.at ? 1 : -1)), done = L.filter(o => o.status !== 'new').slice(0, 30);
   const md = d => { const t = new Date(d + 'T00:00:00'); return `${t.getMonth() + 1}/${t.getDate()}(${WD[t.getDay()]})`; };
   const card = o => `<div class="so-c"><div class="so-h"><b>${esc(o.name)}</b><span class="so-ship">배송 ${esc(md(o.ship))}</span></div>
-    <div class="muted" style="font-size:12px">${esc(hmOf(o.at))} 주문${o.who ? ' · ' + esc(o.who) : ''} · ${o.lines.length}품목 ${o.lines.reduce((t, l) => t + l[2], 0)}개</div>
+    <div class="muted" style="font-size:12px">${esc(hmOf(o.at))} 주문${o.who ? ' · ' + esc(o.who) : ''} · ${o.lines.length}품목 ${o.lines.reduce((t, l) => t + l[2], 0)}개${o.editedAt ? ' · 거래처가 수정함' : ''}${o.repeat && o.repeat.on ? ` · <i class="tg">🔁 ${o.repeat.ev === 14 ? '2주마다' : '매주'} 정기</i>${o.note === '정기 주문 자동' ? ' 자동 접수' : ''}` : ''}</div>
     <div class="so-l">${o.lines.map(l => `<span>${l[3] === 's' ? '<i class="tg smp">샘플</i> ' : l[3] === 'c' ? '<i class="tg cat">추가</i> ' : ''}${esc(l[1])} <b>${l[2]}</b></span>`).join('')}</div>${o.memo ? `<div class="so-memo">💬 ${esc(o.memo)}</div>` : ''}
     ${o.reply && o.reply.st ? `<div class="so-rp">✓ 거래처에 회신함 · ${esc(SALE_RST[o.reply.st] || '')}${o.reply.img ? ' · 거래명세표 사진' : ''}</div>` : ''}
     <div class="sw-dea"><button type="button" class="btn sm primary" data-soload="${esc(o.id)}">주문서로 불러오기</button><button type="button" class="btn sm" data-sorep="${esc(o.id)}">${o.reply ? '회신 고치기' : '확인 회신'}</button><button type="button" class="btn sm" data-soreject="${esc(o.id)}">반려</button></div></div>`;

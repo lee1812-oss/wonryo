@@ -5,6 +5,7 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v5.0: 품절(cfg2:shop so — 주문서에서 못 담음)·최소 주문 금액(min, 공급가액)·정기 주문(repeat — 매주/2주마다 같은 주문을 발주 확인 뒤 자동으로 다음 회차)·거래처별 사용 현황(usage, seen:)
  * v5.0: 휴무일(cfg2:holidays — 배송일로 못 고름) · 거래처 주문 수정/취소(발주 확인 전까지, editOf·orderCancel) · 월별 주문 내역(orderHistory, 드라이브 보관분 포함)
  * v5.0: 저장 공간 정리(처리 끝난 지 10일 지난 주문 → 드라이브 「빵을그리다 중계 자료/주문 보관」 월별 파일), 매일 백업(14일치), 사용량 표시
  *       새 발주 알림 메일(MailApp, ALERT_EMAIL), 판매 기록·판매 설정을 모든 PC가 함께(드라이브 판매기록 파일 · cfg2:sale)
@@ -66,7 +67,7 @@ function maint_(force) { var last = Number(props_().getProperty('mt:last') || 0)
   } finally { lk.releaseLock(); } return { moved: moved }; }
 function alertNew_(o, kind) { if (props_().getProperty('ALERT_OFF') === '1') return; var to = alertTo_(); if (!to) return;
   try { var n = o.lines.reduce(function (t, l) { return t + l[2]; }, 0);
-    MailApp.sendEmail({ to: to, subject: '[빵을그리다] ' + (kind ? '발주 ' + kind : '새 발주') + ' — ' + o.name + ' · 배송 ' + o.ship + ' · ' + o.lines.length + '품목 ' + n + '개', name: '빵을그리다 주문서',
+    MailApp.sendEmail({ to: to, subject: '[빵을그리다] ' + (kind === '정기' ? '정기 발주 자동 접수' : kind ? '발주 ' + kind : '새 발주') + ' — ' + o.name + ' · 배송 ' + o.ship + ' · ' + o.lines.length + '품목 ' + n + '개', name: '빵을그리다 주문서',
       body: o.name + ' 새 발주\n배송일: ' + o.ship + (o.who ? '\n주문자: ' + o.who : '') + '\n\n' + o.lines.map(function (l) { return '· ' + l[1] + '  ' + l[2] + (l[3] === 's' ? ' (샘플)' : l[3] === 'c' ? ' (추가)' : ''); }).join('\n') + (o.memo ? '\n\n요청사항: ' + o.memo : '') + '\n\n통합 재고관리 → 판매 입력 → 발주 접수에서 확인하세요.' }); } catch (e) {} }
 // 드라이브 권한 받기 — 편집기에서 이 함수를 골라 ▷실행 하고 「허용」을 누르면 사진·단가표 가져오기가 됩니다
 // GitHub 열쇠 확인 — 편집기에서 ▷실행 (처음엔 외부 연결 권한 허용)
@@ -76,8 +77,22 @@ function checkGithub() { var t = props_().getProperty('GH_TOKEN'); if (!t) { Log
 var GH_API_ = 'https://api.github.com/repos/lee1812-oss/wonryo';
 function gh_(tok, m, p, b) { var o = { method: m, headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json' }, muteHttpExceptions: true }; if (b) { o.contentType = 'application/json'; o.payload = JSON.stringify(b); }
   var r = UrlFetchApp.fetch(GH_API_ + p, o), c = r.getResponseCode(), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {} if (c >= 300) throw new Error('GitHub ' + c + ': ' + (j.message || '')); return j; }
-function formOut_(f1, im1, catP, ntc) { var imgs = {}; (f1.items || []).forEach(function (it) { if (im1[it[0]]) imgs[it[0]] = im1[it[0]]; });
-  return { name: f1.name, items: f1.items, days: f1.days, cut: f1.cut, lead: f1.lead, price: !!f1.price, last: f1.last || [], note: f1.note || '', imgs: imgs, cat: f1.cat === false ? null : catP, notices: ntc, off: holidays_().filter(function (h) { return h.d >= ymdK_(); }) }; }
+function formOut_(f1, im1, catP, ntc, sh) { var imgs = {}; (f1.items || []).forEach(function (it) { if (im1[it[0]]) imgs[it[0]] = im1[it[0]]; });
+  return { name: f1.name, items: f1.items, days: f1.days, cut: f1.cut, lead: f1.lead, price: !!f1.price, last: f1.last || [], note: f1.note || '', imgs: imgs, cat: f1.cat === false ? null : catP, notices: ntc, off: holidays_().filter(function (h) { return h.d >= ymdK_(); }), so: (sh && sh.so) || [], min: (sh && sh.min) || 0 }; }
+// v5.0: 품절·최소 주문 금액 — so: 품목 코드 또는 cat:단가표id (단가표 제품의 이카운트 코드가 품절이면 cat:id 도 같이)
+function shop_() { try { var v = JSON.parse(props_().getProperty('cfg2:shop') || '{}'); return { so: v.so || [], min: Number(v.min) || 0, at: v.at || '' }; } catch (e) { return { so: [], min: 0 }; } }
+function shopPub_(cat) { var sh = shop_(), so = sh.so.slice(), set = {}; so.forEach(function (k) { set[k] = 1; }); ((cat && cat.items) || []).forEach(function (it) { if (it.code && set[it.code] && !set['cat:' + it.id]) so.push('cat:' + it.id); }); return { so: so, min: sh.min }; }
+function repDue_(o) { return o.repeat && o.repeat.on && !o.repeat.nx && o.status !== 'reject' && (o.status !== 'new' || (o.reply && o.reply.st) || o.ship <= ymdK_()); }
+function addDays_(ymd, n) { var p = ymd.split('-'), d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + n)); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
+// 정기 주문: 지난 회차가 발주 확인(또는 배송일 지남)되면 다음 회차(같은 품목)를 새 발주로 — 휴무·마감이면 하루씩 미루고, 그래도 안 되면 다음 주기로
+function repeatGen_() { var all = props_().getProperties(), made = 0;
+  Object.keys(all).forEach(function (k) { if (k.indexOf(ORD_) !== 0 || k === 'ord:notices') return; var o; try { o = JSON.parse(all[k]); } catch (e) { return; } if (!o || !o.id || !o.tok || !repDue_(o)) return;
+    var fv = props_().getProperty(ORDF_ + o.tok); if (!fv) return; var f = JSON.parse(fv); if (f.on === false) return; var ev = o.repeat.ev === 14 ? 14 : 7, ship = '';
+    for (var w = 1; w <= 4 && !ship; w++) for (var d = 0; d < 4 && !ship; d++) { var c = addDays_(o.ship, ev * w + d); if (shipOk_(f, c)) ship = c; }
+    if (!ship) return; var nid = o.tok.slice(0, 6) + '_r' + Date.now().toString(36) + made;
+    var n = { id: nid, tok: o.tok, cust: o.cust, name: o.name, at: new Date().toISOString(), ship: ship, memo: o.memo || '', who: o.who || '', lines: o.lines, status: 'new', note: '정기 주문 자동', repeat: { ev: ev, on: true, ch: o.repeat.ch || o.id } };
+    props_().setProperty(ORD_ + nid, JSON.stringify(n)); o.repeat.nx = nid; props_().setProperty(k, JSON.stringify(o)); made++; alertNew_(n, '정기'); });
+  return made; }
 function authorizeDrive() { DriveApp.getRootFolder(); imgDir_(); return 'ok'; }
 
 function doPost(e) {
@@ -179,8 +194,8 @@ function handle_(req) {
   if (req.action === 'orderForm') { var t1 = tok_(req.t); var fv = t1 && props_().getProperty(ORDF_ + t1); if (!fv) return { ok: false, error: '주문 링크가 맞지 않거나 사용이 멈춰 있습니다 — 빵을그리다에 문의해 주세요' };
     var f1 = JSON.parse(fv); if (f1.on === false) return { ok: false, error: '이 주문 링크는 지금 사용이 멈춰 있습니다 — 빵을그리다에 문의해 주세요' };
     var mine = ordList_(function (o) { return o.tok === t1; }).slice(0, 10).map(ordView_);
-    var im1 = imgMap_();
-    return { ok: true, form: formOut_(f1, im1, catPublic_(catGet_(), im1), noticesLive_(im1)), orders: mine, now: new Date().toISOString() }; }
+    var im1 = imgMap_(), cg1 = catGet_(), sk = 'seen:' + t1.slice(0, 12), td1 = ymdK_(); try { if (props_().getProperty(sk) !== td1) props_().setProperty(sk, td1); } catch (e) {}   // 사용 현황: 마지막으로 연 날
+    return { ok: true, form: formOut_(f1, im1, catPublic_(cg1, im1), noticesLive_(im1), shopPub_(cg1)), orders: mine, now: new Date().toISOString() }; }
   // v3.4: 거래처 주문 넣기 — 품목은 그 주문서에 있는 것만, 수량 1~9999, 배송일·마감 확인, 같은 cid는 한 번만, 하루 30건까지
   if (req.action === 'orderSubmit') { var t2 = tok_(req.t); var fv2 = t2 && props_().getProperty(ORDF_ + t2); if (!fv2) return { ok: false, error: '주문 링크가 맞지 않습니다' };
     var f2 = JSON.parse(fv2); if (f2.on === false) return { ok: false, error: '이 주문 링크는 사용이 멈춰 있습니다' };
@@ -198,9 +213,16 @@ function handle_(req) {
         if (c.indexOf('cat:') === 0) { var ci = cmap[c.slice(4)]; if (!ci) return; lines.push([ci.code || c, ci.name + (ci.spec ? ' (' + ci.spec + ')' : ''), q, kd || 'c']); }   // 단가표 제품: 이카운트 코드가 있으면 그 코드, 없으면 cat:id
         else if (codes[c] != null) lines.push([c, codes[c], q, kd]); });
       if (!lines.length) return { ok: false, error: '주문할 품목의 수량을 넣어 주세요' };
+      var sh2 = shopPub_(cat2), so2 = {}, pr2 = {}, sum2 = 0, unk2 = false; sh2.so.forEach(function (k) { so2[k] = 1; }); (f2.items || []).forEach(function (it) { pr2[it[0]] = it[2]; });
+      var bad2 = (req.lines || []).filter(function (l) { var c = String(l && l[0] || ''); return so2[c] || (c.indexOf('cat:') === 0 && cmap[c.slice(4)] && so2[cmap[c.slice(4)].code]); });
+      if (bad2.length) return { ok: false, error: '품절된 품목이 있습니다 — ' + lines.filter(function (l) { return so2[l[0]]; }).map(function (l) { return l[1]; }).concat(bad2.filter(function (l) { return String(l[0]).indexOf('cat:') === 0; }).map(function (l) { var ci = cmap[String(l[0]).slice(4)]; return ci ? ci.name : ''; })).filter(Boolean).slice(0, 3).join(', ') + ' 을(를) 빼고 다시 주문해 주세요' };
+      if (sh2.min > 0) { (req.lines || []).forEach(function (l) { var c = String(l && l[0] || ''), q = Math.floor(Number(l && l[1])) || 0; if (String(l && l[2] || '') === 's' || !q) return;
+          var p = c.indexOf('cat:') === 0 ? (cmap[c.slice(4)] ? (cmap[c.slice(4)].pb != null ? cmap[c.slice(4)].pb : cmap[c.slice(4)].pe) : null) : pr2[c]; if (p == null) unk2 = true; else sum2 += p * q; });
+        if (!unk2 && sum2 < sh2.min) return { ok: false, error: '최소 주문 금액은 공급가액 ' + sh2.min.toLocaleString() + '원입니다 — 지금 ' + Math.round(sum2).toLocaleString() + '원' }; }
       var today = ymdK_(), nToday = ordList_(function (o) { return o.tok === t2 && ymdK_(new Date(o.at)) === today; }).length; if (!ed && nToday >= 30) return { ok: false, error: '오늘 주문이 너무 많습니다 — 빵을그리다에 문의해 주세요' };
       var o2 = { id: oid, tok: t2, cust: f2.cust, name: f2.name, at: new Date().toISOString(), ship: String(req.ship), memo: String(req.memo || '').slice(0, 300), who: String(req.who || '').slice(0, 30), lines: lines, status: 'new' };
-      if (ed) { o2.at = ed.at; o2.editedAt = new Date().toISOString(); if (ed.repeat) o2.repeat = ed.repeat; }
+      var rv = Number(req.repeat) === 14 ? 14 : Number(req.repeat) === 7 ? 7 : 0; if (rv) o2.repeat = { ev: rv, on: true, ch: oid };
+      if (ed) { o2.at = ed.at; o2.editedAt = new Date().toISOString(); if (ed.repeat) { o2.repeat = ed.repeat; if (req.repeat != null) { if (rv) o2.repeat.ev = rv; else o2.repeat.on = false; } } if (ed.note) o2.note = ed.note; }
       props_().setProperty(ORD_ + oid, JSON.stringify(o2));
     } finally { lk2.releaseLock(); }
     alertNew_(o2, ed ? '수정' : ''); return { ok: true, order: ordView_(o2) }; }
@@ -210,6 +232,10 @@ function handle_(req) {
       if (oc.status !== 'new' || (oc.reply && oc.reply.st)) return { ok: false, error: '이미 확인된 주문이라 취소할 수 없습니다 — 빵을그리다에 전화로 알려 주세요' };
       oc.status = 'cancel'; oc.doneAt = new Date().toISOString(); oc.note = '거래처가 취소'; props_().setProperty(ORD_ + oc.id, JSON.stringify(oc)); } finally { lk7.releaseLock(); }
     alertNew_(oc, '취소'); return { ok: true, order: ordView_(oc) }; }
+  if (req.action === 'repeatStop') { var t8 = tok_(req.t), lk8 = LockService.getScriptLock(); lk8.waitLock(10000); var n8 = 0;
+    try { var rv8 = props_().getProperty(ORD_ + String(req.id || '').replace(/[^A-Za-z0-9_-]/g, '')), r8 = rv8 && JSON.parse(rv8); if (!t8 || !r8 || r8.tok !== t8 || !r8.repeat) return { ok: false, error: '정기 주문을 찾지 못했습니다' };
+      var ch8 = r8.repeat.ch || r8.id; ordList_(function (o) { return o.tok === t8 && o.repeat && o.repeat.on && (o.repeat.ch || o.id) === ch8; }).forEach(function (o) { o.repeat.on = false; props_().setProperty(ORD_ + o.id, JSON.stringify(o)); n8++; }); } finally { lk8.releaseLock(); }
+    return { ok: true, n: n8 }; }
   if (req.action === 'orderHistory') { var t7 = tok_(req.t), fv7 = t7 && props_().getProperty(ORDF_ + t7); if (!fv7) return { ok: false, error: '주문 링크가 맞지 않습니다' };
     var mo = /^\d{4}-\d{2}$/.test(req.month || '') ? req.month : ymdK_().slice(0, 7), seen7 = {}, out7 = [];
     ordList_(function (o) { return o.tok === t7 && String(o.at).slice(0, 7) === mo; }).forEach(function (o) { seen7[o.id] = 1; out7.push(ordView_(o)); });
@@ -277,6 +303,16 @@ function handle_(req) {
         o10.reply.img = f10.getId(); }
       o10.reply.at = new Date().toISOString(); props_().setProperty(ORD_ + o10.id, JSON.stringify(o10)); return { ok: true, img: o10.reply.img || '' }; } finally { lk10.releaseLock(); } }
   if (req.action === 'getHolidays') return { ok: true, holidays: holidays_() };
+  if (req.action === 'getShop') return { ok: true, shop: shop_() };
+  if (req.action === 'putShop') { var sp = req.shop || {}, keepS = { so: (sp.so || []).map(function (x) { return String(x).slice(0, 34); }).filter(Boolean).slice(0, 200), min: Math.max(0, Math.min(10000000, Math.floor(Number(sp.min) || 0))), at: new Date().toISOString() };
+    var jsS = JSON.stringify(keepS); if (jsS.length > 8800) return { ok: false, error: '품절 품목이 너무 많습니다' }; props_().setProperty('cfg2:shop', jsS); return { ok: true, shop: keepS }; }
+  if (req.action === 'usage') { var au = props_().getProperties(), U = {}, c30 = Date.now() - 30 * 86400e3, outU = [];
+    Object.keys(au).forEach(function (k) { if (k.indexOf(ORD_) !== 0 || k === 'ord:notices') return; var o; try { o = JSON.parse(au[k]); } catch (e) { return; } if (!o || !o.tok) return;
+      var u = U[o.tok] = U[o.tok] || { n30: 0, q30: 0, last: '', rep: 0 }; if (o.status === 'cancel' || o.status === 'reject') return; if (String(o.at) > u.last) u.last = o.at;
+      if (new Date(o.at).getTime() >= c30) { u.n30++; o.lines.forEach(function (l) { if (l[3] !== 's') u.q30 += Number(l[2]) || 0; }); } if (o.repeat && o.repeat.on && !o.repeat.nx) u.rep++; });
+    Object.keys(au).forEach(function (k) { if (k.indexOf(ORDF_) !== 0) return; var t = k.slice(ORDF_.length), f; try { f = JSON.parse(au[k]); } catch (e) { return; } var u = U[t] || { n30: 0, q30: 0, last: '', rep: 0 };
+      outU.push({ t: t, cust: f.cust, name: f.name, on: f.on !== false, made: f.at || '', seen: au['seen:' + t.slice(0, 12)] || '', last: u.last, n30: u.n30, q30: u.q30, rep: u.rep }); });
+    return { ok: true, usage: outU }; }
   if (req.action === 'putHolidays') { var hs = (req.holidays || []).filter(function (h) { return h && /^\d{4}-\d{2}-\d{2}$/.test(h.d || ''); }).map(function (h) { return { d: h.d, n: String(h.n || '').slice(0, 20) }; }).slice(0, 120);
     hs.sort(function (a, b) { return a.d < b.d ? -1 : 1; }); var cut8 = ymdK_(new Date(Date.now() - 7 * 86400e3)); hs = hs.filter(function (h) { return h.d >= cut8; }); props_().setProperty('cfg2:holidays', JSON.stringify(hs)); return { ok: true, holidays: hs }; }
   // v5.0: 알림 메일 설정 · 지금 정리 · 판매 기록/설정 함께 쓰기
@@ -293,8 +329,8 @@ function handle_(req) {
       var since = String(req.since || ''), out5 = []; Object.keys(E).forEach(function (id) { if (!since || String(E[id].upd || '') > since) out5.push(E[id]); });
       return { ok: true, entries: out5, now: new Date().toISOString() }; } finally { lk5.releaseLock(); } }
   // v4.2: 주문서 빠른 열기 — 여러 링크의 주문서 내용(주문 기록 빼고)을 한 번에, 그리고 암호화된 파일을 GitHub에 한 번에 올림
-  if (req.action === 'formSnaps') { var im9 = imgMap_(), cp9 = catPublic_(catGet_(), im9), nt9 = noticesLive_(im9), out9 = {};
-    (req.ts || []).slice(0, 300).forEach(function (t) { var tk = tok_(t), v = tk && props_().getProperty(ORDF_ + tk); if (!v) { out9[t] = null; return; } var f = JSON.parse(v); out9[t] = f.on === false ? null : formOut_(f, im9, cp9, nt9); });
+  if (req.action === 'formSnaps') { var im9 = imgMap_(), cg9 = catGet_(), cp9 = catPublic_(cg9, im9), nt9 = noticesLive_(im9), sh9 = shopPub_(cg9), out9 = {};
+    (req.ts || []).slice(0, 300).forEach(function (t) { var tk = tok_(t), v = tk && props_().getProperty(ORDF_ + tk); if (!v) { out9[t] = null; return; } var f = JSON.parse(v); out9[t] = f.on === false ? null : formOut_(f, im9, cp9, nt9, sh9); });
     return { ok: true, forms: out9, now: new Date().toISOString() }; }
   if (req.action === 'ghPutFiles') { var gt = props_().getProperty('GH_TOKEN'); if (!gt) return { ok: false, error: 'GH_TOKEN 없음 — Apps Script 프로젝트 설정 › 스크립트 속성에 GitHub 열쇠를 넣어 주세요' };
     var fl = (req.files || []).slice(0, 300).filter(function (f) { return f && /^of\/[0-9a-f]{32}\.txt$/.test(f.path) && typeof f.data === 'string' && f.data.length < 400000; });   // of/ 아래 암호 파일만
@@ -310,12 +346,12 @@ function handle_(req) {
       (f.items || []).forEach(function (it) { var v = pr9[it[0]]; if (!v || !(num_(v[0]) > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(v[1] || '') || (it[4] && it[4] > v[1])) return; it[2] = num_(v[0]); it[4] = v[1]; ch = true; });
       if (ch) { props_().setProperty(k, JSON.stringify(f)); n9++; } }); return { ok: true, forms: n9 }; }
   if (req.action === 'setOrderFormOn') { var t5 = tok_(req.t), v5 = t5 && props_().getProperty(ORDF_ + t5); if (!v5) return { ok: false, error: '없는 링크입니다' }; var f5 = JSON.parse(v5); f5.on = !!req.on; props_().setProperty(ORDF_ + t5, JSON.stringify(f5)); return { ok: true }; }
-  if (req.action === 'delOrderForm') { var t4 = tok_(req.t); if (t4) props_().deleteProperty(ORDF_ + t4); return { ok: true }; }
+  if (req.action === 'delOrderForm') { var t4 = tok_(req.t); if (t4) { props_().deleteProperty(ORDF_ + t4); props_().deleteProperty('seen:' + t4.slice(0, 12)); } return { ok: true }; }
   if (req.action === 'listOrderForms') { var af = props_().getProperties(), lf = [];
     Object.keys(af).forEach(function (k) { if (k.indexOf(ORDF_) !== 0) return; try { var f = JSON.parse(af[k]); lf.push({ t: k.slice(ORDF_.length), cust: f.cust, name: f.name, on: f.on !== false, at: f.at, n: (f.items || []).length, codes: (f.items || []).map(function (it) { return it[0]; }), days: f.days, cut: f.cut, lead: f.lead, price: !!f.price }); } catch (e) {} });
     return { ok: true, forms: lf }; }
-  if (req.action === 'orders') { var since = Date.now() - Math.min(45, Math.max(1, Number(req.days) || 14)) * 86400000; var mt = null; try { mt = maint_(false); } catch (e) {}
-    return { ok: true, use: propsUse_(), limit: 500000, moved: mt ? mt.moved : 0, alert: { to: alertTo_(), off: props_().getProperty('ALERT_OFF') === '1' }, orders: ordList_(function (o) { return o.status === 'new' || new Date(o.at).getTime() >= since; }).slice(0, 200).map(function (o) { var v = ordView_(o); v.cust = o.cust; v.name = o.name; v.tok = o.tok; v.who = o.who || ''; return v; }) }; }
+  if (req.action === 'orders') { var since = Date.now() - Math.min(45, Math.max(1, Number(req.days) || 14)) * 86400000; var mt = null, rg = 0; try { rg = repeatGen_(); } catch (e) {} try { mt = maint_(false); } catch (e) {}
+    return { ok: true, use: propsUse_(), limit: 500000, moved: mt ? mt.moved : 0, alert: { to: alertTo_(), off: props_().getProperty('ALERT_OFF') === '1' }, shop: shop_(), repMade: rg, orders: ordList_(function (o) { return o.status === 'new' || new Date(o.at).getTime() >= since; }).slice(0, 200).map(function (o) { var v = ordView_(o); v.cust = o.cust; v.name = o.name; v.tok = o.tok; v.who = o.who || ''; return v; }) }; }
   if (req.action === 'orderDone') { var lk3 = LockService.getScriptLock(); lk3.waitLock(10000);
     try { var ov = props_().getProperty(ORD_ + String(req.id || '')); if (!ov) return { ok: false, error: '없는 주문입니다' }; var o3 = JSON.parse(ov);
       if (req.status) o3.status = String(req.status).slice(0, 12); if (req.slip != null) o3.slip = String(req.slip).slice(0, 60); if (req.note != null) o3.note = String(req.note).slice(0, 200); if (req.reply) o3.reply = reply_(o3.reply, req.reply);

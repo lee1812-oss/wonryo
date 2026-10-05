@@ -23,3 +23,12 @@
 - 거래처 안내(4.1): 사진 최대 6장(드라이브 ntc_<안내>_…, notice.imgs = 파일 id)·자세히 보기 링크(url). 주문서 맨 위에 사진 넘겨 보기 카드.
 - 주문서 빠른 열기(4.2, v187): 앱이 formSnaps로 받은 주문서(주문 기록 제외)를 토큰 열쇠로 AES-GCM 암호화(gzip) → 중계 ghPutFiles가 GitHub `of/<sha256('bggd-file|'+토큰) 앞 32자>.txt`로 커밋(경로는 of/ 아래만 허용). 열쇠 = SHA-256('bggd-snap|'+토큰). 멈춤·삭제 링크는 'x'. 중계 스크립트 속성 GH_TOKEN(이 저장소 Contents 쓰기 fine-grained) 필요, 처음 checkGithub 실행으로 외부 연결 권한 허용. 링크·단가표·안내·단가 바뀌면 자동, 6시간마다 자동, 「지금 갱신」.
 - 발주 회신(3.7): orderDone에 reply {st ok/out/done, msg, ship, dlv, box, lines, sup, vat, slip} → 거래처 주문서 「최근 주문」에 안내·거래명세표. 새 발주 카드의 「확인 회신」은 상태를 그대로 두고 회신만(주문서로 불러오기 전 확인용). 3.9: putOrderImg로 이카운트 거래명세표 캡처를 reply.img(드라이브 stm_<주문>.jpg).
+
+## 중계 5.0 (v188~v190)
+- 처음 한 번: Apps Script 편집기에서 `setupAll` 실행 → 허용 (드라이브·메일·외부 연결 권한).
+- 저장 공간: 처리 끝난 지 10일 지난 주문·40일 지난 모든 주문은 드라이브 「빵을그리다 중계 자료/주문 보관/orders_YYYY-MM.json」으로 옮김(maint_, 6시간마다 orders 요청 때), 매일 「백업」에 14일치(API_KEY·GH_TOKEN 제외).
+- 새 발주 메일(MailApp, 속성 ALERT_EMAIL / ALERT_OFF) — 새 발주·수정·취소·정기 자동 접수. 판매 기록은 드라이브 판매기록.json(saleLogSync), 판매 설정은 cfg2:sale.
+- 휴무일 cfg2:holidays(배송일로 못 고름) · 거래처가 발주 확인 전까지 주문 수정(editOf)·취소(orderCancel) · 월별 주문 내역(orderHistory, 보관분 포함).
+- 품절·최소 주문 금액: cfg2:shop {so: [이카운트 코드 | cat:단가표id], min: 공급가액} — 운영 상태 카드에서. 단가표 제품의 이카운트 코드가 품절이면 그 제품도 품절(shopPub_). 단가 모르는 품목이 있으면 최소 금액 검사는 건너뜀.
+- 정기 주문: 주문 확정 때 매주/2주마다 → o.repeat {ev, on, ch, nx}. 지난 회차가 발주 확인(또는 배송일 지남)되면 다음 orders 요청 때 repeatGen_이 같은 품목으로 새 발주(note 「정기 주문 자동」). 멈추기 repeatStop(같은 ch 전부).
+- 거래처별 사용 현황(usage): 링크 연 날(seen:<토큰12자>, orderForm 때 하루 한 번 기록)·마지막 주문·30일 주문.
