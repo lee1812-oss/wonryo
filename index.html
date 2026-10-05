@@ -847,6 +847,7 @@ header.top .brand .hver .rv-ok{color:#9BE3B8;font-weight:700}header.top .brand .
 .so-f{display:flex;flex-direction:column;gap:3px;font-size:12.5px;font-weight:700;margin-bottom:8px}.so-f input,.so-f textarea,.so-f select{font:inherit;font-weight:400;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:7px 9px}.so-chk{display:flex;align-items:center;gap:5px;font-size:13px}
 .so-rp{margin-top:6px;font-size:12px;font-weight:700;color:var(--accent)}.so-stm{margin:4px 0 6px;min-height:60px;max-height:240px;overflow:auto;border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;padding:4px}.so-stm img{max-width:100%;display:block}
 .nt-ph{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 6px;min-height:40px;align-items:center}.nt-ph div{position:relative;width:88px;height:88px}.nt-ph img{width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--line)}.nt-ph button{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:12px;line-height:22px;padding:0}.nt-ph em{position:absolute;left:3px;bottom:3px;font-style:normal;font-size:10px;font-weight:800;background:var(--accent);color:#fff;border-radius:4px;padding:0 4px}
+.so-kk{background:#FEE500;border-color:#F2D600;color:#191919;font-weight:800}.kk-steps{margin:4px 0 10px;padding-left:20px;font-size:13px;line-height:1.7}.kk-steps code{background:var(--bg);padding:1px 5px;border-radius:4px}
 .so-ctab{display:flex;gap:4px;margin-bottom:6px}.so-df{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;margin-bottom:6px;padding:8px 12px;height:auto;text-align:left}.so-cw{max-height:56vh;overflow:auto;border:1px solid var(--line2);border-radius:8px}.so-ct input:not([type=checkbox]){font:inherit;font-size:13px;border:1px solid var(--line2);border-radius:6px;padding:4px 6px;width:100%;min-width:60px}.so-cimg{display:flex;width:44px;height:44px;border:1px dashed var(--line);border-radius:6px;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}.so-cimg img{width:100%;height:100%;object-fit:cover}
 .tg.smp{background:#FFF1D6;color:#8A5A00}.tg.cat{background:#E6F0FB;color:#1F5FA8}
 .so-ig{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}.so-it{display:flex;gap:8px;align-items:center;border:1px solid var(--line2);border-radius:10px;padding:6px;background:#fff}.so-it.none{border-style:dashed;border-color:#E8C98E}
@@ -1241,8 +1242,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '179';
-const APP_BUILT = '2026-10-05 15:00';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '180';
+const APP_BUILT = '2026-10-05 15:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -5644,6 +5645,26 @@ function saleOrdEditor(form) {   /* form: 기존 링크(수정, 한 곳) 또는 
   };
   draw();
 }
+/* v180: 카카오톡 공유 — 미리보기 카드에 「○○ 전용 주문서」. 카카오 개발자 앱의 JavaScript 키(사이트 도메인 제한, 이 기기 설정에만 보관) */
+const KAKAO_SDK = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js';
+function saleKakaoSetup(then) {
+  const m = $('#soM'), close = () => { m.hidden = true; m.innerHTML = ''; }, X = saleS();
+  m.innerHTML = `<div class="sw-mb so-ed" role="dialog" aria-modal="true"><h3>카카오톡 공유 설정 (처음 한 번)</h3>
+    <ol class="kk-steps"><li><a href="https://developers.kakao.com" target="_blank" rel="noopener">developers.kakao.com</a> 에 카카오 계정으로 로그인</li><li>위 「내 애플리케이션」 → 「애플리케이션 추가하기」 — 앱 이름 <b>빵을그리다 주문서</b>, 회사명 <b>빵을그리다</b></li>
+      <li>만든 앱 → 「앱 설정 › 플랫폼」 → <b>Web 플랫폼 등록</b> → 사이트 도메인에 <code>https://lee1812-oss.github.io</code> 넣고 저장</li><li>「앱 설정 › 앱 키」의 <b>JavaScript 키</b>를 복사해 아래에 붙여넣기</li></ol>
+    <label class="so-f">JavaScript 키 <input id="kkKey" value="${esc(X.cfg.kakaoKey || '')}" placeholder="예) 1a2b3c… (32자리)" autocomplete="off"></label>
+    <div class="muted" style="font-size:11.5px">이 키는 등록한 도메인에서만 쓸 수 있는 공개용 키입니다. 이 기기에만 저장되니, 다른 PC에서도 보내려면 그 PC에서 한 번 더 넣어 주세요.</div>
+    <div class="sw-ma"><button type="button" class="btn" id="kkX">취소</button><button type="button" class="btn primary" id="kkOk">저장</button></div></div>`;
+  m.hidden = false; $('#kkX').onclick = close;
+  $('#kkOk').onclick = () => { const k = $('#kkKey').value.trim().replace(/[^A-Za-z0-9]/g, ''); if (k && k.length < 20) return toast('JavaScript 키가 너무 짧습니다 — 앱 키 화면에서 다시 복사해 주세요'); X.cfg.kakaoKey = k; saleSave(); window.__kkInit = ''; close(); renderSaleOrd(); if (k && then) then(); else toast(k ? '카카오 키를 저장했습니다' : '카카오 키를 지웠습니다'); };
+}
+function saleKakaoLoad() { return window.Kakao ? Promise.resolve() : new Promise((ok, no) => { const x = document.createElement('script'); x.src = KAKAO_SDK; x.crossOrigin = 'anonymous'; x.onload = ok; x.onerror = () => no(new Error('카카오 공유 도구를 받지 못했습니다 — 인터넷 연결을 확인해 주세요')); document.head.appendChild(x); }); }
+async function saleKakaoShare(f) {
+  if (!f) return; const key = saleS().cfg.kakaoKey; if (!key) return saleKakaoSetup(() => saleKakaoShare(f));
+  try { await saleKakaoLoad(); if (window.__kkInit !== key) { if (Kakao.isInitialized()) Kakao.cleanup(); Kakao.init(key); window.__kkInit = key; }
+    const url = saleOrdLink(f.t).replace('?s=2#t=', '?s=2&t='), days = (f.days || []).map(i => '일월화수목금토'[i]).join('·');   /* 카톡 카드는 #을 버릴 수 있어 ?t= 로 — 주문서가 열면서 #t= 로 바꿈 */
+    Kakao.Share.sendDefault({ objectType: 'feed', content: { title: `${f.name} 전용 주문서`, description: `빵을그리다 · 배송 ${days} · ${f.lead ? f.lead + '일 전' : '당일'} ${f.cut}시 마감`, imageUrl: ORDER_PAGE.replace(/order\.html$/, 'og_order.png'), imageWidth: 800, imageHeight: 400, link: { mobileWebUrl: url, webUrl: url } }, buttons: [{ title: '주문서 열기', link: { mobileWebUrl: url, webUrl: url } }] });
+  } catch (e) { toast('카톡 보내기 실패: ' + (/domain|도메인|KOE/i.test(e.message) ? '카카오 앱에 사이트 도메인(https://lee1812-oss.github.io)을 등록했는지 확인해 주세요' : e.message)); } }
 function saleOrdMsg(f) { const days = (f.days || []).map(i => '일월화수목금토'[i]).join('·');
   return `[빵을그리다] ${f.name} 전용 주문 링크입니다.\n${saleOrdLink(f.t)}\n\n· 배송: ${days} / 배송 ${f.lead ? f.lead + '일 전' : '당일'} ${f.cut}시 마감\n· 「지난번과 같이」 버튼으로 바로 주문하실 수 있어요\n· 주문하시면 접수 → 확인 완료 → 출고 준비 순으로 보입니다\n※ ${f.name} 전용 링크이니 외부에 공유하지 말아 주세요.`; }
 /* v165: 주문서 품목 사진 — 품목 하나에 한 장(모든 거래처 주문서에 같이). 완제품·생지 품목 사진을 가져오거나 직접 올림 → 중계가 구글 드라이브에 보관 */
@@ -5849,9 +5870,9 @@ function renderSaleOrd() {
   ${saleImgPanel()}
   <div class="card"><h2 style="margin:0 0 8px">주문 링크 <span class="pill">${F.length}곳</span></h2>
     ${F.length ? `<table class="sl-t"><thead><tr><th>거래처</th><th class="c">품목</th><th class="c">배송 요일</th><th class="c">마감</th><th class="c">상태</th><th></th></tr></thead><tbody>${F.map(f => `<tr><td><b>${esc(f.name)}</b></td><td class="c">${f.n}</td><td class="c">${(f.days || []).map(i => '일월화수목금토'[i]).join('·')}</td><td class="c">${f.lead ? f.lead + '일 전' : '당일'} ${f.cut}시</td><td class="c">${f.on ? '<i class="tg ok">사용 중</i>' : '<i class="tg">멈춤</i>'}</td>
-      <td class="so-act"><button type="button" class="btn xs primary" data-somsg="${esc(f.t)}">안내문 복사</button><button type="button" class="btn xs" data-solink="${esc(f.t)}">링크 복사</button><button type="button" class="btn xs" data-soopen="${esc(f.t)}">열어 보기</button><button type="button" class="btn xs" data-soedit="${esc(f.t)}">고치기</button><button type="button" class="btn xs" data-sotog="${esc(f.t)}">${f.on ? '멈춤' : '다시 사용'}</button><button type="button" class="btn xs danger" data-sodel="${esc(f.t)}">삭제</button></td></tr>`).join('')}</tbody></table>`
+      <td class="so-act"><button type="button" class="btn xs so-kk" data-sokk="${esc(f.t)}">카톡으로 보내기</button><button type="button" class="btn xs primary" data-somsg="${esc(f.t)}">안내문 복사</button><button type="button" class="btn xs" data-solink="${esc(f.t)}">링크 복사</button><button type="button" class="btn xs" data-soopen="${esc(f.t)}">열어 보기</button><button type="button" class="btn xs" data-soedit="${esc(f.t)}">고치기</button><button type="button" class="btn xs" data-sotog="${esc(f.t)}">${f.on ? '멈춤' : '다시 사용'}</button><button type="button" class="btn xs danger" data-sodel="${esc(f.t)}">삭제</button></td></tr>`).join('')}</tbody></table>`
       : `<div class="sw-empty">아직 주문 링크가 없습니다. 「＋ 주문 링크 만들기」로 시범 거래처부터 만들어 보세요.<br><span class="muted">추천: 같은 요일에 꾸준히 주문하는 단골부터</span></div>`}
-    <div class="muted" style="font-size:11.5px;margin-top:8px">링크는 거래처마다 다른 비밀 주소입니다. 링크가 새어 나갔으면 삭제하고 새로 만드세요. 거래처 화면에는 그 거래처의 품목만 보입니다.</div></div>
+    <div class="muted" style="font-size:11.5px;margin-top:8px">링크는 거래처마다 다른 비밀 주소입니다. 링크가 새어 나갔으면 삭제하고 새로 만드세요. 거래처 화면에는 그 거래처의 품목만 보입니다. · 「카톡으로 보내기」는 미리보기 카드에 거래처 이름이 나옵니다 <button type="button" class="lnk" data-kkkey="1">${saleS().cfg.kakaoKey ? '카카오 키 바꾸기' : '카카오 키 넣기'}</button></div></div>
   <div class="sw-modal" id="soM" hidden></div>
 </div>`;
   const byT = t => F.find(f => f.t === t), byId = id => L.find(o => o.id === id);
@@ -5861,6 +5882,8 @@ function renderSaleOrd() {
     if (d.soload) saleLoadOrder(byId(d.soload));
     else if (d.soreject) { const r = prompt('반려 사유 (거래처 주문 화면에 보입니다)', '전화로 확인 부탁드립니다'); if (r == null) return; await saleOrdMark(d.soreject, { status: 'reject', note: r }); saleOrdFetch(true); }
     else if (d.sorep) saleReplyEditor(byId(d.sorep));
+    else if (d.sokk) saleKakaoShare(byT(d.sokk));
+    else if (d.kkkey) saleKakaoSetup();
     else if (d.somsg) copy(saleOrdMsg(byT(d.somsg)), '안내문을 복사했습니다 — 거래처 카톡방에 붙여넣으세요');
     else if (d.solink) copy(saleOrdLink(d.solink), '주문 링크를 복사했습니다');
     else if (d.soopen) window.open(saleOrdLink(d.soopen), '_blank', 'noopener');

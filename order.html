@@ -111,8 +111,9 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
 (function () {
   'use strict';
   var RELAY = 'https://script.google.com/macros/s/AKfycbwc4iYf-iUXLIkw_9mENM2nRyX5BNdz4TveLP5cKE-5CXd2hiTQ34kDxSanQFJk9O8S3g/exec';
-  var H = new URLSearchParams(location.hash.replace(/^#/, '')), T = (H.get('t') || '').replace(/[^A-Za-z0-9_-]/g, '');
-  if (H.get('r')) RELAY = 'https://script.google.com/macros/s/' + H.get('r').replace(/[^A-Za-z0-9_-]/g, '') + '/exec';
+  var H = new URLSearchParams(location.hash.replace(/^#/, '')), Q = new URLSearchParams(location.search), T = (H.get('t') || Q.get('t') || '').replace(/[^A-Za-z0-9_-]/g, ''), RR = H.get('r') || Q.get('r');   /* 카카오 공유 링크는 ?t= 로 옴 */
+  if (RR) RELAY = 'https://script.google.com/macros/s/' + RR.replace(/[^A-Za-z0-9_-]/g, '') + '/exec';
+  if (!H.get('t') && T) try { history.replaceState(null, '', location.pathname + '?s=2#t=' + T + (RR ? '&r=' + RR : '')); } catch (e) {}
   var $ = function (s) { return document.querySelector(s); }, WD = '일월화수목금토';
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var IMG = function (id, w) { return /^u:/.test(id) ? id.slice(2) : 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w' + (w || 200); };   /* u:주소 = 이 사이트의 단가표 제품 사진(cat/<id>.jpg) */   /* 품목 사진: 구글 드라이브(중계가 보관) */
