@@ -662,7 +662,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 (function(){
 'use strict';
 const PLATFORM='완제품생지재고관리';
-const VERSION=80;
+const VERSION=81;
 const LS_KEY='wjsg_state_v1';
 const EMBED=(()=>{try{return window.parent!==window;}catch(e){return false;}})();if(EMBED)document.documentElement.classList.add('embedded');
 const TEMPLATE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
@@ -1218,7 +1218,7 @@ function finSummary(){const td=today();const sn=snapAsOf(td)||latest();if(!sn)re
   return{at:new Date().toISOString(),snap:sn.date,items:S.items.length,shortN:shorts.length,shorts:shorts.slice(0,8),
     exp:g('expired').length,n31:g('n31').length,n60:g('n60').length,defect:g('defect').length,noPlan:ld.noPlan,
     loss:[...g('expired'),...g('n31'),...g('defect'),...g('n60')].slice(0,8).map(lossRow),dough,
-    diffN:diffs.length,ecOn:!!S.ecount,ecMatched:S.ecount?(S.ecount.matched||0):0,ecAt:S.ecount?S.ecount.checkedAt:''};}
+    diffN:diffs.length,ecOn:!!S.ecount,ecMatched:S.ecount?(S.ecount.matched||0):0,ecAt:S.ecount?S.ecount.checkedAt:'',stkAt:sn.date||'',stk:(()=>{const o={};S.items.forEach(it=>{if(!it.code)return;const st=stockOf(sn,it.id);o[it.code]=[unitQty(it,st),it.unit==='봉'?'봉':'박스',nz(it.safety)];});return o;})()};}   /* v081: 통합재고관리 발주 생산 합계용 품목코드별 재고 */
 /* v061: 생산일지용 품목 목록 — 잠겨 있으면(S 없음) locked, 이카운트 품목목록(prods)은 요청·첫 전송 때만 */
 let _fiSent=false;function finItemsMsg(withProds){if(!S||!Array.isArray(S.items))return{type:'fin-items',locked:true,items:[]};const m={type:'fin-items',total:S.items.length,items:S.items.filter(i=>i.code).map(i=>({code:i.code,name:i.name,kind:i.kind||'',unit:i.unit||'',ecEa:!!i.ecEa,ecDiv:ecDivOf(i)||0,orderOnly:!!i.orderOnly}))};if(withProds||!_fiSent){try{m.prods=(ECPROD||[]).slice(0,3000).map(p=>({code:p.code,name:p.name}));}catch(e){}_fiSent=true;}return m;}
 let _fsT=0;function finPostSum(now){if(!EMBED)return;clearTimeout(_fsT);const f=()=>{try{parent.postMessage({type:'fin-summary',sum:finSummary()},parentOrigin());}catch(e){}try{parent.postMessage(finItemsMsg(false),parentOrigin());}catch(e){}};if(now)f();else _fsT=setTimeout(f,700);}
