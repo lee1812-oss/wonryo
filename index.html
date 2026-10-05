@@ -848,6 +848,7 @@ header.top .brand .hver .rv-ok{color:#9BE3B8;font-weight:700}header.top .brand .
 .so-rp{margin-top:6px;font-size:12px;font-weight:700;color:var(--accent)}.so-stm{margin:4px 0 6px;min-height:60px;max-height:240px;overflow:auto;border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;padding:4px}.so-stm img{max-width:100%;display:block}
 .nt-ph{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 6px;min-height:40px;align-items:center}.nt-ph div{position:relative;width:88px;height:88px}.nt-ph img{width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--line)}.nt-ph button{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:12px;line-height:22px;padding:0}.nt-ph em{position:absolute;left:3px;bottom:3px;font-style:normal;font-size:10px;font-weight:800;background:var(--accent);color:#fff;border-radius:4px;padding:0 4px}
 .so-kk{background:#FEE500;border-color:#F2D600;color:#191919;font-weight:800}.kk-steps{margin:4px 0 10px;padding-left:20px;font-size:13px;line-height:1.7}.kk-steps code{background:var(--bg);padding:1px 5px;border-radius:4px}
+.so-snapbar{margin-top:8px;font-size:12px;color:var(--ink3)}
 .so-ctab{display:flex;gap:4px;margin-bottom:6px}.so-df{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;margin-bottom:6px;padding:8px 12px;height:auto;text-align:left}.so-cw{max-height:56vh;overflow:auto;border:1px solid var(--line2);border-radius:8px}.so-ct input:not([type=checkbox]){font:inherit;font-size:13px;border:1px solid var(--line2);border-radius:6px;padding:4px 6px;width:100%;min-width:60px}.so-cimg{display:flex;width:44px;height:44px;border:1px dashed var(--line);border-radius:6px;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}.so-cimg img{width:100%;height:100%;object-fit:cover}
 .tg.smp{background:#FFF1D6;color:#8A5A00}.tg.cat{background:#E6F0FB;color:#1F5FA8}
 .so-ig{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}.so-it{display:flex;gap:8px;align-items:center;border:1px solid var(--line2);border-radius:10px;padding:6px;background:#fff}.so-it.none{border-style:dashed;border-color:#E8C98E}
@@ -1242,8 +1243,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '186';
-const APP_BUILT = '2026-10-05 18:50';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '187';
+const APP_BUILT = '2026-10-05 19:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -2411,7 +2412,7 @@ function prodHoldUntil(date) { const c = prodS().cfg; if (c.batch === false) ret
   const ms = Date.parse(`${date}T${t}:00+09:00`); return isFinite(ms) && ms > Date.now() ? ms : 0; }
 function prodHoldText(en) { if (!(en.holdUntil > Date.now())) return ''; const d = new Date(en.holdUntil); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
 /* v172: 머리글에 중계(구글 Apps Script) 버전 — 저장소의 ecount_relay.gs보다 낮으면 「새 버전 배포 필요」 */
-const RELAY_WANT = 4.1;
+const RELAY_WANT = 4.2;
 async function hdrRelayVer() { const hv = document.getElementById('hVer'); if (!hv) return; const base = `v${APP_VER} · ${APP_BUILT} 업데이트`;
   try { if (!String(prodS().cfg.relayUrl || '').trim() || !prodKey()) return false; const r = await prodRelayCall({ action: 'ping' }); const v = r && r.ok ? Number(r.version) || 0 : 0; if (!v) return false;
     hv.innerHTML = `${esc(base)} · <b class="${v >= RELAY_WANT ? 'rv-ok' : 'rv-old'}">중계 ${v}${v >= RELAY_WANT ? '' : ` → ${RELAY_WANT} 배포 필요`}</b>`; hv.title = v >= RELAY_WANT ? `앱 v${APP_VER} · 중계 ${v} (최신)` : `중계가 ${v}입니다 — Apps Script에서 ${RELAY_WANT}로 새 버전 배포가 필요합니다`; return true; } catch (e) { return false; } }
@@ -5400,7 +5401,7 @@ function saleDoSave() {
   const mode = X.cfg.mode || 'practice'; if (mode !== 'practice') { en.status = 'queued'; en.test = mode === 'test'; }
   if (D.replaces) { const old = X.log.find(e => e.id === D.replaces); if (old) en.replOld = { id: old.id, slip: old.slip || '', total: old.sup + old.vat, test: !!old.test, date: old.date, custName: old.custName }; X.log = X.log.filter(e => e.id !== D.replaces); }
   X.log = X.log.filter(e => e.id !== en.id); X.log.unshift(en); X.log = X.log.slice(0, 2000); if (en.dlv) { X.pref = X.pref || {}; X.pref[en.cust] = Object.assign(X.pref[en.cust] || {}, { dlv: en.dlv }); }
-  if (en.status === 'queued' && !en.test && (saleUi.ordForms || []).some(f => f.cust === en.cust)) { const pr = {}; en.lines.forEach(l => { if (l.price > 0) pr[l.code] = [l.price, en.ship || en.date]; }); prodRelayCall({ action: 'updFormPrices', cust: en.cust, prices: pr }).catch(() => {}); }   /* v169: 주문 링크 단가 = 가장 최근 판매 단가 */
+  if (en.status === 'queued' && !en.test && (saleUi.ordForms || []).some(f => f.cust === en.cust)) { const pr = {}; en.lines.forEach(l => { if (l.price > 0) pr[l.code] = [l.price, en.ship || en.date]; }); prodRelayCall({ action: 'updFormPrices', cust: en.cust, prices: pr }).then(() => saleSnapSoon((saleUi.ordForms || []).filter(f => f.cust === en.cust).map(f => f.t))).catch(() => {}); }   /* v169: 주문 링크 단가 = 가장 최근 판매 단가 */
   if (en.ordId) { const o0 = (saleUi.ord || []).find(o => o.id === en.ordId), rp = Object.assign(saleReplyOf(en), (o0 && o0.reply && o0.reply.st) ? {} : { st: 'ok' }, (o0 && o0.reply && o0.reply.msg) ? {} : { msg: saleReplyMsg(en.ship || en.date) }); saleOrdMark(en.ordId, { status: 'accepted', reply: rp }).then(() => saleOrdFetch(true)); }
   X.draft = { date: D.date, dateOn: today(), cust: '', lines: [], memo: '' }; saleUi.q = ''; saleUi.iq = ''; saleUi.step = 'c'; saleSave(); saleModal();
   renderSale(); if (en.status === 'queued') { toast(`${en.custName} ${saleWon(t.s + t.v)}원 — 이카운트로 보내는 중`); saleSend(en).then(() => { if (S.ui.menu === 'sale') saleRenderS(); }); } else toast(`${en.custName} ${saleWon(t.s + t.v)}원 저장 (연습)`); const q = $('#sQ'); if (q && window.innerWidth >= 900) q.focus();
@@ -5636,7 +5637,7 @@ function saleOrdEditor(form) {   /* form: 기존 링크(수정, 한 곳) 또는 
           const t = form ? form.t : saleOrdTok();
           const f = { cust, name: saleCustName(cust), items: codes.map(cd => { const y = cu.items[cd] || {}; return [cd, saleItemName(cd), y.price != null ? y.price : null, y.lastQty || null, y.pDate || '']; }), days, cut: st.cut, lead: st.lead, price: st.price, last: codes.filter(cd => cu.items[cd] && cu.items[cd].last === lastD).map(cd => [cd, cu.items[cd].lastQty || 0]), note: st.note.trim(), on: form ? form.on !== false : true };
           const r = await prodRelayCall({ action: 'putOrderForm', t, form: f }); if (!r || !r.ok) throw new Error((r && r.error) || '중계가 거절했습니다');
-          X.ordCodes = X.ordCodes || {}; X.ordCodes[t] = codes; ok++;
+          X.ordCodes = X.ordCodes || {}; X.ordCodes[t] = codes; ok++; saleSnapSoon([t]);
         } catch (e) { fails.push(`${saleCustName(cust)}: ${/알 수 없는 요청/.test(e.message) ? '중계를 새 버전(3.4)으로 배포해야 합니다' : e.message}`); } }
       saleSave(); await saleOrdFetch(true);
       if (fails.length) { b.disabled = false; b.textContent = '다시 시도'; prog.textContent = `${ok}곳 완료 · 실패 ${fails.length}곳 — ${fails.slice(0, 2).join(' / ')}`; fails.length && sel.forEach(c => { if (!fails.some(f => f.startsWith(saleCustName(c) + ':'))) st.sel.delete(c); }); return; }
@@ -5645,6 +5646,28 @@ function saleOrdEditor(form) {   /* form: 기존 링크(수정, 한 곳) 또는 
   };
   draw();
 }
+/* v187: 주문서 빠른 열기 — 거래처별 주문서(주문 기록 빼고)를 그 링크 토큰으로 만든 열쇠(AES-GCM)로 잠가 GitHub 사이트 of/<이름>.txt 로 올림(중계 4.2가 올림).
+   주문서는 처음 열 때 이 파일을 바로 풀어 보여 주고, 중계의 최신 내용으로 바꿈. 파일 이름·열쇠는 토큰에서만 나오므로 링크가 없으면 못 엶 */
+const saleSha = async t => new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)));
+const saleSnapName = async t => [...(await saleSha('bggd-file|' + t))].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+async function saleSnapEnc(t, text) { let data = new TextEncoder().encode(text), gz = false;
+  if (window.CompressionStream) { data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer()); gz = true; }
+  const key = await crypto.subtle.importKey('raw', await saleSha('bggd-snap|' + t), 'AES-GCM', false, ['encrypt']), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data)), all = new Uint8Array(12 + ct.length); all.set(iv); all.set(ct, 12);
+  let bin = ''; for (let i = 0; i < all.length; i += 8192) bin += String.fromCharCode(...all.subarray(i, i + 8192)); return (gz ? 'v1g.' : 'v1.') + btoa(bin); }
+let saleSnapT = null, saleSnapQ = new Set(), saleSnapAll = false;
+function saleSnapSoon(ts) {   /* 여러 번 바뀌어도 2.5초 모아서 한 번에 올림. null = 모든 링크 */
+  if (ts === null) saleSnapAll = true; else ts.forEach(t => saleSnapQ.add(t)); clearTimeout(saleSnapT);
+  saleSnapT = setTimeout(() => { const q = saleSnapAll ? null : [...saleSnapQ]; saleSnapAll = false; saleSnapQ = new Set(); if (q && !q.length) return; saleSnapPublish(q, '자동').catch(() => {}); }, 2500); }
+async function saleSnapPublish(ts, why) {
+  const X = saleS(), list = ts || (saleUi.ordForms || []).map(f => f.t); if (!list.length) return;
+  saleUi.snapBusy = true; const st = $('#soSnap'); if (st) st.textContent = '빠른 열기 자료 만드는 중…';
+  try { const r = await prodRelayCall({ action: 'formSnaps', ts: list }); if (!r || !r.ok) throw new Error(/알 수 없는 요청/.test((r && r.error) || '') ? '중계를 새 버전(4.2)으로 배포해야 합니다' : ((r && r.error) || '중계가 거절했습니다'));
+    const files = []; for (const t of list) { const fm = r.forms[t]; files.push({ path: 'of/' + await saleSnapName(t) + '.txt', data: fm ? await saleSnapEnc(t, JSON.stringify({ form: fm, at: r.now })) : 'x' }); }
+    const g = await prodRelayCall({ action: 'ghPutFiles', files, msg: `주문서 빠른 열기 ${files.length}곳 (${why || ''})` }); if (!g || !g.ok) throw new Error(/알 수 없는 요청/.test((g && g.error) || '') ? '중계를 새 버전(4.2)으로 배포해야 합니다' : ((g && g.error) || 'GitHub에 올리지 못했습니다'));
+    X.cfg.snapAt = new Date().toISOString(); saleUi.snapErr = ''; saleSave(); }
+  catch (e) { saleUi.snapErr = e.message; throw e; } finally { saleUi.snapBusy = false; const s2 = $('#soSnap'); if (s2) s2.innerHTML = saleSnapText(); } }
+function saleSnapText() { const X = saleS(); return saleUi.snapErr ? `<span class="sw-err" style="display:inline">⚠ 빠른 열기: ${esc(saleUi.snapErr)}</span>` : X.cfg.snapAt ? `⚡ 빠른 열기 자료 ${esc(new Date(X.cfg.snapAt).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }))} 갱신` : '⚡ 빠른 열기 자료 아직 없음'; }
 /* v180: 카카오톡 공유 — 미리보기 카드에 「○○ 전용 주문서」. 카카오 개발자 앱의 JavaScript 키(사이트 도메인 제한, 이 기기 설정에만 보관) */
 const KAKAO_SDK = 'https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js';
 function saleKakaoSetup(then) {
@@ -5728,9 +5751,9 @@ function saleImgBind(box) {
 async function saleCatFetch() { try { const [a, b] = await Promise.all([prodRelayCall({ action: 'getCatalog' }), prodRelayCall({ action: 'getNotices' })]);
   if (a && a.ok) { saleUi.cat = a.cat || { title: '', on: true, items: [] }; saleUi.catErr = ''; } else saleUi.catErr = /알 수 없는 요청/.test((a && a.error) || '') ? '단가표·안내를 쓰려면 중계를 새 버전(3.6)으로 배포해야 합니다' : ((a && a.error) || '');
   if (b && b.ok) saleUi.notices = b.notices || []; } catch (e) { saleUi.catErr = e.message; } }
-async function saleCatSave(cat) { const r = await prodRelayCall({ action: 'putCatalog', cat: { title: cat.title || '', on: cat.on !== false, items: cat.items.map(it => { const o = Object.assign({}, it); delete o.img; return o; }) } });
+async function saleCatSave(cat) { setTimeout(() => saleSnapSoon(null), 500); const r = await prodRelayCall({ action: 'putCatalog', cat: { title: cat.title || '', on: cat.on !== false, items: cat.items.map(it => { const o = Object.assign({}, it); delete o.img; return o; }) } });
   if (!r || !r.ok) throw new Error(/알 수 없는 요청/.test((r && r.error) || '') ? '중계를 새 버전(3.6)으로 배포해야 합니다' : ((r && r.error) || '중계가 거절했습니다')); saleUi.cat = cat; }
-async function saleNtcSave(list) { const r = await prodRelayCall({ action: 'putNotices', notices: list }); if (!r || !r.ok) throw new Error(/알 수 없는 요청/.test((r && r.error) || '') ? '중계를 새 버전(3.6)으로 배포해야 합니다' : ((r && r.error) || '중계가 거절했습니다')); saleUi.notices = list; }
+async function saleNtcSave(list) { setTimeout(() => saleSnapSoon(null), 500); const r = await prodRelayCall({ action: 'putNotices', notices: list }); if (!r || !r.ok) throw new Error(/알 수 없는 요청/.test((r && r.error) || '') ? '중계를 새 버전(3.6)으로 배포해야 합니다' : ((r && r.error) || '중계가 거절했습니다')); saleUi.notices = list; }
 function saleCatGuess(name, grp) {   /* 단가표 제품 이름 → 이카운트 품목코드: 같은 갈래(완성품·생지) 품목 중 이름이 아주 비슷할 때만 — 아니면 비워 둠 */
   const X = saleS(), want = /생지/.test(grp || '') ? /생지/ : /완성품|완제품/, k = saleKNorm(name); let best = null;
   Object.keys(X.items).forEach(c => { const n = saleItemName(c); if (!want.test(n) || /수수료|운반비|택배비|배송비|운임|할인|샘플/.test(n)) return;
@@ -5891,6 +5914,8 @@ function renderSaleOrd() {
     <div class="muted" style="font-size:11.5px;margin-top:8px">링크는 거래처마다 다른 비밀 주소입니다. 링크가 새어 나갔으면 삭제하고 새로 만드세요. 거래처 화면에는 그 거래처의 품목만 보입니다. · 「카톡으로 보내기」는 미리보기 카드에 거래처 이름이 나옵니다 <button type="button" class="lnk" data-kkkey="1">${saleS().cfg.kakaoKey ? '카카오 키 바꾸기' : '카카오 키 넣기'}</button></div></div>
   <div class="sw-modal" id="soM" hidden></div>
 </div>`;
+  { const bar = box.querySelector('.so-snapbar'); if (!bar && F.length) { const card = [...box.querySelectorAll('.card')].pop(); if (card) card.insertAdjacentHTML('beforeend', `<div class="so-snapbar"><span id="soSnap">${saleSnapText()}</span> <button type="button" class="lnk" data-snapnow="1">지금 갱신</button></div>`); } }
+  if (F.length && !saleUi.snapChecked && saleUi.ordAt) { saleUi.snapChecked = true; const at = X.cfg.snapAt ? new Date(X.cfg.snapAt).getTime() : 0; if (Date.now() - at > 6 * 3600e3) saleSnapSoon(null); }   /* 6시간 지나면 자동 갱신 */
   const byT = t => F.find(f => f.t === t), byId = id => L.find(o => o.id === id);
   const copy = async (txt, ok) => { try { await navigator.clipboard.writeText(txt); toast(ok); } catch (e) { prompt('아래 내용을 복사하세요', txt); } };
   $('#soRe').onclick = () => saleOrdFetch(); $('#soNew').onclick = () => saleOrdEditor(null); saleImgBind(box); saleCatBind(box);
@@ -5898,6 +5923,7 @@ function renderSaleOrd() {
     if (d.soload) saleLoadOrder(byId(d.soload));
     else if (d.soreject) { const r = prompt('반려 사유 (거래처 주문 화면에 보입니다)', '전화로 확인 부탁드립니다'); if (r == null) return; await saleOrdMark(d.soreject, { status: 'reject', note: r }); saleOrdFetch(true); }
     else if (d.sorep) saleReplyEditor(byId(d.sorep));
+    else if (d.snapnow) { if (!saleUi.snapBusy) saleSnapPublish(null, '지금 갱신').then(() => toast('빠른 열기 자료를 갱신했습니다 — 1~2분 뒤 반영')).catch(er => toast('빠른 열기 갱신 실패: ' + er.message)); }
     else if (d.sokk) saleKakaoShare(byT(d.sokk));
     else if (d.kkkey) saleKakaoSetup();
     else if (d.somsg) copy(saleOrdMsg(byT(d.somsg)), '안내문을 복사했습니다 — 거래처 카톡방에 붙여넣으세요');
@@ -5905,7 +5931,7 @@ function renderSaleOrd() {
     else if (d.soopen) window.open(saleOrdLink(d.soopen), '_blank', 'noopener');
     else if (d.soedit) { const f = byT(d.soedit); saleOrdEditor(Object.assign({}, f, { codes: (X.ordCodes || {})[f.t] || null })); }
     else if (d.sotog || d.sodel) { const t = d.sotog || d.sodel, f = byT(t); if (d.sodel && !confirm(`${f.name} 주문 링크를 삭제할까요? 이 링크로는 더 이상 주문할 수 없습니다.`)) return;
-      try { const r = await prodRelayCall(d.sodel ? { action: 'delOrderForm', t } : { action: 'setOrderFormOn', t, on: !f.on }); if (!r || !r.ok) throw new Error((r && r.error) || '중계가 거절했습니다'); saleOrdFetch(true); } catch (er) { toast('실패: ' + er.message); } } };
+      try { const r = await prodRelayCall(d.sodel ? { action: 'delOrderForm', t } : { action: 'setOrderFormOn', t, on: !f.on }); if (!r || !r.ok) throw new Error((r && r.error) || '중계가 거절했습니다'); saleSnapSoon([t]); saleOrdFetch(true); } catch (er) { toast('실패: ' + er.message); } } };
 }
 function saleKeys(e) {
   if (S.ui.menu !== 'sale' || !$('#saleNew .sw')) return; const m = $('#swM');

@@ -299,6 +299,14 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
     var a = document.activeElement; if (a && /^(INPUT|TEXTAREA)$/.test(a.tagName) && $('#app').contains(a)) { later = true; return; } render(); }   /* 입력 중이면 다 쓴 뒤에 바꿈 */
   document.addEventListener('focusout', function () { if (later && F) { later = false; setTimeout(function () { var a = document.activeElement; if (!a || !/^(INPUT|TEXTAREA)$/.test(a.tagName)) render(); else later = true; }, 0); } });
   try { var c0 = JSON.parse(localStorage.getItem(FC) || 'null'); if (c0 && c0.form) { shown = JSON.stringify(c0); apply(c0.form, c0.orders); } } catch (e) {}
+  /* v187: 처음 여는 기기 — GitHub 사이트에 미리 올려 둔 이 링크의 주문서(이 링크 열쇠로만 풀림)를 바로 받아 보여 줌 */
+  if (!F && window.crypto && crypto.subtle && window.TextEncoder) (function () { var en = function (x) { return new TextEncoder().encode(x); }, gz = false;
+    crypto.subtle.digest('SHA-256', en('bggd-file|' + T)).then(function (h) { var n = Array.prototype.map.call(new Uint8Array(h), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('').slice(0, 32); return fetch('of/' + n + '.txt', { cache: 'no-cache' }); })
+      .then(function (r) { if (!r.ok) throw 0; return r.text(); })
+      .then(function (txt) { var m = /^v1(g?)\.([A-Za-z0-9+\/=]+)$/.exec(txt.trim()); if (!m || (m[1] && !window.DecompressionStream)) throw 0; gz = !!m[1]; var b = atob(m[2]), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+        return crypto.subtle.digest('SHA-256', en('bggd-snap|' + T)).then(function (k) { return crypto.subtle.importKey('raw', k, 'AES-GCM', false, ['decrypt']); }).then(function (key) { return crypto.subtle.decrypt({ name: 'AES-GCM', iv: u.slice(0, 12) }, key, u.slice(12)); }); })
+      .then(function (pt) { return gz ? new Response(new Blob([pt]).stream().pipeThrough(new DecompressionStream('gzip'))).text() : new TextDecoder().decode(pt); })
+      .then(function (js) { var v = JSON.parse(js); if (v && v.form && !F) apply(v.form, []); }).catch(function () {}); })();
   call({ action: 'orderForm', t: T }).then(function (r) { if (!r || !r.ok) { if (shown) { try { localStorage.removeItem(FC); } catch (e) {} } return fail((r && r.error) || '잠시 뒤 다시 열어 주세요.'); }
     var v = { form: r.form, orders: r.orders || [] }, js = JSON.stringify(v); try { localStorage.setItem(FC, js); } catch (e) {}
     if (js !== shown) apply(v.form, v.orders); })

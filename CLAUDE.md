@@ -21,4 +21,5 @@
 - 중계 드라이브 권한은 배포만으로 안 생김 → Apps Script 편집기에서 `authorizeDrive` 실행 → 허용 (사진 「사진 준비 중」이면 이것부터).
 - 주문 링크 단가(3.8): 품목 [코드, 이름, 단가, 지난수량, 단가날짜] — 실제 판매 저장 때 updFormPrices로 더 최근 단가만 덮어씀. 주문 확정 화면에서 수량 수정·빼기. v175부터 단가·금액은 모든 링크에서 항상 보임(「단가 보여 주기」 없앰), 품목마다 단가와 「= 금액」.
 - 거래처 안내(4.1): 사진 최대 6장(드라이브 ntc_<안내>_…, notice.imgs = 파일 id)·자세히 보기 링크(url). 주문서 맨 위에 사진 넘겨 보기 카드.
+- 주문서 빠른 열기(4.2, v187): 앱이 formSnaps로 받은 주문서(주문 기록 제외)를 토큰 열쇠로 AES-GCM 암호화(gzip) → 중계 ghPutFiles가 GitHub `of/<sha256('bggd-file|'+토큰) 앞 32자>.txt`로 커밋(경로는 of/ 아래만 허용). 열쇠 = SHA-256('bggd-snap|'+토큰). 멈춤·삭제 링크는 'x'. 중계 스크립트 속성 GH_TOKEN(이 저장소 Contents 쓰기 fine-grained) 필요, 처음 checkGithub 실행으로 외부 연결 권한 허용. 링크·단가표·안내·단가 바뀌면 자동, 6시간마다 자동, 「지금 갱신」.
 - 발주 회신(3.7): orderDone에 reply {st ok/out/done, msg, ship, dlv, box, lines, sup, vat, slip} → 거래처 주문서 「최근 주문」에 안내·거래명세표. 새 발주 카드의 「확인 회신」은 상태를 그대로 두고 회신만(주문서로 불러오기 전 확인용). 3.9: putOrderImg로 이카운트 거래명세표 캡처를 reply.img(드라이브 stm_<주문>.jpg).

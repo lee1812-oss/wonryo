@@ -5,6 +5,9 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v4.2: 주문서 빠른 열기 — 앱이 거래처별 주문서를 그 링크 열쇠로 암호화해 보내면 중계가 GitHub 사이트 of/<이름>.txt 로 올림(ghPutFiles)
+ *       스크립트 속성 GH_TOKEN(GitHub 열쇠, 이 저장소 Contents 쓰기만) 필요 · formSnaps: 여러 링크의 주문서 내용을 한 번에
+ *       ※ 처음 한 번: 편집기에서 checkGithub 를 골라 ▷실행 → 「허용」(외부 연결 권한) — 실행 로그에 결과가 나옴
  * v4.1: 거래처 안내에 사진 여러 장(imgs — 드라이브 ntc_<안내>_<n>.jpg)과 자세히 보기 링크(url)
  * v4.0: 단가표 제품에 분류(sub)·규격 치수(dim)·단가 기준일(dt) — 생지 단가표
  * v3.9: 발주 회신에 거래명세표 캡처 사진 (putOrderImg — 드라이브 「빵을그리다 주문서 사진」에 stm_<주문>.jpg, reply.img)
@@ -33,6 +36,15 @@
  */
 
 // 드라이브 권한 받기 — 편집기에서 이 함수를 골라 ▷실행 하고 「허용」을 누르면 사진·단가표 가져오기가 됩니다
+// GitHub 열쇠 확인 — 편집기에서 ▷실행 (처음엔 외부 연결 권한 허용)
+function checkGithub() { var t = props_().getProperty('GH_TOKEN'); if (!t) { Logger.log('GH_TOKEN 이 없습니다 — 프로젝트 설정 › 스크립트 속성에 넣어 주세요'); return; }
+  var r = UrlFetchApp.fetch(GH_API_, { headers: { Authorization: 'Bearer ' + t, Accept: 'application/vnd.github+json' }, muteHttpExceptions: true }); var j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {}
+  Logger.log(r.getResponseCode() === 200 ? ('GitHub 연결 정상 — 저장소 ' + j.full_name + (j.permissions && j.permissions.push ? ' · 쓰기 가능' : ' · ⚠ 쓰기 권한 없음')) : ('GitHub 연결 실패 ' + r.getResponseCode() + ': ' + (j.message || ''))); }
+var GH_API_ = 'https://api.github.com/repos/lee1812-oss/wonryo';
+function gh_(tok, m, p, b) { var o = { method: m, headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json' }, muteHttpExceptions: true }; if (b) { o.contentType = 'application/json'; o.payload = JSON.stringify(b); }
+  var r = UrlFetchApp.fetch(GH_API_ + p, o), c = r.getResponseCode(), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {} if (c >= 300) throw new Error('GitHub ' + c + ': ' + (j.message || '')); return j; }
+function formOut_(f1, im1, catP, ntc) { var imgs = {}; (f1.items || []).forEach(function (it) { if (im1[it[0]]) imgs[it[0]] = im1[it[0]]; });
+  return { name: f1.name, items: f1.items, days: f1.days, cut: f1.cut, lead: f1.lead, price: !!f1.price, last: f1.last || [], note: f1.note || '', imgs: imgs, cat: f1.cat === false ? null : catP, notices: ntc }; }
 function authorizeDrive() { DriveApp.getRootFolder(); imgDir_(); return 'ok'; }
 
 function doPost(e) {
@@ -43,7 +55,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 4.1 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 4.2 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -131,8 +143,8 @@ function handle_(req) {
   if (req.action === 'orderForm') { var t1 = tok_(req.t); var fv = t1 && props_().getProperty(ORDF_ + t1); if (!fv) return { ok: false, error: '주문 링크가 맞지 않거나 사용이 멈춰 있습니다 — 빵을그리다에 문의해 주세요' };
     var f1 = JSON.parse(fv); if (f1.on === false) return { ok: false, error: '이 주문 링크는 지금 사용이 멈춰 있습니다 — 빵을그리다에 문의해 주세요' };
     var mine = ordList_(function (o) { return o.tok === t1; }).slice(0, 10).map(ordView_);
-    var im1 = imgMap_(), imgs = {}; (f1.items || []).forEach(function (it) { if (im1[it[0]]) imgs[it[0]] = im1[it[0]]; });
-    return { ok: true, form: { name: f1.name, items: f1.items, days: f1.days, cut: f1.cut, lead: f1.lead, price: !!f1.price, last: f1.last || [], note: f1.note || '', imgs: imgs, cat: f1.cat === false ? null : catPublic_(catGet_(), im1), notices: noticesLive_(im1) }, orders: mine, now: new Date().toISOString() }; }
+    var im1 = imgMap_();
+    return { ok: true, form: formOut_(f1, im1, catPublic_(catGet_(), im1), noticesLive_(im1)), orders: mine, now: new Date().toISOString() }; }
   // v3.4: 거래처 주문 넣기 — 품목은 그 주문서에 있는 것만, 수량 1~9999, 배송일·마감 확인, 같은 cid는 한 번만, 하루 30건까지
   if (req.action === 'orderSubmit') { var t2 = tok_(req.t); var fv2 = t2 && props_().getProperty(ORDF_ + t2); if (!fv2) return { ok: false, error: '주문 링크가 맞지 않습니다' };
     var f2 = JSON.parse(fv2); if (f2.on === false) return { ok: false, error: '이 주문 링크는 사용이 멈춰 있습니다' };
@@ -173,7 +185,7 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 4.1, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 4.2, agentSeen: agentSeen_(), agentVer: agentVer_() };
   // v3.4: 주문 링크 관리 (통합재고관리)
   if (req.action === 'putOrderForm') { var t3 = tok_(req.t), f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
     var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3]), /^\d{4}-\d{2}-\d{2}$/.test(it[4] || '') ? it[4] : '']; }),
@@ -213,6 +225,18 @@ function handle_(req) {
         f10.setDescription('거래명세표 · ' + String(o10.name || '').slice(0, 60)); try { f10.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { f10.setTrashed(true); return { ok: false, error: '드라이브가 링크 공유를 막았습니다: ' + e.message }; }
         o10.reply.img = f10.getId(); }
       o10.reply.at = new Date().toISOString(); props_().setProperty(ORD_ + o10.id, JSON.stringify(o10)); return { ok: true, img: o10.reply.img || '' }; } finally { lk10.releaseLock(); } }
+  // v4.2: 주문서 빠른 열기 — 여러 링크의 주문서 내용(주문 기록 빼고)을 한 번에, 그리고 암호화된 파일을 GitHub에 한 번에 올림
+  if (req.action === 'formSnaps') { var im9 = imgMap_(), cp9 = catPublic_(catGet_(), im9), nt9 = noticesLive_(im9), out9 = {};
+    (req.ts || []).slice(0, 300).forEach(function (t) { var tk = tok_(t), v = tk && props_().getProperty(ORDF_ + tk); if (!v) { out9[t] = null; return; } var f = JSON.parse(v); out9[t] = f.on === false ? null : formOut_(f, im9, cp9, nt9); });
+    return { ok: true, forms: out9, now: new Date().toISOString() }; }
+  if (req.action === 'ghPutFiles') { var gt = props_().getProperty('GH_TOKEN'); if (!gt) return { ok: false, error: 'GH_TOKEN 없음 — Apps Script 프로젝트 설정 › 스크립트 속성에 GitHub 열쇠를 넣어 주세요' };
+    var fl = (req.files || []).slice(0, 300).filter(function (f) { return f && /^of\/[0-9a-f]{32}\.txt$/.test(f.path) && typeof f.data === 'string' && f.data.length < 400000; });   // of/ 아래 암호 파일만
+    if (!fl.length) return { ok: true, n: 0 };
+    for (var tr = 0; tr < 3; tr++) { try { var hd = gh_(gt, 'get', '/git/ref/heads/main').object.sha, bt = gh_(gt, 'get', '/git/commits/' + hd).tree.sha;
+        var tre = gh_(gt, 'post', '/git/trees', { base_tree: bt, tree: fl.map(function (f) { return { path: f.path, mode: '100644', type: 'blob', content: f.data }; }) });
+        var nc = gh_(gt, 'post', '/git/commits', { message: String(req.msg || '주문서 빠른 열기 자료').slice(0, 100), tree: tre.sha, parents: [hd] });
+        gh_(gt, 'patch', '/git/refs/heads/main', { sha: nc.sha }); return { ok: true, n: fl.length, commit: nc.sha }; }
+      catch (e) { if (tr === 2 || !/ 422| 409/.test(e.message)) return { ok: false, error: e.message }; Utilities.sleep(800); } } }
   // v3.8: 판매를 저장할 때 그 거래처 주문 링크의 단가를 가장 최근 날짜 단가로 바꿈 (prices: {코드: [단가, 날짜]})
   if (req.action === 'updFormPrices') { var cu9 = String(req.cust || ''), pr9 = req.prices || {}, n9 = 0, all9 = props_().getProperties();
     Object.keys(all9).forEach(function (k) { if (k.indexOf(ORDF_) !== 0) return; var f = JSON.parse(all9[k]); if (f.cust !== cu9) return; var ch = false;
