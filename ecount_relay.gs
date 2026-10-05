@@ -5,6 +5,9 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v5.4: 자동 실행(autoRun — 1시간마다 정기 주문 만들기·정리·백업·미확인 발주 알림, setupAll이 예약) · 자주 묻는 확인은 캐시(CacheService)로 → 구글 하루 한도 절약
+ *       주문 줄에 주문 시점 단가([코드, 이름, 수량, 종류, 단가]) · 거래처가 고치면 이전 내용을 hist에 보관(최근 5개) · 백업에서 되살리기(backupList/backupRestore)
+ *       ※ appsscript.json 의 oauthScopes 에 "https://www.googleapis.com/auth/script.scriptapp" 추가 → setupAll 실행 → 허용
  * v5.3: 대화 메시지 지우기 — 보낸 사람만 자기 메시지를 지움(chatDel 거래처 · chatAdmin del 관리), 양쪽 화면에서 같이 사라짐
  * v5.2: 빠른 알림 — pulse(관리 앱이 10초마다 「바뀐 것 있나」만 묻는 가벼운 요청, pl:o 주문·pl:c 대화 시각) · 관리 앱이 3분 안에 확인 중이면 거래처 메시지 메일은 생략(보내기가 빨라짐)
  * v5.1: 거래처 대화(chat:<토큰16자> — 거래처 주문서 ↔ 앱 발주 알림창, 거래처 글은 알림 메일도) · chatGet/chatSend(거래처) · chatList/chatAdmin/chatRead(관리)
@@ -47,7 +50,24 @@
 function setupAll() { var r = []; try { DriveApp.getRootFolder(); dataDir_(); r.push('드라이브 정상'); } catch (e) { r.push('드라이브 실패: ' + e.message); }
   try { r.push('메일 정상 (오늘 남은 발송 ' + MailApp.getRemainingDailyQuota() + '통) · 알림 받는 주소: ' + alertTo_()); } catch (e) { r.push('메일 실패: ' + e.message); }
   try { checkGithub(); r.push('GitHub 확인은 위 줄 참고'); } catch (e) { r.push('GitHub 실패: ' + e.message); }
+  try { r.push(setupTriggers()); try { autoRun(); r.push('자동 실행 한 번 돌림'); } catch (e2) {} } catch (e) { r.push('자동 실행 예약 실패: ' + e.message + ' — appsscript.json 에 script.scriptapp 권한을 넣었는지 확인'); }
   Logger.log(r.join('\n')); return r.join(' / '); }
+// v5.4: 1시간마다 autoRun — 관리 앱을 안 열어도 정기 주문·정리·백업·미확인 발주 알림이 돎
+function setupTriggers() { ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'autoRun') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('autoRun').timeBased().everyHours(1).create(); return '자동 실행 예약 정상 (1시간마다)'; }
+function autoRun() { var r = {}; try { r.rep = repeatGen_(); } catch (e) { r.repErr = e.message; } try { var m = maint_(false); r.moved = m ? m.moved : 0; } catch (e) { r.mtErr = e.message; }
+  try { r.rem = remind_(); } catch (e) { r.remErr = e.message; } props_().setProperty('trig:last', JSON.stringify({ at: new Date().toISOString(), r: r })); return r; }
+// 확인 안 된 발주 다시 알림: 들어온 지 2시간 지난 것 한 번, 배송일이 내일·오늘인데 아직이면 한 번 더 (메일)
+function remind_() { if (props_().getProperty('ALERT_OFF') === '1') return 0; var to = alertTo_(); if (!to) return 0; var now = Date.now(), t1 = ymdK_(), t2 = ymdK_(new Date(now + 86400e3)), late = [], urgent = [];
+  ordList_(function (o) { return o.status === 'new' && !(o.reply && o.reply.st); }).forEach(function (o) { var ch = false;
+    if (!o.rm1 && now - new Date(o.editedAt || o.at).getTime() > 2 * 3600e3) { o.rm1 = 1; late.push(o); ch = true; }
+    if (!o.rm2 && (o.ship === t1 || o.ship === t2)) { o.rm2 = 1; urgent.push(o); ch = true; }
+    if (ch) props_().setProperty(ORD_ + o.id, JSON.stringify(o)); });
+  var L = urgent.concat(late.filter(function (o) { return urgent.indexOf(o) < 0; })); if (!L.length) return 0;
+  try { MailApp.sendEmail({ to: to, subject: '[빵을그리다] 확인 안 된 발주 ' + L.length + '건' + (urgent.length ? ' (배송 임박 ' + urgent.length + '건)' : ''), name: '빵을그리다 주문서',
+    body: L.map(function (o) { return (urgent.indexOf(o) >= 0 ? '🚨 ' : '· ') + o.name + ' — 배송 ' + o.ship + ' · ' + o.lines.length + '품목 · ' + Utilities.formatDate(new Date(o.at), 'Asia/Seoul', 'M/d HH:mm') + ' 주문'; }).join('\n') + '\n\n통합 재고관리 → 판매 입력 → 발주 접수(또는 발주 알림창)에서 「발주 확인」을 눌러 주세요.' }); } catch (e) {}
+  return L.length; }
+function cache_() { return CacheService.getScriptCache(); }
 function dataDir_() { var id = props_().getProperty('dat:folder'); if (id) { try { var d = DriveApp.getFolderById(id); if (!d.isTrashed()) return d; } catch (e) {} }
   var f = DriveApp.createFolder('빵을그리다 중계 자료'); props_().setProperty('dat:folder', f.getId()); return f; }
 function subDir_(name) { var it = dataDir_().getFoldersByName(name); return it.hasNext() ? it.next() : dataDir_().createFolder(name); }
@@ -84,15 +104,19 @@ function formOut_(f1, im1, catP, ntc, sh) { var imgs = {}; (f1.items || []).forE
   return { name: f1.name, items: f1.items, days: f1.days, cut: f1.cut, lead: f1.lead, price: !!f1.price, last: f1.last || [], note: f1.note || '', imgs: imgs, cat: f1.cat === false ? null : catP, notices: ntc, off: holidays_().filter(function (h) { return h.d >= ymdK_(); }), so: (sh && sh.so) || [], min: (sh && sh.min) || 0 }; }
 // v5.0: 품절·최소 주문 금액 — so: 품목 코드 또는 cat:단가표id (단가표 제품의 이카운트 코드가 품절이면 cat:id 도 같이)
 function shop_() { try { var v = JSON.parse(props_().getProperty('cfg2:shop') || '{}'); return { so: v.so || [], min: Number(v.min) || 0, at: v.at || '' }; } catch (e) { return { so: [], min: 0 }; } }
-function pulse_(k) { try { props_().setProperty('pl:' + k, String(Date.now())); } catch (e) {} }
+function pulse_(k) { try { cache_().put('pl:' + k, String(Date.now()), 21600); } catch (e) {} }   // v5.4: 저장소 대신 캐시(하루 한도 절약)
 function chatKey_(t) { return 'chat:' + String(t).slice(0, 16); }
-function chatGet_(t) { try { var v = JSON.parse(props_().getProperty(chatKey_(t)) || 'null'); if (v && v.m) return v; } catch (e) {} return { m: [], ra: '', rc: '' }; }
-function chatPut_(t, c) { c.m = c.m.slice(-40); var js = JSON.stringify(c); while (js.length > 8500 && c.m.length > 1) { c.m.shift(); js = JSON.stringify(c); } props_().setProperty(chatKey_(t), js); }
+function chatGet_(t) { var k = chatKey_(t); try { var cv = cache_().get('cv:' + k); if (cv) { var c0 = JSON.parse(cv); if (c0 && c0.m) return c0; } } catch (e) {}
+  var v = null; try { v = JSON.parse(props_().getProperty(k) || 'null'); } catch (e) {} if (!v || !v.m) v = { m: [], ra: '', rc: '' }; try { cache_().put('cv:' + k, JSON.stringify(v), 21600); } catch (e) {} return v; }
+function chatPut_(t, c) { c.m = c.m.slice(-40); var js = JSON.stringify(c); while (js.length > 8500 && c.m.length > 1) { c.m.shift(); js = JSON.stringify(c); } props_().setProperty(chatKey_(t), js); try { cache_().put('cv:' + chatKey_(t), js, 21600); } catch (e) {} }
 function chatAdd_(t, w, text) { var tx = String(text || '').replace(/\s+$/, '').slice(0, 400); if (!tx.trim()) return null; var lk = LockService.getScriptLock(); lk.waitLock(10000);
   try { var c = chatGet_(t), now = new Date().toISOString(); if (w === 'c') { var rc = c.m.filter(function (x) { return x.w === 'c' && Date.now() - new Date(x.at).getTime() < 600e3; }).length; if (rc >= 15) return { err: '잠시 뒤에 다시 보내 주세요' }; }
     c.m.push({ w: w, t: tx, at: now }); if (w === 'a') c.ra = now; else c.rc = now; chatPut_(t, c); return c; } finally { lk.releaseLock(); } }
 function chatDel_(t, w, at) { var lk = LockService.getScriptLock(); lk.waitLock(10000);
   try { var c = chatGet_(t), n = c.m.length; c.m = c.m.filter(function (x) { return !(x.w === w && x.at === at); }); if (c.m.length === n) return null; chatPut_(t, c); pulse_('c'); return c; } finally { lk.releaseLock(); } }
+function formLite_(t) { var k = 'fl:' + t.slice(0, 20), v = cache_().get(k); if (v) return v === 'x' ? null : JSON.parse(v);   // 대화 확인 때 주문 링크 확인도 캐시
+  var f = props_().getProperty(ORDF_ + t), o = f ? JSON.parse(f) : null, lite = o ? { name: o.name, on: o.on !== false } : null; cache_().put(k, lite ? JSON.stringify(lite) : 'x', 600); return lite; }
+function formLiteDrop_(t) { try { cache_().remove('fl:' + String(t).slice(0, 20)); } catch (e) {} }
 function chatList_() { var all = props_().getProperties(), F = {}, out = [];
   Object.keys(all).forEach(function (k) { if (k.indexOf(ORDF_) === 0) { try { var f = JSON.parse(all[k]); F[k.slice(ORDF_.length).slice(0, 16)] = { t: k.slice(ORDF_.length), name: f.name, cust: f.cust }; } catch (e) {} } });
   Object.keys(all).forEach(function (k) { if (k.indexOf('chat:') !== 0) return; var c; try { c = JSON.parse(all[k]); } catch (e) { return; } var f = F[k.slice(5)]; if (!f || !c.m || !c.m.length) return; var L = c.m[c.m.length - 1];
@@ -120,7 +144,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.3 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.4 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -225,11 +249,11 @@ function handle_(req) {
         if (ed.status !== 'new' || (ed.reply && ed.reply.st)) return { ok: false, error: '이미 확인된 주문이라 고칠 수 없습니다 — 빵을그리다에 전화로 알려 주세요' }; oid = ed.id; ex = null; }
       if (ex) return { ok: true, order: ordView_(JSON.parse(ex)), dup: true };
       if (!shipOk_(f2, String(req.ship || ''))) return { ok: false, error: '고른 배송일은 주문 마감이 지났거나 배송하지 않는 날입니다 — 다른 날을 골라 주세요' };
-      var codes = {}; (f2.items || []).forEach(function (it) { codes[it[0]] = it[1]; });
+      var codes = {}, prc = {}; (f2.items || []).forEach(function (it) { codes[it[0]] = it[1]; prc[it[0]] = it[2]; });
       var cat2 = f2.cat === false ? null : catGet_(), cmap = {}; ((cat2 && cat2.on !== false && cat2.items) || []).forEach(function (it) { if (!it.hide) cmap[it.id] = it; });
       var lines = []; (req.lines || []).slice(0, 80).forEach(function (l) { var c = String(l && l[0] || ''), q = Math.floor(Number(l && l[1])), kd = String(l && l[2] || '') === 's' ? 's' : ''; if (!(q >= 1 && q <= 9999)) return;
         if (c.indexOf('cat:') === 0) { var ci = cmap[c.slice(4)]; if (!ci) return; lines.push([ci.code || c, ci.name + (ci.spec ? ' (' + ci.spec + ')' : ''), q, kd || 'c']); }   // 단가표 제품: 이카운트 코드가 있으면 그 코드, 없으면 cat:id
-        else if (codes[c] != null) lines.push([c, codes[c], q, kd]); });
+        else if (codes[c] != null) lines.push([c, codes[c], q, kd, kd === 's' ? 0 : (prc[c] == null ? null : prc[c])]); });   // v5.4: 주문 시점 단가
       if (!lines.length) return { ok: false, error: '주문할 품목의 수량을 넣어 주세요' };
       var sh2 = shopPub_(cat2), so2 = {}, pr2 = {}, sum2 = 0, unk2 = false; sh2.so.forEach(function (k) { so2[k] = 1; }); (f2.items || []).forEach(function (it) { pr2[it[0]] = it[2]; });
       var bad2 = (req.lines || []).filter(function (l) { var c = String(l && l[0] || ''); return so2[c] || (c.indexOf('cat:') === 0 && cmap[c.slice(4)] && so2[cmap[c.slice(4)].code]); });
@@ -240,7 +264,7 @@ function handle_(req) {
       var today = ymdK_(), nToday = ordList_(function (o) { return o.tok === t2 && ymdK_(new Date(o.at)) === today; }).length; if (!ed && nToday >= 30) return { ok: false, error: '오늘 주문이 너무 많습니다 — 빵을그리다에 문의해 주세요' };
       var o2 = { id: oid, tok: t2, cust: f2.cust, name: f2.name, at: new Date().toISOString(), ship: String(req.ship), memo: String(req.memo || '').slice(0, 300), who: String(req.who || '').slice(0, 30), lines: lines, status: 'new' };
       var rv = Number(req.repeat) === 14 ? 14 : Number(req.repeat) === 7 ? 7 : 0; if (rv) o2.repeat = { ev: rv, on: true, ch: oid };
-      if (ed) { o2.at = ed.at; o2.editedAt = new Date().toISOString(); if (ed.repeat) { o2.repeat = ed.repeat; if (req.repeat != null) { if (rv) o2.repeat.ev = rv; else o2.repeat.on = false; } } if (ed.note) o2.note = ed.note; }
+      if (ed) { o2.hist = (ed.hist || []).concat([{ at: ed.editedAt || ed.at, ship: ed.ship, memo: ed.memo || '', lines: ed.lines }]).slice(-5); o2.at = ed.at; o2.editedAt = new Date().toISOString(); if (ed.repeat) { o2.repeat = ed.repeat; if (req.repeat != null) { if (rv) o2.repeat.ev = rv; else o2.repeat.on = false; } } if (ed.note) o2.note = ed.note; }
       props_().setProperty(ORD_ + oid, JSON.stringify(o2));
     } finally { lk2.releaseLock(); }
     pulse_('o'); alertNew_(o2, ed ? '수정' : ''); return { ok: true, order: ordView_(o2) }; }
@@ -250,11 +274,11 @@ function handle_(req) {
       if (oc.status !== 'new' || (oc.reply && oc.reply.st)) return { ok: false, error: '이미 확인된 주문이라 취소할 수 없습니다 — 빵을그리다에 전화로 알려 주세요' };
       oc.status = 'cancel'; oc.doneAt = new Date().toISOString(); oc.note = '거래처가 취소'; props_().setProperty(ORD_ + oc.id, JSON.stringify(oc)); } finally { lk7.releaseLock(); }
     pulse_('o'); alertNew_(oc, '취소'); return { ok: true, order: ordView_(oc) }; }
-  if (req.action === 'chatGet' || req.action === 'chatSend') { var tc = tok_(req.t), fvc = tc && props_().getProperty(ORDF_ + tc); if (!fvc) return { ok: false, error: '주문 링크가 맞지 않습니다' }; var fc = JSON.parse(fvc);
+  if (req.action === 'chatGet' || req.action === 'chatSend') { var tc = tok_(req.t), fc = tc && formLite_(tc); if (!fc) return { ok: false, error: '주문 링크가 맞지 않습니다' };
     if (req.action === 'chatGet') { var cg = chatGet_(tc); return { ok: true, m: cg.m.slice(-30), ra: cg.ra || '' }; }
     if (req.del) { var cd = chatDel_(tc, 'c', String(req.del)); if (!cd) return { ok: false, error: '이미 지워졌거나 찾을 수 없습니다' }; return { ok: true, m: cd.m.slice(-30), ra: cd.ra || '' }; }
     if (fc.on === false) return { ok: false, error: '이 주문 링크는 사용이 멈춰 있습니다' }; var cs = chatAdd_(tc, 'c', req.text); if (!cs) return { ok: false, error: '내용을 써 주세요' }; if (cs.err) return { ok: false, error: cs.err };
-    pulse_('c'); var admAt = Number(props_().getProperty('adm:last') || 0);
+    pulse_('c'); var admAt = Number(cache_().get('adm:last') || 0);
     if (props_().getProperty('ALERT_OFF') !== '1' && Date.now() - admAt > 180000) { var toC = alertTo_();   /* 관리 앱이 켜져 있으면 PC 알림으로 충분 — 메일은 앱이 꺼져 있을 때만 */ if (toC) { try { MailApp.sendEmail({ to: toC, subject: '[빵을그리다] 거래처 메시지 — ' + fc.name + ': ' + String(req.text).slice(0, 40), name: '빵을그리다 주문서', body: fc.name + ' 메시지\n\n' + String(req.text).slice(0, 400) + '\n\n통합 재고관리 → 발주 알림창(또는 판매 입력 → 발주 접수)에서 답할 수 있습니다.' }); } catch (e) {} } }
     return { ok: true, m: cs.m.slice(-30), ra: cs.ra || '' }; }
   if (req.action === 'repeatStop') { var t8 = tok_(req.t), lk8 = LockService.getScriptLock(); lk8.waitLock(10000); var n8 = 0;
@@ -287,9 +311,9 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 5.3, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 5.4, agentSeen: agentSeen_(), agentVer: agentVer_() };
   // v3.4: 주문 링크 관리 (통합재고관리)
-  if (req.action === 'putOrderForm') { var t3 = tok_(req.t), f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
+  if (req.action === 'putOrderForm') { var t3 = tok_(req.t); if (t3) formLiteDrop_(t3); var f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
     var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3]), /^\d{4}-\d{2}-\d{2}$/.test(it[4] || '') ? it[4] : '']; }),
       days: (f3.days || []).map(Number).filter(function (x) { return x >= 0 && x <= 6; }), cut: Math.min(23, Math.max(0, Number(f3.cut == null ? 15 : f3.cut))), lead: Math.min(7, Math.max(0, Number(f3.lead == null ? 1 : f3.lead))),
       price: !!f3.price, last: (f3.last || []).slice(0, 50).map(function (x) { return [String(x[0]).slice(0, 30), num_(x[1])]; }), note: String(f3.note || '').slice(0, 200), on: f3.on !== false, at: new Date().toISOString() };
@@ -328,8 +352,17 @@ function handle_(req) {
         o10.reply.img = f10.getId(); }
       o10.reply.at = new Date().toISOString(); props_().setProperty(ORD_ + o10.id, JSON.stringify(o10)); return { ok: true, img: o10.reply.img || '' }; } finally { lk10.releaseLock(); } }
   if (req.action === 'getHolidays') return { ok: true, holidays: holidays_() };
-  if (req.action === 'pulse') { var pp = props_(), now5 = Date.now(); if (now5 - Number(pp.getProperty('adm:last') || 0) > 60000) pp.setProperty('adm:last', String(now5));
-    return { ok: true, o: pp.getProperty('pl:o') || '', c: pp.getProperty('pl:c') || '' }; }
+  if (req.action === 'pulse') { var cc = cache_(), pv = cc.getAll(['pl:o', 'pl:c', 'adm:last']), now5 = Date.now(); if (now5 - Number(pv['adm:last'] || 0) > 60000) cc.put('adm:last', String(now5), 21600);
+    return { ok: true, o: pv['pl:o'] || '', c: pv['pl:c'] || '' }; }
+  if (req.action === 'backupList') { var bd = subDir_('백업'), fs2 = bd.getFiles(), L2 = []; while (fs2.hasNext()) { var f2b = fs2.next(); if (/^relay_backup_/.test(f2b.getName())) L2.push({ id: f2b.getId(), name: f2b.getName(), at: f2b.getLastUpdated().toISOString(), size: f2b.getSize() }); }
+    L2.sort(function (a, b) { return a.name < b.name ? 1 : -1; }); return { ok: true, files: L2.slice(0, 30) }; }
+  if (req.action === 'backupRestore') { if (req.confirm !== '되살리기') return { ok: false, error: '확인 글자가 맞지 않습니다' }; var fb = DriveApp.getFileById(String(req.id || '')); if (!/^relay_backup_/.test(fb.getName())) return { ok: false, error: '백업 파일이 아닙니다' };
+    var bj = JSON.parse(fb.getBlob().getDataAsString('UTF-8')), P2 = bj && bj.props; if (!P2) return { ok: false, error: '백업 내용을 읽지 못했습니다' };
+    var lkb = LockService.getScriptLock(); lkb.waitLock(20000);
+    try { var now9 = props_().getProperties(), keep9 = {}; Object.keys(now9).forEach(function (k) { if (k !== 'API_KEY' && k !== 'GH_TOKEN') keep9[k] = now9[k]; });
+      subDir_('백업').createFile('relay_backup_before_restore_' + Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyyMMdd_HHmm') + '.json', JSON.stringify({ at: new Date().toISOString(), props: keep9 }), 'application/json');   // 되살리기 전 지금 상태도 남김
+      var n9 = 0; Object.keys(P2).forEach(function (k) { if (k === 'API_KEY' || k === 'GH_TOKEN') return; props_().setProperty(k, String(P2[k])); n9++; }); } finally { lkb.releaseLock(); }
+    return { ok: true, n: n9, from: bj.at }; }
   if (req.action === 'chatList') return { ok: true, chats: chatList_() };
   if (req.action === 'chatAdmin') { var ta = tok_(req.t); if (!ta || !props_().getProperty(ORDF_ + ta)) return { ok: false, error: '없는 링크입니다' }; var ca;
     if (req.del) { ca = chatDel_(ta, 'a', String(req.del)); if (!ca) return { ok: false, error: '이미 지워졌거나 찾을 수 없습니다' }; }
@@ -377,13 +410,13 @@ function handle_(req) {
     Object.keys(all9).forEach(function (k) { if (k.indexOf(ORDF_) !== 0) return; var f = JSON.parse(all9[k]); if (f.cust !== cu9) return; var ch = false;
       (f.items || []).forEach(function (it) { var v = pr9[it[0]]; if (!v || !(num_(v[0]) > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(v[1] || '') || (it[4] && it[4] > v[1])) return; it[2] = num_(v[0]); it[4] = v[1]; ch = true; });
       if (ch) { props_().setProperty(k, JSON.stringify(f)); n9++; } }); return { ok: true, forms: n9 }; }
-  if (req.action === 'setOrderFormOn') { var t5 = tok_(req.t), v5 = t5 && props_().getProperty(ORDF_ + t5); if (!v5) return { ok: false, error: '없는 링크입니다' }; var f5 = JSON.parse(v5); f5.on = !!req.on; props_().setProperty(ORDF_ + t5, JSON.stringify(f5)); return { ok: true }; }
-  if (req.action === 'delOrderForm') { var t4 = tok_(req.t); if (t4) { props_().deleteProperty(ORDF_ + t4); props_().deleteProperty('seen:' + t4.slice(0, 12)); props_().deleteProperty(chatKey_(t4)); } return { ok: true }; }
+  if (req.action === 'setOrderFormOn') { var t5 = tok_(req.t); if (t5) formLiteDrop_(t5); var v5 = t5 && props_().getProperty(ORDF_ + t5); if (!v5) return { ok: false, error: '없는 링크입니다' }; var f5 = JSON.parse(v5); f5.on = !!req.on; props_().setProperty(ORDF_ + t5, JSON.stringify(f5)); return { ok: true }; }
+  if (req.action === 'delOrderForm') { var t4 = tok_(req.t); if (t4) formLiteDrop_(t4); if (t4) { props_().deleteProperty(ORDF_ + t4); props_().deleteProperty('seen:' + t4.slice(0, 12)); props_().deleteProperty(chatKey_(t4)); } return { ok: true }; }
   if (req.action === 'listOrderForms') { var af = props_().getProperties(), lf = [];
     Object.keys(af).forEach(function (k) { if (k.indexOf(ORDF_) !== 0) return; try { var f = JSON.parse(af[k]); lf.push({ t: k.slice(ORDF_.length), cust: f.cust, name: f.name, on: f.on !== false, at: f.at, n: (f.items || []).length, codes: (f.items || []).map(function (it) { return it[0]; }), days: f.days, cut: f.cut, lead: f.lead, price: !!f.price }); } catch (e) {} });
     return { ok: true, forms: lf }; }
   if (req.action === 'orders') { var since = Date.now() - Math.min(45, Math.max(1, Number(req.days) || 14)) * 86400000; var mt = null, rg = 0; try { rg = repeatGen_(); } catch (e) {} try { mt = maint_(false); } catch (e) {}
-    return { ok: true, use: propsUse_(), limit: 500000, moved: mt ? mt.moved : 0, alert: { to: alertTo_(), off: props_().getProperty('ALERT_OFF') === '1' }, shop: shop_(), repMade: rg, chats: chatList_(), orders: ordList_(function (o) { return o.status === 'new' || new Date(o.at).getTime() >= since; }).slice(0, 200).map(function (o) { var v = ordView_(o); v.cust = o.cust; v.name = o.name; v.tok = o.tok; v.who = o.who || ''; return v; }) }; }
+    return { ok: true, use: propsUse_(), limit: 500000, moved: mt ? mt.moved : 0, alert: { to: alertTo_(), off: props_().getProperty('ALERT_OFF') === '1' }, shop: shop_(), repMade: rg, chats: chatList_(), trig: (function () { try { return JSON.parse(props_().getProperty('trig:last') || 'null'); } catch (e) { return null; } })(), mailLeft: (function () { try { return MailApp.getRemainingDailyQuota(); } catch (e) { return null; } })(), orders: ordList_(function (o) { return o.status === 'new' || new Date(o.at).getTime() >= since; }).slice(0, 200).map(function (o) { var v = ordView_(o); v.cust = o.cust; v.name = o.name; v.tok = o.tok; v.who = o.who || ''; if (o.hist) v.hist = o.hist; return v; }) }; }
   if (req.action === 'orderDone') { var lk3 = LockService.getScriptLock(); lk3.waitLock(10000);
     try { var ov = props_().getProperty(ORD_ + String(req.id || '')); if (!ov) return { ok: false, error: '없는 주문입니다' }; var o3 = JSON.parse(ov);
       if (req.status) o3.status = String(req.status).slice(0, 12); if (req.slip != null) o3.slip = String(req.slip).slice(0, 60); if (req.note != null) o3.note = String(req.note).slice(0, 200); if (req.reply) o3.reply = reply_(o3.reply, req.reply);
