@@ -846,6 +846,7 @@ header.top .brand .hver .rv-ok{color:#9BE3B8;font-weight:700}header.top .brand .
 .so-img summary,.so-cat summary{cursor:pointer;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .so-f{display:flex;flex-direction:column;gap:3px;font-size:12.5px;font-weight:700;margin-bottom:8px}.so-f input,.so-f textarea,.so-f select{font:inherit;font-weight:400;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:7px 9px}.so-chk{display:flex;align-items:center;gap:5px;font-size:13px}
 .so-rp{margin-top:6px;font-size:12px;font-weight:700;color:var(--accent)}.so-stm{margin:4px 0 6px;min-height:60px;max-height:240px;overflow:auto;border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;padding:4px}.so-stm img{max-width:100%;display:block}
+.nt-ph{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 6px;min-height:40px;align-items:center}.nt-ph div{position:relative;width:88px;height:88px}.nt-ph img{width:100%;height:100%;object-fit:cover;border-radius:8px;border:1px solid var(--line)}.nt-ph button{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:12px;line-height:22px;padding:0}.nt-ph em{position:absolute;left:3px;bottom:3px;font-style:normal;font-size:10px;font-weight:800;background:var(--accent);color:#fff;border-radius:4px;padding:0 4px}
 .so-ctab{display:flex;gap:4px;margin-bottom:6px}.so-df{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;margin-bottom:6px;padding:8px 12px;height:auto;text-align:left}.so-cw{max-height:56vh;overflow:auto;border:1px solid var(--line2);border-radius:8px}.so-ct input:not([type=checkbox]){font:inherit;font-size:13px;border:1px solid var(--line2);border-radius:6px;padding:4px 6px;width:100%;min-width:60px}.so-cimg{display:flex;width:44px;height:44px;border:1px dashed var(--line);border-radius:6px;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}.so-cimg img{width:100%;height:100%;object-fit:cover}
 .tg.smp{background:#FFF1D6;color:#8A5A00}.tg.cat{background:#E6F0FB;color:#1F5FA8}
 .so-ig{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}.so-it{display:flex;gap:8px;align-items:center;border:1px solid var(--line2);border-radius:10px;padding:6px;background:#fff}.so-it.none{border-style:dashed;border-color:#E8C98E}
@@ -1240,8 +1241,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '176';
-const APP_BUILT = '2026-10-05 12:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '177';
+const APP_BUILT = '2026-10-05 13:20';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -2403,7 +2404,7 @@ function prodHoldUntil(date) { const c = prodS().cfg; if (c.batch === false) ret
   const ms = Date.parse(`${date}T${t}:00+09:00`); return isFinite(ms) && ms > Date.now() ? ms : 0; }
 function prodHoldText(en) { if (!(en.holdUntil > Date.now())) return ''; const d = new Date(en.holdUntil); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
 /* v172: 머리글에 중계(구글 Apps Script) 버전 — 저장소의 ecount_relay.gs보다 낮으면 「새 버전 배포 필요」 */
-const RELAY_WANT = 4.0;
+const RELAY_WANT = 4.1;
 async function hdrRelayVer() { const hv = document.getElementById('hVer'); if (!hv) return; const base = `v${APP_VER} · ${APP_BUILT} 업데이트`;
   try { if (!String(prodS().cfg.relayUrl || '').trim() || !prodKey()) return false; const r = await prodRelayCall({ action: 'ping' }); const v = r && r.ok ? Number(r.version) || 0 : 0; if (!v) return false;
     hv.innerHTML = `${esc(base)} · <b class="${v >= RELAY_WANT ? 'rv-ok' : 'rv-old'}">중계 ${v}${v >= RELAY_WANT ? '' : ` → ${RELAY_WANT} 배포 필요`}</b>`; hv.title = v >= RELAY_WANT ? `앱 v${APP_VER} · 중계 ${v} (최신)` : `중계가 ${v}입니다 — Apps Script에서 ${RELAY_WANT}로 새 버전 배포가 필요합니다`; return true; } catch (e) { return false; } }
@@ -5755,15 +5756,27 @@ function saleNtcEditor(n) {
   m.innerHTML = `<div class="sw-mb so-ed" role="dialog" aria-modal="true"><h3>${n ? '안내 고치기' : '거래처 안내 쓰기'}</h3><div class="muted" style="font-size:12.5px;margin-bottom:8px">모든 거래처 주문서 맨 위에 보입니다. 링크를 다시 보낼 필요 없이 거래처가 주문서를 열면 바로 보여요.</div>
     <label class="so-f">제목 <input id="ntT" maxlength="60" value="${esc(e.title)}" placeholder="예) 신제품 출시 — 써머바질바게뜨"></label>
     <label class="so-f">내용 <textarea id="ntB" maxlength="500" rows="4" placeholder="예) 10월 15일부터 주문 가능합니다. 샘플 신청도 받아요!">${esc(e.body)}</textarea></label>
+    <div class="so-f">사진 <span class="muted" style="font-weight:400">(최대 6장 · 파일 고르기 또는 이 창에서 Ctrl+V · 첫 장이 크게 보임)</span><div class="nt-ph" id="ntPh"></div><label class="btn xs" style="align-self:flex-start">📷 사진 추가<input type="file" accept="image/*" multiple id="ntFile" hidden></label></div>
+    <label class="so-f">자세히 보기 링크 <span class="muted" style="font-weight:400">(선택 · 블로그·인스타 주소)</span><input id="ntU" maxlength="300" value="${esc(e.url || '')}" placeholder="https://blog.naver.com/…"></label>
     <label class="so-f">함께 보여 줄 제품 <select id="ntC"><option value="">(없음)</option>${C.map(i => `<option value="${esc(i.id)}"${i.id === e.cat ? ' selected' : ''}>${esc(i.grp)} · ${esc(i.name)}</option>`).join('')}</select></label>
     <div class="prow"><label class="so-f">보이는 날 <input type="date" id="ntF" value="${esc(e.from)}"></label><label class="so-f">까지 <input type="date" id="ntTo" value="${esc(e.to)}"></label></div>
     <label class="so-chk"><input type="checkbox" id="ntP"${e.pin ? ' checked' : ''}> 고정 (거래처가 닫을 수 없음 — 휴무·배송 변경처럼 꼭 봐야 할 안내)</label>
     <div class="sw-ma"><button type="button" class="btn" id="ntX">취소</button><button type="button" class="btn primary" id="ntOk">${n ? '저장' : '안내 올리기'}</button></div></div>`;
   m.hidden = false; const close = () => { m.hidden = true; m.innerHTML = ''; }; $('#ntX').onclick = close; m.onclick = ev => { if (ev.target === m) close(); };
-  $('#ntOk').onclick = async () => { const v = { id: e.id, title: $('#ntT').value.trim(), body: $('#ntB').value.trim(), cat: $('#ntC').value, from: $('#ntF').value, to: $('#ntTo').value, on: e.on !== false, pin: $('#ntP').checked, at: e.at || new Date().toISOString() };
-    if (!v.title) return toast('제목을 넣어 주세요'); if (v.from && v.to && v.to < v.from) return toast('끝나는 날이 시작보다 빠릅니다');
-    const L = (saleUi.notices || []).filter(x => x.id !== v.id); L.unshift(v); try { await saleNtcSave(L); close(); toast('안내를 올렸습니다 — 거래처 주문서에 바로 보입니다'); renderSaleOrd(); } catch (er) { toast('실패: ' + er.message); } };
+  const ph = (e.imgs || []).map(id => ({ id })), drawPh = () => { $('#ntPh').innerHTML = ph.length ? ph.map((x, i) => `<div><img src="${x.data || saleImgUrl(x.id, 240)}" alt=""><button type="button" data-ntrm="${i}" aria-label="사진 빼기">✕</button>${i ? '' : '<em>대표</em>'}</div>`).join('') : '<span class="muted" style="font-size:12px">사진 없음</span>'; };
+  const addPh = async fs => { for (const f of fs) { if (ph.length >= 6) { toast('사진은 6장까지입니다'); break; } if (!/^image\//.test(f.type)) continue; try { const u = URL.createObjectURL(f); ph.push({ data: await saleImgResize(u, 1200) }); URL.revokeObjectURL(u); } catch (er) { toast(er.message); } } drawPh(); };
+  drawPh(); $('#ntFile').onchange = ev => { addPh([...ev.target.files]); ev.target.value = ''; }; $('#ntPh').onclick = ev => { const b = ev.target.closest('[data-ntrm]'); if (b) { ph.splice(+b.dataset.ntrm, 1); drawPh(); } };
+  m.onpaste = ev => { const fs = [...((ev.clipboardData && ev.clipboardData.files) || [])].filter(f => /^image\//.test(f.type)); if (fs.length) { ev.preventDefault(); addPh(fs); } };
+  $('#ntOk').onclick = async () => { const v = { id: e.id, title: $('#ntT').value.trim(), body: $('#ntB').value.trim(), cat: $('#ntC').value, from: $('#ntF').value, to: $('#ntTo').value, on: e.on !== false, pin: $('#ntP').checked, at: e.at || new Date().toISOString(), url: $('#ntU').value.trim() };
+    if (!v.title) return toast('제목을 넣어 주세요'); if (v.from && v.to && v.to < v.from) return toast('끝나는 날이 시작보다 빠릅니다'); if (v.url && !/^https:\/\//.test(v.url)) return toast('링크는 https:// 로 시작해야 합니다');
+    const b = $('#ntOk'); b.disabled = true; const imgs = [];
+    try { for (let i = 0; i < ph.length; i++) { if (ph[i].id) { imgs.push(ph[i].id); continue; } b.textContent = `사진 올리는 중… ${i + 1}/${ph.length}`; const code = 'ntc_' + v.id + '_' + Date.now().toString(36) + i; await saleImgPut(code, ph[i].data, v.title); imgs.push(saleUi.imgs[code]); } }
+    catch (er) { b.disabled = false; b.textContent = n ? '저장' : '안내 올리기'; return toast('사진 올리기 실패: ' + saleDriveErr(er.message)); }
+    v.imgs = imgs; saleNtcDropImgs((e.imgs || []).filter(id => !imgs.includes(id)));
+    const L = (saleUi.notices || []).filter(x => x.id !== v.id); L.unshift(v); try { await saleNtcSave(L); close(); toast('안내를 올렸습니다 — 거래처 주문서에 바로 보입니다'); renderSaleOrd(); } catch (er) { b.disabled = false; b.textContent = n ? '저장' : '안내 올리기'; toast('실패: ' + (/알 수 없는|너무 깁니다/.test(er.message) ? er.message : er.message)); } };
 }
+function saleNtcDropImgs(ids) {   /* 안내에서 뺀 사진은 드라이브에서도 지움 (코드 = ntc_…) */
+  const I = saleUi.imgs || {}; ids.forEach(id => { const code = Object.keys(I).find(k => I[k] === id && /^ntc_/.test(k)); if (code) { delete I[code]; prodRelayCall({ action: 'delItemImg', code }).catch(() => {}); } }); }
 function saleCatPanel() {
   const C = saleUi.cat || { items: [] }, I = saleUi.imgs || {}, N = saleUi.notices || [], t = today(), items = C.items || [];
   const live = n => n.on !== false && (!n.from || n.from <= t) && (!n.to || n.to >= t), md = d => d ? d.slice(5).replace('-', '/') : '';
@@ -5771,7 +5784,7 @@ function saleCatPanel() {
   return `<details class="card so-cat"${saleUi.catOpen ? ' open' : ''}><summary><b>단가표 · 거래처 안내</b> <span class="pill ${N.some(live) ? 'ok' : ''}">안내 ${N.filter(live).length}</span> <span class="pill ${items.length ? (C.on !== false ? 'ok' : '') : 'warn'}">제품 ${items.filter(i => !i.hide).length}${items.length && C.on === false ? ' · 숨김' : ''}</span> <span class="muted" style="font-size:12px">모든 주문 링크에 같이 — 링크를 다시 보낼 필요 없음</span></summary>
     ${saleUi.catErr ? `<div class="sw-err">⚠ ${esc(saleUi.catErr)}</div>` : ''}
     <div class="so-g"><div class="prow" style="margin-bottom:6px"><b>거래처 안내</b><span class="muted" style="font-size:12px">신제품 출시·휴무·배송 변경 등 — 주문서 맨 위에 보임</span><button type="button" class="btn sm primary" id="ntNew" style="margin-left:auto">＋ 안내 쓰기</button></div>
-      ${N.length ? `<table class="sl-t"><thead><tr><th>제목</th><th class="c">기간</th><th class="c">상태</th><th></th></tr></thead><tbody>${N.map(n => `<tr><td><b>${n.pin ? '📌 ' : ''}${esc(n.title)}</b>${n.cat ? ` <span class="muted" style="font-size:11.5px">· ${esc((items.find(i => i.id === n.cat) || {}).name || '')}</span>` : ''}${n.body ? `<div class="muted" style="font-size:12px">${esc(n.body.slice(0, 80))}</div>` : ''}</td><td class="c num">${esc(md(n.from))}~${esc(md(n.to))}</td><td class="c">${live(n) ? '<i class="tg ok">보이는 중</i>' : n.on === false ? '<i class="tg">멈춤</i>' : n.to && n.to < t ? '<i class="tg">끝남</i>' : '<i class="tg">예약</i>'}</td>
+      ${N.length ? `<table class="sl-t"><thead><tr><th>제목</th><th class="c">기간</th><th class="c">상태</th><th></th></tr></thead><tbody>${N.map(n => `<tr><td><b>${n.pin ? '📌 ' : ''}${esc(n.title)}</b>${(n.imgs || []).length ? ` <span class="pill">📷 ${n.imgs.length}</span>` : ''}${n.url ? ' <span class="pill">🔗</span>' : ''}${n.cat ? ` <span class="muted" style="font-size:11.5px">· ${esc((items.find(i => i.id === n.cat) || {}).name || '')}</span>` : ''}${n.body ? `<div class="muted" style="font-size:12px">${esc(n.body.slice(0, 80))}</div>` : ''}</td><td class="c num">${esc(md(n.from))}~${esc(md(n.to))}</td><td class="c">${live(n) ? '<i class="tg ok">보이는 중</i>' : n.on === false ? '<i class="tg">멈춤</i>' : n.to && n.to < t ? '<i class="tg">끝남</i>' : '<i class="tg">예약</i>'}</td>
         <td class="so-act"><button type="button" class="btn xs" data-nted="${esc(n.id)}">고치기</button><button type="button" class="btn xs" data-nttg="${esc(n.id)}">${n.on === false ? '다시 보이기' : '멈춤'}</button><button type="button" class="btn xs danger" data-ntdel="${esc(n.id)}">삭제</button></td></tr>`).join('')}</tbody></table>` : '<div class="sw-empty">아직 안내가 없습니다.</div>'}</div>
     <div class="so-g"><div class="prow" style="margin-bottom:6px"><b>단가표 제품</b><span class="muted" style="font-size:12px">거래처가 「빵을그리다 제품 보기」·검색으로 보고 주문하거나 샘플 신청</span>
       <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">${items.length ? `<label class="so-chk"><input type="checkbox" id="catOn"${C.on !== false ? ' checked' : ''}> 주문서에 보이기</label>` : ''}<button type="button" class="btn sm primary" id="catDrive">드라이브에서 가져오기</button><label class="btn sm">단가표 파일 넣기<input type="file" accept=".json,application/json" id="catFile" hidden></label></span></div>
@@ -5806,7 +5819,7 @@ function saleCatBind(box) {
   $$('#saleOrd [data-nted]').forEach(b => b.onclick = () => saleNtcEditor(Object.assign({}, nf(b.dataset.nted))));
   $$('#saleOrd [data-nttg],#saleOrd [data-ntdel]').forEach(b => b.onclick = async () => { const id = b.dataset.nttg || b.dataset.ntdel, n = nf(id); if (!n) return;
     if (b.dataset.ntdel && !confirm(`「${n.title}」 안내를 지울까요?`)) return;
-    const L = b.dataset.ntdel ? saleUi.notices.filter(x => x.id !== id) : saleUi.notices.map(x => x.id === id ? Object.assign({}, x, { on: x.on === false }) : x);
+    if (b.dataset.ntdel) saleNtcDropImgs(n.imgs || []); const L = b.dataset.ntdel ? saleUi.notices.filter(x => x.id !== id) : saleUi.notices.map(x => x.id === id ? Object.assign({}, x, { on: x.on === false }) : x);
     try { await saleNtcSave(L); renderSaleOrd(); } catch (e) { toast('실패: ' + e.message); } });
 }
 function renderSaleOrd() {
