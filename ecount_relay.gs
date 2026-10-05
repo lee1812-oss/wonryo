@@ -5,6 +5,7 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v5.2: 빠른 알림 — pulse(관리 앱이 10초마다 「바뀐 것 있나」만 묻는 가벼운 요청, pl:o 주문·pl:c 대화 시각) · 관리 앱이 3분 안에 확인 중이면 거래처 메시지 메일은 생략(보내기가 빨라짐)
  * v5.1: 거래처 대화(chat:<토큰16자> — 거래처 주문서 ↔ 앱 발주 알림창, 거래처 글은 알림 메일도) · chatGet/chatSend(거래처) · chatList/chatAdmin/chatRead(관리)
  * v5.0: 품절(cfg2:shop so — 주문서에서 못 담음)·최소 주문 금액(min, 공급가액)·정기 주문(repeat — 매주/2주마다 같은 주문을 발주 확인 뒤 자동으로 다음 회차)·거래처별 사용 현황(usage, seen:)
  * v5.0: 휴무일(cfg2:holidays — 배송일로 못 고름) · 거래처 주문 수정/취소(발주 확인 전까지, editOf·orderCancel) · 월별 주문 내역(orderHistory, 드라이브 보관분 포함)
@@ -82,6 +83,7 @@ function formOut_(f1, im1, catP, ntc, sh) { var imgs = {}; (f1.items || []).forE
   return { name: f1.name, items: f1.items, days: f1.days, cut: f1.cut, lead: f1.lead, price: !!f1.price, last: f1.last || [], note: f1.note || '', imgs: imgs, cat: f1.cat === false ? null : catP, notices: ntc, off: holidays_().filter(function (h) { return h.d >= ymdK_(); }), so: (sh && sh.so) || [], min: (sh && sh.min) || 0 }; }
 // v5.0: 품절·최소 주문 금액 — so: 품목 코드 또는 cat:단가표id (단가표 제품의 이카운트 코드가 품절이면 cat:id 도 같이)
 function shop_() { try { var v = JSON.parse(props_().getProperty('cfg2:shop') || '{}'); return { so: v.so || [], min: Number(v.min) || 0, at: v.at || '' }; } catch (e) { return { so: [], min: 0 }; } }
+function pulse_(k) { try { props_().setProperty('pl:' + k, String(Date.now())); } catch (e) {} }
 function chatKey_(t) { return 'chat:' + String(t).slice(0, 16); }
 function chatGet_(t) { try { var v = JSON.parse(props_().getProperty(chatKey_(t)) || 'null'); if (v && v.m) return v; } catch (e) {} return { m: [], ra: '', rc: '' }; }
 function chatPut_(t, c) { c.m = c.m.slice(-40); var js = JSON.stringify(c); while (js.length > 8500 && c.m.length > 1) { c.m.shift(); js = JSON.stringify(c); } props_().setProperty(chatKey_(t), js); }
@@ -115,7 +117,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.1 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.2 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -238,17 +240,18 @@ function handle_(req) {
       if (ed) { o2.at = ed.at; o2.editedAt = new Date().toISOString(); if (ed.repeat) { o2.repeat = ed.repeat; if (req.repeat != null) { if (rv) o2.repeat.ev = rv; else o2.repeat.on = false; } } if (ed.note) o2.note = ed.note; }
       props_().setProperty(ORD_ + oid, JSON.stringify(o2));
     } finally { lk2.releaseLock(); }
-    alertNew_(o2, ed ? '수정' : ''); return { ok: true, order: ordView_(o2) }; }
+    pulse_('o'); alertNew_(o2, ed ? '수정' : ''); return { ok: true, order: ordView_(o2) }; }
   // v5.0: 거래처가 자기 주문 취소(발주 확인 전까지) · 월별 주문 내역(드라이브 보관분 포함)
   if (req.action === 'orderCancel') { var t6 = tok_(req.t), lk7 = LockService.getScriptLock(); lk7.waitLock(10000); var oc;
     try { var cv = props_().getProperty(ORD_ + String(req.id || '').replace(/[^A-Za-z0-9_-]/g, '')); oc = cv && JSON.parse(cv); if (!t6 || !oc || oc.tok !== t6) return { ok: false, error: '주문을 찾지 못했습니다' };
       if (oc.status !== 'new' || (oc.reply && oc.reply.st)) return { ok: false, error: '이미 확인된 주문이라 취소할 수 없습니다 — 빵을그리다에 전화로 알려 주세요' };
       oc.status = 'cancel'; oc.doneAt = new Date().toISOString(); oc.note = '거래처가 취소'; props_().setProperty(ORD_ + oc.id, JSON.stringify(oc)); } finally { lk7.releaseLock(); }
-    alertNew_(oc, '취소'); return { ok: true, order: ordView_(oc) }; }
+    pulse_('o'); alertNew_(oc, '취소'); return { ok: true, order: ordView_(oc) }; }
   if (req.action === 'chatGet' || req.action === 'chatSend') { var tc = tok_(req.t), fvc = tc && props_().getProperty(ORDF_ + tc); if (!fvc) return { ok: false, error: '주문 링크가 맞지 않습니다' }; var fc = JSON.parse(fvc);
     if (req.action === 'chatGet') { var cg = chatGet_(tc); return { ok: true, m: cg.m.slice(-30), ra: cg.ra || '' }; }
     if (fc.on === false) return { ok: false, error: '이 주문 링크는 사용이 멈춰 있습니다' }; var cs = chatAdd_(tc, 'c', req.text); if (!cs) return { ok: false, error: '내용을 써 주세요' }; if (cs.err) return { ok: false, error: cs.err };
-    if (props_().getProperty('ALERT_OFF') !== '1') { var toC = alertTo_(); if (toC) { try { MailApp.sendEmail({ to: toC, subject: '[빵을그리다] 거래처 메시지 — ' + fc.name + ': ' + String(req.text).slice(0, 40), name: '빵을그리다 주문서', body: fc.name + ' 메시지\n\n' + String(req.text).slice(0, 400) + '\n\n통합 재고관리 → 발주 알림창(또는 판매 입력 → 발주 접수)에서 답할 수 있습니다.' }); } catch (e) {} } }
+    pulse_('c'); var admAt = Number(props_().getProperty('adm:last') || 0);
+    if (props_().getProperty('ALERT_OFF') !== '1' && Date.now() - admAt > 180000) { var toC = alertTo_();   /* 관리 앱이 켜져 있으면 PC 알림으로 충분 — 메일은 앱이 꺼져 있을 때만 */ if (toC) { try { MailApp.sendEmail({ to: toC, subject: '[빵을그리다] 거래처 메시지 — ' + fc.name + ': ' + String(req.text).slice(0, 40), name: '빵을그리다 주문서', body: fc.name + ' 메시지\n\n' + String(req.text).slice(0, 400) + '\n\n통합 재고관리 → 발주 알림창(또는 판매 입력 → 발주 접수)에서 답할 수 있습니다.' }); } catch (e) {} } }
     return { ok: true, m: cs.m.slice(-30), ra: cs.ra || '' }; }
   if (req.action === 'repeatStop') { var t8 = tok_(req.t), lk8 = LockService.getScriptLock(); lk8.waitLock(10000); var n8 = 0;
     try { var rv8 = props_().getProperty(ORD_ + String(req.id || '').replace(/[^A-Za-z0-9_-]/g, '')), r8 = rv8 && JSON.parse(rv8); if (!t8 || !r8 || r8.tok !== t8 || !r8.repeat) return { ok: false, error: '정기 주문을 찾지 못했습니다' };
@@ -280,7 +283,7 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 5.1, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 5.2, agentSeen: agentSeen_(), agentVer: agentVer_() };
   // v3.4: 주문 링크 관리 (통합재고관리)
   if (req.action === 'putOrderForm') { var t3 = tok_(req.t), f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
     var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3]), /^\d{4}-\d{2}-\d{2}$/.test(it[4] || '') ? it[4] : '']; }),
@@ -321,6 +324,8 @@ function handle_(req) {
         o10.reply.img = f10.getId(); }
       o10.reply.at = new Date().toISOString(); props_().setProperty(ORD_ + o10.id, JSON.stringify(o10)); return { ok: true, img: o10.reply.img || '' }; } finally { lk10.releaseLock(); } }
   if (req.action === 'getHolidays') return { ok: true, holidays: holidays_() };
+  if (req.action === 'pulse') { var pp = props_(), now5 = Date.now(); if (now5 - Number(pp.getProperty('adm:last') || 0) > 60000) pp.setProperty('adm:last', String(now5));
+    return { ok: true, o: pp.getProperty('pl:o') || '', c: pp.getProperty('pl:c') || '' }; }
   if (req.action === 'chatList') return { ok: true, chats: chatList_() };
   if (req.action === 'chatAdmin') { var ta = tok_(req.t); if (!ta || !props_().getProperty(ORDF_ + ta)) return { ok: false, error: '없는 링크입니다' }; var ca;
     if (req.text) { ca = chatAdd_(ta, 'a', req.text); if (!ca) return { ok: false, error: '내용을 써 주세요' }; } else { ca = chatGet_(ta); if (req.read) { ca.ra = new Date().toISOString(); chatPut_(ta, ca); } }

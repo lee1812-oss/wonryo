@@ -1245,8 +1245,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '193';
-const APP_BUILT = '2026-10-05 23:10';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '194';
+const APP_BUILT = '2026-10-05 23:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -2414,7 +2414,7 @@ function prodHoldUntil(date) { const c = prodS().cfg; if (c.batch === false) ret
   const ms = Date.parse(`${date}T${t}:00+09:00`); return isFinite(ms) && ms > Date.now() ? ms : 0; }
 function prodHoldText(en) { if (!(en.holdUntil > Date.now())) return ''; const d = new Date(en.holdUntil); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
 /* v172: 머리글에 중계(구글 Apps Script) 버전 — 저장소의 ecount_relay.gs보다 낮으면 「새 버전 배포 필요」 */
-const RELAY_WANT = 5.1;
+const RELAY_WANT = 5.2;
 async function hdrRelayVer() { const hv = document.getElementById('hVer'); if (!hv) return; const base = `v${APP_VER} · ${APP_BUILT} 업데이트`;
   try { if (!String(prodS().cfg.relayUrl || '').trim() || !prodKey()) return false; const r = await prodRelayCall({ action: 'ping' }); const v = r && r.ok ? Number(r.version) || 0 : 0; if (!v) return false;
     hv.innerHTML = `${esc(base)} · <b class="${v >= RELAY_WANT ? 'rv-ok' : 'rv-old'}">중계 ${v.toFixed(1)}${v >= RELAY_WANT ? '' : ` → ${RELAY_WANT.toFixed(1)} 배포 필요`}</b>`; if (!saleUi.bootPoll) { saleUi.bootPoll = true; try { saleOrdPoll(); saleSyncSoon(1500); } catch (e) {} }
@@ -5695,6 +5695,13 @@ async function saleMiniClick(e) { const t = e.target.closest('[data-mtab],[data-
     catch (er) { M.win && M.win.alert('발주 확인을 보내지 못했습니다: ' + er.message); } delete M.busy[o.id]; saleMiniRender(); if (S.ui.prodTab === 'pord') renderSaleOrd(); } }
 setInterval(() => { if (saleMini.win && saleMini.chat && !saleMini.win.closed) saleMiniLoad(true); }, 15000);
 function saleOrdPollRestart() { if (saleOrdT) { clearInterval(saleOrdT); saleOrdT = null; } saleOrdPoll(); }
+/* v194: 빠른 알림 — 10초마다 중계에 「바뀐 것 있나」만 물음(가벼움). 새 발주·메시지가 있으면 그때 전부 받아 옴 (중계 5.2 이상) */
+let salePulseBusy = false;
+async function salePulse() { if (salePulseBusy || saleUi.noPulse || !saleOrdT) return; if (document.hidden && !saleMini.win) return; salePulseBusy = true;
+  try { const r = await prodRelayCall({ action: 'pulse' }); if (!r || !r.ok) { if (/알 수 없는 요청/.test((r && r.error) || '')) saleUi.noPulse = true; return; }
+    const P0 = saleUi.pulse; saleUi.pulse = r; if (!P0) return;
+    if (r.o !== P0.o || r.c !== P0.c) { await saleOrdFetch(); if (r.c !== P0.c && saleMini.win && saleMini.chat) saleMiniLoad(true); } } catch (e) {} finally { salePulseBusy = false; } }
+setInterval(salePulse, 10000);
 /* v167: 발주 회신 — 확인·배송 안내·거래명세표(이카운트로 보낸 것과 같은 품목·단가)를 거래처 주문서에 보여 줌 */
 const SALE_RST = { ok: '발주 확인', out: '출고 완료', done: '배송 완료' };
 function saleReplyOf(en) { return { ship: en.ship || en.date, dlv: en.dlv || '', box: en.box || 0, slip: en.test ? '' : (en.slip || ''), lines: en.lines.map(l => [l.name, l.qty, l.price, l.sup, l.vat]), sup: en.sup, vat: en.vat }; }
