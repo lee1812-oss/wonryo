@@ -876,6 +876,20 @@ header.top .brand .hver .rv-ok{color:#9BE3B8;font-weight:700}header.top .brand .
   body.navmini aside.side .grp{font-size:9.5px;padding:2px 2px 6px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   body.navmini aside.side .sidewk label{display:none}body.navmini aside.side #weekSel{font-size:10.5px;padding:5px 2px}
   body.navmini aside.side .modebox,body.navmini aside.side .mode{font-size:10.5px}
+  /* v207: 좁은 메뉴는 스크롤 없이 창 높이에 맞춰 칸이 줄어듦 */
+  body.navmini aside.side{display:flex;flex-direction:column;overflow:hidden;gap:2px}
+  body.navmini aside.side>*{flex:0 0 auto}
+  body.navmini aside.side>button,body.navmini aside.side .menusw button,body.navmini aside.side .modebox button{flex:1 1 0;min-height:30px;max-height:54px;margin:0;padding:3px 2px}
+  body.navmini aside.side .menusw{flex:6 1 0;display:flex;flex-direction:column;min-height:0;margin:2px 0 4px}
+  body.navmini aside.side .modebox{flex:1 1 0;display:flex;flex-direction:column;min-height:0;margin:4px 0 0;padding-top:4px;border-top:1px solid var(--line)}
+  body.navmini aside.side>.grp{display:none}
+  body.navmini aside.side .sidewk{padding:0 0 4px;margin:0 0 2px}
+  body.navmini aside.side button svg{width:19px;height:19px;flex:0 0 auto}
+  body.navmini aside.side>.navtog{flex:0 0 22px;min-height:22px;max-height:22px}
+  body.navmini aside.side button span{white-space:nowrap;text-overflow:ellipsis}
+  body.navmini aside.side>button,body.navmini aside.side .menusw button,body.navmini aside.side .modebox button{min-height:36px}
+  @media (max-height:780px){body.navmini aside.side .menusw{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr;gap:2px}
+    body.navmini aside.side .menusw button{min-height:34px;max-height:34px;padding:2px}body.navmini aside.side .menusw button span{display:none}}
   aside.side .navtog{justify-content:center;padding:4px!important;margin:0 0 6px!important;font-size:15px!important;color:var(--ink3)!important;border:1px dashed var(--line)!important}
 }
 </style>
@@ -1266,8 +1280,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '206';
-const APP_BUILT = '2026-10-06 09:00';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '207';
+const APP_BUILT = '2026-10-06 09:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -1692,7 +1706,7 @@ function renderTabs() {
   const modeBox = `<div class="modebox">${A ? `<button data-menu="sys" class="${menu === 'sys' ? 'on' : ''}">${ICO.sys}<span>통합 설정</span></button>` : ''}${!A ? '<button class="lockbtn" data-lock="1">🔒<span>관리자</span></button>' : modeDevUser() ? '<button class="lockbtn" data-leave="1">↩<span>직원 화면으로</span></button>' : ''}</div>`;
   weekSelHome(); /* v043: 사이드바를 다시 그리기 전에 주차 선택을 헤더로 돌려놓음 */
   document.body.classList.toggle('navmini', S.ui.navMini !== false);
-  $('#sideNav').innerHTML = `<button class="navtog" data-navtog="1" title="${S.ui.navMini !== false ? '메뉴 넓게 보기' : '메뉴 좁게 (작업 영역 넓게)'}">${S.ui.navMini !== false ? '»' : '«'}</button><button class="homebtn${menu === 'home' ? ' on' : ''}" data-menu="home">${ICO.home}<span>통합 대시보드</span></button><div class="menusw">${menuBtns}</div>` + (menu === 'raw' || menu === 'home' ? `<div class="sidewk" id="sideWeek"><label>원료 기준 주차</label></div>` : '') + (menu === 'home' ? '' : `<div class="grp">${M.name}</div>` + items) + modeBox; $('#tabsBottom').innerHTML = items;
+  $('#sideNav').innerHTML = `<button class="navtog" data-navtog="1" title="${S.ui.navMini !== false ? '메뉴 넓게 보기' : '메뉴 좁게 (작업 영역 넓게)'}">${S.ui.navMini !== false ? '»' : '«'}</button><button class="homebtn${menu === 'home' ? ' on' : ''}" data-menu="home" title="통합 대시보드">${ICO.home}<span>${S.ui.navMini !== false && window.innerWidth >= 760 ? '대시보드' : '통합 대시보드'}</span></button><div class="menusw">${menuBtns}</div>` + (menu === 'raw' || menu === 'home' ? `<div class="sidewk" id="sideWeek"><label>원료 기준 주차</label></div>` : '') + (menu === 'home' ? '' : `<div class="grp">${M.name}</div>` + items) + modeBox; $('#tabsBottom').innerHTML = items;
   $$('#topMenu [data-menu], #sideNav [data-menu]').forEach(b => b.onclick = () => { if (S.ui.menu === b.dataset.menu && !(b.dataset.menu === 'ccp' && S.ui.ccpView !== 'cal')) return; S.ui.menu = b.dataset.menu; if (S.ui.menu === 'ccp') { S.ui.prodTab = 'pccp'; S.ui.ccpView = 'cal'; } else if (S.ui.menu === 'sale') S.ui.prodTab = 'psale'; else if (isProdM(S.ui.menu)) S.ui.prodTab = 'pnew';   /* v149: CCP 일지를 누르면 달력부터 (보고 있을 때 다시 눌러도 달력으로) */
     save(); renderAll(); window.scrollTo(0, 0); if (S.ui.menu === 'home') finAskSum(); });
   $$('#topMenu [data-lock], #sideNav [data-lock]').forEach(b => b.onclick = adminEnter);
