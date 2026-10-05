@@ -5,6 +5,7 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v3.9: 발주 회신에 거래명세표 캡처 사진 (putOrderImg — 드라이브 「빵을그리다 주문서 사진」에 stm_<주문>.jpg, reply.img)
  * v3.8: 주문 링크 단가를 판매 저장 때마다 최근 단가로 (updFormPrices) · 단가 날짜 함께 보관
  * v3.7: 발주 회신(reply) — 확인·배송 안내·거래명세표를 거래처 주문서에 보여 줌 (orderDone에 reply)
  * v3.7: 드라이브에서 단가표 가져오기(catDriveList · catDriveRead) — 내 드라이브의 「…단가표….json」 파일을 읽음
@@ -40,7 +41,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3.8 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 3.9 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -170,7 +171,7 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 3.8, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 3.9, agentSeen: agentSeen_(), agentVer: agentVer_() };
   // v3.4: 주문 링크 관리 (통합재고관리)
   if (req.action === 'putOrderForm') { var t3 = tok_(req.t), f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
     var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3]), /^\d{4}-\d{2}-\d{2}$/.test(it[4] || '') ? it[4] : '']; }),
@@ -202,6 +203,14 @@ function handle_(req) {
     var jsn = JSON.stringify(ns); if (jsn.length > 8800) return { ok: false, error: '안내가 너무 깁니다 — 오래된 안내를 지워 주세요' }; props_().setProperty('ord:notices', jsn); return { ok: true, n: ns.length }; }
   if (req.action === 'putCatalog') { var c8 = req.cat || {}; var items8 = (c8.items || []).slice(0, 300).map(function (it) { return { id: String(it.id).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 20), grp: String(it.grp || '완제품').slice(0, 10), name: String(it.name || '').slice(0, 60), spec: String(it.spec || '').slice(0, 40), pe: it.pe == null || it.pe === '' ? null : num_(it.pe), pb: it.pb == null || it.pb === '' ? null : num_(it.pb), bq: it.bq ? num_(it.bq) : null, unit: String(it.unit || 'Box').slice(0, 8), code: String(it.code || '').slice(0, 30), hide: !!it.hide }; }).filter(function (it) { return it.id && it.name; });
     catPut_({ items: items8, title: c8.title, on: c8.on }); return { ok: true, n: items8.length }; }
+  if (req.action === 'putOrderImg') { var lk10 = LockService.getScriptLock(); lk10.waitLock(20000);
+    try { var ov10 = props_().getProperty(ORD_ + String(req.id || '')); if (!ov10) return { ok: false, error: '없는 주문입니다' }; var o10 = JSON.parse(ov10); o10.reply = o10.reply || {};
+      if (o10.reply.img) { try { DriveApp.getFileById(o10.reply.img).setTrashed(true); } catch (e) {} delete o10.reply.img; }
+      if (!req.del) { var m10 = String(req.data || '').match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+\/=]+)$/); if (!m10) return { ok: false, error: '사진 자료가 올바르지 않습니다' }; if (m10[2].length > 2800000) return { ok: false, error: '사진이 너무 큽니다' };
+        var f10 = imgDir_().createFile(Utilities.newBlob(Utilities.base64Decode(m10[2]), 'image/' + m10[1], 'stm_' + o10.id.replace(/[^A-Za-z0-9_-]/g, '_') + '.' + (m10[1] === 'jpeg' ? 'jpg' : m10[1])));
+        f10.setDescription('거래명세표 · ' + String(o10.name || '').slice(0, 60)); try { f10.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { f10.setTrashed(true); return { ok: false, error: '드라이브가 링크 공유를 막았습니다: ' + e.message }; }
+        o10.reply.img = f10.getId(); }
+      o10.reply.at = new Date().toISOString(); props_().setProperty(ORD_ + o10.id, JSON.stringify(o10)); return { ok: true, img: o10.reply.img || '' }; } finally { lk10.releaseLock(); } }
   // v3.8: 판매를 저장할 때 그 거래처 주문 링크의 단가를 가장 최근 날짜 단가로 바꿈 (prices: {코드: [단가, 날짜]})
   if (req.action === 'updFormPrices') { var cu9 = String(req.cust || ''), pr9 = req.prices || {}, n9 = 0, all9 = props_().getProperties();
     Object.keys(all9).forEach(function (k) { if (k.indexOf(ORDF_) !== 0) return; var f = JSON.parse(all9[k]); if (f.cust !== cu9) return; var ch = false;
