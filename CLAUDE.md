@@ -32,3 +32,10 @@
 - 품절·최소 주문 금액: cfg2:shop {so: [이카운트 코드 | cat:단가표id], min: 공급가액} — 운영 상태 카드에서. 단가표 제품의 이카운트 코드가 품절이면 그 제품도 품절(shopPub_). 단가 모르는 품목이 있으면 최소 금액 검사는 건너뜀.
 - 정기 주문: 주문 확정 때 매주/2주마다 → o.repeat {ev, on, ch, nx}. 지난 회차가 발주 확인(또는 배송일 지남)되면 다음 orders 요청 때 repeatGen_이 같은 품목으로 새 발주(note 「정기 주문 자동」). 멈추기 repeatStop(같은 ch 전부).
 - 거래처별 사용 현황(usage): 링크 연 날(seen:<토큰12자>, orderForm 때 하루 한 번 기록)·마지막 주문·30일 주문.
+- 중계 Apps Script 매니페스트(appsscript.json)에 oauthScopes 직접 적음(drive, script.external_request, script.send_mail, userinfo.email) — 2026-10-05 메일 권한이 빠져 있어 추가. 새 권한이 필요하면 여기에도 넣어야 허용 창이 뜸.
+
+## 발주 알림창·거래처 대화 (v191, 중계 5.1)
+- 앱 판매 입력 → 발주 접수 「🪟 발주 알림창」: 크롬은 Document Picture-in-Picture(항상 위 작은 창), 안 되면 팝업. 앱 탭의 코드가 그 창을 그림(열쇠를 넘기지 않음) — 앱 탭을 닫으면 같이 멈춤. 열려 있으면 30초마다 확인.
+- 새 발주 탭: 「✓ 발주 확인」 = 확인 회신(reply st ok, 상태는 new 그대로). 대화방 탭: 거래처별 대화(chat:<토큰16자>, 최근 40개), 거래처 글은 알림 메일도.
+- 거래처 주문서 맨 아래 「💬 빵을그리다에 문의하기」(chatGet/chatSend, 30초마다 새 답장 확인).
+- 알림 소리: PC마다 localStorage bggd_snd {ord, msg, vol, rep} — 알림창 🔊에서. 이카운트 메신저와는 연결 불가(공개 API 없음).
