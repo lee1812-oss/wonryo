@@ -47,6 +47,7 @@
 ## 거래처 주문 앱 (바탕화면 설치, v199)
 - order.webmanifest(이름 「빵을그리다 주문」, start_url `./order.html?app=1`, scope `./order.html`) + order-sw.js(주문서 화면만, 네트워크 우선·끊기면 저장본) + 아이콘 order_192/512/maskable/apple.png(크루아상+「빵을그리다」).
 - 주문서가 토큰을 localStorage `bggd_app_t`에 저장 → 앱 아이콘(?app=1)으로 열면 마지막 링크로 바로 열림. 처음이면 「주문서 링크를 한 번 눌러 열어 주세요」.
+- v203: 카톡 「크롬으로 열기」 링크에 inst=1 → 크롬에서 열리자마자 오른쪽 위 ⋮를 가리키는 「⋮ → 앱 설치」 말풍선(.ptip, 삼성 인터넷은 아래 ≡ 안내). ⋮ 메뉴의 「앱 설치」는 기다림 없이 바로 됨(30초 기다림은 페이지 안 설치 창만 해당).
 - v202: 크롬 안내는 「앱 설치」(또는 홈 화면에 추가 → 「설치」)로, 「바로가기 만들기」는 주소창이 보이는 바로가기라 고르지 말라고 안내. 크롬 설치 창(beforeinstallprompt)은 화면을 한 번 누르고 30초쯤 지나야 준비되므로, 안내 화면이 열려 있는 동안 준비되면 「지금 바로 설치하기」 버튼이 나타남.
 - v201: 카카오톡 등 앱 안 브라우저(INAPP: KAKAOTALK·NAVER(inapp)·; wv) 등)는 display-mode standalone 으로 보고해서 배너가 숨던 문제 → INAPP이면 설치 앱으로 안 봄. 앱 안이면 배너가 바로 「크롬으로 열기」(안드로이드 intent://…;package=com.android.chrome, 없으면 기본 브라우저) · 아이폰 카톡은 「사파리로 열기」(kakaotalk://web/openExternal). 링크는 ?s=2&t=토큰.
 - 주문서 맨 위 「📲 바탕화면에 앱 설치」 배너(✕ 누르면 7일 숨김, 설치하면 안 보임): 안드로이드 크롬 = 설치 창(beforeinstallprompt), 카카오톡 안 = `kakaotalk://web/openExternal?url=`로 다른 브라우저, 아이폰 = 사파리 공유 → 홈 화면에 추가 안내(아이폰은 manifest를 안 넣어 #t= 주소째로 저장), 삼성 인터넷 = ≡ → 현재 페이지 추가.
