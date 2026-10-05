@@ -262,7 +262,8 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
     if ($('#ntcAll')) $('#ntcAll').onclick = function () { st.seen = []; keep(); render(); };
   }
   function sheet(html, wide) { if (!html) { $('#sheet').hidden = true; $('#sheet').classList.remove('wide'); return; } $('#sheetIn').innerHTML = html; $('#sheetIn').onclick = null; $('#sheet').classList.toggle('wide', !!wide); $('#sheet').hidden = false; }
-  $('#sheet').onclick = function (e) { if (e.target.id === 'sheet') { var w = $('#sheet').classList.contains('wide'); sheet(); if (w) render(); } };
+  var pdT = null; document.addEventListener('pointerdown', function (e) { pdT = e.target; }, true);   /* 드래그하다 바깥에서 손을 떼도 닫히지 않게 */
+  $('#sheet').onclick = function (e) { if (e.target.id === 'sheet' && pdT === e.target) { var w = $('#sheet').classList.contains('wide'); sheet(); if (w) render(); } };
   /* 주문 확정 화면 — 여기서 바로 수량 고치기·빼기. 단가는 이 거래처가 가장 최근에 산 날의 단가 */
   function confirmSheet() { var p = picked(); if (!p.length || !st.ship) { sheet(); render(); return; }
     var a = p.reduce(function (t, e) { return t + (e.sub ? 0 : (e.price || 0) * st.q[e.k]); }, 0), noP = p.some(function (e) { return !e.sub && e.price == null; });
