@@ -119,7 +119,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var IMG = function (id, w) { return /^u:/.test(id) ? id.slice(2) : 'https://drive.google.com/thumbnail?id=' + encodeURIComponent(id) + '&sz=w' + (w || 200); };   /* u:주소 = 이 사이트의 단가표 제품 사진(cat/<id>.jpg) */   /* 품목 사진: 구글 드라이브(중계가 보관) */
   var won = function (n) { return Math.round(n || 0).toLocaleString('ko-KR'); };
-  var LS = 'bggd_order_' + T.slice(0, 10), F = null, ORD = [], st = { q: {}, ship: '', memo: '', who: '', find: '', seen: [], rep: 0 }, cid = '', CAT = {}, catGrp = '', SO = {}, CH = null, chSeen = '', chT = null;
+  var LS = 'bggd_order_' + T.slice(0, 10), F = null, ORD = [], st = { q: {}, ship: '', memo: '', who: '', find: '', seen: [], rep: 0 }, cid = '', CAT = {}, catGrp = '', SO = {}, CH = null, chSeen = '', chT = null, chLast = 0;
   function load() { try { var o = JSON.parse(localStorage.getItem(LS) || 'null'); if (o) { st.q = o.q || {}; st.memo = o.memo || ''; st.who = o.who || ''; st.ship = o.ship || ''; st.seen = o.seen || []; } } catch (e) {} }
   function keep() { try { localStorage.setItem(LS, JSON.stringify({ q: st.q, memo: st.memo, who: st.who, ship: st.ship, seen: st.seen })); } catch (e) {} }
   function call(body) { return fetch(RELAY, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) }).then(function (r) { return r.json(); }); }
@@ -194,12 +194,12 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   /* v191: 빵을그리다와 대화 — 문의·요청을 바로 보내고 답을 여기서 받음 (관리자 앱 발주 알림창과 연결) */
   function chNew() { return CH && CH.m ? CH.m.filter(function (x) { return x.w === 'a' && x.at > chSeen; }).length : 0; }
   function chTime(at) { var d = new Date(at); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
-  function chList() { var M = (CH && CH.m) || []; return M.length ? M.map(function (x) { return '<div class="bb ' + (x.w === 'a' ? 'a' : 'c') + '">' + (x.w === 'a' ? '<b>빵을그리다</b>' : '') + esc(x.t) + '<i>' + chTime(x.at) + '</i></div>'; }).join('') : '<div class="msg" style="padding:6px">주문 관련 문의·요청을 남겨 주세요. 빵을그리다가 확인하고 여기로 답해 드립니다.</div>'; }
+  function chList() { var M = (CH && CH.m) || []; return M.length ? M.map(function (x) { return '<div class="bb ' + (x.w === 'a' ? 'a' : 'c') + '"' + (x.p ? ' style="opacity:.75"' : '') + '>' + (x.w === 'a' ? '<b>빵을그리다</b>' : '') + esc(x.t) + '<i>' + (x.p ? '보내는 중…' : chTime(x.at)) + '</i></div>'; }).join('') : '<div class="msg" style="padding:6px">주문 관련 문의·요청을 남겨 주세요. 빵을그리다가 확인하고 여기로 답해 드립니다.</div>'; }
   function chatHtml() { var n = chNew(); return '<section class="card' + (n ? ' newmsg' : '') + '" id="chatCard"><h2>💬 빵을그리다에 문의하기' + (n ? '<span class="nmb">새 답장 ' + n + '</span>' : '') + '</h2><div class="chat" id="chatL">' + chList() + '</div><div class="chin"><textarea id="chIn" maxlength="400" placeholder="예: 10/8 주문에 크루아상 2박스 추가 가능할까요?"></textarea><button class="btn pri" id="chGo">보내기</button></div><div class="err" id="chErr"></div></section>'; }
   function chSeenNow() { if (CH && CH.m && CH.m.length) { var L = CH.m.filter(function (x) { return x.w === 'a'; }).pop(); if (L && L.at > chSeen) { chSeen = L.at; try { localStorage.setItem(LS + '_cs', chSeen); } catch (e) {} } } }
   function chPaint() { var L = $('#chatL'); if (!L) return; var atEnd = L.scrollHeight - L.scrollTop - L.clientHeight < 40; L.innerHTML = chList(); if (atEnd) L.scrollTop = L.scrollHeight;
     var c = $('#chatCard'), n = chNew(), h = c && c.querySelector('h2'); if (h) { var b = h.querySelector('.nmb'); if (n && !b) h.insertAdjacentHTML('beforeend', '<span class="nmb">새 답장 ' + n + '</span>'); else if (b) { if (n) b.textContent = '새 답장 ' + n; else b.remove(); } c.classList.toggle('newmsg', !!n); } }
-  function chPoll() { if (chT) return; chT = setInterval(function () { if (document.hidden || !F) return; call({ action: 'chatGet', t: T }).then(function (r) { if (r && r.ok) { var was = chNew(); CH = { m: r.m, ra: r.ra }; chPaint(); if (chNew() > was) { try { navigator.vibrate && navigator.vibrate(120); } catch (e) {} } } }).catch(function () {}); }, 30000); }
+  function chPoll() { if (chT) return; var tick = 0; chT = setInterval(function () { tick++; if (document.hidden || !F) return; if (Date.now() - chLast > 900000 && tick % 6) return;   /* 15분 안에 대화했으면 5초마다, 아니면 30초마다 */ if (CH && CH.m && CH.m.some(function (x) { return x.p; })) return; call({ action: 'chatGet', t: T }).then(function (r) { if (r && r.ok) { var was = chNew(); CH = { m: r.m, ra: r.ra }; chPaint(); if (chNew() > was) { chLast = Date.now(); try { navigator.vibrate && navigator.vibrate(120); } catch (e) {} } } }).catch(function () {}); }, 5000); }
   function render() {
     var days = shipDays(); if (!days.some(function (x) { return x.v === st.ship; })) st.ship = days[0] ? days[0].v : '';
     var q = norm(st.find), list = F.items.filter(function (it) { return !q || norm(it[1]).indexOf(q) >= 0 || norm(it[0]).indexOf(q) >= 0; });
@@ -305,9 +305,11 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
       call({ action: 'repeatStop', t: T, id: b.getAttribute('data-ostop') }).then(function (r) { if (!r || !r.ok) throw new Error((r && r.error) || '멈추지 못했습니다'); ORD.forEach(function (x) { if (x.repeat) x.repeat.on = false; }); render(); })
         .catch(function (e) { b.disabled = false; alert(e.message); }); }; });
     if ($('#chGo')) { var cio = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { chSeenNow(); chPaint(); } }, { threshold: 0.5 }); cio.observe($('#chatL'));
-      $('#chGo').onclick = function () { var i = $('#chIn'), tx = i.value.trim(), b = $('#chGo'); if (!tx) return i.focus(); b.disabled = true; $('#chErr').textContent = '';
-        call({ action: 'chatSend', t: T, text: tx }).then(function (r) { b.disabled = false; if (!r || !r.ok) throw new Error((r && r.error) || '보내지 못했습니다'); i.value = ''; CH = { m: r.m, ra: r.ra }; chPaint(); var L = $('#chatL'); L.scrollTop = L.scrollHeight; })
-          .catch(function (e) { b.disabled = false; $('#chErr').textContent = e.message + ' — 다시 눌러 주세요'; }); }; }
+      $('#chGo').onclick = function () { var i = $('#chIn'), tx = i.value.trim(); if (!tx) return i.focus(); $('#chErr').textContent = '';
+        /* 바로 말풍선을 보여 주고 뒤에서 보냄 — 기다리지 않게 */
+        var tmp = { w: 'c', t: tx, at: new Date().toISOString(), p: 1 }; CH = CH || { m: [] }; CH.m = CH.m.concat([tmp]); i.value = ''; chPaint(); var L = $('#chatL'); L.scrollTop = L.scrollHeight; chLast = Date.now();
+        call({ action: 'chatSend', t: T, text: tx }).then(function (r) { if (!r || !r.ok) throw new Error((r && r.error) || '보내지 못했습니다'); var pend = CH.m.filter(function (x) { return x.p && x !== tmp; }); CH = { m: r.m.concat(pend), ra: r.ra }; chPaint(); })
+          .catch(function (e) { CH.m = CH.m.filter(function (x) { return x !== tmp; }); chPaint(); if (!$('#chIn').value) $('#chIn').value = tx; $('#chErr').textContent = e.message + ' — 다시 눌러 주세요'; }); }; }
     if ($('#ntcAll')) $('#ntcAll').onclick = function () { st.seen = []; keep(); render(); };
   }
   function sheet(html, wide) { if (!html) { $('#sheet').hidden = true; $('#sheet').classList.remove('wide'); return; } $('#sheetIn').innerHTML = html; $('#sheetIn').onclick = null; $('#sheet').classList.toggle('wide', !!wide); $('#sheet').hidden = false; }
