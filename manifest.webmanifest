@@ -1,6 +1,6 @@
 {
   "name": "빵을그리다 통합 재고관리",
-  "short_name": "통합 재고관리",
+  "short_name": "빵을그리다 관리",
   "description": "원료수불부 + 완제품·생지 재고관리 — 이카운트 전산재고와 실물재고 비교",
   "start_url": "./index.html",
   "scope": "./",
@@ -11,22 +11,23 @@
   "lang": "ko",
   "icons": [
     {
-      "src": "logo_192.png",
+      "src": "admin_192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "logo_512.png",
+      "src": "admin_512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "logo_maskable.png",
+      "src": "admin_maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "id": "./index.html"
 }

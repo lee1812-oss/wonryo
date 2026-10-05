@@ -48,4 +48,5 @@
 - order.webmanifest(이름 「빵을그리다 주문」, start_url `./order.html?app=1`, scope `./order.html`) + order-sw.js(주문서 화면만, 네트워크 우선·끊기면 저장본) + 아이콘 order_192/512/maskable/apple.png(크루아상+「빵을그리다」).
 - 주문서가 토큰을 localStorage `bggd_app_t`에 저장 → 앱 아이콘(?app=1)으로 열면 마지막 링크로 바로 열림. 처음이면 「주문서 링크를 한 번 눌러 열어 주세요」.
 - 주문서 맨 위 「📲 바탕화면에 앱 설치」 배너(✕ 누르면 7일 숨김, 설치하면 안 보임): 안드로이드 크롬 = 설치 창(beforeinstallprompt), 카카오톡 안 = `kakaotalk://web/openExternal?url=`로 다른 브라우저, 아이폰 = 사파리 공유 → 홈 화면에 추가 안내(아이폰은 manifest를 안 넣어 #t= 주소째로 저장), 삼성 인터넷 = ≡ → 현재 페이지 추가.
+- 관리 앱(v200): manifest.webmanifest 아이콘을 admin_192/512/maskable/apple.png(남색 바탕·크루아상·「빵을그리다」·「관리」)로, short_name 「빵을그리다 관리」. 설치 안내 그림은 대화에서 만들어 전달(저장소에 없음).
 - 플레이스토어 등록(검색 노출)은 이 웹앱을 PWABuilder로 포장 — 개발자 계정 25달러, 개인 계정은 테스터 12명·14일(회사 계정은 D-U-N-S), 도메인 루트의 assetlinks 필요(도메인 구매 후).
