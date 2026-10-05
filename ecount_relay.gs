@@ -5,6 +5,9 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v5.0: 저장 공간 정리(처리 끝난 지 10일 지난 주문 → 드라이브 「빵을그리다 중계 자료/주문 보관」 월별 파일), 매일 백업(14일치), 사용량 표시
+ *       새 발주 알림 메일(MailApp, ALERT_EMAIL), 판매 기록·판매 설정을 모든 PC가 함께(드라이브 판매기록 파일 · cfg2:sale)
+ *       ※ 처음 한 번: 편집기에서 setupAll 을 골라 ▷실행 → 「허용」(드라이브·메일·외부 연결 권한)
  * v4.2: 주문서 빠른 열기 — 앱이 거래처별 주문서를 그 링크 열쇠로 암호화해 보내면 중계가 GitHub 사이트 of/<이름>.txt 로 올림(ghPutFiles)
  *       스크립트 속성 GH_TOKEN(GitHub 열쇠, 이 저장소 Contents 쓰기만) 필요 · formSnaps: 여러 링크의 주문서 내용을 한 번에
  *       ※ 처음 한 번: 편집기에서 checkGithub 를 골라 ▷실행 → 「허용」(외부 연결 권한) — 실행 로그에 결과가 나옴
@@ -35,6 +38,35 @@
  * 배포: 배포 → 배포 관리 → 연필(수정) → 버전 「새 버전」 → 배포  (주소는 그대로 유지)
  */
 
+// v5.0: 처음 한 번 — 드라이브·메일·외부 연결 권한을 한꺼번에 받고 상태를 기록
+function setupAll() { var r = []; try { DriveApp.getRootFolder(); dataDir_(); r.push('드라이브 정상'); } catch (e) { r.push('드라이브 실패: ' + e.message); }
+  try { r.push('메일 정상 (오늘 남은 발송 ' + MailApp.getRemainingDailyQuota() + '통) · 알림 받는 주소: ' + alertTo_()); } catch (e) { r.push('메일 실패: ' + e.message); }
+  try { checkGithub(); r.push('GitHub 확인은 위 줄 참고'); } catch (e) { r.push('GitHub 실패: ' + e.message); }
+  Logger.log(r.join('\n')); return r.join(' / '); }
+function dataDir_() { var id = props_().getProperty('dat:folder'); if (id) { try { var d = DriveApp.getFolderById(id); if (!d.isTrashed()) return d; } catch (e) {} }
+  var f = DriveApp.createFolder('빵을그리다 중계 자료'); props_().setProperty('dat:folder', f.getId()); return f; }
+function subDir_(name) { var it = dataDir_().getFoldersByName(name); return it.hasNext() ? it.next() : dataDir_().createFolder(name); }
+function fileJson_(dir, name, def) { var it = dir.getFilesByName(name); if (!it.hasNext()) return { file: null, data: def }; var f = it.next(); try { return { file: f, data: JSON.parse(f.getBlob().getDataAsString('UTF-8')) }; } catch (e) { return { file: f, data: def }; } }
+function fileSave_(dir, name, f, data) { var js = JSON.stringify(data); if (f) f.setContent(js); else dir.createFile(name, js, 'application/json'); }
+function alertTo_() { return props_().getProperty('ALERT_EMAIL') || (function () { try { return Session.getEffectiveUser().getEmail(); } catch (e) { return ''; } })(); }
+function propsUse_() { var all = props_().getProperties(), n = 0; Object.keys(all).forEach(function (k) { n += k.length + String(all[k]).length; }); return n; }
+// 처리 끝난 지 10일 지난 주문(새 발주 제외)과 40일 지난 모든 주문은 드라이브 월별 파일로 옮김 · 하루 한 번 백업
+function maint_(force) { var last = Number(props_().getProperty('mt:last') || 0); if (!force && Date.now() - last < 6 * 3600e3) return null; props_().setProperty('mt:last', String(Date.now()));
+  var lk = LockService.getScriptLock(); if (!lk.tryLock(5000)) return null; var moved = 0;
+  try { var all = props_().getProperties(), dir = subDir_('주문 보관'), byM = {};
+    Object.keys(all).forEach(function (k) { if (k.indexOf(ORD_) !== 0 || k === 'ord:notices') return; var o; try { o = JSON.parse(all[k]); } catch (e) { return; } if (!o || !o.id || !o.tok) return;
+      var age = Date.now() - new Date(o.doneAt || o.at).getTime(), old = Date.now() - new Date(o.at).getTime();
+      if ((o.status !== 'new' && age > 10 * 86400e3) || old > 40 * 86400e3) { var m = String(o.at).slice(0, 7); (byM[m] = byM[m] || []).push([k, o]); } });
+    Object.keys(byM).forEach(function (m) { var nm = 'orders_' + m + '.json', fj = fileJson_(dir, nm, []), ids = {}; fj.data.forEach(function (o) { ids[o.id] = 1; });
+      byM[m].forEach(function (x) { if (!ids[x[1].id]) fj.data.push(x[1]); }); fileSave_(dir, nm, fj.file, fj.data); byM[m].forEach(function (x) { props_().deleteProperty(x[0]); moved++; }); });
+    var day = ymdK_(); if (props_().getProperty('bk:last') !== day) { var bd = subDir_('백업'), snap = {}; all = props_().getProperties(); Object.keys(all).forEach(function (k) { if (k !== 'API_KEY' && k !== 'GH_TOKEN') snap[k] = all[k]; });
+      bd.createFile('relay_backup_' + day + '.json', JSON.stringify({ at: new Date().toISOString(), props: snap }), 'application/json'); props_().setProperty('bk:last', day);
+      var fs = bd.getFiles(), list = []; while (fs.hasNext()) { var f = fs.next(); if (/^relay_backup_/.test(f.getName())) list.push(f); } list.sort(function (a, b) { return a.getName() < b.getName() ? 1 : -1; }); list.slice(14).forEach(function (f) { f.setTrashed(true); }); }
+  } finally { lk.releaseLock(); } return { moved: moved }; }
+function alertNew_(o) { if (props_().getProperty('ALERT_OFF') === '1') return; var to = alertTo_(); if (!to) return;
+  try { var n = o.lines.reduce(function (t, l) { return t + l[2]; }, 0);
+    MailApp.sendEmail({ to: to, subject: '[빵을그리다] 새 발주 — ' + o.name + ' · 배송 ' + o.ship + ' · ' + o.lines.length + '품목 ' + n + '개', name: '빵을그리다 주문서',
+      body: o.name + ' 새 발주\n배송일: ' + o.ship + (o.who ? '\n주문자: ' + o.who : '') + '\n\n' + o.lines.map(function (l) { return '· ' + l[1] + '  ' + l[2] + (l[3] === 's' ? ' (샘플)' : l[3] === 'c' ? ' (추가)' : ''); }).join('\n') + (o.memo ? '\n\n요청사항: ' + o.memo : '') + '\n\n통합 재고관리 → 판매 입력 → 발주 접수에서 확인하세요.' }); } catch (e) {} }
 // 드라이브 권한 받기 — 편집기에서 이 함수를 골라 ▷실행 하고 「허용」을 누르면 사진·단가표 가져오기가 됩니다
 // GitHub 열쇠 확인 — 편집기에서 ▷실행 (처음엔 외부 연결 권한 허용)
 function checkGithub() { var t = props_().getProperty('GH_TOKEN'); if (!t) { Logger.log('GH_TOKEN 이 없습니다 — 프로젝트 설정 › 스크립트 속성에 넣어 주세요'); return; }
@@ -55,7 +87,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 4.2 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.0 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -113,7 +145,8 @@ function shipOk_(f, ship) {
   return Date.now() < dl && d.getTime() - Date.now() < 45 * 86400000;
 }
 function ordList_(filter) { var all = props_().getProperties(), out = [], cut = Date.now() - ORD_KEEP_DAYS_ * 86400000;
-  Object.keys(all).forEach(function (k) { if (k.indexOf(ORD_) !== 0) return; var o; try { o = JSON.parse(all[k]); } catch (e) { props_().deleteProperty(k); return; }
+  Object.keys(all).forEach(function (k) { if (k.indexOf(ORD_) !== 0 || k === 'ord:notices') return; var o; try { o = JSON.parse(all[k]); } catch (e) { props_().deleteProperty(k); return; }
+    if (!o || !o.id || !o.tok) return;   // 주문이 아닌 값(안내 등)은 건드리지 않음
     if (new Date(o.at).getTime() < cut) { props_().deleteProperty(k); return; } if (!filter || filter(o)) out.push(o); });
   return out.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); }); }
 var IMG_MAP_ = 'oimg:map', IMG_DIR_ = 'oimg:folder';
@@ -162,8 +195,8 @@ function handle_(req) {
       var today = ymdK_(), nToday = ordList_(function (o) { return o.tok === t2 && ymdK_(new Date(o.at)) === today; }).length; if (nToday >= 30) return { ok: false, error: '오늘 주문이 너무 많습니다 — 빵을그리다에 문의해 주세요' };
       var o2 = { id: oid, tok: t2, cust: f2.cust, name: f2.name, at: new Date().toISOString(), ship: String(req.ship), memo: String(req.memo || '').slice(0, 300), who: String(req.who || '').slice(0, 30), lines: lines, status: 'new' };
       props_().setProperty(ORD_ + oid, JSON.stringify(o2));
-      return { ok: true, order: ordView_(o2) };
-    } finally { lk2.releaseLock(); } }
+    } finally { lk2.releaseLock(); }
+    alertNew_(o2); return { ok: true, order: ordView_(o2) }; }
   var key = props_().getProperty('API_KEY');
   if (!key) return { ok: false, error: '중계의 스크립트 속성 API_KEY가 비어 있습니다' };
   if (req.key !== key) return { ok: false, error: '열쇠가 맞지 않습니다 — 「공유 저장소 열쇠 복사」 값을 중계의 API_KEY에 넣었는지 확인하세요' };
@@ -185,7 +218,7 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 4.2, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 5.0, agentSeen: agentSeen_(), agentVer: agentVer_() };
   // v3.4: 주문 링크 관리 (통합재고관리)
   if (req.action === 'putOrderForm') { var t3 = tok_(req.t), f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
     var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3]), /^\d{4}-\d{2}-\d{2}$/.test(it[4] || '') ? it[4] : '']; }),
@@ -225,6 +258,19 @@ function handle_(req) {
         f10.setDescription('거래명세표 · ' + String(o10.name || '').slice(0, 60)); try { f10.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { f10.setTrashed(true); return { ok: false, error: '드라이브가 링크 공유를 막았습니다: ' + e.message }; }
         o10.reply.img = f10.getId(); }
       o10.reply.at = new Date().toISOString(); props_().setProperty(ORD_ + o10.id, JSON.stringify(o10)); return { ok: true, img: o10.reply.img || '' }; } finally { lk10.releaseLock(); } }
+  // v5.0: 알림 메일 설정 · 지금 정리 · 판매 기록/설정 함께 쓰기
+  if (req.action === 'setAlert') { if (req.email != null) { var em = String(req.email).trim(); if (em && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return { ok: false, error: '메일 주소가 올바르지 않습니다' }; if (em) props_().setProperty('ALERT_EMAIL', em.slice(0, 80)); else props_().deleteProperty('ALERT_EMAIL'); }
+    if (req.off != null) { if (req.off) props_().setProperty('ALERT_OFF', '1'); else props_().deleteProperty('ALERT_OFF'); } return { ok: true, to: alertTo_(), off: props_().getProperty('ALERT_OFF') === '1' }; }
+  if (req.action === 'maintNow') { var r5 = maint_(true); return { ok: true, moved: r5 ? r5.moved : 0, use: propsUse_(), limit: 500000 }; }
+  if (req.action === 'saleCfgGet') { return { ok: true, cfg: JSON.parse(props_().getProperty('cfg2:sale') || 'null') }; }
+  if (req.action === 'saleCfgPut') { var c5 = req.cfg || {}, keep5 = { at: new Date().toISOString() }; ['mode', 'wh', 'emp', 'odField', 'kakaoKey'].forEach(function (k) { if (c5[k] != null) keep5[k] = String(c5[k]).slice(0, 80); }); props_().setProperty('cfg2:sale', JSON.stringify(keep5)); return { ok: true, cfg: keep5 }; }
+  if (req.action === 'saleLogSync') { var lk5 = LockService.getScriptLock(); lk5.waitLock(20000);
+    try { var sd = dataDir_(), fj5 = fileJson_(sd, '판매기록.json', { entries: {} }), E = fj5.data.entries || {}, ch = false, cut5 = new Date(Date.now() - 400 * 86400e3).toISOString();
+      (req.put || []).slice(0, 500).forEach(function (en) { if (!en || !en.id) return; var id = String(en.id).slice(0, 40), cur = E[id]; if (!cur || String(en.upd || '') > String(cur.upd || '')) { E[id] = en; ch = true; } });
+      Object.keys(E).forEach(function (id) { if (String(E[id].upd || E[id].ts || '') < cut5) { delete E[id]; ch = true; } });
+      if (ch) { fj5.data.entries = E; fj5.data.at = new Date().toISOString(); fileSave_(sd, '판매기록.json', fj5.file, fj5.data); }
+      var since = String(req.since || ''), out5 = []; Object.keys(E).forEach(function (id) { if (!since || String(E[id].upd || '') > since) out5.push(E[id]); });
+      return { ok: true, entries: out5, now: new Date().toISOString() }; } finally { lk5.releaseLock(); } }
   // v4.2: 주문서 빠른 열기 — 여러 링크의 주문서 내용(주문 기록 빼고)을 한 번에, 그리고 암호화된 파일을 GitHub에 한 번에 올림
   if (req.action === 'formSnaps') { var im9 = imgMap_(), cp9 = catPublic_(catGet_(), im9), nt9 = noticesLive_(im9), out9 = {};
     (req.ts || []).slice(0, 300).forEach(function (t) { var tk = tok_(t), v = tk && props_().getProperty(ORDF_ + tk); if (!v) { out9[t] = null; return; } var f = JSON.parse(v); out9[t] = f.on === false ? null : formOut_(f, im9, cp9, nt9); });
@@ -247,8 +293,8 @@ function handle_(req) {
   if (req.action === 'listOrderForms') { var af = props_().getProperties(), lf = [];
     Object.keys(af).forEach(function (k) { if (k.indexOf(ORDF_) !== 0) return; try { var f = JSON.parse(af[k]); lf.push({ t: k.slice(ORDF_.length), cust: f.cust, name: f.name, on: f.on !== false, at: f.at, n: (f.items || []).length, codes: (f.items || []).map(function (it) { return it[0]; }), days: f.days, cut: f.cut, lead: f.lead, price: !!f.price }); } catch (e) {} });
     return { ok: true, forms: lf }; }
-  if (req.action === 'orders') { var since = Date.now() - Math.min(45, Math.max(1, Number(req.days) || 14)) * 86400000;
-    return { ok: true, orders: ordList_(function (o) { return o.status === 'new' || new Date(o.at).getTime() >= since; }).slice(0, 200).map(function (o) { var v = ordView_(o); v.cust = o.cust; v.name = o.name; v.tok = o.tok; v.who = o.who || ''; return v; }) }; }
+  if (req.action === 'orders') { var since = Date.now() - Math.min(45, Math.max(1, Number(req.days) || 14)) * 86400000; var mt = null; try { mt = maint_(false); } catch (e) {}
+    return { ok: true, use: propsUse_(), limit: 500000, moved: mt ? mt.moved : 0, alert: { to: alertTo_(), off: props_().getProperty('ALERT_OFF') === '1' }, orders: ordList_(function (o) { return o.status === 'new' || new Date(o.at).getTime() >= since; }).slice(0, 200).map(function (o) { var v = ordView_(o); v.cust = o.cust; v.name = o.name; v.tok = o.tok; v.who = o.who || ''; return v; }) }; }
   if (req.action === 'orderDone') { var lk3 = LockService.getScriptLock(); lk3.waitLock(10000);
     try { var ov = props_().getProperty(ORD_ + String(req.id || '')); if (!ov) return { ok: false, error: '없는 주문입니다' }; var o3 = JSON.parse(ov);
       if (req.status) o3.status = String(req.status).slice(0, 12); if (req.slip != null) o3.slip = String(req.slip).slice(0, 60); if (req.note != null) o3.note = String(req.note).slice(0, 200); if (req.reply) o3.reply = reply_(o3.reply, req.reply);
