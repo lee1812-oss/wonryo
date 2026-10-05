@@ -53,3 +53,10 @@
 - 주문서 맨 위 「📲 바탕화면에 앱 설치」 배너(✕ 누르면 7일 숨김, 설치하면 안 보임): 안드로이드 크롬 = 설치 창(beforeinstallprompt), 카카오톡 안 = `kakaotalk://web/openExternal?url=`로 다른 브라우저, 아이폰 = 사파리 공유 → 홈 화면에 추가 안내(아이폰은 manifest를 안 넣어 #t= 주소째로 저장), 삼성 인터넷 = ≡ → 현재 페이지 추가.
 - 관리 앱(v200): manifest.webmanifest 아이콘을 admin_192/512/maskable/apple.png(남색 바탕·크루아상·「빵을그리다」·「관리」)로, short_name 「빵을그리다 관리」. 설치 안내 그림은 대화에서 만들어 전달(저장소에 없음).
 - 플레이스토어 등록(검색 노출)은 이 웹앱을 PWABuilder로 포장 — 개발자 계정 25달러, 개인 계정은 테스터 12명·14일(회사 계정은 D-U-N-S), 도메인 루트의 assetlinks 필요(도메인 구매 후).
+
+## 중계 5.4 (v204) — 사고 예방 묶음
+- autoRun(1시간마다, setupAll → setupTriggers가 예약): 정기 주문 만들기(repeatGen_)·정리/백업(maint_)·미확인 발주 메일(remind_: 들어온 지 2시간 o.rm1, 배송 오늘·내일 o.rm2). 결과는 trig:last → 앱 운영 상태 「✓ 자동 실행」.
+- 예약에는 appsscript.json oauthScopes 에 `https://www.googleapis.com/auth/script.scriptapp` 필요(2026-10-06 추가 안내).
+- 구글 하루 한도 절약: pulse(pl:o·pl:c·adm:last)·대화(cv:chat…)·대화용 링크 확인(fl:토큰)은 CacheService. 링크 저장·멈춤·삭제 때 formLiteDrop_.
+- 주문 줄 [코드, 이름, 수량, 종류, 주문 시점 단가] (단가표 추가 품목은 null, 샘플 0) → 발주 카드 「주문 시점 공급가액」. 거래처 수정 시 이전 내용 o.hist(최근 5개) → 발주 카드 「이력 보기」.
+- 백업에서 되살리기(backupList/backupRestore, confirm '되살리기', 되돌리기 전 상태도 relay_backup_before_restore_*로 남김). 공휴일 불러오기(앱 KR_HOLI 2026~2027 — 해마다 다음 해 추가). 앱은 확인 안 한 발주가 30분 넘으면 30분마다 다시 알림.
