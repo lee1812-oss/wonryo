@@ -102,7 +102,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
 </style>
 </head>
 <body>
-<header class="top"><img src="brand_logo.png" alt="빵을그리다"><div><h1>빵을그리다 주문서</h1><small id="who">불러오는 중…</small></div></header>
+<header class="top"><img src="logo_mark.png" alt="빵을그리다"><div><h1>빵을그리다 주문서</h1><small id="who">불러오는 중…</small></div></header>
 <main id="app"><div class="msg">주문서를 불러오는 중입니다…</div></main>
 <div class="bar" id="bar" hidden><div><div class="sum" id="sum"></div><button class="btn pri" id="go" disabled>주문하기</button></div></div>
 <div class="sheet" id="sheet" hidden><div id="sheetIn"></div></div>
@@ -223,7 +223,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   function loadJs(u) { return new Promise(function (ok, no) { var x = document.createElement('script'); x.src = u; x.onload = ok; x.onerror = function () { no(new Error('PDF 도구를 받지 못했습니다')); }; document.head.appendChild(x); }); }
   var PDF_JS = ['https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'];
   function pdfPages() { var all = Object.keys(CAT).map(function (id) { return CAT[id]; }), pages = [], today = new Date(), td = today.getFullYear() + '.' + (today.getMonth() + 1) + '.' + today.getDate();
-    var head = function (g, n, tot) { return '<div class="pp-h"><img src="brand_logo.png" alt=""><div><b>빵을그리다 ' + esc(g) + ' 단가표</b><span>' + esc(grpDate(g)) + ' · 단가 VAT 별도' + '</span></div><em>☎ 031-762-1533<br>' + n + ' / ' + tot + '</em></div>'; };
+    var head = function (g, n, tot) { return '<div class="pp-h"><img src="logo_mark.png" alt=""><div><b>빵을그리다 ' + esc(g) + ' 단가표</b><span>' + esc(grpDate(g)) + ' · 단가 VAT 별도' + '</span></div><em>☎ 031-762-1533<br>' + n + ' / ' + tot + '</em></div>'; };
     var foot = '<div class="pp-f">빵을 그리다 주식회사 · 받은 날 ' + td + ' · 단가는 VAT 별도 단가표 기준이며 거래처마다 다를 수 있습니다</div>';
     catGroups().forEach(function (g) { var G = all.filter(function (c) { return c.grp === g; });
       if (G.filter(hasPic).length >= G.length / 2) { for (var i = 0, n = Math.ceil(G.length / 16); i < n; i++) pages.push({ g: g, html: '<div class="pp-g">' + G.slice(i * 16, i * 16 + 16).map(function (c) { var src = /^F\d+$/.test(c.id) ? 'cat/' + c.id + '.jpg' : '';
