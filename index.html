@@ -1272,8 +1272,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '218';
-const APP_BUILT = '2026-10-06 13:41';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '219';
+const APP_BUILT = '2026-10-06 16:09';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -2443,7 +2443,7 @@ function prodHoldUntil(date) { const c = prodS().cfg; if (c.batch === false) ret
   const ms = Date.parse(`${date}T${t}:00+09:00`); return isFinite(ms) && ms > Date.now() ? ms : 0; }
 function prodHoldText(en) { if (!(en.holdUntil > Date.now())) return ''; const d = new Date(en.holdUntil); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
 /* v172: 머리글에 중계(구글 Apps Script) 버전 — 저장소의 ecount_relay.gs보다 낮으면 「새 버전 배포 필요」 */
-const RELAY_WANT = 5.6;
+const RELAY_WANT = 5.7;
 async function hdrRelayVer() { const hv = document.getElementById('hVer'); if (!hv) return; const base = `v${APP_VER} · ${APP_BUILT} 업데이트`;
   try { if (!String(prodS().cfg.relayUrl || '').trim() || !prodKey()) return false; const r = await prodRelayCall({ action: 'ping' }); const v = r && r.ok ? Number(r.version) || 0 : 0; if (!v) return false;
     hv.innerHTML = `${esc(base)} · <b class="${v >= RELAY_WANT ? 'rv-ok' : 'rv-old'}">중계 ${v.toFixed(1)}${v >= RELAY_WANT ? '' : ` → ${RELAY_WANT.toFixed(1)} 배포 필요`}</b>`; if (!saleUi.bootPoll) { saleUi.bootPoll = true; try { saleOrdPoll(); saleSyncSoon(1500); } catch (e) {} }
@@ -5485,6 +5485,15 @@ function saleKNorm(s) {
 function saleDice(a, b) { if (!a || !b) return 0; if (a === b) return 1; const bg = s => { const m = new Map(); for (let i = 0; i < s.length - 1; i++) { const g = s.slice(i, i + 2); m.set(g, (m.get(g) || 0) + 1); } return m; };
   const A = bg(a), B = bg(b); let n = 0; A.forEach((v, k) => { n += Math.min(v, B.get(k) || 0); }); const t = Math.max(1, a.length - 1 + b.length - 1); let s = 2 * n / t;
   if (a.length >= 2 && (b.includes(a) || a.includes(b))) s = Math.max(s, 0.55 + 0.4 * Math.min(a.length, b.length) / Math.max(a.length, b.length)); return Math.min(1, s); }
+/* v219: 자모(ㄱㅏㄴ…) 단위 비교 — 손글씨를 잘못 읽은 글자(깐모소→맘모스)도 비슷한 품목으로. 모양이 닮은 자모는 덜 다르게 셈 */
+const SALE_JSIM = ['ㄴㅁㅇㄹ', 'ㄱㅋㄲ', 'ㄷㅌㄸ', 'ㅂㅍㅃ', 'ㅅㅈㅊㅆㅉ', 'ㅏㅑㅓㅕ', 'ㅗㅛㅜㅠㅡ', 'ㅐㅔㅒㅖ', 'ㅣㅡ'];
+function saleJamo(s) { const C = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ', V = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ', J = ['', 'ㄱ', 'ㄲ', 'ㄱㅅ', 'ㄴ', 'ㄴㅈ', 'ㄴㅎ', 'ㄷ', 'ㄹ', 'ㄹㄱ', 'ㄹㅁ', 'ㄹㅂ', 'ㄹㅅ', 'ㄹㅌ', 'ㄹㅍ', 'ㄹㅎ', 'ㅁ', 'ㅂ', 'ㅂㅅ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+  let o = ''; for (const ch of String(s || '')) { const k = ch.charCodeAt(0) - 0xAC00; if (k >= 0 && k < 11172) o += C[Math.floor(k / 588)] + V[Math.floor((k % 588) / 28)] + J[k % 28]; else if (/[a-z0-9]/.test(ch)) o += ch; } return o; }
+function saleJSub(a, b) { if (a === b) return 0; return SALE_JSIM.some(g => g.includes(a) && g.includes(b)) ? 0.5 : 1; }
+function saleJSim(key, name) {   /* 이름 안 어디든 key가 들어맞는 가장 가까운 자리 (앞뒤 남는 글자는 셈하지 않음) → 0~1 */
+  const a = saleJamo(key), b = saleJamo(name); if (a.length < 5 || !b) return 0; let prev = new Array(b.length + 1).fill(0), cur;
+  for (let i = 1; i <= a.length; i++) { cur = [i]; for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + saleJSub(a[i - 1], b[j - 1])); prev = cur; }
+  return Math.max(0, 1 - Math.min(...prev) / a.length); }
 function saleKQty(seg) {   /* 끝쪽의 「숫자+단위」 우선, 없으면 끝의 맨숫자, 한글 수(열 박스 등)도 */
   const re = new RegExp(`(\\d+)\\s*(${SALE_KUNIT})?(?![0-9a-z가-힣]*(g|ml|mm)\\b)`, 'gi'); let m, best = null, bare = null;
   while ((m = re.exec(seg))) { const after = seg.slice(m.index + m[0].length, m.index + m[0].length + 2); if (/^\s*[*x×]/i.test(after) || /^(g|ml|mm|cm|kg)/i.test(seg.slice(m.index + m[1].length).trim()) && !m[2]) continue;
@@ -5530,11 +5539,12 @@ function saleKParse(text, cust0, base, force) {
     if (!q || key.length < 2) { out.skip.push(seg); return; }
     let cands = [];
     if (alias[key] && X.items[alias[key]]) cands.push({ code: alias[key], s: 2, base: 1, why: '기억' });   /* 기억한 표현은 항상 맨 앞 */
-    pool.forEach(c => { if (cands.some(x => x.code === c)) return; const base = saleDice(key, saleKNorm(saleItemName(c))); if (base < 0.3) return; const y = cu && cu.items[c], g = ix.I[c];
+    Object.keys(X.alias || {}).forEach(oc => { const ac = (X.alias[oc] || {})[key]; if (oc !== out.cust && ac && X.items[ac] && !cands.some(x => x.code === ac)) cands.push({ code: ac, s: 1.3, base: 0.9, why: '다른 거래처 기억' }); });   /* v219 */
+    pool.forEach(c => { if (cands.some(x => x.code === c)) return; const nmK = saleKNorm(saleItemName(c)), dz = saleDice(key, nmK), jz = saleJSim(key, nmK), base = Math.max(dz, jz * 0.85); if (base < 0.3) return; const y = cu && cu.items[c], g = ix.I[c];   /* v219: 음절 + 자모 */
       const s = base + (y && y.n > 0 ? 0.12 + 0.14 * Math.min(1, (y.n90 || 0) / 8 + y.n / 60) : 0) + 0.03 * Math.min(1, ((g && g.n) || 0) / 150);   /* 이 거래처가 자주 산 품목일수록 앞으로 */
       cands.push({ code: c, s: Math.min(1.25, s), base }); });
     cands.sort((a, b2) => b2.s - a.s); cands = cands.slice(0, 6);
-    const top = cands[0], second = cands[1]; const sure = !!top && (top.why === '기억' || ((top.base || 0) >= 0.6 && (!second || top.s - second.s >= 0.1)));
+    const top = cands[0], second = cands[1]; const sure = !!top && top.why === '기억';   /* v219: 기억한 표현만 확실 — 나머지는 비슷한 품목으로 골라 두고 꼭 확인받음 */
     const nm = top ? saleItemName(top.code) : '', boxy = /box|박스|봉|bx/i.test(nm), unitWarn = top && q.unit && /^(개|ea)$/i.test(q.unit) && (boxy || /\d+\s*ea\b|\d+개\//i.test(nm));   /* 「개」로 썼는데 묶음 품목이면 낱개인지 확인 */
     out.lines.push({ src: seg, key, q: q.q, unit: q.unit || '', cands, code: top && top.s >= 0.4 ? top.code : '', sure, unitWarn });
   });
@@ -5552,9 +5562,31 @@ async function salePrepImg(file) {   /* 작은 캡처는 2배로, 어두운 화�
   for (let i = 0; i < d.length; i += 4) { const v = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]; d[i] = v; sum += v; } const inv = sum / (d.length / 4) < 110;
   for (let i = 0; i < d.length; i += 4) { let v = d[i]; if (inv) v = 255 - v; v = v > 150 ? 255 : 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } g.putImageData(im, 0, 0); return c;
 }
+/* v219: 기억한 표현(거래처별 「이렇게 쓰면 이 품목」)을 중계에 모아 모든 PC가 같이 씀 */
+async function saleAliasPull() { if (saleUi.alPulled || !String(prodS().cfg.relayUrl || '').trim() || !prodKey()) return; saleUi.alPulled = true;
+  try { const r = await prodRelayCall({ action: 'aliasAll' }); if (!r || !r.ok) return; const X = saleS(); X.alias = X.alias || {}; let up = {};
+    Object.keys(r.alias || {}).forEach(c => { const A = X.alias[c] = X.alias[c] || {}; Object.assign(A, r.alias[c]); });
+    Object.keys(X.alias).forEach(c => { const R = (r.alias || {})[c] || {}, miss = {}; Object.keys(X.alias[c]).forEach(k => { if (!(k in R)) miss[k] = X.alias[c][k]; }); if (Object.keys(miss).length) up[c] = miss; });
+    saleSave(); Object.keys(up).slice(0, 30).forEach(c => saleAliasPush(c, up[c])); } catch (e) { saleUi.alPulled = false; } }
+function saleAliasPush(c, add) { if (!String(prodS().cfg.relayUrl || '').trim() || !prodKey()) return; prodRelayCall({ action: 'aliasPut', cust: c, add }).catch(() => {}); }
+/* v219: 사진(손글씨 발주서·캡처)을 AI로 읽기 — 중계 스크립트 속성 ANTHROPIC_KEY 가 있을 때. 없으면 예전처럼 이 PC에서 글자 읽기(Tesseract) */
+async function saleImgB64(f, max) { const bm = await createImageBitmap(f), k = Math.min(1, (max || 1600) / Math.max(bm.width, bm.height)), c = document.createElement('canvas'); c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k); c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.85).split(',')[1]; }
+async function saleKAi(files, show) {
+  const X = saleS(), ix = saleIndex(), c0 = saleUi.kForce || X.draft.cust, cu = c0 ? ix.C[c0] : null, seen = new Set(), names = [];
+  const push = code => { const n = saleItemName(code).replace(/^[A-Za-z]{1,4}[._,]\s*/, '').replace(/\s*(\d+\s*(ea|EA|g|G)|BOX|Box|box)\b.*$/, '').trim(); if (n && !seen.has(n)) { seen.add(n); names.push(n); } };
+  if (cu) Object.keys(cu.items).forEach(push); Object.keys(ix.I).sort((a, b) => (ix.I[b].n || 0) - (ix.I[a].n || 0)).slice(0, 250).forEach(push);
+  const lines = [], raw = {}; let cust = '';
+  for (let i = 0; i < files.length; i++) { show(`AI가 사진을 읽는 중… (${i + 1}/${files.length}, 10~30초)`);
+    const r = await prodRelayCall({ action: 'readOrderImg', img: await saleImgB64(files[i]), mime: 'image/jpeg', names: names.slice(0, 300) });
+    if (!r || !r.ok) { const e = new Error((r && r.error) || 'AI가 읽지 못했습니다'); e.nokey = !!(r && r.nokey) || /알 수 없는 요청/.test((r && r.error) || ''); throw e; }
+    if (r.cust && !cust) cust = r.cust; (r.lines || []).forEach(l => { const t = `${l.name} ${l.qty}${l.unit || '박스'}`; lines.push(t); if (l.raw && l.raw !== l.name) raw[t] = l.raw; }); }
+  saleUi.kRaw = Object.assign(saleUi.kRaw || {}, raw); return (cust ? cust + '\n' : '') + lines.join('\n'); }
 async function saleKImages(files) {
   files = [...files].filter(f => /^image\//.test(f.type)).slice(0, 6); if (!files.length) return;
   const show = t => { const el = $('#kOcr'); if (el) el.textContent = t; };
+  if (!saleUi.aiOff) { try { for (const f of files) { try { const t = document.createElement('canvas'), bm = await createImageBitmap(f), k = Math.min(1, 160 / bm.width); t.width = bm.width * k; t.height = bm.height * k; t.getContext('2d').drawImage(bm, 0, 0, t.width, t.height); (saleUi.kImgs = saleUi.kImgs || []).push(t.toDataURL('image/jpeg', 0.7)); } catch (e) {} }
+      const txt = await saleKAi(files, show), ta = $('#kTxt'); saleUi.kTxt = ((ta ? ta.value : saleUi.kTxt || '').trim() + '\n' + txt).trim(); saleKOpen(); toast('AI가 사진을 읽었습니다 — 노란 줄은 품목이 맞는지 꼭 확인하세요'); return; }
+    catch (e) { if (!e.nokey) { show('⚠ ' + e.message); return; } saleUi.aiOff = true; saleUi.kImgs = []; toast('AI 읽기가 설정되지 않아 이 PC에서 글자를 읽습니다 (손글씨는 잘 못 읽음)'); } }
   saleUi.kImgs = saleUi.kImgs || []; show('글자 읽는 중… (처음 한 번은 한글 자료를 받느라 10~20초 걸립니다)');
   saleOcrP = m => { if (m && m.status === 'recognizing text') show(`글자 읽는 중… ${Math.round((m.progress || 0) * 100)}%`); };
   try { const w = await saleOcrWorker(); const outs = [];
@@ -5564,22 +5596,23 @@ async function saleKImages(files) {
   } catch (e) { show('⚠ ' + e.message); } finally { saleOcrP = null; }
 }
 function saleKOpen(text) {
-  const X = saleS(), D = X.draft; if (text != null) { saleUi.kTxt = text; saleUi.kForce = ''; saleUi.kImgs = []; } else saleUi.kTxt = saleUi.kTxt || '';
+  const X = saleS(), D = X.draft; if (text != null) { saleUi.kTxt = text; saleUi.kForce = ''; saleUi.kImgs = []; saleUi.kRaw = {}; } else saleUi.kTxt = saleUi.kTxt || '';
+  if (!saleUi.alPulled) saleAliasPull().then(() => { const m = $('#swM'); if (m && !m.hidden && $('#kTxt')) { saleUi.kTxt = $('#kTxt').value; saleKOpen(); } });
   const P = saleKParse(saleUi.kTxt, saleUi.kForce || D.cust, D.date, !!saleUi.kForce); saleUi.kP = P;
   const custOpts = (() => { const ix = saleIndex(), L = Object.keys(X.cust).map(c => ({ c, n: X.cust[c][0], x: (ix.C[c] || {}).n90 || 0 })).sort((a, b) => b.x - a.x || a.n.localeCompare(b.n, 'ko')); return `<option value="">— 거래처 고르기 —</option>` + L.map(o => `<option value="${esc(o.c)}"${o.c === P.cust ? ' selected' : ''}>${esc(o.n)}</option>`).join(''); })();
-  const opt = l => `<option value="">— 빼기 —</option>` + l.cands.map(c => `<option value="${esc(c.code)}"${c.code === l.code ? ' selected' : ''}>${esc(saleItemName(c.code))} (${esc(c.code)})${c.why ? ' · 기억' : ` · ${Math.round(Math.min(1, c.base || c.s) * 100)}%`}${(() => { const cu2 = saleIndex().C[saleUi.kP && saleUi.kP.cust]; const y = cu2 && cu2.items[c.code]; return y && y.n ? ` · 이 거래처 ${y.n}회` : ''; })()}</option>`).join('') + (l.code && !l.cands.some(c => c.code === l.code) ? `<option value="${esc(l.code)}" selected>${esc(saleItemName(l.code))}</option>` : '');
-  const okN = P.lines.filter(l => l.code).length;
-  saleModal(`<h3>📋 카톡 주문 붙여넣기</h3>
+  const opt = l => `<option value="">— 빼기 —</option>` + l.cands.map(c => `<option value="${esc(c.code)}"${c.code === l.code ? ' selected' : ''}>${esc(saleItemName(c.code))} (${esc(c.code)})${c.why ? ' · ' + c.why : ` · ${Math.round(Math.min(1, c.base || c.s) * 100)}%`}${(() => { const cu2 = saleIndex().C[saleUi.kP && saleUi.kP.cust]; const y = cu2 && cu2.items[c.code]; return y && y.n ? ` · 이 거래처 ${y.n}회` : ''; })()}</option>`).join('') + (l.code && !l.cands.some(c => c.code === l.code) ? `<option value="${esc(l.code)}" selected>${esc(saleItemName(l.code))}</option>` : '');
+  const okN = P.lines.filter(l => l.code).length, needN = () => P.lines.filter(l => l.code && !(l.sure && !l.unitWarn) && !l.ok).length;   /* v219: 비슷한 품목으로 고른 줄은 「맞아요」를 눌러야 담김 */
+  saleModal(`<h3>📋 카톡·사진 주문 넣기</h3>
     <div class="sk-in"><textarea class="sk-t" id="kTxt" rows="5" placeholder="카톡 주문 글을 붙여넣거나, 카톡 캡처 이미지를 붙여넣기(Ctrl+V)·끌어 놓기 하세요">${esc(saleUi.kTxt)}</textarea>${(saleUi.kImgs || []).length ? `<div class="sk-imgs">${saleUi.kImgs.map(u => `<img src="${u}" alt="캡처">`).join('')}</div>` : ''}</div>
-    <div class="sk-row"><label class="btn sm">🖼 캡처 이미지<input type="file" id="kImg" accept="image/*" multiple hidden></label><button type="button" class="btn sm" id="kRe">다시 읽기</button><span class="muted" id="kOcr" style="font-size:12px"></span></div>
+    <div class="sk-row"><label class="btn sm">📷 사진·캡처 (손글씨 발주서도)<input type="file" id="kImg" accept="image/*" multiple hidden></label><button type="button" class="btn sm" id="kRe">다시 읽기</button><span class="muted" id="kOcr" style="font-size:12px"></span></div>
     <div class="sk-row">${P.sender ? `<span class="sk-who" title="카톡 보낸 사람">💬 ${esc(P.sender)}</span>` : ''}
       <label>거래처 <select id="kCust">${custOpts}</select></label>${P.custWhy ? `<span class="tg ok">${esc(P.custWhy)}</span>` : ''}
       <label>배송일 <input type="date" id="kShip" value="${esc(P.ship || D.ship || D.date)}"></label>${P.ship ? '<span class="tg ok">글에서 찾음</span>' : ''}</div>
-    ${P.lines.length ? `<table class="sw-t mt sk-tb"><thead><tr><th>카톡 글</th><th>품목 (이카운트)</th><th class="r">수량</th><th></th></tr></thead><tbody>${P.lines.map((l, i) => `<tr class="${l.code ? (l.sure && !l.unitWarn ? '' : 'chk') : 'no'}"><td class="sk-src">${esc(l.src)}</td><td><select data-ki="${i}">${opt(l)}</select></td><td class="r"><input class="sk-q" inputmode="numeric" data-kq="${i}" value="${l.q}"></td><td>${!l.code ? '<i class="tg bad">못 찾음</i>' : l.unitWarn ? `<i class="tg due">단위 확인 (${esc(l.unit)})</i>` : l.sure ? '<i class="tg ok">확실</i>' : '<i class="tg due">확인</i>'}</td></tr>`).join('')}</tbody></table>`
+    ${P.lines.length ? `<table class="sw-t mt sk-tb"><thead><tr><th>카톡 글</th><th>품목 (이카운트)</th><th class="r">수량</th><th></th></tr></thead><tbody>${P.lines.map((l, i) => `<tr class="${l.code ? (l.sure && !l.unitWarn ? '' : 'chk') : 'no'}"><td class="sk-src">${esc(l.src)}${(saleUi.kRaw || {})[l.src] ? `<br><small class="muted">손글씨: ${esc(saleUi.kRaw[l.src])}</small>` : ''}</td><td><select data-ki="${i}">${opt(l)}</select></td><td class="r"><input class="sk-q" inputmode="numeric" data-kq="${i}" value="${l.q}"></td><td>${!l.code ? '<i class="tg bad">못 찾음</i>' : l.sure && !l.unitWarn ? '<i class="tg ok">기억</i>' : `<button type="button" class="btn xs sk-ok" data-kok="${i}" title="고른 품목이 맞으면 눌러 주세요 — 이 거래처의 이 표현을 기억합니다">${l.unitWarn ? `단위(${esc(l.unit)}) 확인 ✓` : '맞아요 ✓'}</button>`}</td></tr>`).join('')}</tbody></table>`
       : `<div class="sw-empty">${saleUi.kTxt ? '수량이 있는 줄을 찾지 못했습니다. 「몽블랑 10박스」처럼 품목과 수량이 있어야 합니다.' : '붙여넣은 글이 없습니다.'}</div>`}
     ${P.skip.length ? `<div class="sk-skip">품목으로 보지 않은 글: ${P.skip.map(s => `<span>${esc(s)}</span>`).join('')}</div>` : ''}
-    <div class="muted" style="font-size:11.5px;margin-top:6px">노란 줄은 확인이 필요합니다. 품목을 바꿔 고르면 이 거래처의 같은 표현은 다음부터 그 품목으로 기억합니다.</div>
-    <div class="sw-ma"><button type="button" class="btn" data-mclose>취소 <small>Esc</small></button><button type="button" class="btn primary" id="kOk"${okN && P.cust ? '' : ' disabled'}>주문서에 담기 (${okN}품목)</button></div>`);
+    <div class="muted" style="font-size:11.5px;margin-top:6px">⚠ 노란 줄은 글자가 비슷한 품목으로 골라 둔 것입니다 — <b>품목이 맞는지 꼭 확인</b>하고 「맞아요 ✓」를 누르거나 다른 품목을 고르세요. 확인한 표현은 이 거래처 것으로 기억해 다음부터 바로 맞춥니다(다른 PC와도 공유).</div>
+    <div class="sw-ma"><button type="button" class="btn" data-mclose>취소 <small>Esc</small></button><button type="button" class="btn primary" id="kOk"${okN && P.cust && !needN() ? '' : ' disabled'}>${needN() ? `확인 필요 ${needN()}줄` : `주문서에 담기 (${okN}품목)`}</button></div>`);
   const sync = () => { saleUi.kTxt = $('#kTxt').value; };
   $('#kRe').onclick = () => { sync(); saleKOpen(); };
   $('#kTxt').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sync(); saleKOpen(); } });
@@ -5587,7 +5620,9 @@ function saleKOpen(text) {
   $('#kImg').onchange = e => { sync(); saleKImages(e.target.files); };
   $('#kTxt').addEventListener('paste', e => { const fs = [...((e.clipboardData && e.clipboardData.files) || [])].filter(f => /^image\//.test(f.type)); if (fs.length) { e.preventDefault(); sync(); saleKImages(fs); } });
   const mb = $('#swM .sw-mb'); if (mb) { mb.addEventListener('dragover', e => { e.preventDefault(); mb.classList.add('sk-drag'); }); mb.addEventListener('dragleave', () => mb.classList.remove('sk-drag')); mb.addEventListener('drop', e => { e.preventDefault(); mb.classList.remove('sk-drag'); sync(); saleKImages((e.dataTransfer && e.dataTransfer.files) || []); }); }
-  $$('#swM [data-ki]').forEach(s => s.onchange = () => { const l = P.lines[+s.dataset.ki]; l.code = s.value; l.picked = true; const ok = P.lines.filter(x => x.code).length; const b = $('#kOk'); b.textContent = `주문서에 담기 (${ok}품목)`; b.disabled = !ok || !P.cust; s.closest('tr').className = s.value ? '' : 'no'; });
+  const kBtn = () => { const ok = P.lines.filter(x => x.code).length, nd = needN(), b = $('#kOk'); b.textContent = nd ? `확인 필요 ${nd}줄` : `주문서에 담기 (${ok}품목)`; b.disabled = !ok || !P.cust || nd > 0; };
+  $$('#swM [data-ki]').forEach(s => s.onchange = () => { const l = P.lines[+s.dataset.ki]; l.code = s.value; l.picked = true; l.ok = true; const tr = s.closest('tr'); tr.className = s.value ? '' : 'no'; const kb = tr.querySelector('[data-kok]'); if (kb) kb.outerHTML = s.value ? '<i class="tg ok">확인함</i>' : ''; kBtn(); });
+  $$('#swM [data-kok]').forEach(b => b.onclick = () => { const l = P.lines[+b.dataset.kok]; l.ok = true; b.closest('tr').className = ''; b.outerHTML = '<i class="tg ok">확인함</i>'; kBtn(); });
   $$('#swM [data-kq]').forEach(i => i.oninput = () => { i.value = i.value.replace(/[^\d]/g, ''); P.lines[+i.dataset.kq].q = +i.value || 0; });
   $('#kOk').onclick = () => saleKApply(P);
   setTimeout(() => { const t = $('#kTxt'); if (t && !saleUi.kTxt) t.focus(); }, 0);
@@ -5599,10 +5634,12 @@ function saleKApply(P) {
   const sh = $('#kShip') && $('#kShip').value; if (sh) D.ship = sh;
   if (P.sKey) { X.senders = X.senders || {}; X.senders[P.sKey] = c; }   /* v162: 이 카톡 보낸 사람 = 이 거래처 (다음부터 자동 선택) */
   X.alias = X.alias || {}; const A = X.alias[c] = X.alias[c] || {}; let n = 0;
-  P.lines.forEach(l => { if (!l.code || !(l.q > 0)) return; if (l.picked || !l.sure) A[l.key] = l.code;   /* 사람이 고르거나 확인한 표현은 기억 */
+  const add = {};
+  P.lines.forEach(l => { if (!l.code || !(l.q > 0)) return; if (l.picked || l.ok || !l.sure) { A[l.key] = l.code; add[l.key] = l.code; }   /* 사람이 고르거나 확인한 표현은 기억 */
     let ln = D.lines.find(x => x.code === l.code); if (!ln) { saleAddLine(l.code); ln = D.lines.find(x => x.code === l.code); ln.qty = String(l.q); } else ln.qty = String((Number(ln.qty) || 0) + l.q); n++; });
   if (!D.memo && P.skip.length) { const memo = P.skip.filter(s => /배송|도착|오전|오후|까지|부탁|요망/.test(s)).join(' / ').slice(0, 80); if (memo) D.memo = memo; }
-  saleUi.kTxt = ''; saleUi.kForce = ''; saleUi.kImgs = []; saleUi.rtab = 'slip'; saleUi.step = 's'; saleSave(); saleModal(); renderSale(); toast(`카톡 주문 ${n}품목을 주문서에 담았습니다 — 수량·단가를 확인하세요`);
+  if (Object.keys(add).length) saleAliasPush(c, add);
+  saleUi.kTxt = ''; saleUi.kForce = ''; saleUi.kImgs = []; saleUi.kRaw = {}; saleUi.rtab = 'slip'; saleUi.step = 's'; saleSave(); saleModal(); renderSale(); toast(`카톡 주문 ${n}품목을 주문서에 담았습니다 — 수량·단가를 확인하세요`);
 }
 /* v161: 거래처 주문 링크 · 발주 접수함 — 거래처는 order.html#t=토큰 으로 자기 품목만 보고 주문 → 중계에 쌓임 → 여기서 확인해 주문서로 불러와 이카운트로 */
 const ORDER_PAGE = 'https://lee1812-oss.github.io/wonryo/order.html';
@@ -6279,7 +6316,7 @@ function renderSaleOrd() {
     <div class="sw-dea"><button type="button" class="btn sm primary" data-soload="${esc(o.id)}">주문서로 불러오기</button><button type="button" class="btn sm" data-sorep="${esc(o.id)}">${o.reply ? '회신 고치기' : '확인 회신'}</button><button type="button" class="btn sm" data-soreject="${esc(o.id)}">반려</button><button type="button" class="btn sm" data-sochat="${esc(o.tok)}" title="이 거래처와 대화">💬</button></div></div>`;
   box.innerHTML = `<div class="sl">
   <div class="sw-bar"><div class="sw-ttl"><h2>발주 접수</h2><span class="muted" style="font-size:12px">거래처 주문 링크로 들어온 주문</span></div>
-    <div class="sw-tools"><span class="muted" style="font-size:12px">${saleUi.ordAt ? '확인 ' + esc(hmOf(saleUi.ordAt)) + ' · 1분 30초마다 자동' : ''}</span><button type="button" class="btn sm" id="soMini" title="작은 창으로 띄워 두고 새 발주 확인·거래처와 대화">🪟 발주 알림창${(saleUi.chats || []).some(c => c.un) ? ` <span class="pill warn">💬 ${(saleUi.chats || []).reduce((t, c) => t + (c.un || 0), 0)}</span>` : ''}</button><button type="button" class="btn sm" id="soRe">↻ 새로고침</button><button type="button" class="btn sm primary" id="soNew"${X.rows.length ? '' : ' disabled title="판매현황 자료를 먼저 올려 주세요"'}>＋ 주문 링크 만들기</button></div></div>
+    <div class="sw-tools"><span class="muted" style="font-size:12px">${saleUi.ordAt ? '확인 ' + esc(hmOf(saleUi.ordAt)) + ' · 1분 30초마다 자동' : ''}</span><button type="button" class="btn sm" id="soMini" title="작은 창으로 띄워 두고 새 발주 확인·거래처와 대화">🪟 발주 알림창${(saleUi.chats || []).some(c => c.un) ? ` <span class="pill warn">💬 ${(saleUi.chats || []).reduce((t, c) => t + (c.un || 0), 0)}</span>` : ''}</button><button type="button" class="btn sm" id="soRe">↻ 새로고침</button><button type="button" class="btn sm primary" id="soNew"${X.rows.length ? '' : ' title="이 PC에 판매현황 자료가 없습니다 — 누르면 올리는 곳으로"'}>＋ 주문 링크 만들기</button></div></div>
   ${saleUi.ordErr ? `<div class="card" style="border-color:#E8C98E;background:var(--warn-bg)">⚠ ${esc(saleUi.ordErr)}</div>` : ''}
   ${saleClaimHtml(L)}
   <div class="card"><h2 style="margin:0 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">새 발주 <span class="pill ${nw.length ? 'warn' : ''}">${nw.length}건</span>${nw.length > 1 ? `<span style="margin-left:auto;display:flex;gap:6px;align-items:center;font-size:13px;font-weight:600"><button type="button" class="btn xs" data-soselall="1">${(saleUi.selQ || []).length === nw.length ? '선택 풀기' : '모두 선택'}</button><button type="button" class="btn xs primary" data-soqgo="1"${(saleUi.selQ || []).length ? '' : ' disabled'}>선택한 ${(saleUi.selQ || []).length}건 차례로 이카운트 입력</button></span>` : ''}</h2>
@@ -6304,7 +6341,9 @@ function renderSaleOrd() {
   $$('#saleOrd [data-sosel]').forEach(c => c.onchange = () => { const L2 = saleUi.selQ || []; saleUi.selQ = c.checked ? L2.concat([c.dataset.sosel]) : L2.filter(x => x !== c.dataset.sosel); renderSaleOrd(); });
   $$('#saleOrd [data-clmpic]').forEach(b => b.onclick = () => window.open('https://drive.google.com/file/d/' + encodeURIComponent(b.dataset.clmpic) + '/view', '_blank'));
   $$('#saleOrd [data-sohist]').forEach(b => b.onclick = () => saleHistShow((saleUi.ord || []).find(o => o.id === b.dataset.sohist)));
-  $('#soRe').onclick = () => saleOrdFetch(); $('#soMini').onclick = saleMiniOpen; $('#soNew').onclick = () => saleOrdEditor(null); saleImgBind(box); saleCatBind(box); saleOpsBind(box);
+  $('#soRe').onclick = () => saleOrdFetch(); $('#soMini').onclick = saleMiniOpen; $('#soNew').onclick = () => { if (saleS().rows.length) return saleOrdEditor(null);   /* v219: 자료 없는 PC — 회색으로 막지 않고 올리는 곳으로 안내 */
+    if (!confirm('이 PC에는 아직 이카운트 판매현황 자료가 없어서 거래처·품목을 고를 수 없습니다.\n\n「판매 입력」 화면으로 가서 판매현황 엑셀을 올릴까요?\n(이카운트 → 영업관리 → 판매현황 → 엑셀 받기)')) return;
+    S.ui.prodTab = 'psale'; renderAll(); setTimeout(() => { const f = $('#saleFile'); if (f) f.click(); }, 300); }; saleImgBind(box); saleCatBind(box); saleOpsBind(box);
   { const ps = box.querySelector('.so-ps'); if (ps) { ps.ontoggle = () => { saleUi.psOpen = ps.open; }; const S2 = saleProdSum(L), txt = S2.map(g => g.d + ' 배송 (' + g.n + '곳)\n' + g.items.map(x => (x.s ? '[샘플] ' : '') + x.name + '\t' + x.q).join('\n')).join('\n\n');
     const cp = ps.querySelector('[data-pscopy]'); if (cp) cp.onclick = async e => { e.preventDefault(); try { await navigator.clipboard.writeText(txt); toast('생산 합계를 복사했습니다 — 엑셀·카톡에 붙여넣기'); } catch (er) { prompt('복사하세요', txt); } };
     const pr = ps.querySelector('[data-psprint]'); if (pr) pr.onclick = e => { e.preventDefault(); const w = window.open('', '_blank'); if (!w) return toast('팝업이 막혀 있습니다');
