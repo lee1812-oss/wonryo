@@ -1272,8 +1272,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '211';
-const APP_BUILT = '2026-10-06 12:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '212';
+const APP_BUILT = '2026-10-06 11:20';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -5704,11 +5704,15 @@ async function saleMiniOpen() {
   if (!w) w = window.open('', 'bggd_mini', 'width=390,height=660'); if (!w) return toast('팝업이 막혔습니다 — 주소창 오른쪽 아이콘에서 팝업 허용');
   const d = w.document; d.title = '빵을그리다 발주 알림'; d.head.innerHTML = `<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>빵을그리다 발주 알림</title><style>${MINI_CSS}</style>`;
   saleMini.win = w; saleMini.pip = pip; w.addEventListener('focus', () => { if (Date.now() - (saleMini.focAt || 0) > 4000) { saleMini.focAt = Date.now(); saleOrdFetch(true); } });   /* 알림창을 누르면 바로 새로 확인 */
+  w.addEventListener('resize', () => saleMiniFit(w));
   w.addEventListener('pagehide', () => { saleMini.win = null; saleMini.chat = ''; saleOrdPollRestart(); });
   d.body.onclick = saleMiniClick; d.body.oninput = e => { if (e.target.id === 'mVol') { saleSndSet({ vol: +e.target.value }); } };
   d.body.onchange = e => { const t = e.target; if (t.dataset && t.dataset.mfile) { saleSndPut(t.dataset.mfile, t.files[0], w).then(() => saleMiniRender()); return; } if (t.id === 'mSo') { saleSndSet({ ord: t.value }); saleSound('ord'); } if (t.id === 'mSm') { saleSndSet({ msg: t.value }); saleSound('msg'); } if (t.id === 'mRep') saleSndSet({ rep: +t.value }); if (t.id === 'mNew' && t.value) saleMiniChat(t.value); if (t.dataset.mqi != null) { const L = saleQr(); if (t.value.trim()) L[+t.dataset.mqi] = t.value.trim(); else L.splice(+t.dataset.mqi, 1); saleQrSet(L); } };
   d.body.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing && (e.target.id === 'mQn' || e.target.dataset.mqi != null)) { e.preventDefault(); if (e.target.id === 'mQn') d.querySelector('[data-mqadd]').click(); else e.target.blur(); return; } if (e.target.id === 'mIn' && e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); saleMiniSend(); } };
   saleMiniRender(); saleOrdPollRestart(); saleOrdFetch(true); }
+/* v212: 알림창 안에서 크롬 확대/축소(Ctrl+휠)가 줄어 있으면 글자가 깨알처럼 보임 → 창 크기와 내용 폭을 비교해 되돌림 */
+function saleMiniFit(w) { try { const d = w.document, ow = w.outerWidth, iw = w.innerWidth; if (!ow || !iw) return; const r = iw / ow; const z = r > 1.12 ? Math.min(4, r) : 1;
+  const cur = +d.documentElement.style.zoom || 1; if (Math.abs(cur - z) > 0.02) d.documentElement.style.zoom = z === 1 ? '' : z.toFixed(3); } catch (e) {} }
 function saleMiniRender() { const w = saleMini.win; if (!w || w.closed) { saleMini.win = null; return; } const d = w.document, M = saleMini; const ae = d.activeElement; if (M.qrEdit && ae && ae.closest && ae.closest('.qm') && ae.tagName === 'INPUT') return;   /* 문구 고치는 중에는 다시 그리지 않음 */
   const nw = (saleUi.ord || []).filter(o => o.status === 'new').sort((a, b) => (a.ship > b.ship ? 1 : a.ship < b.ship ? -1 : a.at > b.at ? 1 : -1)), CH = saleUi.chats || [], un = CH.reduce((t, c) => t + (c.un || 0), 0), C = saleSndCfg();
   const md = x => { const t = new Date(x + 'T00:00:00'); return `${t.getMonth() + 1}/${t.getDate()}(${WD[t.getDay()]})`; }, tm = at => { const t = new Date(at); return t.toDateString() === new Date().toDateString() ? hmOf(at).slice(-5) : `${t.getMonth() + 1}/${t.getDate()}`; };
@@ -5735,7 +5739,7 @@ function saleMiniRender() { const w = saleMini.win; if (!w || w.closed) { saleMi
     <div class="mt"><button class="${M.tab === 'ord' ? 'on' : ''}" data-mtab="ord">새 발주 <span class="bd${nw.length ? '' : ' z'}">${nw.length}</span></button><button class="${M.tab === 'chat' ? 'on' : ''}" data-mtab="chat">대화방 <span class="bd${un ? '' : ' z'}">${un}</span></button></div>
     <div class="mb${M.tab === 'chat' && M.chat ? ' cvm' : ''}">${body}</div>${M.tab === 'chat' && M.chat ? '' : `<div class="ft">${saleUi.ordErr ? '⚠ ' + esc(saleUi.ordErr) : `${saleUi.ordAt ? esc(hmOf(saleUi.ordAt).slice(-5)) + ' 확인' : ''} · 30초마다 자동 · 통합 재고관리 탭을 닫지 마세요`}</div>`}`;
   d.title = (nw.length || un ? `(${nw.length}${un ? '·💬' + un : ''}) ` : '') + '빵을그리다 발주 알림';
-  try { d.body.style.setProperty('--z', +localStorage.getItem('bggd_mini_zoom') || 1); } catch (e) {}
+  try { d.body.style.setProperty('--z', Math.max(0.85, Math.min(1.6, +localStorage.getItem('bggd_mini_zoom') || 1))); } catch (e) {} saleMiniFit(w);
   if (keep != null && d.getElementById('mIn')) { const i = d.getElementById('mIn'); i.value = keep; i.focus(); }
   const c2 = d.getElementById('mCm'); if (c2 && atEnd) c2.scrollTop = c2.scrollHeight; if (!c2 && d.querySelector('.mb')) d.querySelector('.mb').scrollTop = sc; }
 /* v193: 자주 쓰는 답장 문구 — 이 PC에 저장, 눌러서 바로 보내기 */
