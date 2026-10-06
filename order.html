@@ -200,7 +200,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
     sheet('<div class="cat-h"><h3>월별 주문 내역</h3><button class="btn sm" id="hX">닫기</button></div><div class="cat-sub">' + months.map(function (m) { return '<button class="' + (m === mo ? 'on' : '') + '" data-hm="' + m + '">' + (+m.slice(5)) + '월</button>'; }).join('') + '</div><div id="hBody" class="msg">불러오는 중…</div>', true);
     $('#hX').onclick = function () { sheet(); }; document.querySelectorAll('[data-hm]').forEach(function (b) { b.onclick = function () { histSheet(b.getAttribute('data-hm')); }; });
     call({ action: 'orderHistory', t: T, month: mo }).then(function (r) { var B = $('#hBody'); if (!B) return; if (!r || !r.ok) { B.textContent = (r && r.error) || '불러오지 못했습니다 (빵을그리다 중계 업데이트 필요)'; return; }
-      var L = r.orders || [], sup = 0, vat = 0, n = 0; L.forEach(function (o) { if (o.status !== 'cancel' && o.status !== 'reject') { n++; if (o.reply && o.reply.sup) { sup += o.reply.sup; vat += o.reply.vat || 0; } } });
+      var L = (r.orders || []).filter(function (o) { return o.status !== 'deleted'; }), sup = 0, vat = 0, n = 0; L.forEach(function (o) { if (o.status !== 'cancel' && o.status !== 'reject') { n++; if (o.reply && o.reply.sup) { sup += o.reply.sup; vat += o.reply.vat || 0; } } });
       B.className = ''; B.innerHTML = '<div class="hsum">' + (+mo.slice(5)) + '월 주문 <b>' + n + '건</b>' + (sup ? ' · 거래명세표 기준 공급가액 <b>' + won(sup) + '원</b> (부가세 포함 ' + won(sup + vat) + '원)' : '') + '</div>' + (L.length ? L.map(function (o) { return ordCard(o, false); }).join('') : '<div class="msg">이 달 주문이 없습니다</div>');
       ORDX = L; B.querySelectorAll('[data-stm],[data-stmi]').forEach(function (bb) { bb.onclick = function () { var id = bb.getAttribute('data-stm') || bb.getAttribute('data-stmi'), o = L.filter(function (x) { return x.id === id; })[0]; if (!o) return; if (bb.hasAttribute('data-stmi')) stmImg(o); else stmSheet(o); }; }); })
       .catch(function () { var B = $('#hBody'); if (B) B.textContent = '인터넷 연결을 확인해 주세요'; }); }
@@ -438,7 +438,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   chInit();
   /* v186: 지난번 주문서를 이 기기에 두고 바로 보여 줌 → 중계(구글)가 깨어나는 2~5초를 기다리지 않음. 최신 내용이 오면 바꿔 넣음 */
   var FC = 'bggd_form_' + T.slice(0, 10), shown = '', later = false;
-  function apply(form, orders) { if (pinLock) return; F = form; F.price = true; ORD = orders || []; $('#who').textContent = F.name; document.title = F.name + ' · 빵을그리다 주문서';
+  function apply(form, orders) { if (pinLock) return; F = form; F.price = true; ORD = (orders || []).filter(function (o) { return o.status !== 'deleted'; }); $('#who').textContent = F.name; document.title = F.name + ' · 빵을그리다 주문서';
     CAT = {}; ((F.cat && F.cat.items) || []).forEach(function (c) { if (!c.img && /^F\d+$/.test(c.id)) c.img = 'u:cat/' + encodeURIComponent(c.id) + '.jpg'; CAT[c.id] = c; });   /* 드라이브 사진이 없으면 이 사이트의 제품 사진 */
     SO = {}; (F.so || []).forEach(function (k) { SO[k] = 1; });
     Object.keys(st.q).forEach(function (c) { if (!ent(c) || SO[c] || SO[c.replace(/\|s$/, '')]) delete st.q[c]; });
@@ -461,7 +461,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   function loadForm() { call({ action: 'orderForm', t: T }).then(function (r) { if (r && r.pinNeed) { try { localStorage.removeItem(FC); } catch (e) {} F = null; return pinScreen(r.error); }
     if (!r || !r.ok) { if (shown) { try { localStorage.removeItem(FC); } catch (e) {} } return fail((r && r.error) || '잠시 뒤 다시 열어 주세요.'); }
     pinLock = false;
-    var v = { form: r.form, orders: r.orders || [] }, js = JSON.stringify(v); try { localStorage.setItem(FC, js); } catch (e) {}
+    var v = { form: r.form, orders: (r.orders || []).filter(function (o) { return o.status !== 'deleted'; }) }, js = JSON.stringify(v); try { localStorage.setItem(FC, js); } catch (e) {}
     if (r.chat) { CH = r.chat; chPoll(); chPaint(); }   /* 중계 5.1 이상 */
     if (js !== shown || r.chat) apply(v.form, v.orders); })
     .catch(function () { if (!shown) fail('인터넷 연결을 확인하고 다시 열어 주세요.'); }); }
