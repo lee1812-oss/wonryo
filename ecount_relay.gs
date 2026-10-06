@@ -5,6 +5,8 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v5.7: 사진 발주 읽기(readOrderImg — 스크립트 속성 ANTHROPIC_KEY 가 있으면 Claude가 손글씨 발주서·캡처를 줄별로 읽음) ·
+ *       표현 기억 공유(al:<거래처> {쓴 표현: 품목코드} — aliasAll/aliasPut, 모든 PC가 같이 씀) · 백업·되살리기에서 비밀 열쇠(API·GitHub·솔라피·Anthropic)는 빼고 다룸
  * v5.6: 링크별 추가 설정 fx:<토큰>(PIN 해시·휴대폰·알림톡) — PIN 건 링크는 공개 요청마다 pin 확인(10번 틀리면 10분 잠금), 빠른 열기 자료도 안 만듦
  *       미수금(cfg2:bal — 앱이 이카운트 채권 엑셀에서 올림, show 켜면 거래처 주문서에도) · 카카오 알림톡(솔라피: 스크립트 속성 SOLAPI_KEY·SOLAPI_SECRET·SOLAPI_PFID·SOLAPI_FROM·TPL_OK·TPL_OUT·TPL_REMIND)
  * v5.5: 수령 확인·문제 신고 — 거래처가 「잘 받았어요」(orderAck → o.ack) / 「문제 있어요」(orderClaim → o.claim {msg, imgs 드라이브 clm_…, st open/done}, 알림 메일) · 관리 claimReply
@@ -83,6 +85,31 @@ function pinGate_(req, t) { var fx = fxGet_(t); if (!fx.pin) return null; var fk
   if (p) cache_().put(fk, String(n + 1), 600); return { ok: false, pinNeed: true, error: p ? '비밀번호가 맞지 않습니다' : '이 주문서는 비밀번호가 필요합니다' }; }
 function balGet_() { try { return JSON.parse(props_().getProperty('cfg2:bal') || 'null'); } catch (e) { return null; } }
 // v5.6: 카카오 알림톡 (솔라피) — 키가 없으면 조용히 건너뜀
+function secretKey_(k) { return /^(API_KEY|GH_TOKEN|ANTHROPIC_KEY|SOLAPI_KEY|SOLAPI_SECRET)$/.test(k); }   // v5.7: 백업에 넣지도, 되살릴 때 덮어쓰지도 않음
+// v5.7: 사진 발주 읽기 — Claude(Messages API)에 사진과 우리 품목 이름을 주고 줄별 {raw 쓴 그대로, name 품목 이름, qty, unit}을 JSON으로 받음
+function aiReadOrder_(img, mime, names) {
+  var key = props_().getProperty('ANTHROPIC_KEY'); if (!key) return { ok: false, nokey: true, error: 'ANTHROPIC_KEY 없음 — Apps Script 프로젝트 설정 › 스크립트 속성에 Anthropic API 키를 넣어 주세요' };
+  if (!img || String(img).length > 7000000) return { ok: false, error: '사진이 없거나 너무 큽니다' };
+  var line = { type: 'object', additionalProperties: false, required: ['raw', 'name', 'qty', 'unit'], properties: { raw: { type: 'string' }, name: { type: 'string' }, qty: { type: 'number' }, unit: { type: 'string' } } };
+  var schema = { type: 'object', additionalProperties: false, required: ['cust', 'ship', 'note', 'lines'], properties: { cust: { type: 'string' }, ship: { type: 'string' }, note: { type: 'string' }, lines: { type: 'array', items: line } } };
+  var prompt = '빵 공장(빵을그리다)에 거래처가 보낸 발주서 사진입니다. 손글씨일 수 있습니다. 주문한 품목을 한 줄씩 읽어 주세요.\n'
+    + '- raw: 사진에 쓰인 품목 글자를 보이는 그대로(틀린 글자도 그대로)\n- name: 아래 「우리 품목 이름」 중 가장 가까운 이름(글자 모양이 비슷한 것 포함). 맞는 게 없으면 raw 그대로\n'
+    + '- qty: 수량 숫자, unit: 단위(BOX·박스는 「박스」, 개·EA는 「개」, 봉·팩 등은 쓰인 대로, 안 쓰였으면 「박스」)\n- cust: 맨 위 등에 쓰인 거래처(상호) 이름, 없으면 빈 글자. ship: 배송일 글자(있으면), note: 그 밖의 요청사항\n'
+    + '줄 번호(①, 1. 등)와 동그라미·체크 표시는 빼고, 품목이 아닌 줄은 넣지 마세요.\n\n우리 품목 이름:\n' + (names || []).slice(0, 300).map(function (n) { return String(n).slice(0, 40); }).join('\n');
+  var body = { model: 'claude-opus-5-5', max_tokens: 8000, fallbacks: 'default', output_config: { effort: 'low', format: { type: 'json_schema', schema: schema } },
+    messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: /^image\/(png|jpeg|gif|webp)$/.test(mime) ? mime : 'image/jpeg', data: String(img) } }, { type: 'text', text: prompt }] }] };
+  var r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, payload: JSON.stringify(body),
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'server-side-fallback-2026-07-01' } });
+  var code = r.getResponseCode(), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {}
+  if (code >= 300) return { ok: false, error: 'AI 응답 ' + code + ': ' + ((j.error && j.error.message) || '').slice(0, 200) };
+  if (j.stop_reason === 'refusal') return { ok: false, error: 'AI가 이 사진을 읽지 않았습니다 — 다른 사진으로 해 보세요' };
+  var tx = ''; (j.content || []).forEach(function (b) { if (b.type === 'text') tx += b.text; }); var o; try { o = JSON.parse(tx); } catch (e) { return { ok: false, error: 'AI 결과를 읽지 못했습니다' + (j.stop_reason === 'max_tokens' ? ' (너무 긴 발주서)' : '') }; }
+  return { ok: true, cust: String(o.cust || '').slice(0, 60), ship: String(o.ship || '').slice(0, 30), note: String(o.note || '').slice(0, 200), lines: (o.lines || []).slice(0, 80).map(function (l) { return { raw: String(l.raw || '').slice(0, 60), name: String(l.name || '').slice(0, 60), qty: Math.max(0, Math.round(Number(l.qty) || 0)), unit: String(l.unit || '').slice(0, 6) }; }).filter(function (l) { return l.name && l.qty > 0; }) };
+}
+// v5.7: 거래처별 표현 기억 — al:<거래처코드> = {표현: 품목코드} (9KB 넘으면 오래된 것부터 버림)
+function aliasPut_(cust, add) { var c = String(cust || '').slice(0, 30); if (!c) return 0; var k = 'al:' + c, cur = {}; try { cur = JSON.parse(props_().getProperty(k) || '{}'); } catch (e) {}
+  var n = 0; Object.keys(add || {}).slice(0, 100).forEach(function (t) { var tk = String(t).slice(0, 40), v = String(add[t] || '').slice(0, 30); if (!tk) return; delete cur[tk]; if (v) { cur[tk] = v; n++; } });
+  var ks = Object.keys(cur); while (ks.length && JSON.stringify(cur).length > 8500) { delete cur[ks.shift()]; } props_().setProperty(k, JSON.stringify(cur)); return n; }
 function alimCfg_() { var P = props_(); return { key: P.getProperty('SOLAPI_KEY'), sec: P.getProperty('SOLAPI_SECRET'), pf: P.getProperty('SOLAPI_PFID'), from: P.getProperty('SOLAPI_FROM') || '', tpl: { ok: P.getProperty('TPL_OK'), out: P.getProperty('TPL_OUT'), remind: P.getProperty('TPL_REMIND') } }; }
 function alimSend_(to, kind, vars) { var C = alimCfg_(), tp = C.tpl[kind]; if (!C.key || !C.sec || !C.pf || !tp) return { ok: false, error: '알림톡 설정이 없습니다' };
   var ph = String(to || '').replace(/\D/g, ''); if (!/^01\d{8,9}$/.test(ph)) return { ok: false, error: '휴대폰 번호가 올바르지 않습니다' };
@@ -121,7 +148,7 @@ function maint_(force) { var last = Number(props_().getProperty('mt:last') || 0)
       if ((o.status !== 'new' && !(o.claim && o.claim.st === 'open') && age > 10 * 86400e3) || old > 40 * 86400e3) { var m = String(o.at).slice(0, 7); (byM[m] = byM[m] || []).push([k, o]); } });
     Object.keys(byM).forEach(function (m) { var nm = 'orders_' + m + '.json', fj = fileJson_(dir, nm, []), ids = {}; fj.data.forEach(function (o) { ids[o.id] = 1; });
       byM[m].forEach(function (x) { if (!ids[x[1].id]) fj.data.push(x[1]); }); fileSave_(dir, nm, fj.file, fj.data); byM[m].forEach(function (x) { props_().deleteProperty(x[0]); moved++; }); });
-    var day = ymdK_(); if (props_().getProperty('bk:last') !== day) { var bd = subDir_('백업'), snap = {}; all = props_().getProperties(); Object.keys(all).forEach(function (k) { if (k !== 'API_KEY' && k !== 'GH_TOKEN') snap[k] = all[k]; });
+    var day = ymdK_(); if (props_().getProperty('bk:last') !== day) { var bd = subDir_('백업'), snap = {}; all = props_().getProperties(); Object.keys(all).forEach(function (k) { if (!secretKey_(k)) snap[k] = all[k]; });
       bd.createFile('relay_backup_' + day + '.json', JSON.stringify({ at: new Date().toISOString(), props: snap }), 'application/json'); props_().setProperty('bk:last', day);
       var fs = bd.getFiles(), list = []; while (fs.hasNext()) { var f = fs.next(); if (/^relay_backup_/.test(f.getName())) list.push(f); } list.sort(function (a, b) { return a.getName() < b.getName() ? 1 : -1; }); list.slice(14).forEach(function (f) { f.setTrashed(true); }); }
   } finally { lk.releaseLock(); } return { moved: moved }; }
@@ -181,7 +208,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.6 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.7 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -363,7 +390,7 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 5.6, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 5.7, agentSeen: agentSeen_(), agentVer: agentVer_() };
   // v3.4: 주문 링크 관리 (통합재고관리)
   if (req.action === 'putOrderForm') { var t3 = tok_(req.t); if (t3) formLiteDrop_(t3); var f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
     var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3]), /^\d{4}-\d{2}-\d{2}$/.test(it[4] || '') ? it[4] : '']; }),
@@ -411,9 +438,9 @@ function handle_(req) {
   if (req.action === 'backupRestore') { if (req.confirm !== '되살리기') return { ok: false, error: '확인 글자가 맞지 않습니다' }; var fb = DriveApp.getFileById(String(req.id || '')); if (!/^relay_backup_/.test(fb.getName())) return { ok: false, error: '백업 파일이 아닙니다' };
     var bj = JSON.parse(fb.getBlob().getDataAsString('UTF-8')), P2 = bj && bj.props; if (!P2) return { ok: false, error: '백업 내용을 읽지 못했습니다' };
     var lkb = LockService.getScriptLock(); lkb.waitLock(20000);
-    try { var now9 = props_().getProperties(), keep9 = {}; Object.keys(now9).forEach(function (k) { if (k !== 'API_KEY' && k !== 'GH_TOKEN') keep9[k] = now9[k]; });
+    try { var now9 = props_().getProperties(), keep9 = {}; Object.keys(now9).forEach(function (k) { if (!secretKey_(k)) keep9[k] = now9[k]; });
       subDir_('백업').createFile('relay_backup_before_restore_' + Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyyMMdd_HHmm') + '.json', JSON.stringify({ at: new Date().toISOString(), props: keep9 }), 'application/json');   // 되살리기 전 지금 상태도 남김
-      var n9 = 0; Object.keys(P2).forEach(function (k) { if (k === 'API_KEY' || k === 'GH_TOKEN') return; props_().setProperty(k, String(P2[k])); n9++; }); } finally { lkb.releaseLock(); }
+      var n9 = 0; Object.keys(P2).forEach(function (k) { if (secretKey_(k)) return; props_().setProperty(k, String(P2[k])); n9++; }); } finally { lkb.releaseLock(); }
     return { ok: true, n: n9, from: bj.at }; }
   if (req.action === 'chatList') return { ok: true, chats: chatList_() };
   if (req.action === 'chatAdmin') { var ta = tok_(req.t); if (!ta || !props_().getProperty(ORDF_ + ta)) return { ok: false, error: '없는 링크입니다' }; var ca;
@@ -431,6 +458,9 @@ function handle_(req) {
   if (req.action === 'putBalances') { var bb = {}, nb = 0; Object.keys(req.b || {}).slice(0, 400).forEach(function (c) { var v = Math.round(num_(req.b[c])); bb[String(c).slice(0, 30)] = v; nb++; });
     var cur = balGet_() || {}, keepB = { at: /^\d{4}-\d{2}-\d{2}$/.test(req.at || '') ? req.at : (cur.at || ymdK_()), show: req.show == null ? !!cur.show : !!req.show, b: req.b ? bb : (cur.b || {}) };
     var jsb = JSON.stringify(keepB); if (jsb.length > 8800) return { ok: false, error: '거래처가 너무 많습니다 — 주문 링크 있는 거래처만 올려 주세요' }; props_().setProperty('cfg2:bal', jsb); return { ok: true, n: Object.keys(keepB.b).length, at: keepB.at, show: keepB.show }; }
+  if (req.action === 'readOrderImg') return aiReadOrder_(req.img, String(req.mime || ''), req.names);
+  if (req.action === 'aliasPut') { var lka = LockService.getScriptLock(); lka.waitLock(10000); try { return { ok: true, n: aliasPut_(req.cust, req.add) }; } finally { lka.releaseLock(); } }
+  if (req.action === 'aliasAll') { var aa = props_().getProperties(), AL = {}; Object.keys(aa).forEach(function (k) { if (k.indexOf('al:') === 0) { try { AL[k.slice(3)] = JSON.parse(aa[k]); } catch (e) {} } }); return { ok: true, alias: AL }; }
   if (req.action === 'alimTest') { var rt = alimSend_(req.phone, String(req.kind || 'ok'), { '거래처': '빵을그리다(시험)', '배송일': '10/8(목)', '품목': '2품목 5개', '안내': '알림톡 시험입니다.', '마감': '10/7 15:00' }); return { ok: rt.ok, error: rt.error || '' }; }
   if (req.action === 'getShop') return { ok: true, shop: shop_() };
   if (req.action === 'putShop') { var sp = req.shop || {}, keepS = { so: (sp.so || []).map(function (x) { return String(x).slice(0, 34); }).filter(Boolean).slice(0, 200), min: Math.max(0, Math.min(10000000, Math.floor(Number(sp.min) || 0))), at: new Date().toISOString() };

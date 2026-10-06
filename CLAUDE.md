@@ -61,6 +61,13 @@
 - 관리 앱(v200): manifest.webmanifest 아이콘을 admin_192/512/maskable/apple.png(남색 바탕·크루아상·「빵을그리다」·「관리」)로, short_name 「빵을그리다 관리」. 설치 안내 그림은 대화에서 만들어 전달(저장소에 없음).
 - 플레이스토어 등록(검색 노출)은 이 웹앱을 PWABuilder로 포장 — 개발자 계정 25달러, 개인 계정은 테스터 12명·14일(회사 계정은 D-U-N-S), 도메인 루트의 assetlinks 필요(도메인 구매 후).
 
+## 중계 5.7 (v219) — 사진·손글씨 발주 넣기 · 표현 기억 공유
+- 판매 입력 「📋 카톡 붙여넣기」 창의 「📷 사진·캡처」: 중계 readOrderImg → Claude(claude-opus-5-5, effort low, json_schema, fallbacks default)가 줄별 {raw 쓴 그대로, name 우리 품목 이름, qty, unit}. 앱이 거래처 품목·자주 팔린 품목 이름(최대 300)을 힌트로 보냄. 스크립트 속성 **ANTHROPIC_KEY** 없으면 예전 Tesseract(이 PC)로 — 손글씨는 잘 못 읽음.
+- 품목 맞추기: 음절 2글자 비교(saleDice) + 자모 비교(saleJSim — 깐모소→맘모스, 닮은 자모는 0.5) + 이 거래처가 산 품목 가산. **기억한 표현만 「기억」**, 나머지는 모두 노란 줄 「맞아요 ✓」를 눌러야 담김(확인 필요 n줄).
+- 확인·고른 표현은 X.alias[거래처][표현]=코드 + 중계 al:<거래처>(aliasPut/aliasAll, 9KB 넘으면 오래된 것부터 버림) → 모든 PC가 공유. 다른 거래처가 기억한 표현도 후보(「다른 거래처 기억」).
+- 백업·되살리기는 비밀 열쇠(API_KEY·GH_TOKEN·ANTHROPIC_KEY·SOLAPI_KEY·SOLAPI_SECRET)를 빼고 다룸(secretKey_).
+- v219: 「＋ 주문 링크 만들기」는 그 PC에 판매현황 자료가 없으면 회색으로 막지 않고 「판매 입력」에서 엑셀 올리기로 안내.
+
 ## 중계 5.4 (v204) — 사고 예방 묶음
 - autoRun(1시간마다, setupAll → setupTriggers가 예약): 정기 주문 만들기(repeatGen_)·정리/백업(maint_)·미확인 발주 메일(remind_: 들어온 지 2시간 o.rm1, 배송 오늘·내일 o.rm2). 결과는 trig:last → 앱 운영 상태 「✓ 자동 실행」.
 - 예약에는 appsscript.json oauthScopes 에 `https://www.googleapis.com/auth/script.scriptapp` 필요(2026-10-06 추가 안내).
