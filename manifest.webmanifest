@@ -3,7 +3,7 @@
   "short_name": "빵을그리다 관리",
   "description": "원료수불부 + 완제품·생지 재고관리 — 이카운트 전산재고와 실물재고 비교",
   "start_url": "./index.html",
-  "scope": "./",
+  "scope": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#EDF0F2",
