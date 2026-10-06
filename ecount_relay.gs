@@ -5,6 +5,7 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v5.8: 발주 삭제(orderDel — 관리 앱에서, 거래처 화면에서도 사라짐. 정기 주문의 마지막 회차를 지우면 다음 회차도 안 만들어짐)
  * v5.7: 사진 발주 읽기(readOrderImg — 스크립트 속성 ANTHROPIC_KEY 가 있으면 Claude가 손글씨 발주서·캡처를 줄별로 읽음) ·
  *       표현 기억 공유(al:<거래처> {쓴 표현: 품목코드} — aliasAll/aliasPut, 모든 PC가 같이 씀) · 백업·되살리기에서 비밀 열쇠(API·GitHub·솔라피·Anthropic)는 빼고 다룸
  * v5.6: 링크별 추가 설정 fx:<토큰>(PIN 해시·휴대폰·알림톡) — PIN 건 링크는 공개 요청마다 pin 확인(10번 틀리면 10분 잠금), 빠른 열기 자료도 안 만듦
@@ -208,7 +209,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.7 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.8 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -390,7 +391,7 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 5.7, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 5.8, agentSeen: agentSeen_(), agentVer: agentVer_() };
   // v3.4: 주문 링크 관리 (통합재고관리)
   if (req.action === 'putOrderForm') { var t3 = tok_(req.t); if (t3) formLiteDrop_(t3); var f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
     var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3]), /^\d{4}-\d{2}-\d{2}$/.test(it[4] || '') ? it[4] : '']; }),
@@ -511,6 +512,9 @@ function handle_(req) {
     return { ok: true, forms: lf }; }
   if (req.action === 'orders') { var since = Date.now() - Math.min(45, Math.max(1, Number(req.days) || 14)) * 86400000; var mt = null, rg = 0; try { rg = repeatGen_(); } catch (e) {} try { mt = maint_(false); } catch (e) {}
     return { ok: true, use: propsUse_(), limit: 500000, moved: mt ? mt.moved : 0, alert: { to: alertTo_(), off: props_().getProperty('ALERT_OFF') === '1' }, shop: shop_(), repMade: rg, chats: chatList_(), bal: balGet_(), alim: (function () { var C = alimCfg_(); var lg = []; try { lg = JSON.parse(props_().getProperty('alim:log') || '[]').slice(0, 5); } catch (e) {} return { on: !!(C.key && C.sec && C.pf), tpl: { ok: !!C.tpl.ok, out: !!C.tpl.out, remind: !!C.tpl.remind }, log: lg }; })(), trig: (function () { try { return JSON.parse(props_().getProperty('trig:last') || 'null'); } catch (e) { return null; } })(), mailLeft: (function () { try { return MailApp.getRemainingDailyQuota(); } catch (e) { return null; } })(), orders: ordList_(function (o) { return o.status === 'new' || (o.claim && o.claim.st === 'open') || new Date(o.at).getTime() >= since; }).slice(0, 200).map(function (o) { var v = ordView_(o); v.cust = o.cust; v.name = o.name; v.tok = o.tok; v.who = o.who || ''; if (o.hist) v.hist = o.hist; return v; }) }; }
+  if (req.action === 'orderDel') { var lkd = LockService.getScriptLock(); lkd.waitLock(10000);
+    try { var kd = ORD_ + String(req.id || ''); if (kd === 'ord:notices' || !props_().getProperty(kd)) return { ok: false, error: '없는 주문입니다 (이미 지워졌을 수 있습니다)' }; props_().deleteProperty(kd); } finally { lkd.releaseLock(); }
+    pulse_('o'); return { ok: true }; }
   if (req.action === 'orderDone') { var lk3 = LockService.getScriptLock(); lk3.waitLock(10000);
     try { var ov = props_().getProperty(ORD_ + String(req.id || '')); if (!ov) return { ok: false, error: '없는 주문입니다' }; var o3 = JSON.parse(ov);
       if (req.status) o3.status = String(req.status).slice(0, 12); if (req.slip != null) o3.slip = String(req.slip).slice(0, 60); if (req.note != null) o3.note = String(req.note).slice(0, 200); if (req.reply) o3.reply = reply_(o3.reply, req.reply);
