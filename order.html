@@ -131,7 +131,7 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:1
   if (RR) RELAY = 'https://script.google.com/macros/s/' + RR.replace(/[^A-Za-z0-9_-]/g, '') + '/exec';
   var INAPP = /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\/|DaumApps|BAND\/|; wv\)/i.test(navigator.userAgent);   /* 카카오톡 등 앱 안 브라우저는 앱처럼 보고하므로 설치 앱으로 보지 않음 */
   var INSTGO = Q.get('inst') === '1';   /* 카톡에서 「크롬으로 열기」로 넘어옴 → 바로 설치 안내 */
-  var APPRUN = Q.get('app') === '1' || (!INAPP && ((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true));
+  var APPRUN = (Q.get('app') === '1' || Q.get('app') === '2') || (!INAPP && ((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true));
   try { if (!T) T = (localStorage.getItem('bggd_app_t') || '').replace(/[^A-Za-z0-9_-]/g, ''); else localStorage.setItem('bggd_app_t', T); } catch (e) {}   /* 바탕화면 앱은 마지막으로 연 주문 링크로 바로 열림 */
   if (!H.get('t') && T) try { history.replaceState(null, '', location.pathname + '?s=2#t=' + T + (RR ? '&r=' + RR : '')); } catch (e) {}
   var $ = function (s) { return document.querySelector(s); }, WD = '일월화수목금토';

@@ -53,6 +53,7 @@
 - v213: 요즘 크롬 ⋮ 메뉴 이름은 「설치 및 바로가기 만들기」 → 뜨는 창에서 「설치」. v202: 크롬 안내는 「앱 설치」(또는 홈 화면에 추가 → 「설치」)로, 「바로가기 만들기」는 주소창이 보이는 바로가기라 고르지 말라고 안내. 크롬 설치 창(beforeinstallprompt)은 화면을 한 번 누르고 30초쯤 지나야 준비되므로, 안내 화면이 열려 있는 동안 준비되면 「지금 바로 설치하기」 버튼이 나타남.
 - v201: 카카오톡 등 앱 안 브라우저(INAPP: KAKAOTALK·NAVER(inapp)·; wv) 등)는 display-mode standalone 으로 보고해서 배너가 숨던 문제 → INAPP이면 설치 앱으로 안 봄. 앱 안이면 배너가 바로 「크롬으로 열기」(안드로이드 intent://…;package=com.android.chrome, 없으면 기본 브라우저) · 아이폰 카톡은 「사파리로 열기」(kakaotalk://web/openExternal). 링크는 ?s=2&t=토큰.
 - 주문서 맨 위 「📲 바탕화면에 앱 설치」 배너(✕ 누르면 7일 숨김, 설치하면 안 보임): 안드로이드 크롬 = 설치 창(beforeinstallprompt), 카카오톡 안 = `kakaotalk://web/openExternal?url=`로 다른 브라우저, 아이폰 = 사파리 공유 → 홈 화면에 추가 안내(아이폰은 manifest를 안 넣어 #t= 주소째로 저장), 삼성 인터넷 = ≡ → 현재 페이지 추가.
+- v217: 휴대폰 크롬이 주문 앱을 계속 「이미 설치됨」으로 봐서 → 주문 manifest start_url ./order.html?app=2 · id ./wonryo/order.html?app=2 (실제 id https://lee1812-oss.github.io/wonryo/order.html?app=2). 주문서는 app=1·2 모두 앱 실행으로 봄(예전 설치 앱 그대로 동작).
 - v216: 아이콘 admin_/order_ 192·512 를 둥근 모서리(초타원, 모서리 투명)로 — 크롬 바로가기로 설치돼도 다른 앱처럼 둥글게. maskable·apple 은 그대로(꽉 찬 사각).
 - v215: 휴대폰 크롬이 지운 앱을 「이미 설치됨」으로 기억해 열리지 않던 것 → 두 manifest id 를 바꿈(관리 ./index.html?pwa=2 · 주문 ./order.html?pwa=2, 새 앱으로 인식). id 는 함부로 바꾸지 말 것(설치된 앱 갱신이 끊김). 주의: id 는 사이트 맨 앞(lee1812-oss.github.io/)을 기준으로 풀려서 실제 id 는 https://lee1812-oss.github.io/index.html?pwa=2 (휴대폰 chrome://webapks 로 확인) — 같은 주소의 다른 저장소 앱(edu·utca-report 등)과 겹치지 않게.
 - v214: 관리 앱 manifest scope 를 ./index.html 로 좁힘(예전 ./ 는 order.html 까지 포함해 한 휴대폰에 두 앱이 겹침), sw.js 는 order*·privacy.html 요청을 건드리지 않음.
