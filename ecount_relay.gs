@@ -5,6 +5,8 @@
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
+ * v5.9: 거래처 맞춤 — 품목 표시(it[5], 예: 계란 미포함·6개입)·고르기(it[6] '밤|단호박', 주문 줄 l[5]) · 「이번 주는 주문 없음」(orderSkip → sk:<토큰>, 마감 알림 안 보냄) ·
+ *       같은 배송일에 또 주문하면 「추가 주문」(o.add)
  * v5.8: 발주 삭제(orderDel — 관리 앱에서, 거래처 화면에서도 사라짐. 정기 주문의 마지막 회차를 지우면 다음 회차도 안 만들어짐)
  * v5.7: 사진 발주 읽기(readOrderImg — 스크립트 속성 ANTHROPIC_KEY 가 있으면 Claude가 손글씨 발주서·캡처를 줄별로 읽음) ·
  *       표현 기억 공유(al:<거래처> {쓴 표현: 품목코드} — aliasAll/aliasPut, 모든 PC가 같이 씀) · 백업·되살리기에서 비밀 열쇠(API·GitHub·솔라피·Anthropic)는 빼고 다룸
@@ -79,13 +81,18 @@ function fxGet_(t) { var k = 'fx:' + String(t).slice(0, 24), c = cache_().get(k)
 function fxPut_(t, v) { var k = 'fx:' + String(t).slice(0, 24); props_().setProperty(k, JSON.stringify(v)); cache_().put(k, JSON.stringify(v), 600); }
 function hex_(b) { return b.map(function (x) { return ('0' + (x & 255).toString(16)).slice(-2); }).join(''); }
 function pinHash_(t, pin) { return hex_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, 'bggd-pin|' + t + '|' + pin, Utilities.Charset.UTF_8)); }
-var PIN_ACTS_ = { orderForm: 1, orderSubmit: 1, orderCancel: 1, orderHistory: 1, chatGet: 1, chatSend: 1, repeatStop: 1, orderAck: 1, orderClaim: 1 };
+var PIN_ACTS_ = { orderSkip: 1, orderForm: 1, orderSubmit: 1, orderCancel: 1, orderHistory: 1, chatGet: 1, chatSend: 1, repeatStop: 1, orderAck: 1, orderClaim: 1 };
 function pinGate_(req, t) { var fx = fxGet_(t); if (!fx.pin) return null; var fk = 'pf:' + t.slice(0, 20), n = Number(cache_().get(fk) || 0);
   if (n >= 10) return { ok: false, pinNeed: true, error: '비밀번호를 여러 번 틀려 10분 동안 잠겼습니다 — 빵을그리다에 문의해 주세요' };
   var p = String(req.pin || '').replace(/\D/g, '').slice(0, 8); if (p && pinHash_(t, p) === fx.pin) return null;
   if (p) cache_().put(fk, String(n + 1), 600); return { ok: false, pinNeed: true, error: p ? '비밀번호가 맞지 않습니다' : '이 주문서는 비밀번호가 필요합니다' }; }
 function balGet_() { try { return JSON.parse(props_().getProperty('cfg2:bal') || 'null'); } catch (e) { return null; } }
 // v5.6: 카카오 알림톡 (솔라피) — 키가 없으면 조용히 건너뜀
+function optsOf_(v) { return String(v || '').split(/[|,]/).map(function (x) { return x.trim().slice(0, 14); }).filter(Boolean).slice(0, 8); }   // v5.9: 품목 고르기 (밤|단호박|흑임자)
+function wkStart_(ymd) { var p = ymd.split('-'), d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); return addDays_(ymd, -((d.getUTCDay() + 6) % 7)); }   // 그 주 월요일
+function skipOf_(t) { var v = props_().getProperty('sk:' + t.slice(0, 20)); return v && wkStart_(v.slice(0, 10)) === wkStart_(ymdK_()) ? v : ''; }   // 이번 주 「주문 없음」 응답 (날짜 시각)
+function skipList_() { var all = props_().getProperties(), out = [], ws = wkStart_(ymdK_()); Object.keys(all).forEach(function (k) { if (k.indexOf('sk:') !== 0 || wkStart_(String(all[k]).slice(0, 10)) !== ws) return; var t = k.slice(3), fv = null;
+  Object.keys(all).some(function (k2) { if (k2.indexOf(ORDF_ + t) === 0) { try { fv = JSON.parse(all[k2]); fv.t = k2.slice(ORDF_.length); } catch (e) {} return true; } return false; }); if (fv) out.push({ t: fv.t, name: fv.name, cust: fv.cust, at: all[k] }); }); return out; }
 function secretKey_(k) { return /^(API_KEY|GH_TOKEN|ANTHROPIC_KEY|SOLAPI_KEY|SOLAPI_SECRET)$/.test(k); }   // v5.7: 백업에 넣지도, 되살릴 때 덮어쓰지도 않음
 // v5.7: 사진 발주 읽기 — Claude(Messages API)에 사진과 우리 품목 이름을 주고 줄별 {raw 쓴 그대로, name 품목 이름, qty, unit}을 JSON으로 받음
 function aiReadOrder_(img, mime, names) {
@@ -130,7 +137,7 @@ function alimRemind_() { var C = alimCfg_(); if (!C.key || !C.tpl.remind) return
   Object.keys(all).forEach(function (k) { if (k.indexOf(ORDF_) !== 0) return; var t = k.slice(ORDF_.length), f; try { f = JSON.parse(all[k]); } catch (e) { return; } if (f.on === false) return; var fx = fxGet_(t); if (!fx.ph || !fx.al) return;
     for (var i = 0; i < 8; i++) { var d = new Date(now + 9 * 3600e3 + i * 86400e3), ship = d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); if ((f.days || []).indexOf(d.getUTCDay()) < 0 || hol[ship]) continue;
       var p = ship.split('-'), dl = Date.UTC(+p[0], +p[1] - 1, +p[2] - (Number(f.lead) || 0), Number(f.cut == null ? 15 : f.cut), 0) - 9 * 3600e3; if (dl <= now) continue; if (dl - now > 3 * 3600e3) break;
-      var rk = 'arm:' + t.slice(0, 12); if (all[rk] === ship) break; if (ordList_(function (o) { return o.tok === t && o.ship === ship && o.status !== 'cancel'; }).length) break;
+      var rk = 'arm:' + t.slice(0, 12); if (all[rk] === ship) break; if (skipOf_(t) && wkStart_(ship) <= addDays_(wkStart_(ymdK_()), 7)) break;   // v5.9: 「이번 주 주문 없음」이면 마감 알림 안 보냄 if (ordList_(function (o) { return o.tok === t && o.ship === ship && o.status !== 'cancel'; }).length) break;
       var r = alimSend_(fx.ph, 'remind', { '거래처': f.name, '배송일': (+p[1]) + '/' + (+p[2]), '마감': Utilities.formatDate(new Date(dl), 'Asia/Seoul', 'M/d HH:mm') }); props_().setProperty(rk, ship); if (r.ok) sent++; break; } });
   return sent; }
 function dataDir_() { var id = props_().getProperty('dat:folder'); if (id) { try { var d = DriveApp.getFolderById(id); if (!d.isTrashed()) return d; } catch (e) {} }
@@ -153,6 +160,8 @@ function maint_(force) { var last = Number(props_().getProperty('mt:last') || 0)
       bd.createFile('relay_backup_' + day + '.json', JSON.stringify({ at: new Date().toISOString(), props: snap }), 'application/json'); props_().setProperty('bk:last', day);
       var fs = bd.getFiles(), list = []; while (fs.hasNext()) { var f = fs.next(); if (/^relay_backup_/.test(f.getName())) list.push(f); } list.sort(function (a, b) { return a.getName() < b.getName() ? 1 : -1; }); list.slice(14).forEach(function (f) { f.setTrashed(true); }); }
   } finally { lk.releaseLock(); } return { moved: moved }; }
+function alertSkip_(f) { if (props_().getProperty('ALERT_OFF') === '1') return; var to = alertTo_(); if (!to) return;   // v5.9
+  try { MailApp.sendEmail({ to: to, subject: '[빵을그리다] 이번 주 주문 없음 — ' + f.name, name: '빵을그리다 주문서', body: f.name + ' 에서 주문서의 「이번 주는 주문 없어요」를 눌렀습니다.\n이번 주에는 발주가 없습니다 (마감 알림톡도 보내지 않습니다).' }); } catch (e) {} }
 function alertNew_(o, kind) { if (props_().getProperty('ALERT_OFF') === '1') return; var to = alertTo_(); if (!to) return;
   try { var n = o.lines.reduce(function (t, l) { return t + l[2]; }, 0);
     MailApp.sendEmail({ to: to, subject: '[빵을그리다] ' + (kind === '정기' ? '정기 발주 자동 접수' : kind ? '발주 ' + kind : '새 발주') + ' — ' + o.name + ' · 배송 ' + o.ship + ' · ' + o.lines.length + '품목 ' + n + '개', name: '빵을그리다 주문서',
@@ -209,7 +218,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.8 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.9 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -286,7 +295,7 @@ function catPut_(c) { var old = props_().getProperty(CAT_ + 'meta'); if (old) { 
 function noticesGet_() { try { return JSON.parse(props_().getProperty('ord:notices') || '[]'); } catch (e) { return []; } }
 function noticesLive_(im) { var t = ymdK_(); return noticesGet_().filter(function (n) { return n.on !== false && (!n.from || n.from <= t) && (!n.to || n.to >= t); }).map(function (n) { return { id: n.id, title: n.title, body: n.body || '', cat: n.cat || '', img: n.cat ? (im['cat_' + n.cat] || '') : '', from: n.from || '', pin: !!n.pin, imgs: n.imgs || [], url: n.url || '' }; }); }
 function catPublic_(cat, im) { if (!cat || cat.on === false) return null; return { title: cat.title, items: (cat.items || []).filter(function (it) { return !it.hide; }).map(function (it) { return { id: it.id, grp: it.grp, name: it.name, spec: it.spec || '', pe: it.pe == null ? null : it.pe, pb: it.pb == null ? null : it.pb, bq: it.bq || null, unit: it.unit || 'Box', sub: it.sub || '', dim: it.dim || '', dt: it.dt || '', img: im['cat_' + it.id] || '' }; }) }; }
-function ordView_(o) { return { id: o.id, at: o.at, ship: o.ship, memo: o.memo || '', lines: o.lines, status: o.status, slip: o.slip || '', doneAt: o.doneAt || '', note: o.note || '', reply: o.reply || null, editedAt: o.editedAt || '', repeat: o.repeat || null, ack: o.ack || null, claim: o.claim || null }; }
+function ordView_(o) { return { id: o.id, at: o.at, ship: o.ship, memo: o.memo || '', lines: o.lines, status: o.status, slip: o.slip || '', doneAt: o.doneAt || '', note: o.note || '', reply: o.reply || null, editedAt: o.editedAt || '', repeat: o.repeat || null, ack: o.ack || null, claim: o.claim || null, add: !!o.add }; }
 function reply_(old, r) { var o = old || {}, s = function (v, n) { return String(v == null ? '' : v).slice(0, n); };
   if (r.msg != null) o.msg = s(r.msg, 400); if (r.st != null) o.st = s(r.st, 8); if (r.ship != null && /^\d{4}-\d{2}-\d{2}$/.test(r.ship)) o.ship = r.ship; if (r.dlv != null) o.dlv = s(r.dlv, 12); if (r.box != null) o.box = Math.max(0, Math.min(9999, Math.floor(Number(r.box) || 0)));
   if (r.slip != null) o.slip = s(r.slip, 60); if (r.lines) { o.lines = r.lines.slice(0, 80).map(function (l) { return [s(l[0], 60), num_(l[1]), num_(l[2]), num_(l[3]), num_(l[4])]; }); o.sup = num_(r.sup); o.vat = num_(r.vat); }
@@ -304,8 +313,10 @@ function handle_(req) {
     var im1 = imgMap_(), cg1 = catGet_(), sk = 'seen:' + t1.slice(0, 12), td1 = ymdK_(); try { if (props_().getProperty(sk) !== td1) props_().setProperty(sk, td1); } catch (e) {}   // 사용 현황: 마지막으로 연 날
     var ch1 = chatGet_(t1);
     var fo1 = formOut_(f1, im1, catPublic_(cg1, im1), noticesLive_(im1), shopPub_(cg1)), bl1 = balGet_(); if (bl1 && bl1.show && bl1.b && bl1.b[f1.cust] != null) fo1.bal = { v: bl1.b[f1.cust], at: bl1.at };
-    return { ok: true, form: fo1, orders: mine, chat: { m: ch1.m.slice(-30), ra: ch1.ra || '' }, now: new Date().toISOString() }; }
+    return { ok: true, form: fo1, orders: mine, chat: { m: ch1.m.slice(-30), ra: ch1.ra || '' }, skip: skipOf_(t1), now: new Date().toISOString() }; }
   // v3.4: 거래처 주문 넣기 — 품목은 그 주문서에 있는 것만, 수량 1~9999, 배송일·마감 확인, 같은 cid는 한 번만, 하루 30건까지
+  if (req.action === 'orderSkip') { var tk = tok_(req.t), fk = tk && props_().getProperty(ORDF_ + tk); if (!fk) return { ok: false, error: '주문 링크가 맞지 않습니다' };   // v5.9: 이번 주는 주문 없음
+    var kk = 'sk:' + tk.slice(0, 20); if (req.off) props_().deleteProperty(kk); else { props_().setProperty(kk, ymdK_() + ' ' + Utilities.formatDate(new Date(), 'Asia/Seoul', 'HH:mm')); try { alertSkip_(JSON.parse(fk)); } catch (e) {} } pulse_('o'); return { ok: true, skip: skipOf_(tk) }; }
   if (req.action === 'orderSubmit') { var t2 = tok_(req.t); var fv2 = t2 && props_().getProperty(ORDF_ + t2); if (!fv2) return { ok: false, error: '주문 링크가 맞지 않습니다' };
     var f2 = JSON.parse(fv2); if (f2.on === false) return { ok: false, error: '이 주문 링크는 사용이 멈춰 있습니다' };
     var cid = String(req.cid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 30); if (!cid) return { ok: false, error: '주문 번호가 없습니다' };
@@ -316,11 +327,11 @@ function handle_(req) {
         if (ed.status !== 'new' || (ed.reply && ed.reply.st)) return { ok: false, error: '이미 확인된 주문이라 고칠 수 없습니다 — 빵을그리다에 전화로 알려 주세요' }; oid = ed.id; ex = null; }
       if (ex) return { ok: true, order: ordView_(JSON.parse(ex)), dup: true };
       if (!shipOk_(f2, String(req.ship || ''))) return { ok: false, error: '고른 배송일은 주문 마감이 지났거나 배송하지 않는 날입니다 — 다른 날을 골라 주세요' };
-      var codes = {}, prc = {}; (f2.items || []).forEach(function (it) { codes[it[0]] = it[1]; prc[it[0]] = it[2]; });
+      var codes = {}, prc = {}, opt2 = {}; (f2.items || []).forEach(function (it) { codes[it[0]] = it[1]; prc[it[0]] = it[2]; opt2[it[0]] = optsOf_(it[6]); });
       var cat2 = f2.cat === false ? null : catGet_(), cmap = {}; ((cat2 && cat2.on !== false && cat2.items) || []).forEach(function (it) { if (!it.hide) cmap[it.id] = it; });
       var lines = []; (req.lines || []).slice(0, 80).forEach(function (l) { var c = String(l && l[0] || ''), q = Math.floor(Number(l && l[1])), kd = String(l && l[2] || '') === 's' ? 's' : ''; if (!(q >= 1 && q <= 9999)) return;
         if (c.indexOf('cat:') === 0) { var ci = cmap[c.slice(4)]; if (!ci) return; lines.push([ci.code || c, ci.name + (ci.spec ? ' (' + ci.spec + ')' : ''), q, kd || 'c']); }   // 단가표 제품: 이카운트 코드가 있으면 그 코드, 없으면 cat:id
-        else if (codes[c] != null) lines.push([c, codes[c], q, kd, kd === 's' ? 0 : (prc[c] == null ? null : prc[c])]); });   // v5.4: 주문 시점 단가
+        else if (codes[c] != null) { var op = String(l && l[3] || '').trim(), ln = [c, codes[c], q, kd, kd === 's' ? 0 : (prc[c] == null ? null : prc[c])]; if (op && opt2[c].indexOf(op) >= 0) { ln[1] = codes[c] + ' · ' + op; ln[5] = op; } lines.push(ln); } });   // v5.4: 주문 시점 단가
       if (!lines.length) return { ok: false, error: '주문할 품목의 수량을 넣어 주세요' };
       var sh2 = shopPub_(cat2), so2 = {}, pr2 = {}, sum2 = 0, unk2 = false; sh2.so.forEach(function (k) { so2[k] = 1; }); (f2.items || []).forEach(function (it) { pr2[it[0]] = it[2]; });
       var bad2 = (req.lines || []).filter(function (l) { var c = String(l && l[0] || ''); return so2[c] || (c.indexOf('cat:') === 0 && cmap[c.slice(4)] && so2[cmap[c.slice(4)].code]); });
@@ -331,10 +342,11 @@ function handle_(req) {
       var today = ymdK_(), nToday = ordList_(function (o) { return o.tok === t2 && ymdK_(new Date(o.at)) === today; }).length; if (!ed && nToday >= 30) return { ok: false, error: '오늘 주문이 너무 많습니다 — 빵을그리다에 문의해 주세요' };
       var o2 = { id: oid, tok: t2, cust: f2.cust, name: f2.name, at: new Date().toISOString(), ship: String(req.ship), memo: String(req.memo || '').slice(0, 300), who: String(req.who || '').slice(0, 30), lines: lines, status: 'new' };
       var rv = Number(req.repeat) === 14 ? 14 : Number(req.repeat) === 7 ? 7 : 0; if (rv) o2.repeat = { ev: rv, on: true, ch: oid };
-      if (ed) { o2.hist = (ed.hist || []).concat([{ at: ed.editedAt || ed.at, ship: ed.ship, memo: ed.memo || '', lines: ed.lines }]).slice(-5); o2.at = ed.at; o2.editedAt = new Date().toISOString(); if (ed.repeat) { o2.repeat = ed.repeat; if (req.repeat != null) { if (rv) o2.repeat.ev = rv; else o2.repeat.on = false; } } if (ed.note) o2.note = ed.note; }
-      props_().setProperty(ORD_ + oid, JSON.stringify(o2));
+      if (!ed && ordList_(function (o) { return o.tok === t2 && o.ship === o2.ship && o.id !== oid && ['cancel', 'reject', 'deleted'].indexOf(o.status) < 0; }).length) o2.add = true;   // v5.9: 같은 배송일에 또 주문 → 추가 주문
+      if (ed) { if (ed.add) o2.add = true; o2.hist = (ed.hist || []).concat([{ at: ed.editedAt || ed.at, ship: ed.ship, memo: ed.memo || '', lines: ed.lines }]).slice(-5); o2.at = ed.at; o2.editedAt = new Date().toISOString(); if (ed.repeat) { o2.repeat = ed.repeat; if (req.repeat != null) { if (rv) o2.repeat.ev = rv; else o2.repeat.on = false; } } if (ed.note) o2.note = ed.note; }
+      props_().setProperty(ORD_ + oid, JSON.stringify(o2)); props_().deleteProperty('sk:' + t2.slice(0, 20));   // v5.9: 주문하면 「이번 주 없음」은 풀림
     } finally { lk2.releaseLock(); }
-    pulse_('o'); alertNew_(o2, ed ? '수정' : ''); return { ok: true, order: ordView_(o2) }; }
+    pulse_('o'); alertNew_(o2, ed ? '수정' : o2.add ? '추가 주문' : ''); return { ok: true, order: ordView_(o2) }; }
   // v5.0: 거래처가 자기 주문 취소(발주 확인 전까지) · 월별 주문 내역(드라이브 보관분 포함)
   if (req.action === 'orderCancel') { var t6 = tok_(req.t), lk7 = LockService.getScriptLock(); lk7.waitLock(10000); var oc;
     try { var cv = props_().getProperty(ORD_ + String(req.id || '').replace(/[^A-Za-z0-9_-]/g, '')); oc = cv && JSON.parse(cv); if (!t6 || !oc || oc.tok !== t6) return { ok: false, error: '주문을 찾지 못했습니다' };
@@ -391,10 +403,10 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 5.8, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 5.9, agentSeen: agentSeen_(), agentVer: agentVer_() };
   // v3.4: 주문 링크 관리 (통합재고관리)
   if (req.action === 'putOrderForm') { var t3 = tok_(req.t); if (t3) formLiteDrop_(t3); var f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
-    var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3]), /^\d{4}-\d{2}-\d{2}$/.test(it[4] || '') ? it[4] : '']; }),
+    var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3]), /^\d{4}-\d{2}-\d{2}$/.test(it[4] || '') ? it[4] : '', String(it[5] || '').slice(0, 20), optsOf_(it[6]).join('|')]; }),
       days: (f3.days || []).map(Number).filter(function (x) { return x >= 0 && x <= 6; }), cut: Math.min(23, Math.max(0, Number(f3.cut == null ? 15 : f3.cut))), lead: Math.min(7, Math.max(0, Number(f3.lead == null ? 1 : f3.lead))),
       price: !!f3.price, last: (f3.last || []).slice(0, 50).map(function (x) { return [String(x[0]).slice(0, 30), num_(x[1])]; }), note: String(f3.note || '').slice(0, 200), on: f3.on !== false, at: new Date().toISOString() };
     var js3 = JSON.stringify(keep); if (js3.length > 8800) return { ok: false, error: '품목이 너무 많습니다 — 40개 이하로 줄여 주세요' };
@@ -508,10 +520,10 @@ function handle_(req) {
   if (req.action === 'setOrderFormOn') { var t5 = tok_(req.t); if (t5) formLiteDrop_(t5); var v5 = t5 && props_().getProperty(ORDF_ + t5); if (!v5) return { ok: false, error: '없는 링크입니다' }; var f5 = JSON.parse(v5); f5.on = !!req.on; props_().setProperty(ORDF_ + t5, JSON.stringify(f5)); return { ok: true }; }
   if (req.action === 'delOrderForm') { var t4 = tok_(req.t); if (t4) formLiteDrop_(t4); if (t4) { props_().deleteProperty(ORDF_ + t4); props_().deleteProperty('seen:' + t4.slice(0, 12)); props_().deleteProperty(chatKey_(t4)); props_().deleteProperty('fx:' + t4.slice(0, 24)); cache_().remove('fx:' + t4.slice(0, 24)); } return { ok: true }; }
   if (req.action === 'listOrderForms') { var af = props_().getProperties(), lf = [];
-    Object.keys(af).forEach(function (k) { if (k.indexOf(ORDF_) !== 0) return; try { var f = JSON.parse(af[k]); var fx9 = fxGet_(k.slice(ORDF_.length)); lf.push({ pin: !!fx9.pin, ph: fx9.ph || '', al: !!fx9.al, t: k.slice(ORDF_.length), cust: f.cust, name: f.name, on: f.on !== false, at: f.at, n: (f.items || []).length, codes: (f.items || []).map(function (it) { return it[0]; }), days: f.days, cut: f.cut, lead: f.lead, price: !!f.price }); } catch (e) {} });
+    Object.keys(af).forEach(function (k) { if (k.indexOf(ORDF_) !== 0) return; try { var f = JSON.parse(af[k]); var fx9 = fxGet_(k.slice(ORDF_.length)); lf.push({ pin: !!fx9.pin, ph: fx9.ph || '', al: !!fx9.al, t: k.slice(ORDF_.length), cust: f.cust, name: f.name, on: f.on !== false, at: f.at, n: (f.items || []).length, codes: (f.items || []).map(function (it) { return it[0]; }), days: f.days, cut: f.cut, lead: f.lead, price: !!f.price, note: f.note || '', ext: (f.items || []).reduce(function (m, it) { if (it[5] || it[6]) m[it[0]] = [it[5] || '', it[6] || '']; return m; }, {}) }); } catch (e) {} });   // v5.9: 안내 글·품목 표시/고르기도 (고칠 때 유지)
     return { ok: true, forms: lf }; }
   if (req.action === 'orders') { var since = Date.now() - Math.min(45, Math.max(1, Number(req.days) || 14)) * 86400000; var mt = null, rg = 0; try { rg = repeatGen_(); } catch (e) {} try { mt = maint_(false); } catch (e) {}
-    return { ok: true, use: propsUse_(), limit: 500000, moved: mt ? mt.moved : 0, alert: { to: alertTo_(), off: props_().getProperty('ALERT_OFF') === '1' }, shop: shop_(), repMade: rg, chats: chatList_(), bal: balGet_(), alim: (function () { var C = alimCfg_(); var lg = []; try { lg = JSON.parse(props_().getProperty('alim:log') || '[]').slice(0, 5); } catch (e) {} return { on: !!(C.key && C.sec && C.pf), tpl: { ok: !!C.tpl.ok, out: !!C.tpl.out, remind: !!C.tpl.remind }, log: lg }; })(), trig: (function () { try { return JSON.parse(props_().getProperty('trig:last') || 'null'); } catch (e) { return null; } })(), mailLeft: (function () { try { return MailApp.getRemainingDailyQuota(); } catch (e) { return null; } })(), orders: ordList_(function (o) { return o.status === 'new' || (o.claim && o.claim.st === 'open') || new Date(o.at).getTime() >= since; }).slice(0, 200).map(function (o) { var v = ordView_(o); v.cust = o.cust; v.name = o.name; v.tok = o.tok; v.who = o.who || ''; if (o.hist) v.hist = o.hist; return v; }) }; }
+    return { ok: true, use: propsUse_(), limit: 500000, moved: mt ? mt.moved : 0, alert: { to: alertTo_(), off: props_().getProperty('ALERT_OFF') === '1' }, shop: shop_(), repMade: rg, skips: skipList_(), chats: chatList_(), bal: balGet_(), alim: (function () { var C = alimCfg_(); var lg = []; try { lg = JSON.parse(props_().getProperty('alim:log') || '[]').slice(0, 5); } catch (e) {} return { on: !!(C.key && C.sec && C.pf), tpl: { ok: !!C.tpl.ok, out: !!C.tpl.out, remind: !!C.tpl.remind }, log: lg }; })(), trig: (function () { try { return JSON.parse(props_().getProperty('trig:last') || 'null'); } catch (e) { return null; } })(), mailLeft: (function () { try { return MailApp.getRemainingDailyQuota(); } catch (e) { return null; } })(), orders: ordList_(function (o) { return o.status === 'new' || (o.claim && o.claim.st === 'open') || new Date(o.at).getTime() >= since; }).slice(0, 200).map(function (o) { var v = ordView_(o); v.cust = o.cust; v.name = o.name; v.tok = o.tok; v.who = o.who || ''; if (o.hist) v.hist = o.hist; return v; }) }; }
   if (req.action === 'orderDel') { var lkd = LockService.getScriptLock(); lkd.waitLock(10000);
     try { var kd = ORD_ + String(req.id || ''); if (kd === 'ord:notices' || !props_().getProperty(kd)) return { ok: false, error: '없는 주문입니다 (이미 지워졌을 수 있습니다)' }; props_().deleteProperty(kd); } finally { lkd.releaseLock(); }
     pulse_('o'); return { ok: true }; }
