@@ -97,3 +97,11 @@
 - 미수금: 앱 운영 상태 「엑셀 올리기」 — 이카운트 채권(미수금) 현황 엑셀에서 「거래처코드/거래처명」+「잔액·미수·채권」 칸을 찾음(주문 링크 있는 거래처만) → putBalances → cfg2:bal {at, show, b}. 발주 카드·링크 표에 「미수 ○원」, show 켜면 거래처 주문서에 「현재 외상 잔액」.
 - 알림톡(솔라피): 스크립트 속성 SOLAPI_KEY·SOLAPI_SECRET·SOLAPI_PFID·SOLAPI_FROM·TPL_OK·TPL_OUT·TPL_REMIND. 변수 #{거래처}·#{배송일}·#{품목}·#{안내}(확인·출고) / #{거래처}·#{배송일}·#{마감}(마감 알림). orderDone 회신 st ok/out 때 종류마다 한 번(o.alim), autoRun의 alimRemind_가 마감 3시간 안 미주문 거래처에 한 번(arm:). 기록 alim:log, 운영 상태 「시험 보내기」(alimTest).
 - privacy.html = 개인정보처리방침(플레이스토어 등록용). 플레이스토어는 도메인 구매 → PWABuilder로 포장 → assetlinks.json 을 도메인 루트 /.well-known 에.
+
+
+## 생산일지 ↔ CCP 일지 (v226, 2026-10-11 Aside가 K-HACCP 연동 분석 후 반영)
+- K-HACCP 흐름: 「CCP 제품 선택」에서 품목 ON → saveOperationLogList(수량 0) → /mgmt/ccp/startWork 가 그 품목에 연결된 CCP 일지(공정별 하루 한 장, 품목마다 칸)를 만든다 → 태블릿에서 측정 → 「생산실적(CCP관리)」 수량이 생산작업일지로. 품목→CCP 연결은 서버에 있고 화면에는 안 보임 → todayHomeCcpDirectionList(createDt) 186일분으로 확인.
+- K-HACCP 품목코드 = 이카운트 품목코드. 실제 연결표를 CCP_KH_LINK(코드 → o오븐·f급냉·m금속·x크림배합)로 넣고 ccpDefault 가 이름 추정보다 먼저 씀. 바뀐 것: Db.마늘바게트(SD50)는 크림배합 없음(fm).
+- K-HACCP 기록 3,415건 분석(2025-01~2026-10): CCP 일지 351장 중 347장이 품목 1개만 측정 — 여러 품목을 만든 날 나머지 품목 칸은 비어 있음(예 10/08 통밀소금빵 250박스). 크림배합 배치 합계 = 생산일지 배합량은 61일 중 36일(예 9/30 73.23kg vs 111.19kg). 금속 통과량 = 생산량 약 63%.
+- 그래서 ccpLinkCheck/ccpLinkHtml: 일지 화면 맨 위 「🔗 생산 ↔ CCP 연동 점검」 — ① 쓰기 시작한 공정 일지에서 측정이 하나도 없는 품목 ② 배치 합계 ≠ 생산일지 배합량(배치 줄이 다 찼을 때만) ③ 금속 통과량 ≠ 생산량. 측정값은 지어 넣지 않음.
+- 배치 수는 기록마다 달라(평소 크기로 예측해도 66일 중 33일만 맞음) 30kg 올림 그대로 두고 「배치 추가」로 맞춤.

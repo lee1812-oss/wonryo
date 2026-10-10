@@ -1272,8 +1272,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '225';
-const APP_BUILT = '2026-10-08 03:47';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '226';
+const APP_BUILT = '2026-10-11 07:30';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -2549,7 +2549,10 @@ function ccpExpOf(date, it, x) { if (x && x.exp) return x.exp; const v = it && i
 function ccpProdQty(x) { const it = prodItem(x.code); const kg = it && /^kg$/i.test(it.unit || ''); const v = kg ? (Number(x.ec) || 0) : (Number(x.ea) || Number(x.ec) || 0); return String(Math.round(v * 1000) / 1000); }
 const CCP_SUFFIX = { mix: 'x', oven: 'o', freeze: 'f', metal: 'm' };
 /* 기본 연결 (2026-09 K-HACCP 실제 기록): 배합 → 크림배합공정 / 굽는 품목(몽블랑·크로와상·소금빵) → 오븐+급냉+금속 / 마늘빵·바게트·생지 → 급냉+금속 */
-function ccpDefault(it) { const n = String((it && it.name) || ''); if (/배합/.test(n)) return 'x'; if (/마늘/.test(n)) return 'fmx';   /* v107: 마늘빵류 생산일엔 크림·마늘 배합도 함 → 크림배합 일지 */
+/* v226: K-HACCP 실제 연결표 — 2026-10-11 K-HACCP 「CCP 제품 선택」 서버 기록(2026-01~10, 186일)에서 확인. K-HACCP 품목코드 = 이카운트 품목코드.
+   o 오븐가열 · f 급속냉동 · m 금속검출 · x 크림배합. 표에 있는 품목은 이름 추정보다 이 표가 우선(관리자가 「품목 연결」에서 바꾸면 그 값이 우선). */
+const CCP_KH_LINK = { DBA22: 'ofm', DBA_29: 'ofm', DB333: 'ofm', DB_585: 'ofm', DBA44: 'ofm', 'DB.041': 'ofm', DBG1: 'ofm', DB111: 'ofm', DBAS23: 'ofm', DBA12: 'fmx', DBA_12: 'fmx', SD50: 'fm', DBS31: 'fm', DB2000: 'fm', DB001: 'x', DB002: 'x' };
+function ccpDefault(it) { const kh = it && CCP_KH_LINK[String(it.code || '')]; if (kh) return kh; const n = String((it && it.name) || ''); if (/배합/.test(n)) return 'x'; if (/마늘/.test(n)) return 'fmx';   /* v107: 마늘빵류 생산일엔 크림·마늘 배합도 함 → 크림배합 일지 */
   return (/몽블랑|크로와상|크라상|소금빵|K1/i.test(n) ? 'o' : '') + 'fm'; }
 function ccpCode(it) { return it && it.ccp != null ? String(it.ccp) : ccpDefault(it); }
 function ccpOf(it) { const v = ccpCode(it); return { oven: v.includes('o'), freeze: v.includes('f'), metal: v.includes('m'), mix: v.includes('x') }; }
@@ -2741,6 +2744,22 @@ function ccpState(g) {
   return { miss, bad, done: !miss && !bad };
 }
 function ccpPill(g) { const s = ccpState(g); return s.bad ? `<span class="pill bad">한계기준 이탈 ${s.bad}</span>` : s.miss ? `<span class="pill warn">입력 필요 ${s.miss}</span>` : '<span class="pill ok">작성 완료</span>'; }
+/* v226: 생산 ↔ CCP 연동 점검 — K-HACCP 기록 분석(2026-10-11)에서 자주 빠진 것을 그날 일지에서 바로 알려 줌.
+   ① 여러 품목을 만든 날 한 품목만 CCP 측정(그 공정 일지를 쓰기 시작했는데 어떤 품목 줄은 비어 있음) ② 크림배합 배치 합계 ≠ 생산일지 배합량 ③ 금속검출 통과량 ≠ 생산량 */
+function ccpLinkCheck(D) {
+  const L = ccpS().logs, prods = Object.values(ccpProdByDate()[D] || {}), out = [], r2 = v => Math.round(v * 100) / 100;
+  const any = r => ['time', 'temp', 'min', 'core', 't1', 'v1', 't2', 'v2', 'start', 'kg', 'end', 'fe', 'sus', 'p', 'fep', 'susp'].some(f => r[f] !== '' && r[f] != null);
+  ['oven', 'freeze', 'metal'].forEach(type => { const g = L[D + '|' + type]; if (!g || g.skip) return;
+    const rows = (g.rows || []).filter(r => r.code && r.kind !== 'pre' && r.kind !== 'post'); if (!rows.some(any)) return;   /* 아직 쓰기 시작 안 한 일지는 점검하지 않음 */
+    [...new Set(rows.map(r => r.code))].forEach(c => { const rs = rows.filter(r => r.code === c); if (!rs.some(any)) out.push({ type, lv: 'warn', msg: `${rs[0].name || c} — ${CCP_TYPES[type].short} 측정 기록이 없습니다 (그날 만든 품목마다 · 품목 바뀔 때 기록)` }); }); });
+  const gm = L[D + '|mix']; if (gm && !gm.skip) { const by = {}; let blank = false; (gm.rows || []).forEach(r => { const kg = ccpNum(r.kg); if (kg == null) { blank = true; return; } const n = String(r.name || ''); by[n] = (by[n] || 0) + kg; });
+    if (!blank) prods.filter(x => /배합/.test(String(x.name || ''))).forEach(x => { const want = Number(x.ec) || 0, got = by[x.name]; if (!want || got == null || Math.abs(got - want) < 0.05) return;
+      out.push({ type: 'mix', lv: got < want ? 'warn' : 'info', msg: `${x.name} 배치 합계 ${r2(got)}kg ≠ 생산일지 ${r2(want)}kg${got < want ? ' — 기록이 빠진 배치가 있는지 확인' : ''}` }); }); }
+  const gt = L[D + '|metal']; if (gt && !gt.skip) (gt.pass || []).forEach(p => { const x = prods.find(y => y.code === p.code), v = ccpNum(p.passed), ea = x ? Number(x.ea) || 0 : 0; if (x && ea && v != null && v !== ea) out.push({ type: 'metal', lv: 'info', msg: `${p.name} 금속검출 통과량 ${v} ≠ 생산량 ${ea}` }); });
+  return out;
+}
+function ccpLinkHtml(D) { const is = ccpLinkCheck(D); if (!is.length) return '';
+  return `<div class="card" style="border-color:#E8C98E;background:var(--warn-bg)"><b>🔗 생산 ↔ CCP 연동 점검 ${is.length}건</b><div class="muted" style="font-size:12px;margin:2px 0 6px">생산일지와 CCP 일지가 서로 맞는지 확인한 결과입니다. 측정값은 현장에서 재서 넣으세요.</div>${is.map(i => `<div style="font-size:13px;margin:3px 0">${i.lv === 'warn' ? '⚠' : 'ⓘ'} ${CCP_TYPES[i.type].ico} ${esc(i.msg)}</div>`).join('')}</div>`; }
 /* ── 저장 · 공유 ── */
 function ccpTouch(g) { g.ts = new Date().toISOString(); g.by = S.settings.reporter || ''; save(); ccpQueueSoon(g); clearTimeout(ccpTouch.t); ccpTouch.t = setTimeout(() => { try { renderSharePill(); } catch (e) {} }, 800); }
 const ccpQT = {};
@@ -2773,7 +2792,7 @@ function renderCcp() {
   ${V === 'cal' ? ccpCalHtml(D) : V === 'dev' ? ccpDevHtml() : V === 'list' ? ccpListHtml(D) : V === 'map' ? ccpMapHtml() : `<div class="card"><div class="prow" style="align-items:center;gap:8px"><button class="btn sm" data-ccpview="cal">← 달력</button>
       <input type="date" id="ccpPick" value="${esc(D)}" style="width:150px"><span class="pday-nav" style="margin:0" role="group" aria-label="일지 날짜 바꾸기"><button type="button" class="btn sm" data-ccpday="-1">‹ 전일</button><button type="button" class="btn sm${D === today() ? ' primary' : ''}" data-ccpday="0">오늘</button><button type="button" class="btn sm" data-ccpday="1">익일 ›</button></span><b>${esc(D)} (${WD[new Date(D + 'T00:00:00').getDay()]}) 생산</b> <span class="muted" style="flex:1 1 200px">${prods.length ? prods.map(x => `${esc(x.name)} ${fmt(x.ea || x.ec)}`).join(' · ') : '생산 기록 없음'}</span><button class="btn" id="ccpPrint">🖨 이 날짜 인쇄</button></div>
     <div class="prow" style="align-items:center;gap:8px;margin-top:8px;font-size:12.5px"><span class="muted">기본값 —</span><label class="muted">점검자 <input id="ccpWho" value="${esc(P.cfg.ccpWho || '')}" placeholder="이름" style="width:110px;padding:4px 8px"></label><label class="muted">검토자 <input id="ccpRev" value="${esc(P.cfg.ccpRev || '')}" placeholder="이름" style="width:110px;padding:4px 8px"></label><label class="muted">승인자 <input id="ccpOk" value="${esc(P.cfg.ccpOk || '')}" placeholder="이름" style="width:110px;padding:4px 8px"></label><span class="muted" style="font-size:11.5px">비어 있는 일지에 자동으로 들어갑니다 · 일지마다 아래 결재란에서 고칠 수 있습니다</span></div></div>
-  ${logs.length ? (() => { const tid = g => g.type + (g.sub ? '~' + g.sub : ''); const cur = logs.find(g => tid(g) === S.ui.ccpTab) || logs[0];
+  ${ccpLinkHtml(D)}${logs.length ? (() => { const tid = g => g.type + (g.sub ? '~' + g.sub : ''); const cur = logs.find(g => tid(g) === S.ui.ccpTab) || logs[0];
       const tabs = logs.map(g => { const st = ccpState(g), on = g === cur, T = CCP_TYPES[g.type]; const dot = st.bad ? 'var(--minus)' : st.miss ? '#E0A030' : '#2E9E6A';
         return `<button class="ccp-tab${on ? ' on' : ''}" data-ccptab="${tid(g)}"><span>${T.ico}</span>${esc(g.type === 'lot' ? String(g.name || '').replace(/^(D|DB|Db)\.\s*/, '') : T.short)}<i style="background:${dot}" title="${st.bad ? '한계기준 이탈' : st.miss ? '입력 필요 ' + st.miss : '작성 완료'}"></i></button>`; }).join('');
       return `<div class="ccp-tabs">${tabs}</div>${ccpCardHtml(cur)}`; })() : '<div class="card muted">이 날짜에는 만들어진 CCP 일지가 없습니다.</div>'}`}`;
@@ -3202,7 +3221,7 @@ function ccpPrintLogs(logs, D) {
 function ccpMapHtml() {
   const its = prodOnItems(), c = prodS().cfg;
   return `<div class="card"><h2>⚙ 품목별 CCP 연결 <span class="muted" style="font-size:12px;font-weight:600">(관리자)</span></h2>
-    <div class="muted" style="margin-bottom:8px">생산한 품목마다 어떤 CCP 일지를 만들지 정합니다. 처음에는 2026-09 K-HACCP 기록대로 맞춰 두었습니다 (굽는 품목 → 오븐·급냉·금속, 마늘빵류 → 급냉·금속, 배합 → 크림배합). 바꾸면 다른 기기에도 전달됩니다.</div>
+    <div class="muted" style="margin-bottom:8px">생산한 품목마다 어떤 CCP 일지를 만들지 정합니다. K-HACCP 「CCP 제품 선택」의 실제 연결표(2026, 품목코드 기준)대로 맞춰 두었습니다 — 굽는 품목 → 오븐·급냉·금속, 육쪽마늘빵·치즈듬뿍 마늘바게트 → 급냉·금속·크림배합, 마늘바게트·생지 → 급냉·금속, 배합 → 크림배합. 바꾸면 다른 기기에도 전달됩니다.</div>
     <div class="prow" style="gap:10px;margin-bottom:8px"><div class="field" style="width:160px"><label>기본 점검자</label><input id="ccpWho" value="${esc(c.ccpWho || '')}" placeholder="이름"></div><div class="field" style="width:160px"><label>기본 승인자</label><input id="ccpOk" value="${esc(c.ccpOk || '')}" placeholder="이름"></div></div>
     <div class="tablewrap"><table class="t"><thead><tr><th>품목</th>${CCP_ORDER.map(t => `<th style="text-align:center">${CCP_TYPES[t].ico} ${CCP_TYPES[t].short}</th>`).join('')}<th style="text-align:center">📋 소비기한(일)</th></tr></thead><tbody>
     ${its.map(it => { const o = ccpOf(it); return `<tr><td>${esc(it.name)} <span class="muted" style="font-size:11px">${esc(it.code)}</span></td>${CCP_ORDER.map(t => `<td style="text-align:center"><input type="checkbox" data-ccpmap="${esc(it.code)}|${t}" ${o[t] ? 'checked' : ''} style="width:18px;height:18px"></td>`).join('')}<td style="text-align:center"><input data-ccpshelf="${esc(it.code)}" value="${esc(it.shelf ?? '')}" inputmode="numeric" placeholder="일" style="width:70px;text-align:center"></td></tr>`; }).join('') || '<tr><td colspan="5" class="muted">생산 품목이 없습니다</td></tr>'}</tbody></table></div></div>`;
