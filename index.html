@@ -3151,6 +3151,7 @@ function ccpSheet(g, ed) {
   const T = CCP_TYPES[g.type], k = ccpKey(g), kid = ccpKid(g), w = WD[new Date(g.date + 'T00:00:00').getDay()];
   const V = (sec, i, f, v, kind, ph) => { if (!ed) return esc(v == null ? '' : v);
     if (kind === 'ox') return `<select data-c="${k}|${sec}|${i}|${f}"><option value=""></option><option${v === 'O' ? ' selected' : ''}>O</option><option${v === 'X' ? ' selected' : ''}>X</option></select>`;
+    if (kind === 'area') return `<textarea data-c="${k}|${sec}|${i}|${f}" rows="${Math.max(2, Math.ceil(String(v || '').length / 34))}" style="width:100%;resize:vertical;text-align:left;font:inherit;border:0;background:transparent;line-height:1.45" placeholder="이탈이 있으면 무엇을 했는지 적어 주세요 (작업 중지·재가열·보고 등)">${esc(v == null ? '' : v)}</textarea>`;
     if (kind === 'date') return `<input type="date" data-c="${k}|${sec}|${i}|${f}" value="${esc(v || '')}" style="min-width:128px">`;
     if (kind === 'time') return `<div style="display:flex;align-items:center;gap:2px"><input type="time" data-c="${k}|${sec}|${i}|${f}" value="${esc(v || '')}"><button class="ccp-mini" data-ccpnow="${k}|${sec}|${i}|${f}" title="지금 시각">⏱</button></div>`;
     return `<input data-c="${k}|${sec}|${i}|${f}" value="${esc(v == null ? '' : v)}" ${kind === 'txt' ? 'style="text-align:left"' : 'inputmode="decimal"'}${ph ? ` placeholder="${esc(ph)}" title="지난 기록의 평소 값(참고용) — 저장되지 않습니다. 실제로 잰 값을 입력하세요"` : ''}>`; };
@@ -3207,7 +3208,7 @@ function ccpSheet(g, ed) {
       ${top}<div class="ccp-sp"></div>${mid}<div class="ccp-sp top"></div>
       <table><tr><td class="lb" style="width:96px">개선조치<br>방법</td><td class="txt">${fixRows(fix)}</td></tr></table>
       <table><tr><td class="lb">한계기준 이탈내용</td><td class="lb">개선조치 및 결과</td><td class="lb" style="width:110px">조 치 자</td><td class="lb" style="width:110px">확 인</td></tr>
-        <tr><td style="text-align:left">${V('log', 0, 'dev', g.dev, 'txt')}</td><td style="text-align:left">${V('log', 0, 'act', g.act, 'txt')}</td><td style="text-align:left">${esc(g.who || '')}</td><td>${esc(g.ok || '')}</td></tr></table></div>
+        <tr><td style="text-align:left">${V('log', 0, 'dev', g.dev, 'area')}</td><td style="text-align:left">${V('log', 0, 'act', g.act, 'area')}</td><td style="text-align:left">${esc(g.who || '')}</td><td>${esc(g.ok || '')}</td></tr></table></div>
     <div class="ccp-foot"><span>${g.ts ? '마지막 입력 ' + esc(hmOf(g.ts)) + (g.by ? ' · ' + esc(g.by) : '') : ''}</span><span>빵을그리다 통합 재고관리</span></div></div>`;
 }
 function ccpCardHtml(g) {
@@ -3272,7 +3273,7 @@ function ccpRefreshCell(g, sec, i) {
 function ccpAutoDev(g) { if (!CCP_ORDER.includes(g.type)) return; const items = [];
   [['rows', g.rows || []], ['pass', g.pass || []]].forEach(([sec, rs]) => rs.forEach(r => { const s = ccpRowState(g.type, sec, r, g.date); if (!s.bad.length) return; const gi = ccpDevInfo(g.type, sec, r, g.date); items.push(`${String(r.name || '').replace(/^(D|DB|Db)\./, '')}${r.time || r.t1 || r.start ? ' ' + (r.time || r.t1 || r.start) : ''} ${(gi.gap.length ? gi.gap : s.bad).join(', ')}`); }));
   const def = !String(g.dev || '').trim() || /^(이탈내용)?없음$/.test(String(g.dev).replace(/\s/g, ''));
-  if (items.length && (def || g.devAuto)) { g.dev = '[자동] ' + items.join(' / '); g.devAuto = 1; } else if (!items.length && g.devAuto) { g.dev = '이탈내용 없음'; g.devAuto = 0; } }
+  if (items.length && (def || g.devAuto)) { g.dev = '[자동] ' + items.join(' / '); g.devAuto = 1; if (/^(특이사항)?없음$/.test(String(g.act || '').replace(/\s/g, ''))) g.act = ''; } else if (!items.length && g.devAuto) { g.dev = '이탈내용 없음'; g.devAuto = 0; if (!String(g.act || '').trim()) g.act = '특이 사항 없음'; } }
 /* v227: 승인 — 승인자가 「✔ 승인」을 눌러야 도장이 찍힘. 승인된 일지를 고치면 승인이 풀리고 수정 기록(hist)이 남음 (K-HACCP 「승인 후 수정」 방지) */
 function ccpApproved(g) { return !!(g && g.apAt); }
 function ccpSet(path, v) {
