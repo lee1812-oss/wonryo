@@ -1,9 +1,9 @@
 {
- "updatedAt": "2026-10-11T22:35:25+09:00",
+ "updatedAt": "2026-10-11T22:40:27+09:00",
  "baseDate": "2026-10-11",
  "company": "빵을그리다(주)",
  "source": "ecount-oapi",
- "count": 798,
+ "count": 797,
  "items": [
   {
    "code": "00001",
@@ -1623,15 +1623,11 @@
   },
   {
    "code": "DB100",
-   "qty": 0.0
+   "qty": 60.0
   },
   {
    "code": "DB111_1",
    "qty": 300.0
-  },
-  {
-   "code": "DB114",
-   "qty": 1.0
   },
   {
    "code": "DB13",
