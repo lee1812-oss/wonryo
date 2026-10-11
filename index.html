@@ -1272,8 +1272,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '228';
-const APP_BUILT = '2026-10-11 16:00';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '229';
+const APP_BUILT = '2026-10-11 22:00';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -6635,7 +6635,9 @@ function fldNewRow(g, type, key, mode) {
   g.rows.splice(at, 0, nr); g.items = g.items || []; if (code && !String(code).startsWith('mix:') && !g.items.includes(code)) g.items.push(code); return nr;
 }
 /* ── 화면 ── */
-function fieldOpen(step) { if (!$('#fld')) { const d = document.createElement('div'); d.id = 'fld'; document.body.appendChild(d); fldBind(d); } FLD.open = true; FLD.date = ''; FLD.step = step || (fldWk() ? 'home' : 'who'); document.body.classList.add('fld-on'); fieldRender(); }
+function fldEdge() { try { return localStorage.getItem('wonryo_field_edge') || '0'; } catch (e) { return '0'; } }
+function fldEdgeApply() { const b = $('#fld'); if (b) { b.classList.toggle('edge1', fldEdge() === '1'); b.classList.toggle('edge2', fldEdge() === '2'); } }
+function fieldOpen(step) { if (!$('#fld')) { const d = document.createElement('div'); d.id = 'fld'; document.body.appendChild(d); fldBind(d); } FLD.open = true; FLD.date = ''; fldEdgeApply(); FLD.step = step || (fldWk() ? 'home' : 'who'); document.body.classList.add('fld-on'); fieldRender(); }
 function fieldClose() { FLD.open = false; const d = $('#fld'); if (d) d.remove(); document.body.classList.remove('fld-on'); try { renderCcp(); } catch (e) {} }
 function fldHead() { const D = fldD(), wk = fldWk(), wd = WD[new Date(D + 'T00:00:00').getDay()];
   return `<div class="fld-top"><button class="fb back" data-f="back" ${FLD.step === 'home' ? 'style="visibility:hidden"' : ''}>‹ 뒤로</button>
@@ -6668,6 +6670,7 @@ function fldHomeHtml() { const D = fldD(); const by = (ccpProdByDate()[D]) || {}
     ${tile('oven')}${tile('freeze')}${tile('mix')}${tile('metal')}
     <button class="ft big" data-f="qty" style="--c:#5F3DC4"><i>📦</i><b>생산량 입력</b><small>${cartN ? `담은 품목 ${cartN}개 — 보내기 전` : '끝나면 박스 수 입력 → 이카운트·생산작업일보'}</small></button></div>
   ${issues.length ? `<div class="fld-card warn"><b>오늘 확인할 것</b>${issues.map(i => `<div class="fld-iss">${(CCP_TYPES[i.type] || {}).ico || '⚠'} ${esc(i.msg)}</div>`).join('')}</div>` : `<div class="fld-card ok"><b>✓ 오늘 빠진 기록이 없습니다</b></div>`}
+  <div class="fld-auto">화면 가장자리 여백 <span class="sub">(액정이 깨졌거나 가장자리 터치가 잘 안 될 때)</span> ${[['0', '없음'], ['1', '좁게'], ['2', '넓게']].map(([v, t]) => `<button class="fb${fldEdge() === v ? ' pri' : ''}" data-f="edge" data-v="${v}" style="min-height:40px;padding:4px 14px;font-size:15px">${t}</button>`).join('')}</div>
   <label class="fld-auto"><input type="checkbox" data-f="auto" ${(() => { try { return localStorage.getItem(FLD_AUTO_KEY) === '1'; } catch (e) { return false; } })() ? 'checked' : ''}> 이 기기는 켜면 바로 현장 입력 화면 (생산실 태블릿·포스)</label>`; }
 function fldWsHtml() { const D = fldD(), by = ccpProdByDate()[D] || {}, st = (() => { try { return prodStats(); } catch (e) { return {}; } })(); const q = FLD.q.trim().toLowerCase();
   let its = prodOnItems().filter(it => { const o = ccpOf(it); return o.oven || o.freeze || o.metal || o.mix; });
@@ -6719,16 +6722,16 @@ function fldFieldBad(x) { const r = fldPreview(); if (r[x.f] === '' || r[x.f] ==
   if (FLD.type === 'freeze') return ccpRowState('freeze', 'rows', Object.assign(only, x.f === 't2' || x.f === 'v2' ? { t1: r.t1 } : {}), fldD()).bad.filter(b => x.k === 'time' ? /시간/.test(b) : !/시간/.test(b));
   return ccpRowState(FLD.type, FLD.sec, only, fldD()).bad.filter(b => x.k === 'time' ? false : true); }
 function fldFormHtml() { const T = FLD_T[FLD.type], cur = FLD.fields[FLD.fi] || {}; const ttl = FLD.type === 'metal' ? { pre: '작업 전 점검', post: '작업 후 점검', item: '제품 확인', pass: '통과량·검출량' }[FLD.mode] : FLD.type === 'oven' ? FLD.mode + ' 측정' : FLD.type === 'freeze' ? (FLD.mode === 'out' ? '급냉 꺼냄' : '급냉 넣음') : FLD.mode === 'end' ? '소진' : '배치 배합';
-  const allOk = FLD.type === 'metal' && FLD.mode !== 'pass';
+  const allOk = FLD.type === 'metal' && FLD.mode !== 'pass'; const padOn = !(cur.k === 'ox' && !FLD.fields.some(x => x.k !== 'ox' && x.k !== 'time'));   /* v229: 숫자판이 보일 때는 작은 화면에서 저장 버튼을 숫자판 안에 둠 */
   return `<h1 class="fld-h">${T.ico} ${FLD.type === 'metal' && FLD.mode !== 'item' && FLD.mode !== 'pass' ? '금속검출' : esc(fldShort(FLD.name))} · ${esc(ttl)}${FLD.edit ? ' <em class="ed">고치는 중</em>' : ''}</h1>
   <div class="fld-form"><div class="fld-fields">${FLD.fields.map((x, i) => { const v = FLD.vals[x.f]; const b = fldFieldBad(x); const cls = (i === FLD.fi ? ' on' : '') + (b && b.length ? ' bad' : v !== '' && x.k !== 'time' ? ' good' : '');
       if (x.k === 'ox') return `<div class="fld-f ox${cls}"><label>${esc(x.lb)}</label><div class="oxb"><button class="${v === 'O' ? 'sel' : ''} ${x.good === 'O' ? 'g' : 'b'}" data-f="ox" data-k="${x.f}" data-v="O">${esc(x.yes)} (O)</button><button class="${v === 'X' ? 'sel' : ''} ${x.good === 'X' ? 'g' : 'b'}" data-f="ox" data-k="${x.f}" data-v="X">${esc(x.no)} (X)</button></div>${b && b.length ? `<small class="bad">⚠ ${esc(b.join(', '))}</small>` : `<small>정상: ${x.good === 'O' ? esc(x.yes) : esc(x.no)}</small>`}</div>`;
       return `<button class="fld-f${cls}" data-f="fi" data-i="${i}"><label>${esc(x.lb)}</label><div class="v">${x.neg && v !== '' ? '−' : ''}${v === '' ? '<span class="ph">눌러서 입력</span>' : esc(v)}${x.u && v !== '' ? `<small>${esc(x.u)}</small>` : ''}${x.k === 'time' && FLD.fresh[x.f] ? '<small class="now">지금</small>' : ''}</div>${b && b.length ? `<small class="bad">⚠ ${b.some(y => /자릿수|부호/.test(y)) ? esc(b.filter(y => /자릿수|부호/.test(y)).join(', ')) : `기준을 벗어났습니다 (기준 ${esc(x.lim || b.join(', '))})`}</small>` : x.lim ? `<small>기준 ${esc(x.lim)}</small>` : ''}</button>`; }).join('')}
     ${allOk ? `<button class="fb ok big" data-f="allok">✓ 모두 정상 (한 번에)</button>` : ''}</div>
-  ${cur.k === 'ox' && !FLD.fields.some(x => x.k !== 'ox' && x.k !== 'time') ? '' : `<div class="fld-pad">${cur.k === 'time' ? `<div class="padinfo">⏱ 시각 — 숫자 4개 (예: 0957)</div><button class="fb now" data-f="now">지금 ${fldHM()}</button>` : `<div class="padinfo">${esc(cur.lb || '')}${cur.neg ? ' — 영하(−)는 자동' : ''}</div>`}
+  ${!padOn ? '' : `<div class="fld-pad">${cur.k === 'time' ? `<div class="padinfo">⏱ 시각 — 숫자 4개 (예: 0957)</div><button class="fb now" data-f="now">지금 ${fldHM()}</button>` : `<div class="padinfo">${esc(cur.lb || '')}${cur.neg ? ' — 영하(−)는 자동' : ''}</div>`}
     <div class="keys">${['7', '8', '9', '4', '5', '6', '1', '2', '3', cur.k === 'time' ? 'C' : '.', '0', '⌫'].map(k => `<button data-f="key" data-k="${k}">${k}</button>`).join('')}</div>
-    <div class="padrow"><button class="fb" data-f="prevf">◀ 이전 칸</button><button class="fb pri" data-f="nextf">${FLD.fi >= FLD.fields.length - 1 ? '저장 ✓' : '다음 칸 ▶'}</button></div></div>`}
-  </div><div class="fld-save">${FLD.edit && FLD.rowId && FLD.sec === 'rows' && !['pre', 'post'].includes(FLD.mode) ? '<button class="fb big" data-f="delrow" style="width:auto;margin-right:10px">🗑 지우기</button>' : ''}<button class="fb pri big" data-f="save">✓ 일지에 저장</button></div>`; }
+    <div class="padrow"><button class="fb" data-f="prevf">◀ 이전</button><button class="fb pri" data-f="nextf">${FLD.fi >= FLD.fields.length - 1 ? '저장 ✓' : '다음 칸 ▶'}</button><button class="fb ok pad-save" data-f="save">✓ 저장</button></div></div>`}
+  </div><div class="fld-save${padOn ? ' form-save' : ''}">${FLD.edit && FLD.rowId && FLD.sec === 'rows' && !['pre', 'post'].includes(FLD.mode) ? '<button class="fb big" data-f="delrow" style="width:auto;margin-right:10px">🗑 지우기</button>' : ''}<button class="fb pri big" data-f="save">✓ 일지에 저장</button></div>`; }
 function fldKey(k) { const x = FLD.fields[FLD.fi]; if (!x || x.k === 'ox') return; let v = FLD.vals[x.f] || ''; FLD.typed = FLD.typed || {}; if (FLD.fresh[x.f] || (!FLD.typed[x.f] && k !== '⌫')) { v = ''; delete FLD.fresh[x.f]; } FLD.typed[x.f] = 1;   /* 칸에 들어와 처음 누른 숫자는 원래 값을 지우고 새로 */
   if (x.k === 'time') { let d = v.replace(/\D/g, ''); if (k === '⌫') d = d.slice(0, -1); else if (k === 'C') d = ''; else if (/\d/.test(k) && d.length < 4) d += k; FLD.vals[x.f] = d.length > 2 ? d.slice(0, 2) + ':' + d.slice(2) : d; if (d.length === 4) { const h = +d.slice(0, 2), m = +d.slice(2); if (h > 23 || m > 59) { toast('시각을 확인하세요 (예: 0957)'); FLD.vals[x.f] = ''; } else setTimeout(() => { FLD.fi = Math.min(FLD.fi + 1, FLD.fields.length - 1); fieldRender(); }, 150); } }
   else { if (k === '⌫') v = v.slice(0, -1); else if (k === 'C') v = ''; else if (k === '.') { if (!v.includes('.')) v = (v || '0') + '.'; } else if (k === '-') { if (!x.neg) v = v.startsWith('-') ? v.slice(1) : '-' + v; } else if (/\d/.test(k) && v.replace(/\D/g, '').length < 6) v += k; FLD.vals[x.f] = v; }
@@ -6790,6 +6793,7 @@ function fldBind(box) {
   box.addEventListener('change', e => { const el = e.target; if (el.dataset.f === 'auto') { try { localStorage.setItem(FLD_AUTO_KEY, el.checked ? '1' : '0'); } catch (er) {} toast(el.checked ? '이 기기는 켜면 현장 입력 화면이 바로 열립니다' : '자동 열기를 껐습니다'); } });
   box.addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b || b.tagName === 'INPUT' || b.tagName === 'TEXTAREA') return; const f = b.dataset.f, d = b.dataset;
     if (f === 'close') return fieldClose();
+    if (f === 'edge') { try { localStorage.setItem('wonryo_field_edge', d.v); } catch (er) {} fldEdgeApply(); return fieldRender(); }
     if (f === 'back') { FLD.step = { who: 'home', ws: 'home', type: 'home', qty: 'home', mode: 'type', form: (FLD.type === 'metal' ? 'type' : (FLD.type === 'oven' || FLD.type === 'freeze' || FLD.type === 'mix') ? 'mode' : 'type'), act: 'type', qtyin: 'qty', endpick: 'mode', mpick: 'type' }[FLD.step] || 'home'; if (FLD.step === 'mode' && FLD.type === 'metal') FLD.step = 'type'; FLD.q = ''; return fieldRender(); }
     if (f === 'who') { FLD.back = FLD.step; FLD.step = 'who'; return fieldRender(); }
     if (f === 'setwk') { fldSetWk(d.n); toast(`👤 ${d.n} — 서명으로 들어갑니다`); FLD.step = FLD.back && FLD.back !== 'who' ? FLD.back : 'home'; FLD.back = ''; return fieldRender(); }
@@ -6878,6 +6882,34 @@ body.fld-on{overflow:hidden}
 #fld .fld-rec b{font-size:17px}#fld .fld-rec em{font-style:normal;color:#607D8B;font-size:14px}#fld .fld-rec strong{color:#C92A2A;width:100%}#fld .fld-rec.bad{border-color:#E03131;background:#FFF5F5}
 .fld-cart{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px dashed #E0E0E0;font-size:18px}.fld-cart span{flex:1}.fld-cart b{white-space:nowrap}
 body.fld-on .toast{bottom:104px;z-index:60}
+@media (max-height:640px){body.fld-on .toast{bottom:72px}}
+.pad-save{display:none}
+#fld.edge1{padding:0 14px 14px}#fld.edge2{padding:0 30px 30px}#fld.edge1 .fld-top{margin:0 -14px}#fld.edge2 .fld-top{margin:0 -30px;padding-left:40px;padding-right:40px}#fld.edge1 .fld-save{left:14px;right:14px;bottom:14px;border-radius:14px}#fld.edge2 .fld-save{left:30px;right:30px;bottom:30px;border-radius:14px}
+/* v229: 작은 태블릿(갤럭시 탭 A9 8.7" 등) — 세로: 칸 2줄 배치 + 숫자판 아래 고정, 저장은 숫자판 안 · 가로(낮은 화면): 전체 압축 */
+@media (max-width:820px){
+ .fld-body{padding:12px 12px 110px}.fld-h{font-size:22px;margin:2px 0 8px}
+ .fld-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ #fld .fld-f{padding:8px 12px}#fld .fld-f .v{font-size:32px}#fld .fld-f label{font-size:14.5px}#fld .fld-f>small{font-size:13.5px}#fld .fld-f.ox{grid-column:1/-1}
+ #fld .fld-fields .fb.ok.big{grid-column:1/-1}
+ .fld-pad{position:sticky;top:auto;bottom:0;z-index:4;padding:8px;border-radius:16px 16px 0 0;box-shadow:0 -4px 16px rgba(0,0,0,.08)}
+ .padinfo{font-size:14px;margin-bottom:4px}.keys{gap:6px}.keys button{min-height:58px;font-size:28px}
+ .padrow{grid-template-columns:1fr 1.2fr 1.2fr}.pad-save{display:block}
+ .fld-form ~ .form-save{display:none}.fld-form:has(.fld-pad) ~ .fld-save.form-save{display:none}
+ #fld .fb{min-height:46px;padding:6px 12px;font-size:16px}#fld .fb.big{min-height:56px;font-size:19px}
+ #fld .ft{min-height:84px;padding:12px 14px}#fld .ft b{font-size:19px}#fld .ft.big{min-height:120px}#fld .ft.big i{font-size:28px}#fld .ft.big b{font-size:22px}
+ .fld-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}.fld-grid.g3{grid-template-columns:repeat(2,1fr)}
+ .fld-tt b{font-size:17px}.fld-top{gap:6px;padding:8px 10px}
+}
+@media (max-height:640px) and (min-width:821px){
+ .fld-top{padding:6px 14px}.fld-tt b{font-size:17px}#fld .fb{min-height:42px;padding:5px 12px;font-size:15.5px}
+ .fld-body{padding:10px 16px 76px}.fld-h{font-size:21px;margin:0 0 8px}
+ .fld-form{grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:12px}
+ .fld-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}#fld .fld-f{padding:6px 12px}#fld .fld-f .v{font-size:30px}#fld .fld-f label{font-size:14px}#fld .fld-f>small{font-size:13px}#fld .fld-f.ox{grid-column:1/-1}#fld .fld-fields .fb.ok.big{grid-column:1/-1}
+ .fld-pad{top:56px;padding:8px}.padinfo{font-size:13.5px;margin-bottom:4px}.keys{gap:6px}.keys button{min-height:52px;font-size:26px}#fld .fb.now{min-height:46px;font-size:17px;margin-bottom:6px}.padrow{margin-top:6px}
+ .fld-save{padding:6px 16px}#fld .fb.big{min-height:52px;font-size:19px}
+ #fld .ft{min-height:78px;padding:10px 14px}#fld .ft.big{min-height:104px}#fld .ft.big i{font-size:26px}#fld .ft.big b{font-size:21px}
+ .oxb button{min-height:48px;font-size:16.5px}
+}
 .fld-open-btn{background:#173F4B;color:#fff;border:0;border-radius:12px;padding:10px 18px;font-size:16px;font-weight:800;cursor:pointer;white-space:nowrap}
 `; document.head.appendChild(s); })();
 setTimeout(() => { try { if (location.hash === '#field' || localStorage.getItem(FLD_AUTO_KEY) === '1') fieldOpen(); } catch (e) {} }, 1200);
