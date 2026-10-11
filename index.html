@@ -1272,8 +1272,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '229';
-const APP_BUILT = '2026-10-11 22:00';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '230';
+const APP_BUILT = '2026-10-11 23:00';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -6672,12 +6672,21 @@ function fldHomeHtml() { const D = fldD(); const by = (ccpProdByDate()[D]) || {}
   ${issues.length ? `<div class="fld-card warn"><b>오늘 확인할 것</b>${issues.map(i => `<div class="fld-iss">${(CCP_TYPES[i.type] || {}).ico || '⚠'} ${esc(i.msg)}</div>`).join('')}</div>` : `<div class="fld-card ok"><b>✓ 오늘 빠진 기록이 없습니다</b></div>`}
   <div class="fld-auto">화면 가장자리 여백 <span class="sub">(액정이 깨졌거나 가장자리 터치가 잘 안 될 때)</span> ${[['0', '없음'], ['1', '좁게'], ['2', '넓게']].map(([v, t]) => `<button class="fb${fldEdge() === v ? ' pri' : ''}" data-f="edge" data-v="${v}" style="min-height:40px;padding:4px 14px;font-size:15px">${t}</button>`).join('')}</div>
   <label class="fld-auto"><input type="checkbox" data-f="auto" ${(() => { try { return localStorage.getItem(FLD_AUTO_KEY) === '1'; } catch (e) { return false; } })() ? 'checked' : ''}> 이 기기는 켜면 바로 현장 입력 화면 (생산실 태블릿·포스)</label>`; }
+/* v230: 품목을 비슷한 유형끼리 묶어 보기 (현장 입력 품목 고르기·생산량) */
+const FLD_GRP = [['np', '🏷 비상품', it => it.np || /비상품|^NP_/i.test(it.name + ' ' + it.code)], ['mix', '🥣 소스·배합', it => /배합|소스/.test(it.name)], ['dough', '🍞 생지', it => /생지/.test(it.name)], ['mb', '🌰 몽블랑류', it => /몽블랑|mont\s*blanc/i.test(it.name)], ['cr', '🥐 크로와상류', it => /크로와상|크루아상/.test(it.name)], ['salt', '🧂 소금빵류', it => /소금빵/.test(it.name)], ['garlic', '🧄 마늘빵·바게트', it => /마늘|바게트/.test(it.name)], ['etc', '📦 그 밖의 품목', () => true]];
+function fldGroupOf(it) { return (FLD_GRP.find(g => g[2](it)) || FLD_GRP[FLD_GRP.length - 1])[0]; }
+function fldGroupHtml(its, cardFn, opt) { opt = opt || {}; const by = {}; its.forEach(it => { const g = fldGroupOf(it); (by[g] = by[g] || []).push(it); }); let h = '';
+  const ea = it => /^ea$/i.test(it.unit || '') ? 1 : 0;
+  if (opt.top && opt.top.length) h += `<div class="fld-gh top">${opt.topTitle} <span>${opt.top.length}개</span></div><div class="fld-grid g-sm">${opt.top.map(cardFn).join('')}</div>`;
+  ['mb', 'cr', 'salt', 'garlic', 'dough', 'mix', 'etc', 'np'].map(k => FLD_GRP.find(g => g[0] === k)).forEach(([k, t]) => {   /* 분류는 FLD_GRP 순서, 보이는 순서는 자주 만드는 완제품 먼저 · 비상품 맨 아래 */ const xs = (by[k] || []).sort((a, b) => ea(a) - ea(b) || fldShort(a.name).localeCompare(fldShort(b.name), 'ko')); if (!xs.length) return; const closed = k === 'np' && !FLD.openNP && !opt.q;
+    h += `<div class="fld-gh g-${k}">${t} <span>${xs.length}개</span>${k === 'np' && !opt.q ? `<button class="fb" data-f="np" style="min-height:34px;padding:2px 12px;font-size:14px;margin-left:auto">${closed ? '펼치기' : '접기'}</button>` : ''}</div>${closed ? '' : `<div class="fld-grid g-sm">${xs.map(cardFn).join('')}</div>`}`; });
+  return h || '<div class="fld-card">찾는 품목이 없습니다</div>'; }
 function fldWsHtml() { const D = fldD(), by = ccpProdByDate()[D] || {}, st = (() => { try { return prodStats(); } catch (e) { return {}; } })(); const q = FLD.q.trim().toLowerCase();
   let its = prodOnItems().filter(it => { const o = ccpOf(it); return o.oven || o.freeze || o.metal || o.mix; });
   if (q) its = its.filter(it => (it.name + ' ' + it.code).toLowerCase().includes(q)); its.sort((a, b) => (by[b.code] ? 1 : 0) - (by[a.code] ? 1 : 0) || ((st[b.code] || {}).n || 0) - ((st[a.code] || {}).n || 0));
   return `<h1 class="fld-h">▶ 지금 만들 품목을 누르세요</h1><p class="fld-p">누르면 오늘 CCP 일지(오븐·급냉·금속·배합)가 바로 생깁니다. 생산량은 끝나고 「📦 생산량 입력」에서.</p>
   <input class="fld-q" data-f="q" placeholder="🔍 품목 찾기" value="${esc(FLD.q)}">
-  <div class="fld-grid">${its.slice(0, 40).map(it => { const o = ccpOf(it), on = !!by[it.code]; return `<button class="ft${on ? ' on' : ''}" data-f="wsgo" data-c="${esc(it.code)}"><b>${esc(fldShort(it.name))}</b><small>${['oven', 'freeze', 'metal', 'mix'].filter(t => o[t]).map(t => FLD_T[t].ico).join(' ')}${on ? ' · ✓ 오늘 시작함' : ''}</small></button>`; }).join('')}</div>`; }
+  ${(() => { const card = it => { const o = ccpOf(it), on = !!by[it.code]; return `<button class="ft${on ? ' on' : ''}" data-f="wsgo" data-c="${esc(it.code)}"><b>${esc(fldShort(it.name))}</b><small>${['oven', 'freeze', 'metal', 'mix'].filter(t => o[t]).map(t => FLD_T[t].ico).join(' ')}${on ? ' · ✓ 오늘 시작함' : ''}</small></button>`; }; const top = its.filter(it => by[it.code]); return fldGroupHtml(its.filter(it => !by[it.code]), card, { top, topTitle: '✓ 오늘 시작한 품목', q }); })()}`; }
 function fldTypeHtml() { const type = FLD.type, T = FLD_T[type], g = fldLog(type);
   if (!g) return `<h1 class="fld-h">${T.ico} ${T.nm}</h1><div class="fld-card">오늘 ${T.nm} 일지가 없습니다 — 먼저 <button class="fb pri" data-f="ws">▶ 작업 시작</button>에서 품목을 고르세요.</div>`;
   const nx = fldNext(type);
@@ -6770,7 +6779,7 @@ function fldQtyHtml() { const D = fldD(), P = prodS(), by = ccpProdByDate()[D] |
   ${ln.length ? `<div class="fld-card"><b>담은 품목 ${ln.length}개</b>${ln.map(l => { const it = prodItem(l.code) || { name: l.code, unit: '' }; return `<div class="fld-cart"><span>${esc(fldShort(it.name))}</span><b>${esc(fmt(l.qty))} ${l.mode === 'ea' ? '개' : esc(it.unit || '')}</b><button class="fb" data-f="qtyedit" data-c="${esc(l.code)}">고치기</button><button class="fb" data-f="qtydel" data-c="${esc(l.code)}">빼기</button></div>`; }).join('')}<button class="fb pri big" data-f="qtysend" style="margin-top:10px;width:100%">이카운트로 보내기 (${ln.length}품목)</button></div>` : ''}
   ${sent.length ? `<p class="fld-p">오늘 보낸 생산: ${esc(sent.map(en => en.lines ? en.lines.map(l => fldShort((prodItem(l.code) || {}).name || l.code) + ' ' + l.qty).join(', ') : '').filter(Boolean).join(' · ').slice(0, 160))}</p>` : ''}
   <input class="fld-q" data-f="q" placeholder="🔍 품목 찾기" value="${esc(FLD.q)}">
-  <div class="fld-grid">${its.slice(0, 40).map(it => { const l = dr.find(x => x.code === it.code); return `<button class="ft${l && Number(l.qty) > 0 ? ' on' : by[it.code] ? ' today' : ''}" data-f="qtygo" data-c="${esc(it.code)}"><b>${esc(fldShort(it.name))}</b><small>${l && Number(l.qty) > 0 ? `담음 ${esc(l.qty)} ${esc(it.unit || '')}` : by[it.code] ? '오늘 작업 중' : esc(it.unit || '')}</small></button>`; }).join('')}</div>`; }
+  ${(() => { const card = it => { const l = dr.find(x => x.code === it.code); return `<button class="ft${l && Number(l.qty) > 0 ? ' on' : by[it.code] ? ' today' : ''}" data-f="qtygo" data-c="${esc(it.code)}"><b>${esc(fldShort(it.name))}</b><small>${l && Number(l.qty) > 0 ? `담음 ${esc(l.qty)} ${esc(it.unit || '')}` : by[it.code] ? '오늘 작업 중' : esc(it.unit || '')}</small></button>`; }; const top = its.filter(it => by[it.code] || dr.some(x => x.code === it.code && Number(x.qty) > 0)); return fldGroupHtml(its.filter(it => !top.includes(it)), card, { top, topTitle: '✓ 오늘 작업 중·담은 품목', q }); })()}`; }
 function fldQtyInHtml() { const it = prodItem(FLD.code) || { name: FLD.code, unit: '' }; const F = prodFamily(it); const v = FLD.qv || '';
   const units = F ? [[F.B, '박스'], [F.E, '낱개'], [F.N, '비상품']].filter(x => x[0]) : [];
   return `<h1 class="fld-h">📦 ${esc(fldShort(it.name))}</h1>${units.length ? `<div class="fld-grid g3">${units.map(([u, nm]) => `<button class="ft${u.code === FLD.code ? ' on' : ''}" data-f="qtyunit" data-c="${esc(u.code)}"><b>${nm}</b><small>${esc(u.unit || '')} · ${esc(u.code)}</small></button>`).join('')}</div>` : ''}
@@ -6793,6 +6802,7 @@ function fldBind(box) {
   box.addEventListener('change', e => { const el = e.target; if (el.dataset.f === 'auto') { try { localStorage.setItem(FLD_AUTO_KEY, el.checked ? '1' : '0'); } catch (er) {} toast(el.checked ? '이 기기는 켜면 현장 입력 화면이 바로 열립니다' : '자동 열기를 껐습니다'); } });
   box.addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b || b.tagName === 'INPUT' || b.tagName === 'TEXTAREA') return; const f = b.dataset.f, d = b.dataset;
     if (f === 'close') return fieldClose();
+    if (f === 'np') { FLD.openNP = !FLD.openNP; return fieldRender(); }
     if (f === 'edge') { try { localStorage.setItem('wonryo_field_edge', d.v); } catch (er) {} fldEdgeApply(); return fieldRender(); }
     if (f === 'back') { FLD.step = { who: 'home', ws: 'home', type: 'home', qty: 'home', mode: 'type', form: (FLD.type === 'metal' ? 'type' : (FLD.type === 'oven' || FLD.type === 'freeze' || FLD.type === 'mix') ? 'mode' : 'type'), act: 'type', qtyin: 'qty', endpick: 'mode', mpick: 'type' }[FLD.step] || 'home'; if (FLD.step === 'mode' && FLD.type === 'metal') FLD.step = 'type'; FLD.q = ''; return fieldRender(); }
     if (f === 'who') { FLD.back = FLD.step; FLD.step = 'who'; return fieldRender(); }
@@ -6882,6 +6892,9 @@ body.fld-on{overflow:hidden}
 #fld .fld-rec b{font-size:17px}#fld .fld-rec em{font-style:normal;color:#607D8B;font-size:14px}#fld .fld-rec strong{color:#C92A2A;width:100%}#fld .fld-rec.bad{border-color:#E03131;background:#FFF5F5}
 .fld-cart{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px dashed #E0E0E0;font-size:18px}.fld-cart span{flex:1}.fld-cart b{white-space:nowrap}
 body.fld-on .toast{bottom:104px;z-index:60}
+.fld-gh{display:flex;align-items:center;gap:8px;margin:18px 0 8px;padding:6px 12px;border-left:5px solid #90A4AE;background:#fff;border-radius:8px;font-size:18px;font-weight:800;color:#173F4B}.fld-gh span{font-size:14px;font-weight:600;color:#78909C}
+.fld-gh.top{border-color:#2F9E44;background:#EBFBEE}.fld-gh.g-mb{border-color:#8D6E63}.fld-gh.g-cr{border-color:#F59F00}.fld-gh.g-salt{border-color:#74C0FC}.fld-gh.g-garlic{border-color:#82C91E}.fld-gh.g-mix{border-color:#2B8A3E}.fld-gh.g-dough{border-color:#E8890C}.fld-gh.g-np{border-color:#ADB5BD;background:#F8F9FA}
+#fld .fld-grid.g-sm .ft{min-height:74px;padding:10px 12px}#fld .fld-grid.g-sm .ft b{font-size:18px}
 @media (max-height:640px){body.fld-on .toast{bottom:72px}}
 .pad-save{display:none}
 #fld.edge1{padding:0 14px 14px}#fld.edge2{padding:0 30px 30px}#fld.edge1 .fld-top{margin:0 -14px}#fld.edge2 .fld-top{margin:0 -30px;padding-left:40px;padding-right:40px}#fld.edge1 .fld-save{left:14px;right:14px;bottom:14px;border-radius:14px}#fld.edge2 .fld-save{left:30px;right:30px;bottom:30px;border-radius:14px}
