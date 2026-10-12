@@ -1,9 +1,9 @@
 {
- "updatedAt": "2026-10-12T13:22:09+09:00",
+ "updatedAt": "2026-10-12T16:07:33+09:00",
  "baseDate": "2026-10-12",
  "company": "빵을그리다(주)",
  "source": "ecount-oapi",
- "count": 803,
+ "count": 811,
  "items": [
   {
    "code": "00001",
@@ -1743,6 +1743,38 @@
   },
   {
    "code": "DSS10_0",
+   "qty": 0.0
+  },
+  {
+   "code": "DS_DB100",
+   "qty": 0.0
+  },
+  {
+   "code": "DS_DB111_1",
+   "qty": 0.0
+  },
+  {
+   "code": "DS_DBA1",
+   "qty": 0.0
+  },
+  {
+   "code": "DS_DBA2",
+   "qty": 0.0
+  },
+  {
+   "code": "DS_DBA4",
+   "qty": 0.0
+  },
+  {
+   "code": "DS_DBA_22",
+   "qty": 0.0
+  },
+  {
+   "code": "DS_DBG1_1",
+   "qty": 0.0
+  },
+  {
+   "code": "DS_DBG1_2",
    "qty": 0.0
   },
   {
