@@ -172,3 +172,13 @@
 - v238 (사장님 「너무 복잡해 보여」): 화면을 3단계 흐름으로 — 맨 위 흐름 막대(① 생산량 넣기 → ② 주문할 원료 → ③ 발주 보내기, 단계마다 한 줄 상태, 누르면 그 단계만 보임 RB.step). ① 제품 카드 그리드(사진·− 숫자 ＋, data-rbpm) ② 주문이 필요한 원료만 카드(생산 후 남음·안전재고, 주문 수량 −/＋ data-rbom), 여유 원료·자세한 계산표는 접힘 ③ 거래처 카드에 큰 「발주 보내기」 하나 + 발주 중 목록. 안전재고·매입 단위·연락처·원료 사용량은 맨 아래 「⚙ 기준 정보」 하나로 모음.
 - v240: ① 생산량 카드 「최근 1년 자주 만든 양」 맨 앞에 「0」 칩(.rb-qc.zero, data-rbset 코드|0 → 그 제품 계획 지움, 계획이 없으면 0이 선택된 상태로 보임).
 - v241: 발주 보내기 창 「💬 카카오톡으로」 — Kakao.Share.sendDefault text 카드(200자까지, rbKakaoText가 길면 품목만 줄여 「외 n품목」), 전체 글은 클립보드에도 복사. 키는 주문 링크와 같은 saleS().cfg.kakaoKey(기기마다), 없으면 rbKakaoKey 창. PC 크롬의 navigator.share(윈도 공유)에는 카톡이 없어서 바꿈 — 「📲 다른 앱 공유」는 휴대폰·태블릿에서만. 클립보드 쓰기는 await 하지 않음(창이 포커스 없으면 멈춤).
+
+
+## 🌙 v242 야간 고도화 (2026-10-17 Aside — 사장님 요청 「이카운트·K-HACCP 비교 분석해 통합재고관리·업무 대시보드로 공장 운영 정보를 보이게, 아침에 승인/삭제」)
+- 코드 묶음: app-code 의 `function renderAll()` 바로 위 「v242 · 2026-10-17 Aside 야간 고도화」 블록 하나에 모두 있음. 원래 함수는 지우지 않고 감쌈(renderHome · renderRbuy · prodRows · rbMsg · rbPrintHtml · rbKakaoText · rbOpenSend). 블록을 통째로 빼면 v241 로 돌아감(+ 아래 작은 고침 6곳 되돌리기).
+- 작은 고침: menuItems('home') → homeItems() · renderTabs cur(home → S.ui.homeTab) · homeTab 검사 · 하위 메뉴 클릭(home 이면 S.ui.homeTab) · homeOpen 이 homeTab='home' · shareWire/shareUnwire/sharePull 에 kind 'flags'.
+- 「변경 승인」: NIGHT 목록(factory·homestrip·rawsig·needplan·po·expmemo, 단계 st 1~3). S.flags {f:{키: wait|ok|off}, mode: ''|all|step|none} → 공유 kind 'flags'(plog 로 감쌈). featureOn(k): off=꺼짐, ok=켜짐, wait=켜짐(단, mode step 이면 2·3단계는 꺼짐). 통합 대시보드 위 「통합 | 🏭 공장 현황 | 🌙 변경 승인」 막대(fxNav).
+- 공장 자료: https://lee1812-oss.github.io/drawbread/factory.enc.json (Aside 루틴 07:50·17:50, ~/.aside/u/0/dashboard/factory_build.js → dash_publish.js). 열쇠 = base64url(SHA-256('bggd-factory|' + WLOCK.shareKey())) → PBKDF2-SHA256 100000 → AES-GCM. 공유 저장소 열쇠(API_KEY)를 바꾸면 Aside 쪽 config.json fkey 도 다시 만들어야 함. 앱은 localStorage wonryo_fac_v1 에 마지막 자료를 둠. 시험: window.__FAC_TEST.
+- 자료 규칙(확인됨): 이카운트 재고에는 미래 날짜로 미리 넣은 판매가 이미 빠져 있음 → 「출고 대비 부족」 = 낱개 재고코드(DBA_22·DBA2·DBA1·DBA_12(1)·SD50_1/2·DB100·DBG1_1·DB111_1·DAB4·DBA4)가 마이너스인 만큼. K-HACCP 생산작업일지는 정상품(박스×입수+낱개)만, 비상품 제외. 배합: 이카운트 1배합 = 마늘 14.96kg · 크림 20.98kg.
+- 소비기한 적요(expmemo): prodRows 결과의 REMARKS 끝에 「소비기한 YY.MM.DD」(생산일 + 빅크로와상 180 · 몽블랑류·크로와상78·현미찰 270 · 육쪽·치즈듬뿍·소금빵 360일, 마늘바게트·배합·생지 제외).
+- 발주서(po): 로고 brand_logo.png · 「담당 서재우 차장」 · 거래명세표 drawbread@naver.com 회신 안내(카톡 축약본 포함). 담당자 연락처는 아직 안 넣음.

@@ -1310,8 +1310,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '241';
-const APP_BUILT = '2026-10-16 22:22';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '242';
+const APP_BUILT = '2026-10-17 00:10';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -1371,7 +1371,7 @@ function isAdmin() { return true; }   /* v232: 관리자 PIN 없앰 — 로그�
 async function pinHash(p) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('wonryo-admin-v1:' + p)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 function menuItems(menu) {
   const A = isAdmin();
-  if (menu === 'home') return HOME_MENU.items;
+  if (menu === 'home') return homeItems();
   if (menu === 'raw') return TABS.filter(t => t[0] !== 'set' && (A || t[0] !== 'adj'));
   if (menu === 'fin') return FIN_TABS.filter(t => t[0] !== 'items');
   if (menu === 'insp') return INSP_TABS.filter(t => t[0] !== 'items').map(t => t[0] === 'eclink' && !A ? ['eclink', '입고 확인', t[2]] : t);
@@ -1726,8 +1726,9 @@ function renderTabs() {
   const A = isAdmin(); if (S.ui.menu === 'sys' && !A) S.ui.menu = 'home';
   const ok = (m, t) => menuItems(m).some(x => x[0] === t);   /* v068: 설정 탭은 통합 설정으로 옮김 — 저장된 탭이 없는 탭이면 첫 화면으로 */
   if (!ok('raw', S.ui.tab)) S.ui.tab = 'dash'; if (!ok('fin', S.ui.finTab)) S.ui.finTab = 'dash'; if (!ok('insp', S.ui.inspTab)) S.ui.inspTab = 'dashboard'; if (!['pccp', 'psale', 'plist', 'pord'].includes(S.ui.prodTab) && !ok('prod', S.ui.prodTab)) S.ui.prodTab = 'pnew'; if (isProdM(S.ui.menu)) S.ui.menu = prodMenuOf(S.ui.prodTab);
+  if (!homeItems().some(x => x[0] === (S.ui.homeTab || 'home'))) S.ui.homeTab = 'home';   /* v242: 통합 대시보드 하위 화면 (공장 현황 · 변경 승인) */
   if (!ok('sys', S.ui.sysTab)) S.ui.sysTab = 'set'; if (!SYS_INSP.some(x => x[0] === S.ui.sysInsp)) S.ui.sysInsp = 'eclink';
-  const menu = S.ui.menu, sysT = S.ui.sysTab; const M = menu === 'home' ? HOME_MENU : MENUS[menu]; const cur = menu === 'fin' ? S.ui.finTab : menu === 'insp' ? S.ui.inspTab : isProdM(menu) ? S.ui.prodTab : menu === 'sys' ? sysT : menu === 'home' ? 'home' : S.ui.tab;
+  const menu = S.ui.menu, sysT = S.ui.sysTab; const M = menu === 'home' ? HOME_MENU : MENUS[menu]; const cur = menu === 'fin' ? S.ui.finTab : menu === 'insp' ? S.ui.inspTab : isProdM(menu) ? S.ui.prodTab : menu === 'sys' ? sysT : menu === 'home' ? (S.ui.homeTab || 'home') : S.ui.tab;
   // 상단: 대메뉴
   const menuBtns = ['raw', 'fin', 'insp', 'prod', 'ccp', 'sale'].map(k => `<button data-menu="${k}" class="${menu === k ? 'on' : ''}">${MENUS[k].ico}<span>${MENUS[k].name}</span></button>`).join('');
   const modeBtn = A ? `<button data-menu="sys" class="sysbtn${menu === 'sys' ? ' on' : ''}" title="통합 설정">${ICO.sys}<span>설정</span></button>` : `<button class="sysbtn" data-lock="1" title="관리자 화면 열기">🔒</button>`;
@@ -1751,6 +1752,7 @@ function renderTabs() {
     if (S.ui.menu === 'insp') { S.ui.inspTab = k; save(); renderTabs(); return; }
     if (isProdM(S.ui.menu)) { S.ui.prodTab = k; save(); renderAll(); window.scrollTo(0, 0); return; }
     if (S.ui.menu === 'sys') { S.ui.sysTab = k; save(); renderAll(); window.scrollTo(0, 0); return; }
+    if (S.ui.menu === 'home') { S.ui.homeTab = k; save(); renderAll(); window.scrollTo(0, 0); return; }   /* v242 */
     S.ui.tab = k; save(); renderAll(); window.scrollTo(0, 0);
   });
   const sysView = { set: 'set', setraw: 'setraw', sfin: 'fin', sinsp: 'insp', pset: 'pset' }[sysT];
@@ -3629,7 +3631,7 @@ function finPost(d) { const f = $('#finFrame'); if (!f || !f.contentWindow || !f
 /* ── v049: 통합 대시보드 — 로고를 누르면 원료수불부 + 완제품·생지 핵심만 한 화면 ── */
 function finAskSum() { const f = $('#finFrame'); if (!f || !f.contentWindow || !finLoaded) return; try { f.contentWindow.postMessage({ type: 'wonryo-summary' }, finTargetOrigin()); } catch (e) {} }
 window.addEventListener('message', e => { if (!fromFin(e)) return; const m = e.data; if (!m || typeof m !== 'object' || m.type !== 'fin-summary' || !m.sum) return; modePost(); S.finSum = m.sum; save(); if (S.ui.menu === 'home') renderHome(); });
-function homeOpen() { if (S.ui.menu === 'home') { finAskSum(); renderHome(); return; } S.ui.menu = 'home'; save(); renderAll(); window.scrollTo(0, 0); finAskSum(); }
+function homeOpen() { S.ui.homeTab = 'home'; if (S.ui.menu === 'home') { finAskSum(); renderHome(); return; } S.ui.menu = 'home'; save(); renderAll(); window.scrollTo(0, 0); finAskSum(); }
 function homeGo(t) { /* t = 'raw' | 'fin' | 'raw:tab' | 'fin:tab' */
   const [menu, tab] = t.split(':'); S.ui.menu = menu;
   if (menu === 'fin') { if (tab) S.ui.finTab = tab; save(); renderAll(); if (tab) { finShown = S.ui.finTab; finNav(S.ui.finTab); } }
@@ -4057,8 +4059,8 @@ async function shareApi(payload) {
 /* v129: 보내기 — 실패하면 한 번에 보내는 양을 절반으로 줄여 다시 시도(구글 스크립트 시간 초과·용량 대비), 성공하면 다시 늘림. 실패 이유는 성공할 때까지 남겨 둠 */
 /* v132: CCP 일지(ccp)·CCP용 생산(pday)은 공유 저장소에 「생산일지(plog)」 종류로 감싸서 보냄 — 공유 저장소 스크립트가 새 종류를 저장하지 않아도 다른 기기에 전달되게.
    받는 쪽은 code 앞머리(ccp~ / pday~)를 보고 원래대로 풀어서 처리. 예전 버전 기기는 이 줄을 생산 기록으로 쓰지 않고 그냥 넘김 (note 에 d·l 이 없음) */
-function shareWire(r) { if (!r || (r.kind !== 'ccp' && r.kind !== 'pday' && r.kind !== 'rbuy')) return r; return Object.assign({}, r, { kind: 'plog', code: r.kind + '~' + r.code, note: JSON.stringify({ x: r.kind, n: r.note || '' }) }); }
-function shareUnwire(r) { const m = r && r.kind === 'plog' && /^(ccp|pday|rbuy)~(.+)$/.exec(String(r.code || '')); if (!m) return r; let n = ''; try { n = (JSON.parse(r.note || '{}') || {}).n || ''; } catch (e) {} return Object.assign({}, r, { kind: m[1], code: m[2], note: n }); }
+function shareWire(r) { if (!r || (r.kind !== 'ccp' && r.kind !== 'pday' && r.kind !== 'rbuy' && r.kind !== 'flags')) return r; return Object.assign({}, r, { kind: 'plog', code: r.kind + '~' + r.code, note: JSON.stringify({ x: r.kind, n: r.note || '' }) }); }
+function shareUnwire(r) { const m = r && r.kind === 'plog' && /^(ccp|pday|rbuy|flags)~(.+)$/.exec(String(r.code || '')); if (!m) return r; let n = ''; try { n = (JSON.parse(r.note || '{}') || {}).n || ''; } catch (e) {} return Object.assign({}, r, { kind: m[1], code: m[2], note: n }); }
 async function sharePush() {
   if (!shareOn() || shareBusy) return; const sh = shareCfg(); if (!sh.outbox.length) { if (sh.pushErr) { sh.pushErr = ''; save(); } return; } shareBusy = true;
   const n = Math.max(1, Math.min(200, sh.batchN || 40)); const batch = sh.outbox.slice(0, n); renderShareStatus('보내는 중…');
@@ -4079,6 +4081,7 @@ async function sharePull(full, quiet) {
     (j.rows || []).map(shareUnwire).sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0).forEach(row => {
       if (row.kind === 'insp' || row.kind === 'inspm') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.kind === 'insp' && row.ts && inspLogAdd(row)) inspCh = true; return; }   /* v072: 육안검사 마지막 입력 표시용 */   /* v054: 육안검사일지 행은 그쪽(inspect.html)이 받음 */
       if (row.kind === 'itemw') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.code && row.ts && setItemW(row.code, itemWFromNote(row.note), row.ts, true)) { changed++; if (row.device !== sh.device) applied.push(row); } return; }
+      if (row.kind === 'flags') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (flagsApply(row)) setTimeout(renderAll, 0); return; } /* v242: 야간 변경 승인 스위치 */
       if (row.kind === 'rbuy') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (rbuyApply(row) && S.ui.tab === 'rbuy' && S.ui.menu === 'raw') setTimeout(renderRbuy, 0); return; } /* v237: 원료 발주 설정·발주 기록 */ if (row.kind === 'plog') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (prodSlogAdd(row)) pcfgCh = pcfgCh || 'log'; return; }
       if (row.kind === 'ccp') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (ccpApplyRow(row)) ccpCh = true; return; }
       if (row.kind === 'pday') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.device !== shareCfg().device && ccpPdayAdd(row)) ccpCh = true; return; }   /* v099: CCP 일지 */   /* v080: 다른 기기에서 보낸 생산 기록 */
@@ -6899,6 +6902,326 @@ const pm = e.target.closest('[data-rbpm]'); if (pm) { e.preventDefault(); const 
     if (a === 'reset') { if (!confirm('안전재고·매입 패턴·원료 사용량을 처음 값(2026-10-16 분석값)으로 되돌릴까요?\n거래처 연락처와 발주 기록은 그대로 둡니다.')) return; R.ss = {}; R.pat = {}; R.bom = {}; R.ovr = {}; rbSave(); renderRbuy(); return; }
   });
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   v242 · 2026-10-17 Aside 야간 고도화 — 「🏭 공장 현황」 · 「🌙 변경 승인」 · 이카운트 × K-HACCP 연동
+   · 공장 자료: Aside가 아침 07:50 · 저녁 17:50 에 이카운트(06:30 점검 스냅샷 + 재고) 와 K-HACCP(생산작업일지·달력)를 읽어
+     lee1812-oss.github.io/drawbread/factory.enc.json 으로 올림 (열쇠 = SHA-256('bggd-factory|' + 공유 열쇠) — 로그인한 기기만 풀 수 있음).
+   · 새 기능은 모두 「변경 승인」 스위치(S.flags, 공유 kind 'flags')로 켜고 끔. 기본은 켜짐(승인 대기). 「단계별 승인」을 고르면 2·3단계는 승인할 때까지 꺼짐.
+   · 원본 기능은 지우지 않았음 — 스위치를 끄면 v241 과 같은 화면·동작.
+   ═══════════════════════════════════════════════════════════════ */
+const NIGHT_AT = '2026-10-17';
+const NIGHT = [
+  { k: 'factory', st: 1, nm: '🏭 공장 현황 화면', where: '통합 대시보드 → 「공장 현황」', what: '이카운트·K-HACCP를 합친 한 화면: 오늘 할 일(담당별), 이번 주 생산, 출고 대비 재고, 원료 남은 기간, 생산량 대조(이카운트↔K-HACCP), K-HACCP 미작성·미결재·이탈, 재고 이상, 4~10월 분석', why: '직원이 이 앱 하나로 공장 상황을 알 수 있게 (담당자에게 묻지 않아도 되게)', risk: '보기만 함 — 이카운트·K-HACCP 원본은 바뀌지 않음' },
+  { k: 'homestrip', st: 1, nm: '통합 대시보드 맨 위 「공장 운영 한눈에」', where: '통합 대시보드 첫 화면 맨 위', what: '핵심 숫자 4개 + 급한 할 일 3개를 한 줄로', why: '앱을 열자마자 오늘 급한 일이 보이게', risk: '보기만 함' },
+  { k: 'rawsig', st: 1, nm: '원료 발주 화면 「남은 기간」 신호등', where: '원료수불부 → 원료 발주 맨 위', what: '원료마다 최근 8주 사용량 기준으로 몇 주분 남았는지 색으로 (빨강 1.5주 미만 · 주황 3주 미만)', why: '안전재고 숫자를 정하기 전에도 발주 시점을 알 수 있게 (10/16 원료 운영 방안의 「신호등」)', risk: '보기만 함' },
+  { k: 'needplan', st: 2, nm: '「생산 계획에 넣기」 버튼', where: '공장 현황 → 출고 대비 재고', what: '입력된 출고를 다 내보내려면 더 만들어야 하는 박스 수를 원료 발주 ① 생산량에 한 번에 넣음 (넣기 전에 확인 창)', why: '출고 → 생산 → 원료 발주가 한 흐름으로 이어지게', risk: '원료 발주 계획 숫자만 바뀜 (발주는 사람이 직접 보내야 나감)' },
+  { k: 'po', st: 2, nm: '발주서: 로고 · 담당 서재우 차장 · 거래명세표 회신 안내', where: '원료 발주 → 발주 보내기 (글 · 인쇄 · 메일 · 카톡)', what: '발주서에 빵을그리다 로고와 담당 「서재우 차장」을 넣고, 「번거로우시겠지만 거래명세표는 drawbread@naver.com으로 회신해 주시면 감사하겠습니다. 협조에 늘 감사드립니다.」 문구 추가 (카톡 200자 축약본에도)', why: '사장님 요청 (10/16 밤 다른 창에서 요청 — 그 창이 멈춰 이 작업에 합침)', risk: '거래처에 보내는 글이 바뀜 · 담당자 연락처는 아직 안 넣음(확인 필요)' },
+  { k: 'expmemo', st: 3, nm: '생산 입력 → 이카운트 적요에 소비기한 자동 기재', where: '생산일지 → 생산 입력 → 이카운트 생산입고 적요', what: '「소비기한 27.07.14」처럼 K-HACCP와 같은 규칙으로 적요 끝에 붙임 (몽블랑·빅몽블랑·크로와상78 270일, 육쪽·치즈듬뿍·소금빵 360일, 빅크로와상 180일. 마늘바게트는 180/360일이 섞여 있어 빼 둠)', why: '4~6월은 적요에 소비기한이 100% 있었는데 8월부터 0건 — 이카운트만 보고는 로트 추적이 안 됨', risk: '이카운트로 보내는 내용이 바뀜 (적요 글자만, 수량·창고는 그대로)' },
+];
+const NIGHT_EXT = [
+  { nm: '업무 대시보드 「공장 운영」 카드 4개 + 오늘 할 일 + 참고 카드', where: 'lee1812-oss.github.io/drawbread/dash.html', off: '대시보드 → 🌙 밤사이 새로 생긴 기능 → 끄기 (그 기기만) · 모든 기기에서 지우려면 Aside에게' },
+  { nm: '직원용 공장 대시보드 링크 (?f=…) — 메일·매출 없이 공장 정보만', where: '대시보드 → 🌙 → 직원용 링크 복사', off: '링크를 나눠 주지 않으면 아무도 못 봄 · 열쇠를 바꾸려면 Aside에게' },
+  { nm: 'Aside 자동 루틴 「공장 운영 자료 갱신」 07:50 · 17:50', where: 'Aside 루틴 (이카운트·K-HACCP 읽기만)', off: 'Aside에게 「공장 자료 루틴 멈춰」' },
+];
+const NIGHT_LOG = { start: '2026-10-16 23:07', end: '', hours: '' };   /* 작업 시간 — 마지막 배포 때 채움 */
+function nfS() { if (!S.flags || typeof S.flags !== 'object') S.flags = { f: {}, mode: '' }; if (!S.flags.f) S.flags.f = {}; return S.flags; }
+function nfState(k) { return nfS().f[k] || 'wait'; }
+function featureOn(k) { const it = NIGHT.find(x => x.k === k), s = nfState(k); if (s === 'off') return false; if (s === 'ok') return true; if (nfS().mode === 'step' && it && it.st >= 2) return false; return true; }
+function nfWaitN() { return NIGHT.filter(x => nfState(x.k) === 'wait').length; }
+let flagsShareT = null;
+function flagsPack() { const F = nfS(); return { v: 1, f: F.f, mode: F.mode || '', at: F.at || '', by: F.by || '' }; }
+function flagsSoon() { clearTimeout(flagsShareT); flagsShareT = setTimeout(flagsShare, 1500); }
+function flagsShare() {
+  try {
+    if (!shareOn() || !(window.WLOCK && WLOCK.shareKey && WLOCK.shareKey())) return;
+    const F = nfS(), note = JSON.stringify(flagsPack()); if (note === F.sent) return;
+    const ts = new Date().toISOString(); F.sent = note; F.ts = ts;
+    nbQueue({ ts, week: '', code: 'cfg', name: '야간 변경 승인', kind: 'flags', note });
+  } catch (e) {}
+}
+function flagsApply(row) {
+  try {
+    const F = nfS(); if (!row || !row.note || row.del) return false;
+    if ((F.ts || '') >= row.ts) return false;
+    if (row.device && S.share && row.device === S.share.device) return false;
+    const pk = JSON.parse(row.note); if (!pk || pk.v !== 1) return false;
+    F.f = pk.f || {}; F.mode = pk.mode || ''; F.at = pk.at || ''; F.by = pk.by || ''; F.ts = row.ts; F.sent = JSON.stringify(flagsPack());
+    save(); return true;
+  } catch (e) { return false; }
+}
+function nfSet(k, v) { const F = nfS(); F.f[k] = v; F.at = new Date().toISOString(); F.by = (S.settings && S.settings.reporter) || ''; save(); flagsSoon(); }
+function nfMode(m) { const F = nfS(); F.mode = m; F.at = new Date().toISOString(); F.by = (S.settings && S.settings.reporter) || ''; if (m === 'all') NIGHT.forEach(x => { if (nfState(x.k) === 'wait') F.f[x.k] = 'ok'; }); if (m === 'none') NIGHT.forEach(x => { F.f[x.k] = 'off'; }); save(); flagsSoon(); }
+
+/* ── 홈 메뉴: 통합 · 공장 현황 · 변경 승인 ── */
+function homeItems() {
+  const it = HOME_MENU.items.slice(); const ico = '<svg viewBox="0 0 24 24"><path d="M3 21V10l5 3v-3l5 3v-3l5 3V5h3v16z"/><path d="M3 21h18"/></svg>';
+  const moon = '<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+  if (featureOn('factory')) it.splice(1, 0, ['factory', '공장 현황', ico]);
+  it.splice(featureOn('factory') ? 2 : 1, 0, ['night', nfWaitN() ? `변경 승인 (${nfWaitN()})` : '변경 승인', moon]);
+  return it;
+}
+
+/* ── 공장 자료 (암호화 파일) ── */
+let FAC = null, FAC_ERR = '', FAC_AT = 0, FAC_BUSY = null;
+try { const c = JSON.parse(localStorage.getItem('wonryo_fac_v1') || 'null'); if (c && c.d) { FAC = c.d; FAC_AT = 0; } } catch (e) {}
+async function facKey() {
+  const sk = (window.WLOCK && WLOCK.shareKey && WLOCK.shareKey()) || ''; if (!sk) return '';
+  const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('bggd-factory|' + sk)));
+  return btoa(String.fromCharCode.apply(null, h)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function facLoad(force) {
+  if (window.__FAC_TEST) { FAC = window.__FAC_TEST; FAC_AT = Date.now(); return Promise.resolve(FAC); }
+  if (FAC_BUSY) return FAC_BUSY;
+  if (!force && FAC && Date.now() - FAC_AT < 5 * 60e3) return Promise.resolve(FAC);
+  FAC_BUSY = (async () => {
+    try {
+      const k = await facKey(); if (!k) throw new Error('로그인(재고 비밀번호) 후에 공장 자료를 열 수 있어요');
+      const r = await fetch('https://lee1812-oss.github.io/drawbread/factory.enc.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw new Error('공장 자료 파일을 받지 못했어요 (' + r.status + ')');
+      const e = await r.json(); const b = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+      const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(k), 'PBKDF2', false, ['deriveKey']);
+      const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b(e.salt), iterations: 100000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+      FAC = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b(e.iv) }, key, b(e.ct)))); FAC_AT = Date.now(); FAC_ERR = '';
+      try { localStorage.setItem('wonryo_fac_v1', JSON.stringify({ at: FAC_AT, d: FAC })); } catch (x) {}
+    } catch (err) { FAC_ERR = err && err.name === 'OperationError' ? '공장 자료 열쇠가 맞지 않아요 — 공유 저장소 열쇠가 바뀌었으면 Aside에게 알려 주세요' : String((err && err.message) || err); }
+    finally { FAC_BUSY = null; }
+    return FAC;
+  })();
+  return FAC_BUSY;
+}
+const fxF = () => (FAC && FAC.factory) || null;
+const fxN = v => v == null || isNaN(v) ? '—' : Math.round(v).toLocaleString();
+const fxMd = d => { if (!d) return ''; const x = new Date(d + 'T00:00:00'); return `${x.getMonth() + 1}/${x.getDate()}(${'일월화수목금토'[x.getDay()]})`; };
+const FX_ROLE = { '생산': 'b', '구매': 'a', '품질': 'r', '결재': 'b', '사무': 'g', '재고': 'a' };
+
+/* 앱 안 자료로 만드는 할 일 (완제품 실사 · 원료 발주 · 새 발주) */
+function fxLocalTodo() {
+  const T = []; const F = S.finSum;
+  if (F && F.shortN) T.push({ lv: 'amber', role: '재고', title: `완제품·생지 안전재고 부족 ${F.shortN}품목 (실사 ${F.snap ? F.snap.slice(5).replace('-', '/') : ''} 기준)`, detail: (F.shorts || []).slice(0, 4).map(x => `${x.n} −${x.sh}${x.u}`).join(' · '), src: '완제품 실사', go: 'fin:stock' });
+  if (F && F.exp) T.push({ lv: 'red', role: '재고', title: `소비기한 지난 완제품·생지 ${F.exp}건`, detail: '완제품·생지 → 소비기한에서 조치 계획 입력', src: '완제품 실사', go: 'fin:expiry' });
+  try { const R = rbS(); const late = R.po.filter(p => p.status === 'sent' && p.due && p.due < today()); if (late.length) T.push({ lv: 'amber', role: '구매', title: `원료 발주 ${late.length}건 입고 확인 필요`, detail: late.map(p => `${p.sup} ${p.due.slice(5).replace('-', '/')}`).join(' · '), src: '원료 발주', go: 'raw:rbuy' }); } catch (e) {}
+  try { if (saleUi && saleUi.ordNew) T.push({ lv: 'blue', role: '사무', title: `거래처 새 발주 ${saleUi.ordNew}건 확인`, detail: '판매 입력 → 발주 접수', src: '주문서', go: 'sale:pord' }); } catch (e) {}
+  return T;
+}
+function fxTodoAll() { const f = fxF(); const t = (f && f.todo ? f.todo.slice() : []).concat(fxLocalTodo()); const r = { red: 0, amber: 1, blue: 2 }; return t.sort((a, b) => r[a.lv] - r[b.lv]); }
+function fxTodoRow(t) { return `<div class="fx-tr${t.go ? ' go' : ''}"${t.go ? ` data-hgo="${esc(t.go)}"` : ''}><i class="fx-mk ${t.lv}"></i><span class="fx-role ${FX_ROLE[t.role] || 'g'}">${esc(t.role)}</span><div class="fx-tt"><b>${esc(t.title)}</b>${t.detail ? `<small>${esc(t.detail)}</small>` : ''}</div><span class="fx-src">${esc(t.src || '')}</span></div>`; }
+function fxKpis() {
+  const f = fxF(); if (!f) return [];
+  const w = f.week || {}, sh = ((f.need && f.need.own) || []).filter(x => x.shortEa > 0), rr = (f.raw && f.raw.rows) || [], red = rr.filter(r => r.lv === 'red'), amb = rr.filter(r => r.lv === 'amber');
+  const m = f.match, bad = m ? (m.cnt.diff || 0) + (m.cnt.kh_none || 0) + (m.cnt.ec_none || 0) : 0, kh = (FAC && FAC.khaccp && FAC.khaccp[0]) || f.khaccp, kc = (kh && kh.counts) || {};
+  return [
+    { l: '이번 주 생산', v: fxN(w.twBox), u: '박스', s: `지난주 같은 기간 ${fxN(w.lwBox)} · 생산일 ${w.twDays || 0}일`, c: '', id: 'prod' },
+    { l: '출고 대비 부족', v: sh.length, u: '품목', s: sh.length ? sh.map(x => `${x.nm} ${Math.ceil(x.shortEa / x.per)}박스`).join(' · ') : '입력된 출고 모두 가능', c: sh.length ? 'bad' : 'good', id: 'need' },
+    { l: '원료 발주 필요', v: red.length, u: '종', s: red.concat(amb).slice(0, 3).map(r => `${r.nm} ${r.weeks}주`).join(' · ') || '모두 3주 이상', c: red.length ? 'bad' : amb.length ? 'warn' : 'good', id: 'raw' },
+    { l: '생산량 대조', v: m && m.rate != null ? m.rate : '—', u: '% 일치', s: m ? `이카운트↔K-HACCP ${m.total}건 · 다름 ${bad}` : 'K-HACCP 대조 대기', c: bad ? 'warn' : 'good', id: 'match' },
+    { l: 'K-HACCP', v: (kc.deviation || 0) + (kc.unwritten || 0) + (kc.unapproved || 0), u: '건', s: `이탈 ${kc.deviation || 0} · 미작성 ${kc.unwritten || 0} · 미결재 ${kc.unapproved || 0}`, c: kc.deviation ? 'bad' : kc.unwritten ? 'warn' : '', id: 'kh' },
+    { l: '자사 마이너스 재고', v: (f.neg && f.neg.own) || 0, u: '품목', s: `전체 마이너스 ${(f.neg && f.neg.total) || 0} · 최근 움직인 ${(f.neg && f.neg.active) || 0}`, c: f.neg && f.neg.own ? 'warn' : 'good', id: 'stock' },
+  ];
+}
+const fxTbl = (head, rows, cls) => `<div class="tablewrap"><table class="t fx-t ${cls || ''}"><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('') || `<tr><td colspan="${head.length}" class="empty">없음</td></tr>`}</tbody></table></div>`;
+const FX_LV = { red: ['bad', '발주'], amber: ['warn', '다음 입고에'], green: ['ok', '여유'], blue: ['plus', '많음'], gray: ['gray', '자료 없음'] };
+const FX_KS = { ok: ['ok', '일치'], ok_ea: ['ok', '일치(정상품)'], diff: ['warn', '수량 다름'], kh_none: ['bad', 'K-HACCP 없음'], ec_none: ['bad', '이카운트 없음'] };
+let FXU = { open: {} };
+function fxSec(id, title, sub, body, openDef) { const o = FXU.open[id] != null ? FXU.open[id] : !!openDef; return `<details class="fx-sec" data-fxs="${id}" ${o ? 'open' : ''}><summary><b>${title}</b><span>${sub || ''}</span></summary><div class="fx-body">${body}</div></details>`; }
+
+function renderFactory(box) {
+  box = box || $('#homeBox'); if (!box) return;
+  const f = fxF();
+  if (!f) { box.innerHTML = `<div class="fx-head"><h2>🏭 공장 현황</h2></div><div class="card"><div class="empty">${FAC_ERR ? esc(FAC_ERR) : '공장 자료를 불러오는 중…'}</div></div>`; facLoad(true).then(() => { if (S.ui.menu === 'home' && S.ui.homeTab === 'factory' && fxF()) renderFactory(); }); return; }
+  if (Date.now() - FAC_AT > 5 * 60e3) facLoad().then(() => { if (S.ui.menu === 'home' && S.ui.homeTab === 'factory') renderFactory(); });
+  const T = fxTodoAll(), cnt = { red: 0, amber: 0, blue: 0 }; T.forEach(t => cnt[t.lv]++);
+  const by = {}; T.forEach(t => (by[t.role] = by[t.role] || []).push(t));
+  const roles = ['생산', '품질', '결재', '구매', '재고', '사무'].filter(r => by[r]);
+  const kp = fxKpis().map(k => `<button class="hk ${k.c}" data-fxo="${k.id}"><div class="l">${k.l}</div><div class="v">${k.v}<small>${k.u}</small></div><div class="s">${esc(k.s)}</div></button>`).join('');
+  // 출고 대비 재고
+  const n = f.need || { own: [], buy: [] };
+  const needRows = n.own.map(x => `<tr><td>${esc(x.nm)}</td><td class="num">${x.dueBox}박스</td><td class="num ${x.stockEa < 0 ? 'minus' : ''}">${fxN(x.stockEa)}개<small> ${x.stockBox}박스</small></td><td class="num">${x.shortEa ? `<b class="minus">${Math.ceil(x.shortEa / x.per)}박스</b>` : '<span class="pill ok">없음</span>'}</td><td>${fxMd(x.first)}</td></tr>`);
+  const canPlan = featureOn('needplan') && n.own.some(x => x.shortEa > 0);
+  const needBody = `<div class="fx-note">${esc(n.rule || '')}</div>${fxTbl(['제품', `출고 예정 (${fxMd(n.from)}~${fxMd(n.to)})`, '이카운트 재고', '더 필요', '첫 출고'], needRows)}${canPlan ? '<div class="row" style="margin-top:8px"><button class="btn primary sm" id="fxPlan">＋ 부족한 박스를 원료 발주 「생산량」에 넣기</button><span class="muted" style="font-size:12px">넣기 전에 확인 창이 떠요 · 발주는 직접 보내야 나가요</span></div>' : ''}` +
+    (n.buy && n.buy.length ? `<h4 class="fx-h4">출고가 잡혔는데 재고가 마이너스인 매입 상품 ${n.buyN}개</h4>${fxTbl(['품목', '출고 예정', '이카운트 재고', '첫 출고'], n.buy.slice(0, 15).map(x => `<tr><td>${esc(x.nm)}</td><td class="num">${x.due}</td><td class="num minus">${fxN(x.stock)}</td><td>${fxMd(x.first)}</td></tr>`))}<div class="muted" style="font-size:12px;margin-top:4px">구매(입고) 입력이 빠졌는지, 실제 발주가 필요한지 확인하세요.</div>` : '');
+  // 생산
+  const w = f.week || { rows: [] };
+  const prodBody = fxTbl(['제품', '이번 주', '지난주 같은 기간', '지난주 전체'], w.rows.map(r => `<tr><td>${esc(r.nm)}</td><td class="num"><b>${r.tw}</b> ${r.unit}${r.twEa ? `<small> +낱개 ${r.twEa}</small>` : ''}</td><td class="num">${r.lw}</td><td class="num">${r.lwAll}</td></tr>`)) +
+    `<h4 class="fx-h4">최근 생산일 · K-HACCP 생산작업일지와 대조</h4><div class="fx-days">${(f.days || []).map(d => `<div class="fx-day"><b>${esc(d.md)}</b>${d.items.map(i => `<div>${esc(i.nm)} <b>${i.box ? i.box + '박스' : ''}${i.ea ? ' 낱개 ' + i.ea : ''}${i.np ? ' 비상품 ' + i.np : ''}${i.kg ? i.kg + (i.fam === 'dough' ? '봉' : '배합') : ''}</b>${i.kh && FX_KS[i.kh] ? ` <span class="pill ${FX_KS[i.kh][0]}">${FX_KS[i.kh][1]}</span>` : ''}</div>`).join('')}</div>`).join('')}</div>`;
+  // 원료
+  const rw = f.raw || { rows: [] };
+  const rawBody = fxTbl(['원료', '남은 기간', '주 사용량', '이카운트 재고'], rw.rows.map(x => `<tr><td><span class="pill ${FX_LV[x.lv][0]}">${FX_LV[x.lv][1]}</span> ${esc(x.nm)}</td><td class="num"><b>${x.weeks == null ? '—' : x.weeks + '주'}</b></td><td class="num">${fxN(x.weekly)}${x.unit}</td><td class="num">${fxN(x.stock)}${x.unit}</td></tr>`)) + `<div class="row" style="margin-top:8px"><button class="btn sm" data-hgo="raw:rbuy">🛒 원료 발주 열기</button><span class="muted" style="font-size:12px">최근 8주(${fxMd(rw.since)}~) 평균 사용량 ÷ 이카운트 재고 · 빨강 1.5주 미만 · 주황 3주 미만</span></div>`;
+  // 품질
+  const m = f.match, kh = (FAC && FAC.khaccp && FAC.khaccp[0]) || f.khaccp;
+  const bad = m ? m.rows.filter(r => /diff|none/.test(r.st)) : [];
+  let qBody = '';
+  if (kh) { const kc = kh.counts || {}; qBody += `<div class="stats fx-stats"><div class="stat ${kc.deviation ? 'red' : ''}"><b>${kc.deviation || 0}</b><span>이탈</span></div><div class="stat ${kc.unwritten ? 'amber' : ''}"><b>${kc.unwritten || 0}</b><span>미작성</span></div><div class="stat ${kc.unapproved ? 'blue' : ''}"><b>${kc.unapproved || 0}</b><span>미결재</span></div><div class="stat"><b>${m ? m.rate : '—'}%</b><span>생산량 일치</span></div></div><div class="muted" style="font-size:12px;margin:4px 0 8px">K-HACCP ${esc(kh.label || '')} · ${esc(kh.range || '')}</div>`;
+    const li = (arr, f2) => (arr || []).slice(0, 12).map(f2).join('');
+    if ((kh.deviation || []).length) qBody += `<h4 class="fx-h4">이탈</h4>${li(kh.deviation, x => `<div class="fx-li bad">${esc(x.date)} ${esc(x.title)} — ${esc(x.action || '')}</div>`)}`;
+    if ((kh.unwritten || []).length) qBody += `<h4 class="fx-h4">미작성</h4>${li(kh.unwritten, x => `<div class="fx-li warn">${esc(x.date)} ${esc(x.title)}<small> ${esc(x.note || '')}</small></div>`)}`;
+    if ((kh.unapproved || []).length) qBody += `<h4 class="fx-h4">미결재 ${kh.unapproved.length}건 (오래된 순)</h4>${li(kh.unapproved, x => `<div class="fx-li ${x.old ? 'warn' : ''}">${esc(x.date)} ${esc(x.title)}<small> ${esc(x.step || '')}</small></div>`)}`; }
+  qBody += `<h4 class="fx-h4">생산량 대조 (이카운트 생산입고 ↔ K-HACCP 생산작업일지)${m ? ` · ${fxMd(m.from)}~${fxMd(m.to)}` : ''}</h4>` + (m ? (bad.length ? bad.map(r => `<div class="fx-li ${r.st === 'diff' ? 'warn' : 'bad'}">${fxMd(r.date)} ${esc(r.nm)} — ${esc(r.note)}</div>`).join('') : '<div class="fx-li ok">두 시스템 생산량이 모두 같아요</div>') + `<div class="muted" style="font-size:12px;margin-top:4px">K-HACCP는 정상품(박스×입수+낱개)만 적고 비상품은 빼요 · 배합은 이카운트 1배합 = 마늘 14.96kg · 크림 20.98kg${m.expBlank ? ` · 이카운트 적요에 소비기한 없음 ${m.expBlank}건` : ''}</div>` : '<div class="fx-li">대조 자료 없음</div>');
+  if (f.cover) qBody += `<h4 class="fx-h4">생산일 CCP 기록 (생산 ${f.cover.days.length}일)</h4>` + (f.cover.missN ? f.cover.days.filter(c => c.miss.length).map(c => `<div class="fx-li bad">${esc(c.md)} — ${esc(c.miss.join(', '))}</div>`).join('') : '<div class="fx-li ok">생산한 날마다 생산작업일지 · 금속검출 · 급속냉동 · 오븐/크림배합 기록 있음</div>');
+  // 재고 이상
+  const ng = f.neg || { rows: [] }, ad = f.adj || { days: [], top: [] };
+  const stBody = fxTbl(['품목', '이카운트 재고', '구분'], ng.rows.slice(0, 20).map(x => `<tr><td>${esc(x.nm)}<small> ${esc(x.code)}</small></td><td class="num minus">${fxN(x.q)}</td><td>${x.own ? '<span class="pill plus">자사</span>' : '<span class="pill gray">매입</span>'}</td></tr>`)) + `<div class="muted" style="font-size:12px;margin-top:4px">이카운트 재고에는 미리 넣은 출고가 이미 빠져 있어요. 마이너스는 생산입고·구매 입력 누락이거나 더 만들어야 하는 양이에요. 최근 14일 재고조정 ${ad.n}줄(적요 없음 ${ad.noMemo}) · ${ad.days.map(d => d.d + ' ' + d.n + '줄').join(' · ')}</div>`;
+  // 분석
+  const a = f.analysis; let aBody = '';
+  if (a && a.prodMatch) { const p = a.prodMatch;
+    aBody = `<div class="stats fx-stats"><div class="stat"><b>${p.rate}%</b><span>생산량 일치 (${p.total}건)</span></div><div class="stat amber"><b>${p.cnt.diff}</b><span>수량 다름</span></div><div class="stat red"><b>${(p.cnt.kh_none || 0) + (p.cnt.ec_none || 0)}</b><span>한쪽에만 기록</span></div><div class="stat"><b>${a.expiry.diff.length}</b><span>소비기한 표기 다름</span></div></div>
+    <ul class="fx-ul"><li>${esc(p.rule || '')}</li><li>이카운트 생산입고 적요의 소비기한: 4~6월 100% → 7월 일부 → 8월부터 0건 (통합재고관리 자동 입력 이후 빠짐)</li><li>K-HACCP 생산작업일지 ${a.khWrite.months.reduce((s, x) => s + x.n, 0)}건 모두 생산 당일 작성 · 결재까지 평균 1~2.5일</li><li>생산일 ${a.ccpCover.prodDays}일 중 CCP 기록이 빠진 날 ${a.ccpCover.missDays.length}일 (${a.ccpCover.missDays.map(d => d.md + ' ' + d.miss.join(',')).join(' · ')})</li><li>${esc(a.stockRule)}</li><li>10/11 재고조정 ${fxN(a.adj.d1011.n)}줄이 한꺼번에 · 적요 없음</li><li>${esc(a.dupCode)}</li><li>마늘바게트 소비기한이 180일 3번 · 360일 4번 섞여 있음 (기준 확인 필요)</li></ul>
+    <h4 class="fx-h4">다르거나 한쪽에만 있는 기록</h4>${p.issues.filter(i => !/^ok/.test(i.st)).map(i => `<div class="fx-li ${i.st === 'diff' ? 'warn' : 'bad'}">${fxMd(i.date)} ${esc(i.nm)} — ${esc(i.note)}</div>`).join('')}`; }
+  const src = f.src || {};
+  box.innerHTML = `<div class="fx-head"><h2>🏭 공장 현황</h2><span class="meta">${esc((f.built || '').slice(5).replace('-', '/'))} 기준 · ${esc(src.ecount || '')}${src.stockAt ? ' · 재고 ' + esc(String(src.stockAt).slice(5, 16).replace('T', ' ')) : ''}</span><button class="btn sm" id="fxRe">↻ 새로 받기</button></div>
+    <div class="hm-kpi fx-kpi">${kp}</div>
+    <div class="card fx-todo"><div class="fx-th"><b>오늘 할 일</b><span class="pill bad">급함 ${cnt.red}</span><span class="pill warn">확인 ${cnt.amber}</span><span class="pill plus">참고 ${cnt.blue}</span><span class="muted" style="font-size:12px;margin-left:auto">이카운트 · K-HACCP · 대조 · 이 앱 자료에서 자동으로 뽑았어요</span></div>
+    ${roles.map(r => `<div class="fx-rg"><div class="fx-rl"><span class="fx-role ${FX_ROLE[r] || 'g'}">${r}</span> ${by[r].length}건</div>${by[r].map(fxTodoRow).join('')}</div>`).join('') || '<div class="empty">할 일이 없어요</div>'}</div>
+    ${fxSec('need', '📦 출고 대비 재고', '앞으로 14일 입력된 출고 기준', needBody, true)}
+    ${fxSec('prod', '🏭 생산 실적', `이번 주 ${fxN(w.twBox)}박스 · 지난주 같은 기간 ${fxN(w.lwBox)}`, prodBody)}
+    ${fxSec('raw', '🧈 원료 남은 기간', `발주 필요 ${rw.red || 0} · 다음 입고에 ${rw.amber || 0}`, rawBody)}
+    ${fxSec('q', '🛡 품질 · K-HACCP · 생산량 대조', kh ? `이탈 ${(kh.counts || {}).deviation || 0} · 미작성 ${(kh.counts || {}).unwritten || 0} · 미결재 ${(kh.counts || {}).unapproved || 0}` : '', qBody)}
+    ${fxSec('stock', '⚠ 재고 이상', `자사 마이너스 ${ng.own || 0} · 전체 ${ng.total || 0}`, stBody)}
+    ${a ? fxSec('ana', '📊 4~10월 이카운트 × K-HACCP 전수 분석', a.period, aBody) : ''}
+    <div class="muted" style="font-size:12px;text-align:center;margin:10px 0 4px">아침 07:50 · 저녁 17:50 에 Aside가 이카운트와 K-HACCP를 읽어 자동으로 바꿔요 · 원본은 고치지 않아요 · 이 화면은 「🌙 변경 승인」에서 끌 수 있어요</div>`;
+  $$('#homeBox [data-hgo]').forEach(b => b.onclick = () => homeGo(b.dataset.hgo));
+  $$('#homeBox details.fx-sec').forEach(d => d.ontoggle = () => { FXU.open[d.dataset.fxs] = d.open; });
+  $$('#homeBox [data-fxo]').forEach(b => b.onclick = () => { const id = { prod: 'prod', need: 'need', raw: 'raw', match: 'q', kh: 'q', stock: 'stock' }[b.dataset.fxo]; FXU.open[id] = true; const d = $(`#homeBox details[data-fxs="${id}"]`); if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
+  const re = $('#fxRe'); if (re) re.onclick = () => { re.textContent = '받는 중…'; facLoad(true).then(() => renderFactory()); };
+  const pl = $('#fxPlan'); if (pl) pl.onclick = fxPlanApply;
+}
+function fxPlanApply() {
+  const f = fxF(); if (!f) return; const R = rbS(); const map = { mont: 'DBA22', bigmont: 'DBA_29', yukjjok: 'DBA12', cheese: 'DBA_12', garlicb: 'SD50', wheat: 'DB114', golden: 'DBG1' };
+  const add = f.need.own.filter(x => x.shortEa > 0 && map[x.fam]).map(x => ({ code: map[x.fam], nm: x.nm, box: Math.ceil(x.shortEa / x.per) }));
+  if (!add.length) return toast('원료 발주에 넣을 수 있는 제품이 없어요');
+  modal(`<h2>원료 발주 「생산량」에 넣기</h2><p>입력된 출고를 다 내보내려면 더 만들어야 하는 양이에요. 지금 계획보다 적으면 이 숫자로 바꿔요.</p><ul>${add.map(a => `<li>${esc(a.nm)} <b>${a.box}박스</b> (지금 계획 ${Number(R.plan[a.code]) || 0})</li>`).join('')}</ul><div class="row" style="justify-content:flex-end;gap:8px"><button class="btn" id="fxPc">취소</button><button class="btn primary" id="fxPo">넣고 원료 발주 열기</button></div>`);
+  $('#fxPc').onclick = closeModal;
+  $('#fxPo').onclick = () => { add.forEach(a => { if ((Number(R.plan[a.code]) || 0) < a.box) R.plan[a.code] = a.box; }); R.planDate = today(); rbSave(); closeModal(); try { RB.step = 2; } catch (e) {} homeGo('raw:rbuy'); toast('생산량에 넣었어요 — ② 주문할 원료를 확인하세요'); };
+}
+
+/* ── 통합 대시보드 맨 위 요약 + 변경 승인 알림 ── */
+function fxHomeStrip() {
+  let h = '';
+  const wait = nfWaitN(); const F = nfS();
+  if (!F.mode || wait) h += `<button class="fx-nban" data-fxgo="night"><b>🌙 밤사이 바뀐 것 ${NIGHT.length + NIGHT_EXT.length}가지</b><span>${F.mode ? `승인 대기 ${wait}가지` : 'Aside가 이카운트·K-HACCP를 분석해 새 기능을 켜 두었어요 — 모두 유지할지, 단계별로 승인할지 정해 주세요'}</span><i>확인·승인 ▸</i></button>`;
+  if (featureOn('homestrip')) {
+    const f = fxF();
+    if (!f) { facLoad().then(() => { if (S.ui.menu === 'home' && (S.ui.homeTab || 'home') === 'home' && fxF()) renderHome(); }); h += `<div class="fx-strip"><div class="fx-sh"><b>🏭 공장 운영 한눈에</b><span class="muted">${FAC_ERR ? esc(FAC_ERR) : '불러오는 중…'}</span></div></div>`; }
+    else { const k = fxKpis().slice(0, 4), T = fxTodoAll().filter(t => t.lv === 'red').slice(0, 3);
+      h += `<div class="fx-strip"><div class="fx-sh"><b>🏭 공장 운영 한눈에</b><span class="muted">${esc((f.built || '').slice(5).replace('-', '/'))} 기준 · 이카운트 × K-HACCP</span>${featureOn('factory') ? '<button class="go" data-fxgo="factory">공장 현황 전체 ▸</button>' : ''}</div><div class="fx-mini">${k.map(x => `<div class="fx-m ${x.c}"><span>${x.l}</span><b>${x.v}<small>${x.u}</small></b></div>`).join('')}</div>${T.length ? `<div class="fx-urg">${T.map(fxTodoRow).join('')}</div>` : ''}</div>`; }
+  }
+  return h;
+}
+
+/* ── 🌙 변경 승인 화면 ── */
+function renderNight(box) {
+  box = box || $('#homeBox'); if (!box) return; const F = nfS();
+  const stN = { 1: '1단계 · 보기만 하는 화면 (위험 없음)', 2: '2단계 · 버튼 · 거래처에 보내는 글', 3: '3단계 · 이카운트로 보내는 내용' };
+  const stOf = k => { const s = nfState(k), on = featureOn(k); return s === 'ok' ? ['ok', '승인됨'] : s === 'off' ? ['gray', '꺼짐'] : on ? ['warn', '승인 대기 · 켜짐'] : ['gray', '승인 대기 · 꺼짐(단계별)']; };
+  const card = x => { const st = stOf(x.k), s = nfState(x.k); return `<div class="fx-nc ${s}"><div class="fx-nt"><b>${esc(x.nm)}</b><span class="pill ${st[0]}">${st[1]}</span></div><div class="fx-nd"><div><i>어디</i>${esc(x.where)}</div><div><i>무엇</i>${esc(x.what)}</div><div><i>왜</i>${esc(x.why)}</div><div><i>영향</i>${esc(x.risk)}</div></div><div class="fx-nb">${s !== 'ok' ? `<button class="btn primary sm" data-nf="${x.k}" data-v="ok">✓ 승인</button>` : ''}${s !== 'off' ? `<button class="btn sm" data-nf="${x.k}" data-v="off">끄기</button>` : `<button class="btn sm" data-nf="${x.k}" data-v="wait">다시 켜기</button>`}</div></div>`; };
+  const modeTxt = F.mode === 'all' ? '모두 승인하고 계속 쓰기' : F.mode === 'step' ? '단계별로 승인하기' : F.mode === 'none' ? '모두 끄기' : '아직 정하지 않음';
+  box.innerHTML = `<div class="fx-head"><h2>🌙 밤사이 변경 승인</h2><span class="meta">${NIGHT_AT} 야간 작업 · Aside · 지금 방식: <b>${modeTxt}</b>${F.at ? ' · ' + esc(F.at.slice(5, 16).replace('T', ' ')) + (F.by ? ' ' + esc(F.by) : '') : ''}</span></div>
+  <div class="card fx-intro"><p>사장님 퇴근 후 Aside가 이카운트와 K-HACCP를 비교 분석해서 아래 기능을 만들어 <b>켜 둔 상태</b>예요. 원래 기능은 하나도 지우지 않았고, 끄면 바로 예전(v241)과 같아져요. 이 선택은 모든 기기에 같이 적용돼요.</p>
+  <div class="fx-mode"><button class="btn primary" data-nm="all">✓ 모두 승인하고 계속 쓰기</button><button class="btn" data-nm="step">단계별로 승인하기<small>1단계만 켜 두고 2·3단계는 승인할 때 켜짐</small></button><button class="btn danger" data-nm="none">모두 끄기 (예전 화면으로)</button></div>
+  ${NIGHT_LOG.hours ? `<div class="muted" style="font-size:12.5px;margin-top:8px">작업 시간: ${esc(NIGHT_LOG.start)} ~ ${esc(NIGHT_LOG.end)} (총 ${esc(NIGHT_LOG.hours)})</div>` : ''}</div>
+  ${[1, 2, 3].map(s => `<h3 class="fx-st">${stN[s]}</h3>${NIGHT.filter(x => x.st === s).map(card).join('')}`).join('')}
+  <h3 class="fx-st">이 앱 밖에서 바뀐 것 (업무 대시보드 · Aside 루틴)</h3>${NIGHT_EXT.map(x => `<div class="fx-nc"><div class="fx-nt"><b>${esc(x.nm)}</b></div><div class="fx-nd"><div><i>어디</i>${esc(x.where)}</div><div><i>끄기</i>${esc(x.off)}</div></div></div>`).join('')}
+  <div class="card fx-intro"><b>확인이 필요한 것</b><ul class="fx-ul"><li>발주서 담당 「서재우 차장」 연락처(휴대폰·메일)를 넣을지</li><li>마늘바게트 소비기한이 180일인지 360일인지 (K-HACCP에 둘 다 있음)</li><li>생산입고 창고가 10/12부터 「빵을그리다→빵을그리다」로 바뀐 것이 의도인지</li><li>이카운트 「DB.마늘바게트 1EA」 코드가 SD50_1·SD50_2 두 개 — 하나로 합칠지</li><li>10/11 재고조정 1,393줄에 사유(적요) 넣을지</li></ul></div>`;
+  $$('#homeBox [data-nf]').forEach(b => b.onclick = () => { nfSet(b.dataset.nf, b.dataset.v); renderAll(); });
+  $$('#homeBox [data-nm]').forEach(b => b.onclick = () => { const m = b.dataset.nm; if (m === 'none' && !confirm('새 기능을 모두 끌까요? (언제든 다시 켤 수 있어요)')) return; nfMode(m); toast(m === 'all' ? '모두 승인했어요' : m === 'step' ? '단계별 승인으로 바꿨어요 — 2·3단계는 승인할 때 켜져요' : '모두 껐어요'); renderAll(); });
+}
+
+/* ── 원료 발주 화면 「남은 기간」 신호등 ── */
+function rbSigStrip() {
+  if (!featureOn('rawsig')) return; const box = $('#rbuyBody'); if (!box || $('#rbSig')) return;
+  const f = fxF(); if (!f || !f.raw) { facLoad().then(() => { if (fxF() && S.ui.menu === 'raw' && S.ui.tab === 'rbuy') rbSigStrip(); }); return; }
+  const el = document.createElement('div'); el.id = 'rbSig'; el.className = 'fx-sig';
+  el.innerHTML = `<b>원료 남은 기간</b><span class="muted">최근 8주 사용 기준 · ${esc((f.built || '').slice(5).replace('-', '/'))}</span>` + f.raw.rows.filter(r => r.code !== 'SD_01_01').map(r => `<span class="fx-chip ${r.lv}" title="주 ${fxN(r.weekly)}${r.unit} 사용 · 재고 ${fxN(r.stock)}${r.unit}">${esc(r.nm)} ${r.weeks == null ? '—' : r.weeks + '주'}</span>`).join('');
+  box.insertBefore(el, box.firstChild);
+}
+
+/* ── 생산 입력 → 이카운트 적요에 소비기한 ── */
+const EXP_DAYS = [[/빅크로와상/, 180], [/몽블랑|크로와상78|현미찰/, 270], [/육쪽|치즈듬뿍|소금빵/, 360]];
+function prodExpNote(code, date) {
+  if (!featureOn('expmemo')) return '';
+  let nm = ''; try { const it = (prodS().items || []).find(x => x.code === code); nm = (it && it.name) || ''; } catch (e) {}
+  if (!nm || /배합|소스|생지|마늘바게트/.test(nm)) return '';
+  const r = EXP_DAYS.find(x => x[0].test(nm)); if (!r) return '';
+  const d = new Date(String(date).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') + 'T00:00:00'); if (isNaN(d)) return ''; d.setDate(d.getDate() + r[1]);
+  return '소비기한 ' + String(d.getFullYear()).slice(2) + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0');
+}
+
+/* ── 기존 함수에 덧붙이기 (원래 함수는 그대로 두고 감쌈 — 스위치를 끄면 원래 동작) ── */
+{
+  const _home0 = renderHome;
+  renderHome = function () {
+    const t = S.ui.homeTab || 'home';
+    if (t === 'factory' && featureOn('factory')) { renderFactory(); return; }
+    if (t === 'night') { renderNight(); return; }
+    if (t !== 'home') S.ui.homeTab = 'home';
+    _home0.apply(this, arguments);
+    const box = $('#homeBox'); if (!box) return; const s = fxHomeStrip(); if (!s) return;
+    const top = box.querySelector('.hm-top'); const w = document.createElement('div'); w.innerHTML = s;
+    if (top && top.nextSibling) [...w.childNodes].reverse().forEach(n => top.parentNode.insertBefore(n, top.nextSibling)); else [...w.childNodes].reverse().forEach(n => box.insertBefore(n, box.firstChild));
+    $$('#homeBox [data-fxgo]').forEach(b => b.onclick = () => { S.ui.homeTab = b.dataset.fxgo; save(); renderAll(); window.scrollTo(0, 0); });
+    $$('#homeBox .fx-strip [data-hgo]').forEach(b => b.onclick = () => homeGo(b.dataset.hgo));
+  };
+  const _rb0 = renderRbuy;
+  renderRbuy = function () { _rb0.apply(this, arguments); try { rbSigStrip(); } catch (e) {} };
+  const _pr0 = prodRows;
+  prodRows = function (entry) { const rows = _pr0.apply(this, arguments); try { rows.forEach(r => { const x = prodExpNote(r.PROD_CD, r.IO_DATE); if (x && !/소비기한/.test(r.REMARKS || '')) r.REMARKS = [r.REMARKS || '', x].filter(Boolean).join(' / ').slice(0, 200); }); } catch (e) {} return rows; };
+  const _msg0 = rbMsg;
+  rbMsg = function (sup, lines, due, note) {
+    let t = _msg0.apply(this, arguments); if (!featureOn('po')) return t;
+    t = t.replace('확인 후 회신 부탁드립니다. 감사합니다.', '확인 후 회신 부탁드립니다.\n번거로우시겠지만 거래명세표는 drawbread@naver.com으로 회신해 주시면 감사하겠습니다. 협조에 늘 감사드립니다.');
+    t = t.replace(/빵을그리다\(주\) ☎ 031-762-1533[^\n]*$/, '빵을그리다(주) 담당 서재우 차장 ☎ 031-762-1533');
+    return t;
+  };
+  const _pr1 = rbPrintHtml;
+  rbPrintHtml = function (sup, lines, due, note) {
+    let h = _pr1.apply(this, arguments); if (!featureOn('po')) return h;
+    h = h.replace('<h1>발 주 서</h1>', '<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><img src="https://lee1812-oss.github.io/wonryo/brand_logo.png" alt="빵을그리다" style="height:54px"><div style="font-size:18px;font-weight:800;color:#8A5A1C">빵을그리다(주)</div></div><h1>발 주 서</h1>');
+    h = h.replace('발신: 빵을그리다(주) ☎ 031-762-1533', '발신: 빵을그리다(주) 담당 서재우 차장 ☎ 031-762-1533');
+    h = h.replace(/(<div class="sig">)[\s\S]*?(<\/div>)/, '<p style="margin-top:18px">번거로우시겠지만 <b>거래명세표는 drawbread@naver.com</b>으로 회신해 주시면 감사하겠습니다. 협조에 늘 감사드립니다.</p>$1빵을그리다(주) 담당 서재우 차장$2');
+    return h;
+  };
+  const _kk0 = rbKakaoText;
+  rbKakaoText = function (text, sup, lines, due) {
+    if (!featureOn('po')) return _kk0.apply(this, arguments);
+    if (text && text.length <= 200) return text;
+    const head = `[빵을그리다 발주] ${rbMd(today())}\n입고 희망 ${rbMd(due) || '협의'}\n`, tail = '\n거래명세표는 drawbread@naver.com으로 회신 부탁드립니다. 감사합니다.\n빵을그리다 서재우 차장 031-762-1533';
+    let body = '', i = 0;
+    for (; i < lines.length; i++) { const l = `· ${lines[i].bname || lines[i].name} ${lines[i].n}${lines[i].u}\n`; if ((head + body + l + tail).length > 185) break; body += l; }
+    if (i < lines.length) body += `외 ${lines.length - i}품목\n`;
+    return (head + body + tail).slice(0, 200);
+  };
+  const _os0 = rbOpenSend;
+  rbOpenSend = function (sup) { _os0.apply(this, arguments); try { if (featureOn('po')) { const h = $('#modal h2'); if (h && !h.querySelector('img')) h.insertAdjacentHTML('afterbegin', '<img src="brand_logo.png" alt="" style="height:30px;vertical-align:middle;margin-right:8px" onerror="this.remove()">'); } } catch (e) {} };
+}
+(function () { const s = document.createElement('style'); s.textContent = `
+.fx-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 10px}.fx-head h2{font-size:19px;font-weight:800;margin:0}.fx-head .meta{font-size:12.5px;color:var(--ink3);flex:1;min-width:0}
+.fx-kpi .hk{cursor:pointer}
+.fx-todo{padding:12px 14px}.fx-th{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}.fx-th b{font-size:15.5px;margin-right:4px}
+.fx-rg{margin-top:6px}.fx-rl{font-size:12px;font-weight:800;color:var(--ink3);margin:6px 0 2px}
+.fx-tr{display:flex;align-items:flex-start;gap:8px;padding:8px 2px;border-top:1px solid var(--line2)}.fx-tr.go{cursor:pointer}.fx-tr.go:hover{background:var(--bg)}
+.fx-mk{width:4px;align-self:stretch;border-radius:2px;flex:0 0 auto;background:var(--line)}.fx-mk.red{background:var(--minus)}.fx-mk.amber{background:#E0A03A}.fx-mk.blue{background:var(--plus)}
+.fx-role{flex:0 0 auto;font-size:11.5px;font-weight:800;padding:1px 7px;border-radius:6px;background:#EEF1F3;color:var(--ink2)}.fx-role.b{background:var(--plus-bg);color:var(--plus)}.fx-role.a{background:var(--warn-bg);color:var(--warn)}.fx-role.r{background:var(--minus-bg);color:var(--minus)}
+.fx-tt{flex:1;min-width:0;font-size:13.5px;line-height:1.45}.fx-tt b{display:block;font-weight:700}.fx-tt small{display:block;color:var(--ink3);font-size:12px;word-break:keep-all;overflow-wrap:anywhere}
+.fx-src{flex:0 0 auto;font-size:11px;color:var(--ink3)}
+.fx-sec{background:var(--paper);border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden}.fx-sec summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:12px 14px;font-size:15px}.fx-sec summary::-webkit-details-marker{display:none}.fx-sec summary::after{content:'▾';margin-left:auto;color:var(--ink3)}.fx-sec[open] summary::after{content:'▴'}.fx-sec summary span{font-size:12.5px;color:var(--ink3)}
+.fx-body{padding:0 14px 14px}.fx-note{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:8px 10px;font-size:12.5px;font-weight:700;margin-bottom:8px}
+.fx-t td small{color:var(--ink3);font-size:11.5px}.fx-t .num{text-align:right;white-space:nowrap}.fx-h4{font-size:13.5px;margin:14px 0 6px}
+.fx-days{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.fx-day{border:1px solid var(--line2);border-radius:10px;padding:8px 10px;font-size:13px;line-height:1.6}.fx-day>b{display:block;font-size:13.5px}
+.fx-li{font-size:13px;padding:6px 8px;border-left:3px solid var(--line);margin:3px 0;background:#FAFBFC;border-radius:0 6px 6px 0}.fx-li.bad{border-color:var(--minus)}.fx-li.warn{border-color:#E0A03A}.fx-li.ok{border-color:var(--accent)}.fx-li small{color:var(--ink3)}
+.fx-stats{grid-template-columns:repeat(4,minmax(0,1fr))}.fx-ul{margin:6px 0;padding-left:18px;font-size:13px;line-height:1.6;word-break:keep-all}
+.fx-nban{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:#FFF7ED;border:1px solid #F5C99B;color:#8A4A12;border-radius:12px;padding:11px 14px;margin:0 0 10px;cursor:pointer;font:inherit}.fx-nban b{white-space:nowrap;font-size:14px}.fx-nban span{flex:1;font-size:12.5px;min-width:0}.fx-nban i{font-style:normal;font-weight:800;white-space:nowrap}
+.fx-strip{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px}.fx-sh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.fx-sh b{font-size:15px}.fx-sh .muted{font-size:12px;flex:1}.fx-sh .go{font-size:12.5px;font-weight:700;color:var(--brand);background:none;border:0;cursor:pointer}
+.fx-mini{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:8px}.fx-m{border:1px solid var(--line2);border-radius:10px;padding:7px 10px}.fx-m span{display:block;font-size:12px;color:var(--ink3);font-weight:700}.fx-m b{font-size:22px;font-weight:800}.fx-m b small{font-size:12px;color:var(--ink3);margin-left:2px}.fx-m.bad b{color:var(--minus)}.fx-m.warn b{color:var(--warn)}.fx-m.good b{color:var(--accent)}
+.fx-urg{margin-top:6px}
+.fx-intro p{margin:0 0 10px;font-size:14px;line-height:1.6;word-break:keep-all}.fx-mode{display:flex;gap:8px;flex-wrap:wrap}.fx-mode .btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px}.fx-mode small{font-size:11px;font-weight:500;opacity:.8}
+.fx-st{font-size:14px;margin:16px 0 8px;color:var(--ink2)}
+.fx-nc{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px}.fx-nc.ok{border-color:#9FD5C8}.fx-nc.off{opacity:.7}
+.fx-nt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.fx-nt b{font-size:14.5px}
+.fx-nd{margin-top:6px;font-size:13px;line-height:1.55;word-break:keep-all}.fx-nd>div{display:flex;gap:8px}.fx-nd i{font-style:normal;flex:0 0 34px;color:var(--ink3);font-weight:700}
+.fx-nb{display:flex;gap:6px;margin-top:8px;justify-content:flex-end}
+.fx-sig{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:10px}.fx-sig b{font-size:13.5px}.fx-sig .muted{font-size:11.5px;margin-right:4px}
+.fx-chip{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:#EEF1F3;color:var(--ink2)}.fx-chip.red{background:var(--minus-bg);color:var(--minus)}.fx-chip.amber{background:var(--warn-bg);color:var(--warn)}.fx-chip.green{background:var(--accent-bg);color:var(--accent)}.fx-chip.blue{background:var(--plus-bg);color:var(--plus)}
+@media (max-width:760px){.fx-mini{grid-template-columns:repeat(2,minmax(0,1fr))}.fx-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.fx-src{display:none}}
+`; document.head.appendChild(s); })();
 
 function renderAll() {
   renderTabs(); renderHeader(); renderNotice(); if (typeof renderSyncPill === 'function') renderSyncPill(); if (typeof renderChanges === 'function') setTimeout(renderChanges, 0);
