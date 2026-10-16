@@ -1128,6 +1128,7 @@ header.top .brand .hver .rv-ok{color:#9BE3B8;font-weight:700}header.top .brand .
 #rbuyBody .rb-msg{margin-top:10px;background:#e8f5ec;color:#145a2a;border-radius:8px;padding:8px 10px;font-size:14px}
 #rbuyBody .rb-set>summary{cursor:pointer;font-weight:800;font-size:15px}#rbuyBody .rb-set h3{font-size:15px;margin:14px 0 6px}#rbuyBody .rb-bom{border:1px solid #eee;border-radius:8px;padding:4px 10px;margin:6px 0}#rbuyBody .rb-bom summary{cursor:pointer}
 @media (max-width:759px){#rbuyBody .rb-flowbar{gap:4px}#rbuyBody .rb-arrow{display:none}#rbuyBody .rb-flow{flex-direction:column;align-items:center;text-align:center;gap:4px;padding:8px 4px}#rbuyBody .rb-flow .rb-ft{align-items:center}#rbuyBody .rb-flow b{font-size:13.5px}#rbuyBody .rb-flow small{font-size:11px}#rbuyBody .rb-pgrid{grid-template-columns:repeat(2,1fr)}#rbuyBody .rb-step button{width:36px;height:40px}#rbuyBody .rb-step input{width:54px}#rbuyBody .rb-t td,#rbuyBody .rb-t th{padding:6px 3px;font-size:13px}}
+#rbuyBody .rb-qc.zero{color:#888}#rbuyBody .rb-qc.zero.on{color:#fff;background:#8a8a8a;border-color:#8a8a8a}
 </style><div id="rbuyBody"></div></section> <!-- ═══ 재고조정 이력 ═══ -->
   <section class="view" data-view="adj">
     <div class="card noprint">
@@ -1309,8 +1310,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '239';
-const APP_BUILT = '2026-10-16 22:11';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '240';
+const APP_BUILT = '2026-10-16 22:17';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -6654,7 +6655,7 @@ function rbProds() {
 function rbDef(c) { const v = Number(rbS().def[c]); return v > 0 ? v : 0; }
 function rbQuick(p, b) {
   const d = rbDef(p.code), h = RB_HIST0[p.code] || [];
-  const chips = h.map(([q, n]) => `<button class="rb-qc${b === q ? ' on' : ''}" data-rbset="${esc(p.code)}|${q}" title="최근 1년 ${n}번 이만큼 만들었어요">${q}</button>`).join('');
+  const chips = `<button class="rb-qc zero${b > 0 ? '' : ' on'}" data-rbset="${esc(p.code)}|0" title="이번에는 안 만듦 (0박스)">0</button>` + h.filter(([q]) => Number(q) > 0).map(([q, n]) => `<button class="rb-qc${b === q ? ' on' : ''}" data-rbset="${esc(p.code)}|${q}" title="최근 1년 ${n}번 이만큼 만들었어요">${q}</button>`).join(''); /* v240: 맨 앞에 0(이번에는 안 만듦) */
   return `<div class="rb-qk">${chips ? `<div class="rb-qh">최근 1년 자주 만든 양</div><div class="rb-qr">${chips}</div>` : ''}<div class="rb-qd">${d ? `<button class="rb-qc def${b === d ? ' on' : ''}" data-rbset="${esc(p.code)}|${d}" title="저장한 기본값">★ 기본 ${d}</button>` : ''}<button class="rb-qs" data-rbdef="${esc(p.code)}"${b > 0 ? '' : ' disabled'} title="지금 넣은 수량을 이 제품의 기본값으로 저장">${d && b === d ? '✓ 기본값 (누르면 지우기)' : '지금 수량을 기본값으로'}</button></div></div>`;
 }
 function rbStockAt() { try { return finLastData ? (finLastData.changedAt || finLastData.updatedAt || '') : ''; } catch (e) { return ''; } }
