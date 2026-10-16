@@ -7027,7 +7027,7 @@ function fxSec(id, title, sub, body, openDef) { const o = FXU.open[id] != null ?
 function renderFactory(box) {
   box = box || $('#homeBox'); if (!box) return;
   const f = fxF();
-  if (!f) { box.innerHTML = `<div class="fx-head"><h2>🏭 공장 현황</h2></div><div class="card"><div class="empty">${FAC_ERR ? esc(FAC_ERR) : '공장 자료를 불러오는 중…'}</div></div>`; facLoad(true).then(() => { if (S.ui.menu === 'home' && S.ui.homeTab === 'factory' && fxF()) renderFactory(); }); return; }
+  if (!f) { box.innerHTML = fxNav('factory') + `<div class="fx-head"><h2>🏭 공장 현황</h2></div><div class="card"><div class="empty">${FAC_ERR ? esc(FAC_ERR) : '공장 자료를 불러오는 중…'}</div></div>`; facLoad(true).then(() => { if (S.ui.menu === 'home' && S.ui.homeTab === 'factory' && fxF()) renderFactory(); }); return; }
   if (Date.now() - FAC_AT > 5 * 60e3) facLoad().then(() => { if (S.ui.menu === 'home' && S.ui.homeTab === 'factory') renderFactory(); });
   const T = fxTodoAll(), cnt = { red: 0, amber: 0, blue: 0 }; T.forEach(t => cnt[t.lv]++);
   const by = {}; T.forEach(t => (by[t.role] = by[t.role] || []).push(t));
@@ -7067,7 +7067,7 @@ function renderFactory(box) {
     <ul class="fx-ul"><li>${esc(p.rule || '')}</li><li>이카운트 생산입고 적요의 소비기한: 4~6월 100% → 7월 일부 → 8월부터 0건 (통합재고관리 자동 입력 이후 빠짐)</li><li>K-HACCP 생산작업일지 ${a.khWrite.months.reduce((s, x) => s + x.n, 0)}건 모두 생산 당일 작성 · 결재까지 평균 1~2.5일</li><li>생산일 ${a.ccpCover.prodDays}일 중 CCP 기록이 빠진 날 ${a.ccpCover.missDays.length}일 (${a.ccpCover.missDays.map(d => d.md + ' ' + d.miss.join(',')).join(' · ')})</li><li>${esc(a.stockRule)}</li><li>10/11 재고조정 ${fxN(a.adj.d1011.n)}줄이 한꺼번에 · 적요 없음</li><li>${esc(a.dupCode)}</li><li>마늘바게트 소비기한이 180일 3번 · 360일 4번 섞여 있음 (기준 확인 필요)</li></ul>
     <h4 class="fx-h4">다르거나 한쪽에만 있는 기록</h4>${p.issues.filter(i => !/^ok/.test(i.st)).map(i => `<div class="fx-li ${i.st === 'diff' ? 'warn' : 'bad'}">${fxMd(i.date)} ${esc(i.nm)} — ${esc(i.note)}</div>`).join('')}`; }
   const src = f.src || {};
-  box.innerHTML = `<div class="fx-head"><h2>🏭 공장 현황</h2><span class="meta">${esc((f.built || '').slice(5).replace('-', '/'))} 기준 · ${esc(src.ecount || '')}${src.stockAt ? ' · 재고 ' + esc(String(src.stockAt).slice(5, 16).replace('T', ' ')) : ''}</span><button class="btn sm" id="fxRe">↻ 새로 받기</button></div>
+  box.innerHTML = fxNav('factory') + `<div class="fx-head"><h2>🏭 공장 현황</h2><span class="meta">${esc((f.built || '').slice(5).replace('-', '/'))} 기준 · ${esc(src.ecount || '')}${src.stockAt ? ' · 재고 ' + esc(String(src.stockAt).slice(5, 16).replace('T', ' ')) : ''}</span><button class="btn sm" id="fxRe">↻ 새로 받기</button></div>
     <div class="hm-kpi fx-kpi">${kp}</div>
     <div class="card fx-todo"><div class="fx-th"><b>오늘 할 일</b><span class="pill bad">급함 ${cnt.red}</span><span class="pill warn">확인 ${cnt.amber}</span><span class="pill plus">참고 ${cnt.blue}</span><span class="muted" style="font-size:12px;margin-left:auto">이카운트 · K-HACCP · 대조 · 이 앱 자료에서 자동으로 뽑았어요</span></div>
     ${roles.map(r => `<div class="fx-rg"><div class="fx-rl"><span class="fx-role ${FX_ROLE[r] || 'g'}">${r}</span> ${by[r].length}건</div>${by[r].map(fxTodoRow).join('')}</div>`).join('') || '<div class="empty">할 일이 없어요</div>'}</div>
@@ -7082,7 +7082,7 @@ function renderFactory(box) {
   $$('#homeBox details.fx-sec').forEach(d => d.ontoggle = () => { FXU.open[d.dataset.fxs] = d.open; });
   $$('#homeBox [data-fxo]').forEach(b => b.onclick = () => { const id = { prod: 'prod', need: 'need', raw: 'raw', match: 'q', kh: 'q', stock: 'stock' }[b.dataset.fxo]; FXU.open[id] = true; const d = $(`#homeBox details[data-fxs="${id}"]`); if (d) { d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
   const re = $('#fxRe'); if (re) re.onclick = () => { re.textContent = '받는 중…'; facLoad(true).then(() => renderFactory()); };
-  const pl = $('#fxPlan'); if (pl) pl.onclick = fxPlanApply;
+  const pl = $('#fxPlan'); if (pl) pl.onclick = fxPlanApply; fxBindNav();
 }
 function fxPlanApply() {
   const f = fxF(); if (!f) return; const R = rbS(); const map = { mont: 'DBA22', bigmont: 'DBA_29', yukjjok: 'DBA12', cheese: 'DBA_12', garlicb: 'SD50', wheat: 'DB114', golden: 'DBG1' };
@@ -7107,6 +7107,8 @@ function fxHomeStrip() {
   return h;
 }
 
+function fxNav(cur) { const it = [['home', '통합']].concat(featureOn('factory') ? [['factory', '🏭 공장 현황']] : []).concat([['night', '🌙 변경 승인' + (nfWaitN() ? ' (' + nfWaitN() + ')' : '')]]); return '<div class="seg fx-nav">' + it.map(([k, n]) => '<button data-fxgo="' + k + '" class="' + (cur === k ? 'on' : '') + '">' + n + '</button>').join('') + '</div>'; }
+function fxBindNav() { $$('#homeBox [data-fxgo]').forEach(b => b.onclick = () => { S.ui.homeTab = b.dataset.fxgo; save(); renderAll(); window.scrollTo(0, 0); }); }
 /* ── 🌙 변경 승인 화면 ── */
 function renderNight(box) {
   box = box || $('#homeBox'); if (!box) return; const F = nfS();
@@ -7114,13 +7116,14 @@ function renderNight(box) {
   const stOf = k => { const s = nfState(k), on = featureOn(k); return s === 'ok' ? ['ok', '승인됨'] : s === 'off' ? ['gray', '꺼짐'] : on ? ['warn', '승인 대기 · 켜짐'] : ['gray', '승인 대기 · 꺼짐(단계별)']; };
   const card = x => { const st = stOf(x.k), s = nfState(x.k); return `<div class="fx-nc ${s}"><div class="fx-nt"><b>${esc(x.nm)}</b><span class="pill ${st[0]}">${st[1]}</span></div><div class="fx-nd"><div><i>어디</i>${esc(x.where)}</div><div><i>무엇</i>${esc(x.what)}</div><div><i>왜</i>${esc(x.why)}</div><div><i>영향</i>${esc(x.risk)}</div></div><div class="fx-nb">${s !== 'ok' ? `<button class="btn primary sm" data-nf="${x.k}" data-v="ok">✓ 승인</button>` : ''}${s !== 'off' ? `<button class="btn sm" data-nf="${x.k}" data-v="off">끄기</button>` : `<button class="btn sm" data-nf="${x.k}" data-v="wait">다시 켜기</button>`}</div></div>`; };
   const modeTxt = F.mode === 'all' ? '모두 승인하고 계속 쓰기' : F.mode === 'step' ? '단계별로 승인하기' : F.mode === 'none' ? '모두 끄기' : '아직 정하지 않음';
-  box.innerHTML = `<div class="fx-head"><h2>🌙 밤사이 변경 승인</h2><span class="meta">${NIGHT_AT} 야간 작업 · Aside · 지금 방식: <b>${modeTxt}</b>${F.at ? ' · ' + esc(F.at.slice(5, 16).replace('T', ' ')) + (F.by ? ' ' + esc(F.by) : '') : ''}</span></div>
+  box.innerHTML = fxNav('night') + `<div class="fx-head"><h2>🌙 밤사이 변경 승인</h2><span class="meta">${NIGHT_AT} 야간 작업 · Aside · 지금 방식: <b>${modeTxt}</b>${F.at ? ' · ' + esc(F.at.slice(5, 16).replace('T', ' ')) + (F.by ? ' ' + esc(F.by) : '') : ''}</span></div>
   <div class="card fx-intro"><p>사장님 퇴근 후 Aside가 이카운트와 K-HACCP를 비교 분석해서 아래 기능을 만들어 <b>켜 둔 상태</b>예요. 원래 기능은 하나도 지우지 않았고, 끄면 바로 예전(v241)과 같아져요. 이 선택은 모든 기기에 같이 적용돼요.</p>
   <div class="fx-mode"><button class="btn primary" data-nm="all">✓ 모두 승인하고 계속 쓰기</button><button class="btn" data-nm="step">단계별로 승인하기<small>1단계만 켜 두고 2·3단계는 승인할 때 켜짐</small></button><button class="btn danger" data-nm="none">모두 끄기 (예전 화면으로)</button></div>
   ${NIGHT_LOG.hours ? `<div class="muted" style="font-size:12.5px;margin-top:8px">작업 시간: ${esc(NIGHT_LOG.start)} ~ ${esc(NIGHT_LOG.end)} (총 ${esc(NIGHT_LOG.hours)})</div>` : ''}</div>
   ${[1, 2, 3].map(s => `<h3 class="fx-st">${stN[s]}</h3>${NIGHT.filter(x => x.st === s).map(card).join('')}`).join('')}
   <h3 class="fx-st">이 앱 밖에서 바뀐 것 (업무 대시보드 · Aside 루틴)</h3>${NIGHT_EXT.map(x => `<div class="fx-nc"><div class="fx-nt"><b>${esc(x.nm)}</b></div><div class="fx-nd"><div><i>어디</i>${esc(x.where)}</div><div><i>끄기</i>${esc(x.off)}</div></div></div>`).join('')}
   <div class="card fx-intro"><b>확인이 필요한 것</b><ul class="fx-ul"><li>발주서 담당 「서재우 차장」 연락처(휴대폰·메일)를 넣을지</li><li>마늘바게트 소비기한이 180일인지 360일인지 (K-HACCP에 둘 다 있음)</li><li>생산입고 창고가 10/12부터 「빵을그리다→빵을그리다」로 바뀐 것이 의도인지</li><li>이카운트 「DB.마늘바게트 1EA」 코드가 SD50_1·SD50_2 두 개 — 하나로 합칠지</li><li>10/11 재고조정 1,393줄에 사유(적요) 넣을지</li></ul></div>`;
+  fxBindNav();
   $$('#homeBox [data-nf]').forEach(b => b.onclick = () => { nfSet(b.dataset.nf, b.dataset.v); renderAll(); });
   $$('#homeBox [data-nm]').forEach(b => b.onclick = () => { const m = b.dataset.nm; if (m === 'none' && !confirm('새 기능을 모두 끌까요? (언제든 다시 켤 수 있어요)')) return; nfMode(m); toast(m === 'all' ? '모두 승인했어요' : m === 'step' ? '단계별 승인으로 바꿨어요 — 2·3단계는 승인할 때 켜져요' : '모두 껐어요'); renderAll(); });
 }
@@ -7138,7 +7141,7 @@ function rbSigStrip() {
 const EXP_DAYS = [[/빅크로와상/, 180], [/몽블랑|크로와상78|현미찰/, 270], [/육쪽|치즈듬뿍|소금빵/, 360]];
 function prodExpNote(code, date) {
   if (!featureOn('expmemo')) return '';
-  let nm = ''; try { const it = (prodS().items || []).find(x => x.code === code); nm = (it && it.name) || ''; } catch (e) {}
+  let nm = ''; try { const it = (prodS().items || []).find(x => x.code === code); nm = (it && it.name) || ''; } catch (e) {} if (!nm) { const p = RB_PROD0.find(x => x[0] === code); nm = p ? p[1] : ''; }
   if (!nm || /배합|소스|생지|마늘바게트/.test(nm)) return '';
   const r = EXP_DAYS.find(x => x[0].test(nm)); if (!r) return '';
   const d = new Date(String(date).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') + 'T00:00:00'); if (isNaN(d)) return ''; d.setDate(d.getDate() + r[1]);
@@ -7154,10 +7157,10 @@ function prodExpNote(code, date) {
     if (t === 'night') { renderNight(); return; }
     if (t !== 'home') S.ui.homeTab = 'home';
     _home0.apply(this, arguments);
-    const box = $('#homeBox'); if (!box) return; const s = fxHomeStrip(); if (!s) return;
+    const box = $('#homeBox'); if (!box) return; const s = fxNav('home') + fxHomeStrip();
     const top = box.querySelector('.hm-top'); const w = document.createElement('div'); w.innerHTML = s;
     if (top && top.nextSibling) [...w.childNodes].reverse().forEach(n => top.parentNode.insertBefore(n, top.nextSibling)); else [...w.childNodes].reverse().forEach(n => box.insertBefore(n, box.firstChild));
-    $$('#homeBox [data-fxgo]').forEach(b => b.onclick = () => { S.ui.homeTab = b.dataset.fxgo; save(); renderAll(); window.scrollTo(0, 0); });
+    fxBindNav();
     $$('#homeBox .fx-strip [data-hgo]').forEach(b => b.onclick = () => homeGo(b.dataset.hgo));
   };
   const _rb0 = renderRbuy;
@@ -7193,6 +7196,7 @@ function prodExpNote(code, date) {
   rbOpenSend = function (sup) { _os0.apply(this, arguments); try { if (featureOn('po')) { const h = $('#modal h2'); if (h && !h.querySelector('img')) h.insertAdjacentHTML('afterbegin', '<img src="brand_logo.png" alt="" style="height:30px;vertical-align:middle;margin-right:8px" onerror="this.remove()">'); } } catch (e) {} };
 }
 (function () { const s = document.createElement('style'); s.textContent = `
+.fx-nav{display:inline-flex;margin:0 0 10px}.fx-nav button{white-space:nowrap}
 .fx-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 10px}.fx-head h2{font-size:19px;font-weight:800;margin:0}.fx-head .meta{font-size:12.5px;color:var(--ink3);flex:1;min-width:0}
 .fx-kpi .hk{cursor:pointer}
 .fx-todo{padding:12px 14px}.fx-th{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}.fx-th b{font-size:15.5px;margin-right:4px}
