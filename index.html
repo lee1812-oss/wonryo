@@ -1310,8 +1310,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '240';
-const APP_BUILT = '2026-10-16 22:17';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '241';
+const APP_BUILT = '2026-10-16 22:22';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -6802,10 +6802,11 @@ async function rbSend(sup, opt) {
 }
 function rbManualBtns(sup) {
   const s = esc(sup);
-  return `<div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn sm" data-rbm="sms" data-s="${s}">📱 문자 앱으로</button><button class="btn sm" data-rbm="mail" data-s="${s}">✉ 메일 앱으로</button><button class="btn sm" data-rbm="share" data-s="${s}">💬 카톡 등으로 공유</button><button class="btn sm" data-rbm="copy" data-s="${s}">📋 복사</button><button class="btn sm" data-rbm="print" data-s="${s}">🖨 발주서 인쇄</button><button class="btn primary sm" data-rbm="mark" data-s="${s}">✓ 보낸 것으로 기록</button></div>`;
+  return `<div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn sm" data-rbm="sms" data-s="${s}">📱 문자 앱으로</button><button class="btn sm" data-rbm="mail" data-s="${s}">✉ 메일 앱으로</button><button class="btn sm rb-kk" data-rbm="kakao" data-s="${s}">💬 카카오톡으로</button>${/Android|iPhone|iPad/i.test(navigator.userAgent) && navigator.share ? `<button class="btn sm" data-rbm="share" data-s="${s}">📲 다른 앱 공유</button>` : ''}<button class="btn sm" data-rbm="copy" data-s="${s}">📋 복사</button><button class="btn sm" data-rbm="print" data-s="${s}">🖨 발주서 인쇄</button><button class="btn primary sm" data-rbm="mark" data-s="${s}">✓ 보낸 것으로 기록</button></div>`;
 }
 function rbModalVals(sup) { const on = $('#modal').classList.contains('on'); const t0 = $('#rbMsgTxt'); const mine = on && t0 && t0.dataset.sup === sup; const t = mine ? t0 : null, d = mine ? $('#rbDue') : null, n = mine ? $('#rbNote') : null; return { text: t ? t.value : '', due: d ? d.value : '', note: n ? n.value : '', mail: !!($('#rbChMail') && $('#rbChMail').checked), sms: !!($('#rbChSms') && $('#rbChSms').checked) }; }
 function rbOpenSend(sup) {
+  try { if (saleS().cfg.kakaoKey) saleKakaoLoad().catch(() => {}); } catch (e) {}
   const rows = rbCalc().filter(r => r.n > 0 && (r.P.sup || '(거래처 미정)') === sup); const S1 = rbSup(sup);
   const due = rbAddD(S1.lead || 2); RB.open[sup] = { due };
   const lines = rbLinesOf(rows);
@@ -6821,11 +6822,42 @@ function rbOpenSend(sup) {
   const re = () => { const v = rbModalVals(sup); $('#rbMsgTxt').value = rbMsg(sup, lines, v.due, v.note); RB.open[sup] = { due: v.due }; };
   ['#rbDue', '#rbNote'].forEach(s => { const el = $(s); if (el) el.addEventListener('change', re); });
 }
+/* v241: 발주서를 카카오톡으로 — 카카오 공유(Kakao.Share, 주문 링크와 같은 JavaScript 키 saleS().cfg.kakaoKey). PC는 카카오 창에서 대화방 고르기, 휴대폰은 카톡 앱. 카톡 글 카드는 200자까지라 길면 줄여 보내고, 전체 글은 복사해 둠 */
+function rbKakaoText(text, sup, lines, due) {
+  if (text && text.length <= 200) return text;
+  const head = `[빵을그리다 발주] ${rbMd(today())}\n입고 희망 ${rbMd(due) || '협의'}\n`, tail = '\n확인 후 회신 부탁드립니다.\n빵을그리다 031-762-1533';
+  let body = '', i = 0;
+  for (; i < lines.length; i++) { const l = `· ${lines[i].bname || lines[i].name} ${lines[i].n}${lines[i].u}\n`; if ((head + body + l + tail).length > 185) break; body += l; }
+  if (i < lines.length) body += `외 ${lines.length - i}품목 (전체는 붙여넣기)\n`;
+  return (head + body + tail).slice(0, 200);
+}
+async function rbKakao(sup, text, lines, due) {
+  try { navigator.clipboard.writeText(text).catch(() => {}); } catch (e) {}
+  const X = saleS(), key = X.cfg.kakaoKey;
+  if (!key) return rbKakaoKey(sup, text, lines, due);
+  try {
+    await saleKakaoLoad();
+    if (window.__kkInit !== key) { if (Kakao.isInitialized()) Kakao.cleanup(); Kakao.init(key); window.__kkInit = key; }
+    const url = 'https://lee1812-oss.github.io/wonryo/';
+    Kakao.Share.sendDefault({ objectType: 'text', text: rbKakaoText(text, sup, lines, due), link: { mobileWebUrl: url, webUrl: url }, buttonTitle: '빵을그리다' });
+    toast('카카오톡 창에서 ' + sup + ' 대화방을 고르세요 · 전체 글은 복사돼 있어요');
+  } catch (e) { toast('카톡 보내기 실패: ' + (/domain|도메인|KOE/i.test(e.message || '') ? '카카오 앱에 사이트 도메인(https://lee1812-oss.github.io)을 등록했는지 확인해 주세요' : (e.message || e))); }
+}
+function rbKakaoKey(sup, text, lines, due) {
+  modal(`<h2>💬 카카오톡 보내기 설정 (이 기기에서 처음 한 번)</h2>
+  <ol style="line-height:1.8;padding-left:20px;margin:6px 0"><li><a href="https://developers.kakao.com/console/app" target="_blank" rel="noopener">카카오 개발자 「내 애플리케이션」</a>에서 주문서용 앱(빵을그리다 주문서)을 엽니다</li><li>「앱 키」의 <b>JavaScript 키</b>를 복사해 아래에 붙여넣습니다</li></ol>
+  <div class="muted" style="font-size:12.5px">판매 입력 → 발주 접수의 「카카오 키 넣기」와 같은 키예요. 다른 PC에 이미 넣었다면 같은 키를 쓰면 됩니다.</div>
+  <input id="rbKkKey" placeholder="JavaScript 키 (32자리)" autocomplete="off" style="width:100%;font-size:16px;padding:8px;margin:10px 0">
+  <div class="row" style="justify-content:flex-end;gap:6px"><button class="btn" onclick="closeModal()">취소</button><button class="btn primary" id="rbKkOk">저장하고 카톡 열기</button></div>
+  <div class="muted" style="font-size:12px;margin-top:8px">발주서 글은 이미 복사해 두었어요. 카톡 PC에서 거래처 대화방에 붙여넣어도 됩니다.</div>`);
+  $('#rbKkOk').onclick = () => { const k = $('#rbKkKey').value.trim().replace(/[^A-Za-z0-9]/g, ''); if (k.length < 20) return toast('JavaScript 키가 너무 짧습니다 — 앱 키 화면에서 다시 복사해 주세요'); const X = saleS(); X.cfg.kakaoKey = k; saleSave(); window.__kkInit = ''; closeModal(); rbKakao(sup, text, lines, due); };
+}
 async function rbManual(kind, sup) {
   const S1 = rbSup(sup), v = rbModalVals(sup); const rows = rbCalc().filter(r => r.n > 0 && (r.P.sup || '(거래처 미정)') === sup); const lines = rbLinesOf(rows);
   const text = v.text || rbMsg(sup, lines, v.due || rbAddD(S1.lead || 2), v.note);
   if (kind === 'sms') { location.href = `sms:${(S1.phone || '').replace(/[^\d]/g, '')}?body=${encodeURIComponent(text)}`; return; }
   if (kind === 'mail') { location.href = `mailto:${encodeURIComponent(S1.email || '')}?subject=${encodeURIComponent('[빵을그리다] 발주서 ' + rbMd(today()))}&body=${encodeURIComponent(text)}`; return; }
+  if (kind === 'kakao') { await rbKakao(sup, text, lines, v.due || rbAddD(S1.lead || 2)); return; }
   if (kind === 'share') { if (navigator.share) { try { await navigator.share({ title: '빵을그리다 발주서', text }); } catch (e) {} } else { await navigator.clipboard.writeText(text).catch(() => {}); toast('복사했습니다 — 카톡 대화방에 붙여넣으세요'); } return; }
   if (kind === 'copy') { await navigator.clipboard.writeText(text).then(() => toast('발주서 글을 복사했습니다')).catch(() => toast('복사하지 못했습니다')); return; }
   if (kind === 'print') { const w = window.open('', '_blank'); if (!w) return toast('팝업이 막혔습니다'); w.document.write(rbPrintHtml(sup, lines, v.due || rbAddD(S1.lead || 2), v.note)); w.document.close(); return; }
