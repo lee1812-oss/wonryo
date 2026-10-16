@@ -3,6 +3,7 @@
  *
  * v3: 같은 날짜의 생산을 정해진 시각(holdUntil)까지 모아 두었다가 한 전표로 합쳐 전송기에 넘깁니다.
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
+ * v6.0: 원료 발주(poSend·poList) — 거래처 메일(회사 메일 참조)·문자(솔라피 LMS) 자동 발송, 발주 기록 po:<id>
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
  * v5.9: 거래처 맞춤 — 품목 표시(it[5], 예: 계란 미포함·6개입)·고르기(it[6] '밤|단호박', 주문 줄 l[5]) · 「이번 주는 주문 없음」(orderSkip → sk:<토큰>, 마감 알림 안 보냄) ·
@@ -128,6 +129,8 @@ function alimSend_(to, kind, vars) { var C = alimCfg_(), tp = C.tpl[kind]; if (!
   var code = r.getResponseCode(), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {} var res = code < 300 ? { ok: true } : { ok: false, error: (j.errorMessage || j.message || ('응답 ' + code)) };
   try { var L = JSON.parse(props_().getProperty('alim:log') || '[]'); L.unshift({ at: new Date().toISOString(), kind: kind, to: ph.slice(0, 3) + '****' + ph.slice(-4), ok: res.ok, err: res.error || '' }); props_().setProperty('alim:log', JSON.stringify(L.slice(0, 20))); } catch (e) {}
   return res; }
+// v6.0: 원료 발주 문자(LMS) — 솔라피 일반 문자 (알림톡 템플릿 필요 없음). SOLAPI_KEY·SOLAPI_SECRET·SOLAPI_FROM 필요
+function smsSend_(to, subject, text) { var C = alimCfg_(); if (!C.key || !C.sec || !C.from) return { ok: false, error: '문자 설정(SOLAPI_KEY·SOLAPI_SECRET·SOLAPI_FROM)이 없습니다' }; var ph = String(to || '').replace(/\D/g, ''); if (!/^0\d{8,10}$/.test(ph)) return { ok: false, error: '휴대폰 번호가 올바르지 않습니다' }; var date = new Date().toISOString(), salt = Utilities.getUuid().replace(/-/g, ''), sig = hex_(Utilities.computeHmacSha256Signature(date + salt, C.sec)); var msg = { to: ph, from: C.from.replace(/\D/g, ''), text: String(text || '').slice(0, 1900) }; if (subject) msg.subject = String(subject).slice(0, 40); var r = UrlFetchApp.fetch('https://api.solapi.com/messages/v4/send', { method: 'post', contentType: 'application/json', payload: JSON.stringify({ message: msg }), muteHttpExceptions: true, headers: { Authorization: 'HMAC-SHA256 apiKey=' + C.key + ', date=' + date + ', salt=' + salt + ', signature=' + sig } }); var code = r.getResponseCode(), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {} return code < 300 ? { ok: true } : { ok: false, error: (j.errorMessage || j.message || ('응답 ' + code)) }; }
 function alimOrder_(o, kind) { var fx = fxGet_(o.tok); if (!fx.ph || !fx.al) return; o.alim = o.alim || {}; if (o.alim[kind]) return;
   var md = function (d) { var p = String(d).split('-'); return (+p[1]) + '/' + (+p[2]) + '(' + '일월화수목금토'[new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay()] + ')'; }, R = o.reply || {};
   var r = alimSend_(fx.ph, kind, { '거래처': o.name, '배송일': md(R.ship || o.ship), '품목': o.lines.length + '품목 ' + o.lines.reduce(function (t, l) { return t + l[2]; }, 0) + '개', '안내': String(R.msg || '').slice(0, 200) || '감사합니다.' });
@@ -218,7 +221,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 5.9 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 6.0 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -403,7 +406,7 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 5.9, agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 6.0, po: true, sms: !!(alimCfg_().key && alimCfg_().from), agentSeen: agentSeen_(), agentVer: agentVer_() };
   // v3.4: 주문 링크 관리 (통합재고관리)
   if (req.action === 'putOrderForm') { var t3 = tok_(req.t); if (t3) formLiteDrop_(t3); var f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
     var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3]), /^\d{4}-\d{2}-\d{2}$/.test(it[4] || '') ? it[4] : '', String(it[5] || '').slice(0, 20), optsOf_(it[6]).join('|')]; }),
@@ -579,6 +582,9 @@ function handle_(req) {
       var out = {}; (req.ids || []).slice(0, 50).forEach(function (x) { out[x] = view_(getJob_(String(x))); });
       return { ok: true, jobs: out, agentSeen: agentSeen_(), agentVer: agentVer_() };
     }
+    // v6.0: 원료 발주 보내기 (통합재고관리 「원료 발주」) — 거래처 메일(회사 메일 참조)·문자, 기록 po:<id> (최근 60건)
+    if (req.action === 'poSend') { var po = req.po || {}, sp = req.sup || {}, res = { mail: null, sms: null }; var subj = String(req.subject || '[빵을그리다] 발주서').slice(0, 80), body = String(req.text || '').slice(0, 4000); if (!body) return { ok: false, error: '발주서 내용이 비어 있습니다' }; var em = String(sp.email || '').trim(); if (em) { if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) res.mail = { ok: false, error: '메일 주소 형식이 맞지 않습니다' }; else { try { var cc = alertTo_(), mo = { to: em, subject: subj, name: '빵을그리다', body: body }; if (cc && cc !== em) { mo.cc = cc; mo.replyTo = cc; } if (req.html) mo.htmlBody = String(req.html).slice(0, 60000); MailApp.sendEmail(mo); res.mail = { ok: true }; } catch (e) { res.mail = { ok: false, error: String((e && e.message) || e) }; } } } if (sp.phone) res.sms = smsSend_(sp.phone, subj, body); var pid = String(po.id || ('po' + Date.now())).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40); try { po.sent = { at: new Date().toISOString(), mail: res.mail, sms: res.sms, by: String(req.by || '').slice(0, 30), to: String(sp.name || '').slice(0, 40) }; props_().setProperty('po:' + pid, JSON.stringify(po).slice(0, 8500)); var pall = props_().getProperties(), pks = Object.keys(pall).filter(function (k) { return k.indexOf('po:') === 0; }).sort(); while (pks.length > 60) props_().deleteProperty(pks.shift()); } catch (e) {} return { ok: true, id: pid, res: res }; }
+    if (req.action === 'poList') { var pa = props_().getProperties(), pl = []; Object.keys(pa).forEach(function (k) { if (k.indexOf('po:') !== 0) return; try { pl.push(JSON.parse(pa[k])); } catch (e) {} }); pl.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); }); return { ok: true, po: pl.slice(0, 60) }; }
     // 관리자 PC: 생산일지 설정 올리기 (속성 하나에 9KB까지라 나눠 저장)
     if (req.action === 'putCfg') {
       var note = String(req.note || ''), ts = String(req.ts || new Date().toISOString()); if (!note) return { ok: false, error: '설정이 비어 있습니다' };
