@@ -1110,6 +1110,11 @@ header.top .brand .hver .rv-ok{color:#9BE3B8;font-weight:700}header.top .brand .
 #rbuyBody .rb-step{display:flex;justify-content:center;align-items:center;gap:6px}#rbuyBody .rb-step button{width:42px;height:42px;border-radius:10px;border:1px solid #d6c8bb;background:#faf6f2;font-size:22px;font-weight:700;cursor:pointer;color:#7a2e0e}
 #rbuyBody .rb-step input{width:70px;height:42px;font-size:22px;font-weight:800;text-align:center;border:1.5px solid #cdbfb2;border-radius:10px}#rbuyBody .rb-step.sm button{width:36px;height:36px;font-size:19px}#rbuyBody .rb-step.sm input{width:58px;height:36px;font-size:19px}
 #rbuyBody .rb-unit{font-size:12.5px;color:#777;margin-top:3px}#rbuyBody .rb-unit small{display:block;color:#555}
+#rbuyBody .rb-qk{margin-top:8px;border-top:1px dashed #eadfd4;padding-top:8px}#rbuyBody .rb-qh{font-size:11.5px;color:#9a8f86;margin-bottom:5px}
+#rbuyBody .rb-qr,#rbuyBody .rb-qd{display:flex;flex-wrap:wrap;justify-content:center;gap:5px}#rbuyBody .rb-qd{margin-top:6px}
+#rbuyBody .rb-qc{min-width:42px;height:32px;padding:0 9px;border-radius:16px;border:1px solid #d6c8bb;background:#fff;font-size:14.5px;font-weight:700;color:#5a4636;cursor:pointer}
+#rbuyBody .rb-qc.on{background:#7a2e0e;border-color:#7a2e0e;color:#fff}#rbuyBody .rb-qc.def{border-color:#2f8a4a;color:#2f8a4a;background:#f3faf5}#rbuyBody .rb-qc.def.on{background:#2f8a4a;color:#fff}
+#rbuyBody .rb-qs{height:32px;padding:0 11px;border-radius:16px;border:1px dashed #b9a99a;background:#faf6f2;font-size:12.5px;color:#7a5a44;cursor:pointer}#rbuyBody .rb-qs:disabled{opacity:.45;cursor:default}
 #rbuyBody .rb-ogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
 #rbuyBody .rb-oc{border-radius:12px;padding:12px;text-align:center;border:1.5px solid #f0d58a;background:#fffaeb}#rbuyBody .rb-oc.bad{border-color:#f0a8a8;background:#fff2f2}
 #rbuyBody .rb-on b{font-size:17px}#rbuyBody .rb-on small{display:block;font-size:12px;color:#888}#rbuyBody .rb-why{font-size:13px;color:#555;margin:6px 0 8px}#rbuyBody .rb-red{color:#c8102e;font-weight:700}
@@ -1304,8 +1309,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '238';
-const APP_BUILT = '2026-10-16 22:00';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '239';
+const APP_BUILT = '2026-10-16 22:11';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -6614,6 +6619,8 @@ const RB_PROD0 = [
   ['DB114', '구운 밀소금빵 BOX(60EA)', 60, 2, { 'CH.B23_0': 0.25 }],
   ['DBG1', '구운 골든 통밀소금빵 BOX(60EA)', 60, 4, { 'CH.B23_0': 0.292 }]
 ];
+/* v239: 최근 1년(2025-10-17~2026-10-16) 이카운트 생산입고에서 하루 생산량으로 자주 나온 양 [박스, 횟수] — 제품 카드의 빠른 선택 버튼 */
+const RB_HIST0 = {"DBA12":[[16,2],[26,3],[30,9],[36,2]],"DBA_12":[[10,3],[13,1],[15,3],[17,1]],"SD50":[[2,1],[3,2],[4,2],[5,3]],"DBA22":[[10,16],[20,17],[30,17],[40,16]],"DBA_29":[[30,14],[40,26],[50,27],[60,11]],"DB114":[[1,12],[2,5],[3,4],[4,2]],"DBG1":[[1,8],[2,4],[3,1],[4,4]]};
 const RB_SUP0 = {
   '철은인터내셔날': { note: '주로 금요일 입고 · 지난 입고 간격 14~45일', lead: 3 },
   '(주)한국내츄럴치즈': { note: '지난 입고 간격 8~27일', lead: 2 },
@@ -6622,7 +6629,7 @@ const RB_SUP0 = {
 const RB = { msg: '', busy: false, open: {} };
 function rbS() {
   const R = S.rbuy = S.rbuy || {};
-  ['plan', 'ss', 'pat', 'bom', 'sup', 'ovr'].forEach(k => { if (!R[k] || typeof R[k] !== 'object' || Array.isArray(R[k])) R[k] = {}; });
+  ['plan', 'ss', 'pat', 'bom', 'sup', 'ovr', 'def'].forEach(k => { if (!R[k] || typeof R[k] !== 'object' || Array.isArray(R[k])) R[k] = {}; });
   if (!Array.isArray(R.po)) R.po = [];
   if (!Array.isArray(R.prods)) R.prods = [];
   if (!R.planDate) R.planDate = '';
@@ -6643,6 +6650,12 @@ function rbProds() {
   R.prods.forEach(p => { if (p && p.code && !out.some(o => o.code === p.code)) out.push({ code: p.code, name: p.name || p.code, pack: Number(p.pack) || 1, usual: Number(p.usual) || 0, bom: {}, seed: false }); });
   out.forEach(p => { const b = R.bom[p.code]; if (b && typeof b === 'object') p.bom = Object.assign({}, b); });
   return out;
+}
+function rbDef(c) { const v = Number(rbS().def[c]); return v > 0 ? v : 0; }
+function rbQuick(p, b) {
+  const d = rbDef(p.code), h = RB_HIST0[p.code] || [];
+  const chips = h.map(([q, n]) => `<button class="rb-qc${b === q ? ' on' : ''}" data-rbset="${esc(p.code)}|${q}" title="최근 1년 ${n}번 이만큼 만들었어요">${q}</button>`).join('');
+  return `<div class="rb-qk">${chips ? `<div class="rb-qh">최근 1년 자주 만든 양</div><div class="rb-qr">${chips}</div>` : ''}<div class="rb-qd">${d ? `<button class="rb-qc def${b === d ? ' on' : ''}" data-rbset="${esc(p.code)}|${d}" title="저장한 기본값">★ 기본 ${d}</button>` : ''}<button class="rb-qs" data-rbdef="${esc(p.code)}"${b > 0 ? '' : ' disabled'} title="지금 넣은 수량을 이 제품의 기본값으로 저장">${d && b === d ? '✓ 기본값 (누르면 지우기)' : '지금 수량을 기본값으로'}</button></div></div>`;
 }
 function rbStockAt() { try { return finLastData ? (finLastData.changedAt || finLastData.updatedAt || '') : ''; } catch (e) { return ''; } }
 function rbStock(c) { try { if (!finLastData || !Array.isArray(finLastData.items)) return null; const it = finLastData.items.find(i => i.code === c); return it ? Number(it.qty) || 0 : 0; } catch (e) { return null; } }
@@ -6727,8 +6740,8 @@ function renderRbuy() {
   const nav = (prev, next, nextT) => `<div class="rb-nav">${prev ? `<button class="btn" data-rbstep="${prev}">◀ 이전</button>` : '<span></span>'}${next ? `<button class="btn primary rb-big" data-rbstep="${next}">${nextT} ▶</button>` : ''}</div>`;
   let body = '';
   if (st === 1) {
-    body = `<div class="rb-head"><h2>① 다음 입고 전까지 만들 양</h2><div class="row" style="gap:6px"><button class="btn sm" data-rbact="usual">평소 1회분 채우기</button><button class="btn sm" data-rbact="clrplan">비우기</button></div></div>
-    <div class="rb-pgrid">${prods.map(p => { const b = Number(R.plan[p.code]) || 0, u = pic(p.name); return `<div class="rb-pc${b ? ' on' : ''}">${u ? `<img src="${esc(u)}" alt="" onerror="this.remove()">` : ''}<div class="rb-pn">${esc(p.name.replace(/\s*(BOX\(|\d+EA).*$/i, ''))}<small>${p.pack}개입 · 평소 ${p.usual || '—'}박스</small></div><div class="rb-step"><button data-rbpm="${esc(p.code)}|-1">−</button><input type="number" min="0" inputmode="numeric" data-rbplan="${esc(p.code)}" value="${b || ''}" placeholder="0"><button data-rbpm="${esc(p.code)}|1">＋</button></div><div class="rb-unit">박스</div></div>`; }).join('')}</div>
+    body = `<div class="rb-head"><h2>① 다음 입고 전까지 만들 양</h2><div class="row" style="gap:6px"><button class="btn sm" data-rbact="usual" title="기본값을 저장한 제품은 기본값, 아니면 평소 1회분으로 빈 칸을 채워요">기본값 채우기</button><button class="btn sm" data-rbact="clrplan">비우기</button></div></div>
+    <div class="rb-pgrid">${prods.map(p => { const b = Number(R.plan[p.code]) || 0, u = pic(p.name); return `<div class="rb-pc${b ? ' on' : ''}">${u ? `<img src="${esc(u)}" alt="" onerror="this.remove()">` : ''}<div class="rb-pn">${esc(p.name.replace(/\s*(BOX\(|\d+EA).*$/i, ''))}<small>${p.pack}개입 · ${rbDef(p.code) ? '기본 ' + rbDef(p.code) : '평소 ' + (p.usual || '—')}박스</small></div><div class="rb-step"><button data-rbpm="${esc(p.code)}|-1">−</button><input type="number" min="0" inputmode="numeric" data-rbplan="${esc(p.code)}" value="${b || ''}" placeholder="0"><button data-rbpm="${esc(p.code)}|1">＋</button></div><div class="rb-unit">박스</div>${rbQuick(p, b)}</div>`; }).join('')}</div>
     ${nav(0, 2, '주문할 원료 보기')}`;
   } else if (st === 2) {
     const card = r => `<div class="rb-oc ${r.lv}"><div class="rb-on"><b>${esc(r.P.name)}</b><small>${esc(r.P.sup || '거래처 미정')}</small></div>
@@ -6836,11 +6849,13 @@ document.addEventListener('click', e => { const b = e.target.closest('[data-rbm]
   box.addEventListener('toggle', e => { if (e.target.dataset && e.target.dataset.rbdet === 'set') RB.setOpen = e.target.open; }, true);
   box.addEventListener('click', async e => {
     const sb = e.target.closest('[data-rbstep]'); if (sb) { e.preventDefault(); RB.step = Number(sb.dataset.rbstep) || 1; RB.msg = ''; renderRbuy(); const tp = $('#rbuyBody .rb-top'); if (tp && tp.getBoundingClientRect().top < 0) tp.scrollIntoView({ block: 'start' }); return; }
-    const pm = e.target.closest('[data-rbpm]'); if (pm) { e.preventDefault(); const [c, d] = pm.dataset.rbpm.split('|'); const R = rbS(); const v = Math.max(0, (Number(R.plan[c]) || 0) + Number(d)); if (v) R.plan[c] = v; else delete R.plan[c]; rbSave(); renderRbuy(); return; }
+    const qset = e.target.closest('[data-rbset]'); if (qset) { e.preventDefault(); const [c, v] = qset.dataset.rbset.split('|'); const R = rbS(); const n = Number(v) || 0; if (n) R.plan[c] = n; else delete R.plan[c]; rbSave(); renderRbuy(); return; }
+const qdef = e.target.closest('[data-rbdef]'); if (qdef) { e.preventDefault(); const c = qdef.dataset.rbdef; const R = rbS(); const n = Number(R.plan[c]) || 0; if (!n) return; if (Number(R.def[c]) === n) { if (!confirm('이 제품의 기본값(' + n + '박스)을 지울까요?')) return; delete R.def[c]; } else R.def[c] = n; rbSave(); renderRbuy(); return; }
+const pm = e.target.closest('[data-rbpm]'); if (pm) { e.preventDefault(); const [c, d] = pm.dataset.rbpm.split('|'); const R = rbS(); const v = Math.max(0, (Number(R.plan[c]) || 0) + Number(d)); if (v) R.plan[c] = v; else delete R.plan[c]; rbSave(); renderRbuy(); return; }
     const om = e.target.closest('[data-rbom]'); if (om) { e.preventDefault(); const [c, d] = om.dataset.rbom.split('|'); const R = rbS(), P = rbPat(c); const cur = rbCalc().find(r => r.c === c); R.ovr[c] = Math.max(0, (cur ? cur.n : 0) + Number(d) * P.step); rbSave(); renderRbuy(); return; }
     const b = e.target.closest('[data-rbact]'); if (!b) return; e.preventDefault(); const R = rbS(), a = b.dataset.rbact;
     if (a === 'sync') { b.disabled = true; try { await syncFromEcount(true); } catch (x) {} RB.msg = ''; renderRbuy(); return; }
-    if (a === 'usual') { rbProds().forEach(p => { if (p.usual && !(Number(R.plan[p.code]) > 0)) R.plan[p.code] = p.usual; }); rbSave(); renderRbuy(); return; }
+    if (a === 'usual') { rbProds().forEach(p => { const v = rbDef(p.code) || p.usual; if (v && !(Number(R.plan[p.code]) > 0)) R.plan[p.code] = v; }); rbSave(); renderRbuy(); return; }
     if (a === 'clrplan') { if (!confirm('생산 계획을 모두 비울까요?')) return; R.plan = {}; R.ovr = {}; rbSave(); renderRbuy(); return; }
     if (a === 'ovrclr') { delete R.ovr[b.dataset.c]; rbSave(); renderRbuy(); return; }
     if (a === 'send') { rbOpenSend(b.dataset.s); return; }
