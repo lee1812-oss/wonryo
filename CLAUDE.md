@@ -190,3 +190,14 @@
 - 그 전까지 재고 동기화 판단(통합재고관리 v069와 같은 기준): data.json 마지막 반영(updatedAt) + 같은 PC 전송기 신호. 전송기 신호 10분 넘게 없음 → 「멈춤」, 평일 9~19시에 3시간 넘게 반영 없음 → 「확인 필요」, 그 밖에는 「작동 중」.
 - 전송기 판단: 신호 2분 이내 「작동 중」, 10분 이내 「늦어짐」, 넘으면 「멈춤」(전송기는 20초마다 jobs 요청 때 agent:seen 기록).
 - 배포: Apps Script 버전 34(2026-10-19 13:12). 되돌리기 = 배포 관리 → 수정 → 버전 33(중계 6.0). 앱 RELAY_WANT는 6.0 그대로(6.1은 앱 기능 변화 없음).
+
+## 🖥 중계 6.2 + 사무실 PC 화면 중계기 (2026-10-19 Aside) — 대시보드 카드 아래 실제 검은 창 화면
+- pcScreen (열쇠 필요): 사무실 PC 화면 중계기가 보낸 두 검은 창(이카운트 전송기·재고 동기화)의 마지막 16줄을 캐시 scr:v(6시간)에 둠 → hb 응답의 scr로 보임. SESSION_ID·긴 열쇠 모양 글자(32자 이상)는 가림. 받을 때 hb 캐시(hb:v)를 지워 바로 반영.
+- 화면 중계기: 저장소 pc_screen_relay.bat (사무실 PC에서는 C:\ecount_sender\pc_screen_relay.bat). 더블클릭 → 복사 + 시작프로그램 bggd_pc_screen_relay.vbs(창 없이 실행) + 바로 실행. 다시 더블클릭 → 2 = 끄기. 기록 C:\ecount_sender\pc_screen_relay.log.
+  · 중계 주소·열쇠는 전송기 설정 파일(ecount_relay_pc.json)의 relayUrl·apiKey를 같이 씀. 두 프로그램은 건드리지 않음(읽기만).
+  · 창 찾기: Win32_Process 명령줄 — 전송기 production_sender|ecount_relay_pc|RELAY_SELF, 동기화 ecount_sync(파이썬은 5분마다 잠깐만 떠서 부모 cmd를 기억). 화면 읽기: FreeConsole → AttachConsole → ReadConsoleOutputW (넓은 글자 뒤칸 0x0200 건너뜀).
+  · 창을 못 찾거나 못 읽으면 기록 파일 끝: 전송기 ecount_relay_pc.log, 동기화 %LOCALAPPDATA%\wonryo_sync 의 최신 .log/.txt (UTF-8, 아니면 cp949).
+  · 5초마다 읽고, 바뀌었거나 60초가 지나면 보냄.
+- 업무 대시보드: 카드 아래 미니 터미널(마지막 12줄, 날짜는 빼고 시각만), 상세 창은 16줄 그대로. 20초마다 hb. 동기화 상태는 화면의 마지막 [시각] 줄로 판단(7분 이내 작동 중, 15분 이내 늦어짐, 넘으면 멈춤). 화면이 2분 넘게 안 오면 초록 점이 꺼지고, 5분 넘으면 중계 기록으로 만든 줄로 돌아감.
+- 대시보드 새 화면 자동 적용: dash.html 맨 위 dash-build 값이 바뀌면 열린 대시보드가 5분 안에 스스로 새로고침(내용 비교도 함). 서비스워커 drawbread-v3.
+- 배포: Apps Script 버전 35(2026-10-19 14:39). 되돌리기 = 배포 관리 → 수정 → 버전 34(6.1) 또는 33(6.0).
