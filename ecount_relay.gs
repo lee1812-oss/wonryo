@@ -3,6 +3,8 @@
  *
  * v3: 같은 날짜의 생산을 정해진 시각(holdUntil)까지 모아 두었다가 한 전표로 합쳐 전송기에 넘깁니다.
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
+ * v6.1: 업무 대시보드 「사무실 PC 프로그램」 — 열쇠 없이 읽는 상태 확인(hb: 전송기 마지막 신호·오늘 전표 수만, 품목·거래처 없음, 20초 캐시) ·
+ *       재고 동기화 프로그램 신호(syncBeat, 열쇠 필요 → sync:beat)
  * v6.0: 원료 발주(poSend·poList) — 거래처 메일(회사 메일 참조)·문자(솔라피 LMS) 자동 발송, 발주 기록 po:<id>
  * v3.1: 생산일지 설정 전달(putCfg/getCfg) — 관리자 PC가 올린 품목·작업자·설정을 다른 기기가 중계에서 받음
  *       최근 보낸 생산(recent) — 모든 기기의 「지난번 수량·생산 횟수」를 맞춤
@@ -221,7 +223,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 6.0 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 6.1 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -257,6 +259,25 @@ function mergeRows_(jobs) {
 }
 function agentSeen_() { return props_().getProperty('agent:seen') || ''; }
 function agentVer_() { return Number(props_().getProperty('agent:ver') || 2); }   // v3.3: 사무실 PC 전송기 버전 (3부터 판매입력)
+// v6.1: 업무 대시보드용 상태 — 20초 캐시(구글 하루 한도 절약). 전표는 합친 건(M…)을 한 장으로 세고, 권한 확인 건은 뺌
+function hb_() {
+  var hc = null; try { hc = CacheService.getScriptCache(); var hv = hc.get('hb:v'); if (hv) return JSON.parse(hv); } catch (e) {}
+  var all = props_().getProperties(), now = Date.now(), td = ymdK_(), o = { prod: 0, sale: 0, fail: 0, wait: 0, hold: 0, recent: [] };
+  Object.keys(all).forEach(function (k) {
+    if (k.indexOf(JOB_) !== 0) return; var j; try { j = JSON.parse(all[k]); } catch (e) { return; }
+    if (j.kind === 'saleCheck' || j.mergedInto) return;
+    if (j.status === 'queued' || j.status === 'taken') { if (j.status === 'queued' && j.holdUntil > now) o.hold++; else o.wait++; return; }
+    if (j.status !== 'sent' && j.status !== 'fail') return;
+    var at = String(j.doneAt || j.ts || ''), ok = j.status === 'sent', sale = j.kind === 'sale', tday = at && ymdK_(new Date(at)) === td;
+    if (tday && !j.test) { if (!ok) o.fail++; else if (sale) o.sale++; else o.prod++; }
+    o.recent.push({ at: at, k: sale ? 'sale' : 'prod', ok: ok, n: (j.rows || []).length, m: (j.members || []).length || 1, t: !!j.test, d: String(j.date || '').slice(0, 10), e: ok ? '' : String((j.result && j.result.error) || '').slice(0, 60) });
+  });
+  o.recent.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); }); o.recent = o.recent.slice(0, 8);
+  var sync = null; try { var sv = all['sync:beat']; if (sv) sync = JSON.parse(sv); } catch (e) {}
+  var out = { ok: true, version: 6.1, now: new Date().toISOString(), agent: { seen: all['agent:seen'] || '', ver: Number(all['agent:ver'] || 2) }, jobs: o, sync: sync };
+  try { if (hc) hc.put('hb:v', JSON.stringify(out), 20); } catch (e) {}
+  return out;
+}
 function prune_() {
   var all = props_().getProperties(), now = Date.now();
   Object.keys(all).forEach(function (k) {
@@ -305,6 +326,8 @@ function reply_(old, r) { var o = old || {}, s = function (v, n) { return String
   o.at = new Date().toISOString(); return o; }
 
 function handle_(req) {
+  // v6.1: 업무 대시보드 「사무실 PC 프로그램」 — 열쇠 없이 상태만 (전송기 마지막 신호·오늘 전표 수·재고 동기화 신호). 품목·거래처·금액은 주지 않음
+  if (req.action === 'hb') return hb_();
   // v3.2: 로그인 화면 — 아이디 하나의 잠긴 계정 값만 돌려줌 (열쇠 없이, 목록은 주지 않음)
   if (req.action === 'acct') { var aid = acctId_(req.id); if (!aid) return { ok: true, acct: null };
     var av = props_().getProperty(ACCT_ + aid); return { ok: true, acct: av ? JSON.parse(av) : null }; }
@@ -406,7 +429,10 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 6.0, po: true, sms: !!(alimCfg_().key && alimCfg_().from), agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 6.1, po: true, sms: !!(alimCfg_().key && alimCfg_().from), agentSeen: agentSeen_(), agentVer: agentVer_() };
+  // v6.1: 사무실 PC 재고 동기화 프로그램 신호 (5분마다) — 업무 대시보드가 hb로 읽음
+  if (req.action === 'syncBeat') { var sb = { at: new Date().toISOString(), pc: String(req.pc || '').slice(0, 30), n: Number(req.n) || 0, base: String(req.base || '').slice(0, 10), msg: String(req.msg || '').slice(0, 80), up: !!req.up, next: String(req.next || '').slice(0, 5), quota: String(req.quota || '').slice(0, 40) };
+    props_().setProperty('sync:beat', JSON.stringify(sb)); try { CacheService.getScriptCache().remove('hb:v'); } catch (e) {} return { ok: true }; }
   // v3.4: 주문 링크 관리 (통합재고관리)
   if (req.action === 'putOrderForm') { var t3 = tok_(req.t); if (t3) formLiteDrop_(t3); var f3 = req.form || {}; if (!t3 || !f3.cust) return { ok: false, error: '토큰·거래처가 없습니다' };
     var keep = { cust: String(f3.cust).slice(0, 40), name: String(f3.name || '').slice(0, 60), items: (f3.items || []).slice(0, 50).map(function (it) { return [String(it[0]).slice(0, 30), String(it[1]).slice(0, 60), it[2] == null ? null : num_(it[2]), it[3] == null ? null : num_(it[3]), /^\d{4}-\d{2}-\d{2}$/.test(it[4] || '') ? it[4] : '', String(it[5] || '').slice(0, 20), optsOf_(it[6]).join('|')]; }),
