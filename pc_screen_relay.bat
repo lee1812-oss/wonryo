@@ -11,10 +11,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "iex 
 goto :EOF
 #>
 # ──────────────────────────────────────────────────────────────────────────────
-# 빵을그리다 · 사무실 PC 화면 중계기 v1 (2026-10-19 Aside)
+# 빵을그리다 · 사무실 PC 화면 중계기 v2 (2026-10-19 Aside) — v2: 이카운트 전송기 지킴이
 # 이카운트 전송기와 재고 자동 동기화, 두 검은 창의 화면 글자를 읽어 구글 중계(pcScreen)로 보냅니다.
 #   → 업무 대시보드 「이카운트 전송기」·「재고 자동 동기화」 카드 아래 미니 화면에 실시간(약 20초 간격)으로 보입니다.
-# 두 프로그램은 건드리지 않습니다. 창의 화면 글자만 읽습니다(읽기 전용).
+# 두 프로그램의 내용은 바꾸지 않습니다. 창의 화면 글자를 읽고, 이카운트 전송기가 멈추지 않게만 돕습니다(v2 지킴이):
+#   · 전송기 창의 「빠른 편집」을 꺼서, 창을 눌러도 멈추지 않게 함 (눌러서 「선택」 상태가 되면 Esc로 풀어 줌)
+#   · 오류로 「계속하려면 아무 키나 누르십시오」에서 멈춰 있으면 Enter → 창이 닫히면 다시 켬
+#   · 전송기 창이 1분 넘게 없으면 C:\ecount_sender\production_sender.bat 을 최소화로 다시 켬 (10분에 한 번, 하루 8번까지)
+#   · 실행 중인 전송기를 강제로 끄지는 않음 (전표를 두 번 만들 위험)
 # 중계 주소·열쇠는 이카운트 전송기 설정 파일(C:\ecount_sender\ecount_relay_pc.json)을 같이 씁니다. 열쇠는 화면에 보이지 않습니다.
 # 설치: 이 파일을 더블클릭 → C:\ecount_sender\pc_screen_relay.bat 로 복사 + 시작프로그램 등록 + 바로 실행(창 없이)
 # 끄기: 이 파일을 다시 더블클릭 → 2 (끄기·자동 실행 해제)
@@ -25,13 +29,14 @@ $ProgressPreference = 'SilentlyContinue'
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
 $Self = $env:PSR_SELF
 $Mode = ('' + $env:PSR_ARGS).Trim().ToLower()
-$Ver = 1
+$Ver = 2
 $HomeDir = 'C:\ecount_sender'
 $Target = Join-Path $HomeDir 'pc_screen_relay.bat'
 $CfgPath = Join-Path $HomeDir 'ecount_relay_pc.json'
 $SndLog = Join-Path $HomeDir 'ecount_relay_pc.log'
 $LogPath = Join-Path $HomeDir 'pc_screen_relay.log'
 $SyncDir = Join-Path $env:LOCALAPPDATA 'wonryo_sync'
+$SenderBat = Join-Path $HomeDir 'production_sender.bat'
 $StartupDir = [Environment]::GetFolderPath('Startup'); if (-not $StartupDir) { $StartupDir = Join-Path ('' + $env:APPDATA) 'Microsoft\Windows\Start Menu\Programs\Startup' }
 $Vbs = Join-Path $StartupDir 'bggd_pc_screen_relay.vbs'
 
@@ -55,7 +60,7 @@ if ($Mode -ne 'run') {
   Write-Host ''
   Write-Host '  빵을그리다 · 사무실 PC 화면 중계기' -ForegroundColor Cyan
   Write-Host '  이카운트 전송기와 재고 자동 동기화 창의 화면을 업무 대시보드에 실시간으로 보여 줍니다.'
-  Write-Host '  두 프로그램은 건드리지 않고, 화면 글자만 읽어요.'
+  Write-Host '  두 프로그램의 내용은 바꾸지 않고 화면 글자만 읽어요. 전송기가 꺼지거나 멈추면 다시 켜 줘요(지킴이).'
   Write-Host ''
   if (-not (Test-Path -LiteralPath $CfgPath)) {
     Write-Host ('  이 PC에는 이카운트 전송기 설정 파일이 없어요: ' + $CfgPath) -ForegroundColor Yellow
@@ -79,6 +84,15 @@ if ($Mode -ne 'run') {
   }
   try { if ($Self -ne $Target) { Copy-Item -LiteralPath $Self -Destination $Target -Force -ErrorAction Stop } }
   catch { Write-Host ('  복사하지 못했어요: ' + $_.Exception.Message) -ForegroundColor Red; Read-Host '  끝내려면 Enter'; exit 1 }
+  # 지금 이카운트 전송기가 꺼져 있으면 바로 켬 (켜져 있으면 그대로)
+  $sndRun = $null
+  try { $sndRun = @(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object { $_.CommandLine -and $_.CommandLine -match 'production_sender|ecount_relay_pc|RELAY_SELF' -and $_.CommandLine -notmatch 'pc_screen_relay|PSR_SELF' }).Count -gt 0 } catch {}
+  if ($sndRun -eq $false) {
+    if (Test-Path -LiteralPath $SenderBat) {
+      try { Start-Process -FilePath $SenderBat -WorkingDirectory $HomeDir -WindowStyle Minimized -ErrorAction Stop; Write-Host '  ✓ 이카운트 전송기가 꺼져 있어서 다시 켰어요 (작업 표시줄의 「Ecount production sender」 창).' -ForegroundColor Green; Log '설치 화면: 꺼져 있던 전송기를 켬' }
+      catch { Write-Host ('  전송기를 켜지 못했어요: ' + $_.Exception.Message) -ForegroundColor Yellow }
+    } else { Write-Host ('  전송기 파일을 찾지 못했어요: ' + $SenderBat) -ForegroundColor Yellow }
+  } elseif ($sndRun -eq $true) { Write-Host '  ✓ 이카운트 전송기는 켜져 있어요. 창이 선택 상태로 멈춰 있으면 지킴이가 곧 풀어 줘요.' -ForegroundColor Green }
   $started = $false
   try {
     Set-Content -LiteralPath $Vbs -Value ('CreateObject("WScript.Shell").Run "cmd /c ' + $Target + ' run", 0, False') -Encoding ASCII -ErrorAction Stop
@@ -127,9 +141,20 @@ public static class BgScr {
   [StructLayout(LayoutKind.Explicit, CharSet=CharSet.Unicode)] struct CI { [FieldOffset(0)] public char C; [FieldOffset(2)] public ushort A; }
   [DllImport("kernel32.dll", SetLastError=true)] static extern bool GetConsoleScreenBufferInfo(IntPtr h, out CSBI i);
   [DllImport("kernel32.dll", SetLastError=true, EntryPoint="ReadConsoleOutputW")] static extern bool ReadConsoleOutputW(IntPtr h, [Out] CI[] buf, COORD size, COORD at, ref RECT16 reg);
+  [DllImport("kernel32.dll")] static extern IntPtr GetConsoleWindow();
+  [DllImport("user32.dll")] static extern bool PostMessageW(IntPtr h, uint msg, IntPtr w, IntPtr l);
+  [DllImport("kernel32.dll", SetLastError=true)] static extern bool GetConsoleMode(IntPtr h, out uint mode);
+  [DllImport("kernel32.dll", SetLastError=true)] static extern bool SetConsoleMode(IntPtr h, uint mode);
+  [StructLayout(LayoutKind.Sequential)] struct CSEL { public uint Flags; public COORD Anchor; public RECT16 Sel; }
+  [DllImport("kernel32.dll", SetLastError=true)] static extern bool GetConsoleSelectionInfo(out CSEL info);
+  [StructLayout(LayoutKind.Explicit, CharSet=CharSet.Unicode)] struct KEYREC { [FieldOffset(0)] public ushort EventType; [FieldOffset(4)] public int KeyDown; [FieldOffset(8)] public ushort Repeat; [FieldOffset(10)] public ushort VK; [FieldOffset(12)] public ushort Scan; [FieldOffset(14)] public char Ch; [FieldOffset(16)] public uint Ctrl; }
+  [DllImport("kernel32.dll", SetLastError=true, EntryPoint="WriteConsoleInputW")] static extern bool WriteConsoleInputW(IntPtr h, KEYREC[] recs, uint n, out uint written);
   public static string Err = "";
-  public static string[] Read(uint pid, int maxLines) {
-    Err = ""; FreeConsole();
+  public static string Info = "";
+  public static string[] Read(uint pid, int maxLines) { return Tend(pid, maxLines, false); }
+  // tend=true: 빠른 편집 끄기 + 「선택」 상태면 Esc + 마지막 줄이 「아무 키나」면 Enter (이카운트 전송기 창에만)
+  public static string[] Tend(uint pid, int maxLines, bool tend) {
+    Err = ""; Info = ""; FreeConsole();
     if (!AttachConsole(pid)) { Err = "attach " + Marshal.GetLastWin32Error(); return null; }
     IntPtr h = CreateFileW("CONOUT$", 0xC0000000, 3, IntPtr.Zero, 3, 0, IntPtr.Zero);
     try {
@@ -148,6 +173,17 @@ public static class BgScr {
       }
       while (lines.Count > 0 && lines[lines.Count - 1].Length == 0) lines.RemoveAt(lines.Count - 1);
       if (lines.Count > maxLines) lines.RemoveRange(0, lines.Count - maxLines);
+      if (tend) {
+        IntPtr hin = CreateFileW("CONIN$", 0xC0000000, 3, IntPtr.Zero, 3, 0, IntPtr.Zero);
+        if (hin != IntPtr.Zero && hin != new IntPtr(-1)) {
+          try {
+            uint mode; if (GetConsoleMode(hin, out mode) && (mode & 0x40) != 0) { if (SetConsoleMode(hin, (mode | 0x80) & ~0x40u)) Info += "qe-off "; }
+            CSEL si; if (GetConsoleSelectionInfo(out si) && (si.Flags & 0x1) != 0) { IntPtr wnd = GetConsoleWindow(); if (wnd != IntPtr.Zero) { PostMessageW(wnd, 0x0100, (IntPtr)0x1B, IntPtr.Zero); PostMessageW(wnd, 0x0101, (IntPtr)0x1B, IntPtr.Zero); Info += "sel-esc "; } }
+            string last = lines.Count > 0 ? lines[lines.Count - 1] : "";
+            if (last.Contains("아무 키나") || last.Contains("Press any key")) { var recs = new KEYREC[2]; recs[0].EventType = 1; recs[0].KeyDown = 1; recs[0].Repeat = 1; recs[0].VK = 0x0D; recs[0].Ch = (char)13; recs[1] = recs[0]; recs[1].KeyDown = 0; uint wr; if (WriteConsoleInputW(hin, recs, 2, out wr)) Info += "key-enter "; }
+          } finally { CloseHandle(hin); }
+        }
+      }
       return lines.ToArray();
     } finally { if (h != IntPtr.Zero && h != new IntPtr(-1)) CloseHandle(h); FreeConsole(); }
   }
@@ -212,11 +248,11 @@ function Scan {
     if ($script:SyncHost -and -not ($all | Where-Object { $_.ProcessId -eq $script:SyncHost })) { $script:SyncHost = 0 }
   } catch {}
 }
-function Grab($pids, $logFile, $logDir) {
+function Grab($pids, $logFile, $logDir, $tend) {
   $err = ''
   foreach ($p in $pids) {
     if (-not $p) { continue }
-    try { $r = [BgScr]::Read([uint32]$p, 16); if ($r -ne $null) { return @{ l = @($r | ForEach-Object { Redact $_ }); s = 'screen'; e = '' } } else { $err = [BgScr]::Err } } catch { $err = $_.Exception.Message }
+    try { $r = [BgScr]::Tend([uint32]$p, 16, [bool]$tend); if ($r -ne $null) { if ([BgScr]::Info) { TendEvent ([BgScr]::Info) }; return @{ l = @($r | ForEach-Object { Redact $_ }); s = 'screen'; e = '' } } else { $err = [BgScr]::Err } } catch { $err = $_.Exception.Message }
   }
   $f = $logFile; if (-not $f -and $logDir) { $f = NewestLog $logDir }
   $why = '창을 찾지 못함'; if ($err) { $why = '화면 읽기 실패 ' + $err }
@@ -224,17 +260,54 @@ function Grab($pids, $logFile, $logDir) {
   return @{ l = @(); s = ''; e = $why }
 }
 
+# ───────────── 전송기 지킴이 (v2) ─────────────
+$script:Events = New-Object System.Collections.ArrayList
+function Event($m) { [void]$script:Events.Add(@{ t = (Get-Date); m = ((Get-Date -Format 'HH:mm') + ' 지킴이: ' + $m) }); while ($script:Events.Count -gt 5) { $script:Events.RemoveAt(0) }; Log ('지킴이: ' + $m) }
+function TendEvent($info) {
+  if ($info -match 'qe-off') { Event '전송기 창의 빠른 편집을 껐어요 (창을 눌러도 안 멈추게)' }
+  if ($info -match 'sel-esc') { Event '전송기 창이 선택 상태로 멈춰 있어 풀었어요' }
+  if ($info -match 'key-enter') { Event '전송기가 오류로 멈춰 있어 닫고 다시 켤게요' }
+}
+function RecentEvent { $now = Get-Date; $e = @($script:Events | Where-Object { ($now - $_.t).TotalMinutes -lt 15 }); if ($e.Count) { return $e[$e.Count - 1].m } else { return '' } }
+$script:SndGoneSince = $null; $script:LastRestart = [datetime]::MinValue; $script:RestartDay = ''; $script:RestartN = 0
+function TendSender {
+  if (@($script:SndPids).Count -gt 0) { $script:SndGoneSince = $null; return }
+  if (-not $script:SndGoneSince) { $script:SndGoneSince = Get-Date; return }
+  if (((Get-Date) - $script:SndGoneSince).TotalSeconds -lt 55) { return }
+  $d = Get-Date -Format 'yyyy-MM-dd'; if ($script:RestartDay -ne $d) { $script:RestartDay = $d; $script:RestartN = 0 }
+  if ($script:RestartN -ge 8) { return }
+  if (((Get-Date) - $script:LastRestart).TotalMinutes -lt 10) { return }
+  if (-not (Test-Path -LiteralPath $SenderBat)) { $script:LastRestart = Get-Date; Event ('전송기 파일이 없어 다시 켜지 못했어요 (' + $SenderBat + ')'); return }
+  try { Start-Process -FilePath $SenderBat -WorkingDirectory $HomeDir -WindowStyle Minimized -ErrorAction Stop; $script:LastRestart = Get-Date; $script:RestartN++; $script:SndGoneSince = $null; Event '전송기 창이 없어 다시 켰어요' }
+  catch { $script:LastRestart = Get-Date; Event ('전송기를 다시 켜지 못했어요: ' + $_.Exception.Message) }
+}
+$script:LastHb = [datetime]::MinValue; $script:StaleWarn = [datetime]::MinValue
+function CheckHb {
+  if (-not $Cfg -or ((Get-Date) - $script:LastHb).TotalSeconds -lt 60) { return }
+  $script:LastHb = Get-Date
+  try {
+    $h = PostJson $Cfg.relayUrl @{ action = 'hb' }
+    $sv = $h.agent.seen; if (-not $sv) { return }
+    if ($sv -is [datetime]) { $seen = $sv.ToUniversalTime() } else { $seen = [DateTimeOffset]::Parse([string]$sv, [Globalization.CultureInfo]::InvariantCulture).UtcDateTime }
+    $age = ((Get-Date).ToUniversalTime() - $seen).TotalMinutes
+    if ($age -gt 10 -and @($script:SndPids).Count -gt 0 -and ((Get-Date) - $script:StaleWarn).TotalMinutes -ge 30) { $script:StaleWarn = Get-Date; Event ('전송기 창은 있는데 ' + [int]$age + '분째 중계 신호가 없어요. 창을 확인해 주세요') }
+  } catch {}
+}
+
 $Cfg = $null; $lastSig = ''; $lastPost = [datetime]::MinValue; $lastScan = [datetime]::MinValue; $errN = 0; $first = $true
 while ($true) {
   try {
     if (-not $Cfg) { $Cfg = LoadCfg; if (-not $Cfg -or -not $Cfg.relayUrl -or -not $Cfg.apiKey) { $Cfg = $null; throw '전송기 설정 파일을 읽지 못함' } }
-    if (((Get-Date) - $lastScan).TotalSeconds -ge 30) { Scan; $lastScan = Get-Date }
-    $snd = Grab $script:SndPids $SndLog $null
+    if (((Get-Date) - $lastScan).TotalSeconds -ge 30) { Scan; $lastScan = Get-Date; TendSender }
+    $snd = Grab $script:SndPids $SndLog $null $true
     $sp = @($script:SyncPids); if ($script:SyncHost) { $sp = @($script:SyncHost) + $sp }
-    $syn = Grab $sp $null $SyncDir
-    $sig = ($snd.l -join "`n") + '|' + $snd.s + '|' + ($syn.l -join "`n") + '|' + $syn.s
+    $syn = Grab $sp $null $SyncDir $false
+    CheckHb
+    $ev = RecentEvent
+    $sndE = (@($ev, $snd.e) | Where-Object { $_ }) -join ' · '
+    $sig = ($snd.l -join "`n") + '|' + $snd.s + '|' + ($syn.l -join "`n") + '|' + $syn.s + '|' + $sndE + '|' + $syn.e
     if ($sig -ne $lastSig -or ((Get-Date) - $lastPost).TotalSeconds -ge 60) {
-      $body = @{ key = $Cfg.apiKey; action = 'pcScreen'; pc = $env:COMPUTERNAME; v = $Ver; snd = @{ l = @($snd.l); s = $snd.s; e = $snd.e; t = 'Ecount production sender' }; sync = @{ l = @($syn.l); s = $syn.s; e = $syn.e; t = '' } }
+      $body = @{ key = $Cfg.apiKey; action = 'pcScreen'; pc = $env:COMPUTERNAME; v = $Ver; snd = @{ l = @($snd.l); s = $snd.s; e = $sndE; t = 'Ecount production sender' }; sync = @{ l = @($syn.l); s = $syn.s; e = $syn.e; t = '' } }
       $r = PostJson $Cfg.relayUrl $body
       if (-not $r.ok) { throw ('중계 거절: ' + $r.error) }
       $lastSig = $sig; $lastPost = Get-Date
