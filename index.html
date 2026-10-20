@@ -1415,8 +1415,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '243';
-const APP_BUILT = '2026-10-20 15:20';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '244';
+const APP_BUILT = '2026-10-20 18:40';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -8070,6 +8070,59 @@ body.fld-on .toast{bottom:104px;z-index:60}
 setTimeout(() => { try { if (location.hash === '#field' || localStorage.getItem(FLD_AUTO_KEY) === '1') fieldOpen(); } catch (e) {} }, 1200);
 
 document.addEventListener('click', e => { const b = e.target.closest('[data-fldopen]'); if (b) { e.preventDefault(); e.stopPropagation(); fieldOpen(); } }, true);
+
+
+/* ══ v244 (2026-10-20 Aside) 업무 대시보드 → 원료 발주 넘기기 ══
+   업무 대시보드 「원료 남은 기간」에서 육쪽마늘빵 만들 양(박스)과 고른 원료·주문 수량을 localStorage 'dash_rbuy_hand' 에 두고
+   이 앱을 #rbuy-dash 로 열면(로그인 뒤) 원료 발주 탭 ③ 발주 보내기를 그 원료·수량만으로 보여 준다.
+   이 화면에서만 적용(RB.hand, 저장 안 함) — 저장된 생산량(S.rbuy.plan)·수정 수량(ovr)은 그대로. 「전체 계산으로 돌아가기」로 끔.
+   발주서를 보내면 기존과 같이 S.rbuy.po 에 기록되어 「발주 중」 수량에 들어감. */
+rbCalc = (function (orig) {
+  return function () {
+    if (!RB.hand) return orig.apply(this, arguments);
+    const prods = rbProds(), need = {}, plan = RB.hand.plan || {}, pick = RB.hand.pick || {};
+    prods.forEach(p => { const b = Number(plan[p.code]) || 0; if (!b) return; Object.entries(p.bom).forEach(([c, per]) => { need[c] = (need[c] || 0) + b * p.pack * (Number(per) || 0); }); });
+    return rbRaws().map(c => {
+      const P = rbPat(c), st = rbStock(c), oo = rbOnOrder(c), nd = need[c] || 0, ss = rbSS(c);
+      const after = st == null ? null : st + oo - nd;
+      const short = after == null ? null : Math.max(0, ss - after);
+      let calc = 0; if (short > 0) calc = Math.ceil(short / P.g / P.step) * P.step;
+      const hv = pick[c]; const n = hv != null ? Math.max(0, Number(hv) || 0) : 0;
+      const lv = after == null ? 'na' : after < 0 ? 'bad' : after < ss ? 'warn' : 'ok';
+      return { c, P, st, oo, nd, ss, after, short, calc, n, ovr: hv != null, lv, amt: P.price != null ? n * P.price : null };
+    });
+  };
+})(rbCalc);
+renderRbuy = (function (orig) {
+  return function () {
+    const r = orig.apply(this, arguments);
+    try {
+      const box = document.getElementById('rbuyBody');
+      if (RB.hand && box && !box.querySelector('.rb-hand')) {
+        const h = RB.hand, picks = Object.entries(h.pick || {}).filter(([, v]) => Number(v) > 0);
+        const names = picks.map(([c, v]) => { const P = rbPat(c); return esc(P.name) + ' ' + v + esc(P.u); }).join(' · ');
+        const plan = Object.entries(h.plan || {}).filter(([, v]) => Number(v) > 0).map(([c, v]) => { const p = rbProds().find(x => x.code === c); return esc(p ? p.name.replace(/\s*(BOX\(|\d+EA).*$/i, '') : c) + ' ' + v + '박스'; }).join(' · ');
+        box.insertAdjacentHTML('afterbegin', '<div class="rb-hand" style="border:2px solid #ea580c;background:#fff7ed;color:#7c2d12;border-radius:14px;padding:12px 16px;margin:0 0 12px;font-size:16px;line-height:1.6;word-break:keep-all">' +
+          '<b>📋 업무 대시보드에서 넘어온 발주</b>' + (plan ? ' · ' + plan + ' 기준' : '') + '<br>' + (names || '고른 원료 없음') +
+          '<br><small style="color:#9a3412">이 화면에서만 고른 원료·수량으로 보여요. 저장된 생산량·수정 수량은 그대로예요.</small> ' +
+          '<button class="btn sm" data-rbhand="off" style="margin-left:6px">전체 계산으로 돌아가기</button></div>');
+      }
+    } catch (e) {}
+    return r;
+  };
+})(renderRbuy);
+document.addEventListener('click', e => { const b = e.target.closest('[data-rbhand]'); if (!b) return; e.preventDefault(); e.stopPropagation(); RB.hand = null; try { renderRbuy(); } catch (e2) {} }, true);
+function rbHandTake() {
+  if (!/^#rbuy-dash/.test(location.hash)) return;
+  let h = null; try { h = JSON.parse(localStorage.getItem('dash_rbuy_hand') || 'null'); } catch (e) {}
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  if (!h || !h.pick || Date.now() - (Number(h.at) || 0) > 6 * 3600e3) return;
+  try { localStorage.removeItem('dash_rbuy_hand'); } catch (e) {}
+  RB.hand = { plan: h.plan || {}, pick: h.pick, src: h.src || '업무 대시보드', at: h.at };
+  RB.step = 3;
+  try { homeGo('raw:rbuy'); } catch (e) { try { S.ui.menu = 'raw'; S.ui.tab = 'rbuy'; renderAll(); } catch (e2) {} }
+}
+setTimeout(() => { try { rbHandTake(); } catch (e) {} }, 1500);
 </script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════
