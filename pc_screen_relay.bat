@@ -11,7 +11,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "iex 
 goto :EOF
 #>
 # ──────────────────────────────────────────────────────────────────────────────
-# 빵을그리다 · 사무실 PC 화면 중계기 v2 (2026-10-19 Aside) — v2: 이카운트 전송기 지킴이
+# 빵을그리다 · 사무실 PC 화면 중계기 v3 (2026-10-20 Aside) — v2: 이카운트 전송기 지킴이 · v3: 재고 자동 동기화 지킴이
 # 이카운트 전송기와 재고 자동 동기화, 두 검은 창의 화면 글자를 읽어 구글 중계(pcScreen)로 보냅니다.
 #   → 업무 대시보드 「이카운트 전송기」·「재고 자동 동기화」 카드 아래 미니 화면에 실시간(약 20초 간격)으로 보입니다.
 # 두 프로그램의 내용은 바꾸지 않습니다. 창의 화면 글자를 읽고, 이카운트 전송기가 멈추지 않게만 돕습니다(v2 지킴이):
@@ -19,6 +19,10 @@ goto :EOF
 #   · 오류로 「계속하려면 아무 키나 누르십시오」에서 멈춰 있으면 Enter → 창이 닫히면 다시 켬
 #   · 전송기 창이 1분 넘게 없으면 C:\ecount_sender\production_sender.bat 을 최소화로 다시 켬 (10분에 한 번, 하루 8번까지)
 #   · 실행 중인 전송기를 강제로 끄지는 않음 (전표를 두 번 만들 위험)
+# v3 재고 자동 동기화 지킴이:
+#   · 동기화 창(ecount_sync.py --loop)이 2분 넘게 없으면 최소화된 창으로 다시 켬 (15분에 한 번, 하루 6번까지)
+#   · %LOCALAPPDATA%\wonryo_sync 또는 동기화 폴더에 STOP.txt(이카운트 로그인 연속 실패 안전장치)가 있으면 켜지 않음
+#   · 실행 중인 동기화는 건드리지 않음
 # 중계 주소·열쇠는 이카운트 전송기 설정 파일(C:\ecount_sender\ecount_relay_pc.json)을 같이 씁니다. 열쇠는 화면에 보이지 않습니다.
 # 설치: 이 파일을 더블클릭 → C:\ecount_sender\pc_screen_relay.bat 로 복사 + 시작프로그램 등록 + 바로 실행(창 없이)
 # 끄기: 이 파일을 다시 더블클릭 → 2 (끄기·자동 실행 해제)
@@ -29,7 +33,7 @@ $ProgressPreference = 'SilentlyContinue'
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
 $Self = $env:PSR_SELF
 $Mode = ('' + $env:PSR_ARGS).Trim().ToLower()
-$Ver = 2
+$Ver = 3
 $HomeDir = 'C:\ecount_sender'
 $Target = Join-Path $HomeDir 'pc_screen_relay.bat'
 $CfgPath = Join-Path $HomeDir 'ecount_relay_pc.json'
@@ -37,6 +41,8 @@ $SndLog = Join-Path $HomeDir 'ecount_relay_pc.log'
 $LogPath = Join-Path $HomeDir 'pc_screen_relay.log'
 $SyncDir = Join-Path $env:LOCALAPPDATA 'wonryo_sync'
 $SenderBat = Join-Path $HomeDir 'production_sender.bat'
+$SyncHome = 'D:\google drive_com2\플랫폼\플랫폼\이카운트 연동 재고수불부'
+$SyncPy = 'ecount_sync.py'
 $StartupDir = [Environment]::GetFolderPath('Startup'); if (-not $StartupDir) { $StartupDir = Join-Path ('' + $env:APPDATA) 'Microsoft\Windows\Start Menu\Programs\Startup' }
 $Vbs = Join-Path $StartupDir 'bggd_pc_screen_relay.vbs'
 
@@ -55,12 +61,35 @@ function StopOld {
   } catch { return -1 }
 }
 
+# ───────────── 재고 자동 동기화 켜기 (v3) ─────────────
+# STOP.txt(이카운트 로그인 연속 실패 안전장치)가 있으면 켜지 않음
+function SyncStopFile {
+  foreach ($d in @($SyncDir, $SyncHome)) { try { $p = Join-Path $d 'STOP.txt'; if (Test-Path -LiteralPath $p) { return $p } } catch {} }
+  return $null
+}
+function SyncRunning {
+  try { return (@(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object { $_.CommandLine -and $_.CommandLine -match 'ecount_sync' -and $_.CommandLine -notmatch 'pc_screen_relay|PSR_SELF' }).Count -gt 0) } catch { return $null }
+}
+# 결과: ok / stop / nofile / nopy / fail:이유
+# 고전 콘솔(conhost)로 띄워야 최소화해도 화면 글자를 16줄까지 읽을 수 있음 (Windows 터미널은 보이는 줄만 읽힘)
+function StartSync {
+  if (SyncStopFile) { return 'stop' }
+  if (-not (Test-Path -LiteralPath (Join-Path $SyncHome $SyncPy))) { return 'nofile' }
+  if (-not (Get-Command python -ErrorAction SilentlyContinue)) { return 'nopy' }
+  $run = 'title 재고 자동 동기화 - ecount_sync & python ' + $SyncPy + ' --loop'
+  try { Start-Process -FilePath 'conhost.exe' -ArgumentList ('cmd.exe /c ' + $run) -WorkingDirectory $SyncHome -WindowStyle Minimized -ErrorAction Stop; return 'ok' }
+  catch {
+    try { Start-Process -FilePath 'cmd.exe' -ArgumentList ('/c ' + $run) -WorkingDirectory $SyncHome -WindowStyle Minimized -ErrorAction Stop; return 'ok' }
+    catch { return ('fail:' + $_.Exception.Message) }
+  }
+}
+
 # ───────────── 설치 화면 ─────────────
 if ($Mode -ne 'run') {
   Write-Host ''
   Write-Host '  빵을그리다 · 사무실 PC 화면 중계기' -ForegroundColor Cyan
   Write-Host '  이카운트 전송기와 재고 자동 동기화 창의 화면을 업무 대시보드에 실시간으로 보여 줍니다.'
-  Write-Host '  두 프로그램의 내용은 바꾸지 않고 화면 글자만 읽어요. 전송기가 꺼지거나 멈추면 다시 켜 줘요(지킴이).'
+  Write-Host '  두 프로그램의 내용은 바꾸지 않고 화면 글자만 읽어요. 전송기나 재고 동기화가 꺼지면 다시 켜 줘요(지킴이).'
   Write-Host ''
   if (-not (Test-Path -LiteralPath $CfgPath)) {
     Write-Host ('  이 PC에는 이카운트 전송기 설정 파일이 없어요: ' + $CfgPath) -ForegroundColor Yellow
@@ -93,6 +122,18 @@ if ($Mode -ne 'run') {
       catch { Write-Host ('  전송기를 켜지 못했어요: ' + $_.Exception.Message) -ForegroundColor Yellow }
     } else { Write-Host ('  전송기 파일을 찾지 못했어요: ' + $SenderBat) -ForegroundColor Yellow }
   } elseif ($sndRun -eq $true) { Write-Host '  ✓ 이카운트 전송기는 켜져 있어요. 창이 선택 상태로 멈춰 있으면 지킴이가 곧 풀어 줘요.' -ForegroundColor Green }
+  # 지금 재고 자동 동기화가 꺼져 있으면 바로 켬 (STOP.txt가 있으면 켜지 않음, 켜져 있으면 그대로)
+  $synRun = SyncRunning
+  if ($synRun -eq $false) {
+    $sr = StartSync
+    switch -Wildcard ($sr) {
+      'ok'     { Write-Host '  ✓ 재고 자동 동기화가 꺼져 있어서 다시 켰어요 (작업 표시줄의 「재고 자동 동기화」 창, 최소화).' -ForegroundColor Green; Log '설치 화면: 꺼져 있던 재고 동기화를 켬' }
+      'stop'   { Write-Host ('  ! STOP.txt가 있어서 재고 동기화를 켜지 않았어요 (이카운트 로그인 연속 실패 안전장치): ' + (SyncStopFile)) -ForegroundColor Yellow; Log '설치 화면: STOP.txt가 있어 재고 동기화를 켜지 않음' }
+      'nofile' { Write-Host ('  재고 동기화 파일을 찾지 못했어요: ' + (Join-Path $SyncHome $SyncPy)) -ForegroundColor Yellow }
+      'nopy'   { Write-Host '  파이썬(python)을 찾지 못해 재고 동기화를 켜지 못했어요.' -ForegroundColor Yellow }
+      default  { Write-Host ('  재고 동기화를 켜지 못했어요: ' + $sr) -ForegroundColor Yellow }
+    }
+  } elseif ($synRun -eq $true) { Write-Host '  ✓ 재고 자동 동기화는 켜져 있어요.' -ForegroundColor Green }
   $started = $false
   try {
     Set-Content -LiteralPath $Vbs -Value ('CreateObject("WScript.Shell").Run "cmd /c ' + $Target + ' run", 0, False') -Encoding ASCII -ErrorAction Stop
@@ -281,6 +322,28 @@ function TendSender {
   try { Start-Process -FilePath $SenderBat -WorkingDirectory $HomeDir -WindowStyle Minimized -ErrorAction Stop; $script:LastRestart = Get-Date; $script:RestartN++; $script:SndGoneSince = $null; Event '전송기 창이 없어 다시 켰어요' }
   catch { $script:LastRestart = Get-Date; Event ('전송기를 다시 켜지 못했어요: ' + $_.Exception.Message) }
 }
+# ───────────── 재고 자동 동기화 지킴이 (v3) ─────────────
+$script:SyncEvents = New-Object System.Collections.ArrayList
+function SyncEvent($m) { [void]$script:SyncEvents.Add(@{ t = (Get-Date); m = ((Get-Date -Format 'HH:mm') + ' 지킴이: ' + $m) }); while ($script:SyncEvents.Count -gt 5) { $script:SyncEvents.RemoveAt(0) }; Log ('지킴이(동기화): ' + $m) }
+function RecentSyncEvent { $now = Get-Date; $e = @($script:SyncEvents | Where-Object { ($now - $_.t).TotalMinutes -lt 15 }); if ($e.Count) { return $e[$e.Count - 1].m } else { return '' } }
+$script:SynGoneSince = $null; $script:SynLastTry = [datetime]::MinValue; $script:SynDay = ''; $script:SynN = 0
+function TendSync {
+  if (@($script:SyncPids).Count -gt 0 -or $script:SyncHost) { $script:SynGoneSince = $null; return }
+  if (-not $script:SynGoneSince) { $script:SynGoneSince = Get-Date; return }
+  if (((Get-Date) - $script:SynGoneSince).TotalSeconds -lt 115) { return }
+  if (((Get-Date) - $script:SynLastTry).TotalMinutes -lt 15) { return }
+  $d = Get-Date -Format 'yyyy-MM-dd'; if ($script:SynDay -ne $d) { $script:SynDay = $d; $script:SynN = 0 }
+  if ($script:SynN -ge 6) { return }
+  $script:SynLastTry = Get-Date
+  $r = StartSync
+  switch -Wildcard ($r) {
+    'ok'     { $script:SynN++; $script:SynGoneSince = $null; SyncEvent '재고 동기화 창이 없어 다시 켰어요' }
+    'stop'   { SyncEvent 'STOP.txt가 있어 다시 켜지 않았어요 (이카운트 로그인 확인 필요)' }
+    'nofile' { SyncEvent '동기화 폴더를 찾지 못했어요 (구글 드라이브 연결 확인)' }
+    'nopy'   { SyncEvent '파이썬을 찾지 못해 다시 켜지 못했어요' }
+    default  { $script:SynN++; SyncEvent ('다시 켜지 못했어요: ' + $r) }
+  }
+}
 $script:LastHb = [datetime]::MinValue; $script:StaleWarn = [datetime]::MinValue
 function CheckHb {
   if (-not $Cfg -or ((Get-Date) - $script:LastHb).TotalSeconds -lt 60) { return }
@@ -298,16 +361,17 @@ $Cfg = $null; $lastSig = ''; $lastPost = [datetime]::MinValue; $lastScan = [date
 while ($true) {
   try {
     if (-not $Cfg) { $Cfg = LoadCfg; if (-not $Cfg -or -not $Cfg.relayUrl -or -not $Cfg.apiKey) { $Cfg = $null; throw '전송기 설정 파일을 읽지 못함' } }
-    if (((Get-Date) - $lastScan).TotalSeconds -ge 30) { Scan; $lastScan = Get-Date; TendSender }
+    if (((Get-Date) - $lastScan).TotalSeconds -ge 30) { Scan; $lastScan = Get-Date; TendSender; TendSync }
     $snd = Grab $script:SndPids $SndLog $null $true
     $sp = @($script:SyncPids); if ($script:SyncHost) { $sp = @($script:SyncHost) + $sp }
     $syn = Grab $sp $null $SyncDir $false
     CheckHb
     $ev = RecentEvent
     $sndE = (@($ev, $snd.e) | Where-Object { $_ }) -join ' · '
-    $sig = ($snd.l -join "`n") + '|' + $snd.s + '|' + ($syn.l -join "`n") + '|' + $syn.s + '|' + $sndE + '|' + $syn.e
+    $synE = (@((RecentSyncEvent), $syn.e) | Where-Object { $_ }) -join ' · '
+    $sig = ($snd.l -join "`n") + '|' + $snd.s + '|' + ($syn.l -join "`n") + '|' + $syn.s + '|' + $sndE + '|' + $synE
     if ($sig -ne $lastSig -or ((Get-Date) - $lastPost).TotalSeconds -ge 60) {
-      $body = @{ key = $Cfg.apiKey; action = 'pcScreen'; pc = $env:COMPUTERNAME; v = $Ver; snd = @{ l = @($snd.l); s = $snd.s; e = $sndE; t = 'Ecount production sender' }; sync = @{ l = @($syn.l); s = $syn.s; e = $syn.e; t = '' } }
+      $body = @{ key = $Cfg.apiKey; action = 'pcScreen'; pc = $env:COMPUTERNAME; v = $Ver; snd = @{ l = @($snd.l); s = $snd.s; e = $sndE; t = 'Ecount production sender' }; sync = @{ l = @($syn.l); s = $syn.s; e = $synE; t = '' } }
       $r = PostJson $Cfg.relayUrl $body
       if (-not $r.ok) { throw ('중계 거절: ' + $r.error) }
       $lastSig = $sig; $lastPost = Get-Date
