@@ -988,6 +988,40 @@ header.top .brand .hver .rv-ok{color:#9BE3B8;font-weight:700}header.top .brand .
 #tcPerm{background:#A86A12;color:#fff}
 #tcPermNo{background:#fff;border:1px solid #F0D9A8;color:#7A4E0E}
 @media (max-width:600px){.tc-hint{display:none}.tc-cats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.tc-cats button{flex:0 0 auto;min-height:38px}.tc-needbar input{min-height:46px}.tc-needbar{gap:5px;margin-bottom:6px}.tc-sub{font-size:13.5px}.tc-rm{min-height:44px;padding:0 13px;font-size:15.5px}.tc-quick{margin-top:6px}}
+/* v245 사진 */
+.tc-imgs{display:grid;gap:4px;width:min(300px,62vw);margin:0 0 2px}
+.tc-imgs.n1{grid-template-columns:1fr}
+.tc-imgs.n2,.tc-imgs.n3,.tc-imgs.n4{grid-template-columns:1fr 1fr}
+.tc-im{display:block;width:100%;padding:0;border-radius:10px;overflow:hidden;background:#E3E8EC;min-height:70px;max-height:360px;cursor:zoom-in;border:0}
+.tc-imgs:not(.n1) .tc-im{aspect-ratio:1/1!important;min-height:0}
+.tc-im img{display:block;width:100%;height:100%;object-fit:cover}
+.tc-imgs.n1 .tc-im img{object-fit:contain;background:#fff}
+.tc-im.err{display:flex;align-items:center;justify-content:center;color:var(--ink3);font-size:13px;cursor:default;padding:10px}
+.tc-bub.has-img{padding:5px;white-space:normal}
+.tc-bub.has-img .tc-tx{padding:6px 7px 2px;white-space:pre-wrap}
+.tc-need .tc-imgs{margin:2px 0 6px}
+.tc-ni .tc-imgs{margin:6px 0 4px}
+.tc-att{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:7px}
+.tc-att .a{position:relative;width:78px;height:78px;border-radius:10px;overflow:hidden;border:1.5px solid var(--line);background:#E3E8EC;flex:0 0 auto}
+.tc-att .a img{width:100%;height:100%;object-fit:cover;display:block}
+.tc-att .a button{position:absolute;top:3px;right:3px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.62);color:#fff;font-size:15px;line-height:30px;font-weight:800}
+.tc-att .busy{display:flex;align-items:center;justify-content:center;font-size:12.5px;color:var(--ink2)}
+.tc-attn{font-size:13.5px;color:var(--ink2);font-weight:700}
+.tc-clip{flex:0 0 auto;min-width:56px;min-height:56px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-size:24px}
+.tc-clip:hover{border-color:var(--accent);background:var(--accent-bg)}
+.tc-pan.tc-drop{outline:4px dashed var(--accent);outline-offset:-10px}
+.tc-lb{position:fixed;inset:0;z-index:60;background:rgba(10,14,18,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 8px 16px}
+.tc-lb[hidden]{display:none}
+.tc-lb img{max-width:96vw;max-height:calc(100vh - 140px);object-fit:contain;border-radius:6px;background:#fff}
+.tc-lb .bar{position:absolute;top:0;left:0;right:0;display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:8px 10px}
+.tc-lb .bar .who{color:#fff;margin-right:auto;font-weight:800;font-size:15px}
+.tc-lb .bar button,.tc-lb .bar a{min-width:52px;min-height:50px;border-radius:12px;background:rgba(255,255,255,.16);color:#fff;font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 14px;text-decoration:none}
+.tc-lb .bar a[hidden]{display:none}
+.tc-lb .nav{position:absolute;top:50%;transform:translateY(-50%);min-width:56px;min-height:76px;border-radius:12px;background:rgba(255,255,255,.14);color:#fff;font-size:36px}
+.tc-lb .prev{left:8px}.tc-lb .next{right:8px}
+.tc-lb .cap{color:#fff;margin-top:10px;font-size:15.5px;max-width:92vw;text-align:center;white-space:pre-wrap}
+.tc-lb .ld{color:#fff;font-size:14px;margin-top:8px;opacity:.8}
+@media print{.tc-lb{display:none!important}}
 @media print{.tc-head,.tc-ov{display:none!important}}
 </style>
 </head>
@@ -1415,8 +1449,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '244';
-const APP_BUILT = '2026-10-20 17:58';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '245';
+const APP_BUILT = '2026-10-21 09:15';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -7351,7 +7385,9 @@ function prodExpNote(code, date) {
    이름: 전달사항과 같은 「보고자 이름」(S.settings.reporter) — 처음 열 때 한 번 고름
    가져오기: 대화창이 열려 있으면 5초, 닫혀 있으면 30초, 다른 창을 보고 있으면 60초마다 pulse(서버 캐시라 가벼움)만 묻고, 바뀌었을 때만 list
    알림: 머리글 💬 숫자 · 창 제목 (n) · 토스트 · 소리(🔔 켜기/끄기) · PC 알림(허락했을 때) · @이름 으로 부르면 노란 테두리와 강한 소리
-   기기 저장: localStorage wonryo_chat_v1 (방마다 최근 250개, 어디까지 읽었는지) */
+   기기 저장: localStorage wonryo_chat_v1 (방마다 최근 250개, 어디까지 읽었는지) 
+   v245 사진: 📷 버튼(휴대폰은 사진첩·카메라) · 캡처 후 Ctrl+V 붙여넣기 · 끌어다 놓기 · 🖥 화면 캡처(PC) → 기기에서 줄여서(원본 2000px·작은 사진 480px JPEG) 대화 저장소 upimg → 드라이브 비공개 폴더
+   보기: 작은 사진은 img 요청(열쇠 필요)으로 받아 IndexedDB wonryo_chat_img 에 보관, 누르면 원본 크게 보기·저장 */
 const TC_URL = 'https://script.google.com/macros/s/AKfycbw405NZ3B14jayzk9pFI8YAyUR-BOXfgLiNB78xewtIx8wsDJriSZ193JbKb5Tzak_5/exec';
 const TC_ROOMS = [
   { id: '전체', ic: '🏠', d: '모든 직원이 함께 보는 방' },
@@ -7362,7 +7398,8 @@ const TC_CATS = ['요청', '불편', '아이디어', '가격', '칭찬', '기타
 const TC_STS = ['새 니즈', '검토 중', '반영', '보류'];
 const TC_STAFF = ['이혜영', '서재우', '김명우', '이정현', '박태일', '황정기', '김영복', '한욱현'];
 const TC_LS = 'wonryo_chat_v1';
-const TC = { st: null, open: false, room: '전체', view: 'chat', busy: false, t: 0, ready: false, err: '', cat: '', flt: '', newBelow: 0, readT: 0, sig: '', titleBase: '', olderBusy: false, coarse: false, picks: false };
+const TC = { st: null, open: false, room: '전체', view: 'chat', busy: false, t: 0, ready: false, err: '', cat: '', flt: '', newBelow: 0, readT: 0, sig: '', titleBase: '', olderBusy: false, coarse: false, picks: false, att: [], blobs: {}, lb: null };
+const TC_IMG_MAX = 6;
 try { TC.coarse = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches); } catch (e) {}
 
 function tcLoad() {
@@ -7372,6 +7409,7 @@ function tcLoad() {
   o.msgs = o.msgs || {}; o.seen = o.seen || {}; o.reads = o.reads || {}; o.since = o.since || ''; o.cust = o.cust || '';
   if (o.sound == null) o.sound = 1;
   if (!TC_ROOMS.some(r => r.id === o.room)) o.room = '전체';
+  Object.values(o.msgs).forEach(m => { if (m.pend || m.fail) { if (m.img) delete o.msgs[m.id]; else if (m.pend) { m.pend = 0; m.fail = '보내는 중에 화면을 새로 열었어요'; } } });   /* 사진 보내던 글은 사진 자료가 없어져서 지움 */
   TC.st = o; TC.room = o.room; return o;
 }
 let tcSaveT = 0;
@@ -7437,7 +7475,7 @@ function tcNotify(fresh) {
   const show = fresh.filter(m => !here(m)); TC.newBelow += fresh.filter(here).length;
   if (!show.length) return;
   const m = show[show.length - 1], at = show.some(x => tcAtMe(x.t, me));
-  const tx = (m.k === 'need' && m.c ? '[' + m.c + '] ' : '') + String(m.t).replace(/\s+/g, ' ');
+  const tx = (m.k === 'need' && m.c ? '[' + m.c + '] ' : '') + (String(m.t || '').replace(/\s+/g, ' ') || ((m.im || []).length ? `📷 사진 ${(m.im || []).length}장` : ''));
   try { toast(`💬 ${m.r} · ${m.by}: ${tx.slice(0, 40)}${tx.length > 40 ? '…' : ''}${show.length > 1 ? ` 외 ${show.length - 1}개` : ''}`); } catch (e) {}
   if (o.sound) tcBeep(at);
   if (document.hidden && window.Notification && Notification.permission === 'granted') {
@@ -7497,7 +7535,7 @@ function tcOpen(room) {
 function tcFit() { const p = document.querySelector('#tcOv .tc-pan'), vv = window.visualViewport; if (!p) return; if (vv && TC.open && window.innerWidth < 900) { p.style.height = Math.round(vv.height) + 'px'; p.style.transform = vv.offsetTop ? `translateY(${Math.round(vv.offsetTop)}px)` : ''; } else { p.style.height = ''; p.style.transform = ''; } }
 if (window.visualViewport) { window.visualViewport.addEventListener('resize', tcFit); window.visualViewport.addEventListener('scroll', tcFit); }
 function tcClose() { TC.open = false; const ov = document.getElementById('tcOv'); if (ov) ov.hidden = true; tcBadge(); if (TC.ready) tcSchedule(); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && TC.open) { const a = document.activeElement; if (a && a.id === 'tcIn' && a.value) return; tcClose(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && TC.lb) { tcLbClose(); return; } if (TC.lb && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { tcLbGo(e.key === 'ArrowLeft' ? -1 : 1); return; } if (e.key === 'Escape' && TC.open) { const a = document.activeElement; if (a && a.id === 'tcIn' && a.value) return; tcClose(); } });
 document.addEventListener('visibilitychange', () => { if (!TC.ready) return; if (!document.hidden) { tcSchedule(300); if (TC.open) tcMarkRead(); } else tcSchedule(); });
 
 function tcRender(full) {
@@ -7526,11 +7564,84 @@ function tcFmt(t) {
 function tcWhen(at) { const d = new Date(at); if (isNaN(d)) return ''; const t = d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' }); const n = new Date(); return d.toDateString() === n.toDateString() ? t : `${d.getMonth() + 1}/${d.getDate()} ${t}`; }
 const tcSi = st => Math.max(0, TC_STS.indexOf(st || '새 니즈'));
 function tcStsHtml(m) { return `<div class="tc-sts">${TC_STS.map((s, i) => `<button type="button" class="s${i}${s === (m.st || '새 니즈') ? ' on' : ''}" data-tcst="${esc(m.id)}|${esc(s)}">${esc(s)}</button>`).join('')}</div>`; }
-function tcNeedHtml(m) { return `<div class="tc-nh">${m.c ? `<b class="tc-cu">🤝 ${esc(m.c)}</b>` : '<span class="tc-chip">거래처 미정</span>'}${m.g ? `<i class="tc-chip cat">${esc(m.g)}</i>` : ''}<i class="tc-chip s${tcSi(m.st)}">${esc(m.st || '새 니즈')}</i></div><div>${tcFmt(m.t)}</div>${m.pend || m.fail ? '' : tcStsHtml(m)}`; }
+function tcNeedHtml(m) { return `<div class="tc-nh">${m.c ? `<b class="tc-cu">🤝 ${esc(m.c)}</b>` : '<span class="tc-chip">거래처 미정</span>'}${m.g ? `<i class="tc-chip cat">${esc(m.g)}</i>` : ''}<i class="tc-chip s${tcSi(m.st)}">${esc(m.st || '새 니즈')}</i></div>${tcImgsHtml(m)}${m.t ? `<div>${tcFmt(m.t)}</div>` : ''}${m.pend || m.fail ? '' : tcStsHtml(m)}`; }
+/* ── v245 사진 ── */
+const tcImgUrl = {};   /* 사진 id → 화면용 주소(이 창에서만) */
+function tcImgsHtml(m) {
+  const L = m.im || []; if (!L.length) return '';
+  return `<div class="tc-imgs n${Math.min(L.length, 4)}">${L.map((x, k) => { const u = x.u || tcImgUrl[x.t] || tcImgUrl[x.i] || ''; const ar = x.w && x.h ? `${x.w}/${x.h}` : '4/3';
+    return `<button type="button" class="tc-im" data-tcimg="${esc(m.id)}|${k}" style="aspect-ratio:${ar}" title="크게 보기">${u ? `<img src="${esc(u)}" alt="사진">` : `<img data-tcthumb="${esc(x.t || x.i)}" alt="">`}</button>`; }).join('')}</div>`;
+}
+let tcDB = null;
+function tcIdb() { if (tcDB) return tcDB; tcDB = new Promise((ok, no) => { try { const r = indexedDB.open('wonryo_chat_img', 1); r.onupgradeneeded = () => r.result.createObjectStore('img'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); } catch (e) { no(e); } }).catch(() => null); return tcDB; }
+async function tcImgGet(id) { const db = await tcIdb(); if (!db) return null; return new Promise(ok => { try { const q = db.transaction('img').objectStore('img').get(id); q.onsuccess = () => ok(q.result && q.result.b ? q.result.b : null); q.onerror = () => ok(null); } catch (e) { ok(null); } }); }
+async function tcImgPut(id, blob) { const db = await tcIdb(); if (!db || !blob || !id) return; try { db.transaction('img', 'readwrite').objectStore('img').put({ b: blob, t: Date.now() }, id); } catch (e) {} }
+async function tcImgPrune() { const db = await tcIdb(); if (!db) return; const cut = Date.now() - 90 * 864e5; try { const st = db.transaction('img', 'readwrite').objectStore('img'); st.openCursor().onsuccess = e => { const c = e.target.result; if (!c) return; if (!c.value || (c.value.t || 0) < cut) c.delete(); c.continue(); }; } catch (e) {} }
+function tcB64Blob(b64, type) { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new Blob([u], { type: type || 'image/jpeg' }); }
+const tcB64 = blob => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = () => no(new Error('사진을 바꾸지 못했어요')); r.readAsDataURL(blob); });
+const tcImgWait = {};
+function tcImgLoad(id) { if (tcImgUrl[id]) return Promise.resolve(tcImgUrl[id]); if (tcImgWait[id]) return tcImgWait[id];
+  return (tcImgWait[id] = (async () => { let b = await tcImgGet(id); if (!b) { const j = await tcCall({ action: 'img', id }, 60000); b = tcB64Blob(j.data, j.type); tcImgPut(id, b); } tcImgUrl[id] = URL.createObjectURL(b); return tcImgUrl[id]; })().finally(() => { delete tcImgWait[id]; })); }
+let tcQRun = 0; const tcQ = [];
+function tcQueue(fn) { tcQ.push(fn); tcQNext(); }
+function tcQNext() { while (tcQRun < 3 && tcQ.length) { const fn = tcQ.shift(); tcQRun++; Promise.resolve().then(fn).catch(() => {}).finally(() => { tcQRun--; tcQNext(); }); } }
+function tcFillThumbs(root) { if (!root) return; root.querySelectorAll('img[data-tcthumb]:not([src])').forEach(img => { const id = img.dataset.tcthumb; img.setAttribute('src', 'data:image/gif;base64,R0lGODlhAQABAAAAACw='); tcQueue(() => tcImgLoad(id).then(u => { document.querySelectorAll(`img[data-tcthumb="${CSS.escape(id)}"]`).forEach(x => { x.src = u; x.alt = '사진'; }); }).catch(() => { const b = img.closest('.tc-im'); if (b) { b.classList.add('err'); b.textContent = '사진을 못 불러왔어요'; } })); }); }
+/* 고른·붙여넣은 사진을 기기에서 줄임: 원본 2000px(JPEG 0.85), 작은 사진 480px(0.72) */
+function tcDecode(file) { const viaImg = () => new Promise((ok, no) => { const u = URL.createObjectURL(file), im = new Image(); im.onload = () => ok(im); im.onerror = () => no(new Error('사진 파일을 읽지 못했어요')); im.src = u; }); return window.createImageBitmap ? createImageBitmap(file).catch(viaImg) : viaImg(); }
+function tcScale(src, max, q) { const W = src.width || src.naturalWidth, H = src.height || src.naturalHeight, s = Math.min(1, max / Math.max(W, H)), w = Math.max(1, Math.round(W * s)), h = Math.max(1, Math.round(H * s)); const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(src, 0, 0, w, h); return new Promise((ok, no) => c.toBlob(b => b ? ok({ blob: b, w, h }) : no(new Error('사진을 줄이지 못했어요')), 'image/jpeg', q)); }
+async function tcPrep(file) { if (file.size > 30 * 1024 * 1024) throw new Error('사진이 너무 커요 (30MB 이하)'); const src = await tcDecode(file); const full = await tcScale(src, 2000, 0.85), thumb = await tcScale(src, 480, 0.72); try { src.close && src.close(); } catch (e) {} return { full: full.blob, thumb: thumb.blob, w: full.w, h: full.h, url: URL.createObjectURL(thumb.blob) }; }
+async function tcAddFiles(files) {
+  const imgs = [...(files || [])].filter(f => f && /^image\//.test(f.type || '')); if (!imgs.length) { if ((files || []).length) toast('사진 파일만 보낼 수 있어요'); return; }
+  const room = TC_IMG_MAX - TC.att.length; if (room <= 0) { toast(`사진은 한 번에 ${TC_IMG_MAX}장까지 보낼 수 있어요`); return; }
+  if (imgs.length > room) toast(`사진은 한 번에 ${TC_IMG_MAX}장까지예요 — 나머지는 다음에 보내 주세요`);
+  for (const f of imgs.slice(0, room)) { const a = { k: Math.random().toString(36).slice(2, 9), busy: 1 }; TC.att.push(a); tcRenderAtt();
+    try { Object.assign(a, await tcPrep(f)); a.busy = 0; } catch (e) { TC.att = TC.att.filter(x => x !== a); toast('⚠ ' + ((e && e.message) || '사진을 읽지 못했어요')); }
+    tcRenderAtt(); }
+  const i = document.getElementById('tcIn'); if (i && !TC.coarse) i.focus();
+}
+function tcRenderAtt() { const el = document.getElementById('tcAtt'); if (!el) return; el.hidden = !TC.att.length; el.innerHTML = TC.att.map(a => a.busy ? '<div class="a busy">준비 중…</div>' : `<div class="a"><img src="${esc(a.url)}" alt="보낼 사진"><button type="button" data-tcattx="${esc(a.k)}" title="빼기">✕</button></div>`).join('') + (TC.att.length ? `<span class="tc-attn">사진 ${TC.att.length}장 · 글을 함께 쓰고 「보내기」</span>` : ''); }
+async function tcUpImg(a, cid, n) {
+  const [f, t] = await Promise.all([tcB64(a.full), tcB64(a.thumb)]);
+  const r1 = await tcCall({ action: 'upimg', data: f, type: 'image/jpeg', name: cid + '_' + n }, 90000);
+  const r2 = await tcCall({ action: 'upimg', data: t, type: 'image/jpeg', name: cid + '_' + n + '_s' }, 60000);
+  tcImgPut(r1.id, a.full); tcImgPut(r2.id, a.thumb); tcImgUrl[r2.id] = a.url;
+  return { i: r1.id, t: r2.id, w: a.w, h: a.h };
+}
+/* PC 화면 캡처: 화면·창·탭을 고르면 한 장 찍어 첨부 (이 창을 고르면 대화창은 잠깐 숨김) */
+async function tcCapture() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) { toast('이 기기에서는 화면 캡처를 쓸 수 없어요 — 캡처한 뒤 Ctrl+V로 붙여넣어 주세요'); return; }
+  let stream = null; try { stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false }); } catch (e) { return; }
+  const ov = document.getElementById('tcOv');
+  try { const v = document.createElement('video'); v.srcObject = stream; v.muted = true; v.playsInline = true; await v.play(); if (ov) ov.style.visibility = 'hidden'; await new Promise(r => setTimeout(r, 450));
+    const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v, 0, 0);
+    const blob = await new Promise(ok => c.toBlob(ok, 'image/png')); if (blob) await tcAddFiles([new File([blob], '화면캡처.png', { type: 'image/png' })]); }
+  catch (e) { toast('⚠ 화면을 찍지 못했어요'); }
+  finally { if (ov) ov.style.visibility = ''; try { stream.getTracks().forEach(t => t.stop()); } catch (e) {} }
+}
+function tcLbOpen(mid, k) { const m = tcLoad().msgs[mid]; if (!m || !(m.im || []).length) return; TC.lb = { mid, k: Math.max(0, Math.min(k, m.im.length - 1)) };
+  let lb = document.getElementById('tcLb'); if (!lb) { lb = document.createElement('div'); lb.id = 'tcLb'; lb.className = 'tc-lb'; document.body.appendChild(lb);
+    lb.addEventListener('click', e => { const b = e.target.closest('button'); if (e.target === lb || (b && b.dataset.lb === 'x')) return tcLbClose(); if (b && b.dataset.lb === 'p') return tcLbGo(-1); if (b && b.dataset.lb === 'n') return tcLbGo(1); }); }
+  lb.hidden = false; tcLbShow(); }
+function tcLbClose() { TC.lb = null; const lb = document.getElementById('tcLb'); if (lb) { lb.hidden = true; lb.innerHTML = ''; } }
+function tcLbGo(d) { if (!TC.lb) return; const m = tcLoad().msgs[TC.lb.mid]; if (!m) return; const n = (m.im || []).length; TC.lb.k = (TC.lb.k + d + n) % n; tcLbShow(); }
+async function tcLbShow() {
+  const lb = document.getElementById('tcLb'); if (!lb || !TC.lb) return; const { mid, k } = TC.lb, m = tcLoad().msgs[mid]; if (!m) return tcLbClose(); const x = m.im[k], n = m.im.length;
+  lb.innerHTML = `<div class="bar"><span class="who">${esc(m.by)} · ${esc(tcWhen(m.at))}${n > 1 ? ` · ${k + 1}/${n}` : ''}</span><a id="tcLbDl" href="#" download="빵을그리다_대화사진_${esc(String(m.at).slice(0, 10))}_${k + 1}.jpg" hidden>⬇ 저장</a><button type="button" data-lb="x" title="닫기 (Esc)">✕</button></div>${n > 1 ? '<button type="button" class="nav prev" data-lb="p" title="이전">‹</button><button type="button" class="nav next" data-lb="n" title="다음">›</button>' : ''}<img id="tcLbImg" alt="사진"><div class="ld" id="tcLbLd">원본 불러오는 중…</div>${m.t ? `<div class="cap">${tcFmt(m.t)}</div>` : ''}`;
+  const img = document.getElementById('tcLbImg'), th = x.u || tcImgUrl[x.t] || ''; if (th) img.src = th;
+  try { const fu = x.i ? await tcImgLoad(x.i) : th; if (!TC.lb || TC.lb.mid !== mid || TC.lb.k !== k) return; img.src = fu; const dl = document.getElementById('tcLbDl'); if (dl) { dl.href = fu; dl.hidden = false; } const ld = document.getElementById('tcLbLd'); if (ld) ld.remove(); }
+  catch (e) { const ld = document.getElementById('tcLbLd'); if (ld) ld.textContent = '⚠ 원본을 못 불러왔어요 — ' + ((e && e.message) || ''); }
+}
+document.addEventListener('paste', e => {   /* 캡처한 사진을 Ctrl+V 로 붙여넣기 */
+  if (!TC.open || TC.view === 'name') return; const pan = document.querySelector('#tcOv .tc-pan'); if (!pan || !pan.contains(e.target)) return;
+  const files = [...((e.clipboardData || {}).items || [])].filter(i => i.kind === 'file' && /^image\//.test(i.type)).map(i => i.getAsFile()).filter(Boolean); if (!files.length) return;
+  if (!String((e.clipboardData && e.clipboardData.getData('text/plain')) || '').trim()) e.preventDefault();
+  if (TC.view !== 'chat') { TC.view = 'chat'; tcRenderSub(); tcRenderMain(true); }
+  tcAddFiles(files);
+});
 function tcRenderBody(scrollEnd, force) {
   const body = document.getElementById('tcBody'); if (!body) return; const o = tcLoad(), me = tcMe();
   const L = tcRoomMsgs(TC.room).filter(m => !m.d);   /* 지운 메시지는 아예 안 보임 */
-  const sig = TC.room + '#' + me + '#' + (o.permNo ? 1 : 0) + (window.Notification ? Notification.permission : '') + '#' + JSON.stringify(o.reads[TC.room] || {}) + '#' + L.map(m => m.id + (m.mt || '') + (m.pend ? 'p' : '') + (m.fail ? 'f' : '') + (m.st || '') + (m.d ? 'd' : '')).join('|') + '#' + TC.newBelow;
+  const sig = TC.room + '#' + me + '#' + (o.permNo ? 1 : 0) + (window.Notification ? Notification.permission : '') + '#' + JSON.stringify(o.reads[TC.room] || {}) + '#' + L.map(m => m.id + (m.mt || '') + (m.pend ? 'p' + (m.prog || '') : '') + (m.fail ? 'f' : '') + (m.st || '') + (m.d ? 'd' : '')).join('|') + '#' + TC.newBelow;
   if (!force && sig === TC.sig) { tcMarkRead(); return; } TC.sig = sig;
   const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 90;
   const mem = tcMembers(), recent = new Date(Date.now() - 3 * 864e5).toISOString();
@@ -7544,13 +7655,14 @@ function tcRenderBody(scrollEnd, force) {
     const mine = m.by === me, gone = !!m.d, cont = m.by === lastBy && (d - lastAt) < 5 * 60e3; lastBy = m.by; lastAt = d;
     const atme = !mine && !gone && tcAtMe(m.t, me), un = !gone && !m.pend && !m.fail && m.at >= recent ? tcUnreadBy(m, mem) : 0;
     const tm = d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
-    const meta = `<div class="tc-meta">${m.pend ? '<span>보내는 중…</span>' : m.fail ? `<button type="button" class="tc-fail" data-tcretry="${esc(m.id)}" title="${esc(m.fail)}">⚠ 다시 보내기</button>` : `${un ? `<span class="tc-un">안 읽음 ${un}</span>` : ''}<span>${tm}</span>`}</div>`;
-    const inner = gone ? '삭제된 메시지입니다' : m.k === 'need' ? tcNeedHtml(m) : tcFmt(m.t);
-    html += `<div class="tc-m${mine ? ' mine' : ''}${gone ? ' gone' : ''}${atme ? ' atme' : ''}${m.pend ? ' pend' : ''}" data-tcid="${esc(m.id)}">${!mine && !cont ? `<div class="tc-who">${esc(m.by)}</div>` : ''}<div class="tc-row"><div class="tc-bub${m.k === 'need' && !gone ? ' tc-need' : ''}">${inner}</div>${meta}${mine && !gone && !m.pend ? `<button type="button" class="tc-dots" data-tcdel="${esc(m.id)}" title="지우기">⋯</button>` : ''}</div></div>`;
+    const meta = `<div class="tc-meta">${m.pend ? `<span>${esc(m.prog || '보내는 중…')}</span>` : m.fail ? `<button type="button" class="tc-fail" data-tcretry="${esc(m.id)}" title="${esc(m.fail)}">⚠ 다시 보내기</button>` : `${un ? `<span class="tc-un">안 읽음 ${un}</span>` : ''}<span>${tm}</span>`}</div>`;
+    const hasIm = !gone && (m.im || []).length > 0;
+    const inner = gone ? '삭제된 메시지입니다' : m.k === 'need' ? tcNeedHtml(m) : hasIm ? tcImgsHtml(m) + (m.t ? `<div class="tc-tx">${tcFmt(m.t)}</div>` : '') : tcFmt(m.t);
+    html += `<div class="tc-m${mine ? ' mine' : ''}${gone ? ' gone' : ''}${atme ? ' atme' : ''}${m.pend ? ' pend' : ''}" data-tcid="${esc(m.id)}">${!mine && !cont ? `<div class="tc-who">${esc(m.by)}</div>` : ''}<div class="tc-row"><div class="tc-bub${m.k === 'need' && !gone ? ' tc-need' : ''}${hasIm ? ' has-img' : ''}">${inner}</div>${meta}${mine && !gone && !m.pend ? `<button type="button" class="tc-dots" data-tcdel="${esc(m.id)}" title="지우기">⋯</button>` : ''}</div></div>`;
   });
   if (TC.newBelow && !atBottom && !scrollEnd) html += `<button type="button" class="tc-newpill" id="tcNew">새 메시지 ${TC.newBelow}개 ↓</button>`;
-  body.innerHTML = html;
-  if (scrollEnd || atBottom) { body.scrollTop = body.scrollHeight; TC.newBelow = 0; }
+  body.innerHTML = html; tcFillThumbs(body);
+  if (scrollEnd || atBottom) { body.scrollTop = body.scrollHeight; TC.newBelow = 0; body.querySelectorAll('img').forEach(im => { if (!im.complete) im.addEventListener('load', () => { if (body.scrollHeight - body.scrollTop - body.clientHeight < 400) body.scrollTop = body.scrollHeight; }, { once: true }); }); }
   tcMarkRead();
 }
 function tcMarkRead() {
@@ -7570,7 +7682,7 @@ function tcCustOpts() {
 }
 function tcCompHtml() {
   const need = TC.room === '거래처 니즈', o = tcLoad();
-  return `${need ? `<div class="tc-needbar"><input id="tcCust" list="tcCustList" autocomplete="off" placeholder="거래처 이름 (예: 꽃우물)" value="${esc(o.cust || '')}"><datalist id="tcCustList">${tcCustOpts().map(n => `<option value="${esc(n)}">`).join('')}</datalist><div class="tc-cats">${TC_CATS.map(c => `<button type="button" data-tccat="${esc(c)}" class="${TC.cat === c ? 'on' : ''}">${esc(c)}</button>`).join('')}</div><div class="tc-hint">거래처나 분류를 고르면 「니즈」 카드로 남고 「거래처별 모아 보기」에 모입니다.</div></div>` : ''}<div class="tc-inrow"><textarea id="tcIn" rows="1" placeholder="${TC.coarse ? '메시지를 입력하세요' : '메시지 입력 · Enter 보내기 · Shift+Enter 줄바꿈'}"></textarea><button type="button" class="tc-send" id="tcSend">보내기</button></div><div class="tc-quick">${['확인했습니다', '처리했습니다', '잠시 후 답드릴게요', '감사합니다'].map(q => `<button type="button" data-tcq="${esc(q)}">${esc(q)}</button>`).join('')}<button type="button" data-tcat="1">@ 이름 부르기</button></div><div class="tc-picks" id="tcPicks" hidden></div>`;
+  return `${need ? `<div class="tc-needbar"><input id="tcCust" list="tcCustList" autocomplete="off" placeholder="거래처 이름 (예: 꽃우물)" value="${esc(o.cust || '')}"><datalist id="tcCustList">${tcCustOpts().map(n => `<option value="${esc(n)}">`).join('')}</datalist><div class="tc-cats">${TC_CATS.map(c => `<button type="button" data-tccat="${esc(c)}" class="${TC.cat === c ? 'on' : ''}">${esc(c)}</button>`).join('')}</div><div class="tc-hint">거래처나 분류를 고르면 「니즈」 카드로 남고 「거래처별 모아 보기」에 모입니다.</div></div>` : ''}<div class="tc-att" id="tcAtt" hidden></div><div class="tc-inrow"><button type="button" class="tc-clip" id="tcClip" title="사진 보내기 (캡처한 사진은 Ctrl+V 로 붙여넣어도 돼요)">📷</button><input type="file" id="tcFile" accept="image/*" multiple hidden><textarea id="tcIn" rows="1" placeholder="${TC.coarse ? '메시지를 입력하세요' : '메시지 입력 · Enter 보내기 · 캡처는 Ctrl+V'}"></textarea><button type="button" class="tc-send" id="tcSend">보내기</button></div><div class="tc-quick">${['확인했습니다', '처리했습니다', '잠시 후 답드릴게요', '감사합니다'].map(q => `<button type="button" data-tcq="${esc(q)}">${esc(q)}</button>`).join('')}<button type="button" data-tcat="1">@ 이름 부르기</button>${!TC.coarse && navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia ? '<button type="button" data-tccap="1">🖥 화면 캡처</button>' : ''}</div><div class="tc-picks" id="tcPicks" hidden></div>`;
 }
 function tcGrow(i) { if (!i) return; i.style.height = 'auto'; i.style.height = Math.min(170, Math.max(56, i.scrollHeight + 2)) + 'px'; }
 function tcBoardHtml() {
@@ -7579,7 +7691,7 @@ function tcBoardHtml() {
   F.forEach(m => (G[m.c || '거래처 미정'] = G[m.c || '거래처 미정'] || []).push(m));
   const keys = Object.keys(G).sort((a, b) => { const la = G[a][G[a].length - 1].at, lb = G[b][G[b].length - 1].at; return la < lb ? 1 : la > lb ? -1 : 0; });
   return `<div class="tc-board"><div class="tc-flt"><button type="button" data-tcflt="" class="${!f ? 'on' : ''}">전체 ${L.length}</button>${TC_STS.map(s => `<button type="button" data-tcflt="${esc(s)}" class="${f === s ? 'on' : ''}">${esc(s)} ${cnt(s)}</button>`).join('')}</div>${keys.length ? keys.map(k => { const g = G[k].slice().reverse(), by = s => g.filter(m => (m.st || '새 니즈') === s).length;
-    return `<div class="tc-grp"><h4>🤝 ${esc(k)}<span class="cnt">${g.length}건${by('새 니즈') ? ` · 새 ${by('새 니즈')}` : ''}${by('검토 중') ? ` · 검토 중 ${by('검토 중')}` : ''}${by('반영') ? ` · 반영 ${by('반영')}` : ''}${by('보류') ? ` · 보류 ${by('보류')}` : ''}</span></h4>${g.map(m => `<div class="tc-ni"><div>${m.g ? `<i class="tc-chip cat">${esc(m.g)}</i> ` : ''}<i class="tc-chip s${tcSi(m.st)}">${esc(m.st || '새 니즈')}</i></div><div class="tx">${tcFmt(m.t)}</div><div class="by">${esc(m.by)} · ${esc(tcWhen(m.at))}</div>${tcStsHtml(m)}</div>`).join('')}</div>`; }).join('')
+    return `<div class="tc-grp"><h4>🤝 ${esc(k)}<span class="cnt">${g.length}건${by('새 니즈') ? ` · 새 ${by('새 니즈')}` : ''}${by('검토 중') ? ` · 검토 중 ${by('검토 중')}` : ''}${by('반영') ? ` · 반영 ${by('반영')}` : ''}${by('보류') ? ` · 보류 ${by('보류')}` : ''}</span></h4>${g.map(m => `<div class="tc-ni"><div>${m.g ? `<i class="tc-chip cat">${esc(m.g)}</i> ` : ''}<i class="tc-chip s${tcSi(m.st)}">${esc(m.st || '새 니즈')}</i></div>${tcImgsHtml(m)}${m.t ? `<div class="tx">${tcFmt(m.t)}</div>` : ''}<div class="by">${esc(m.by)} · ${esc(tcWhen(m.at))}</div>${tcStsHtml(m)}</div>`).join('')}</div>`; }).join('')
     : `<div class="tc-empty">${f ? `「${esc(f)}」 상태인 니즈가 없습니다.` : '아직 모인 거래처 니즈가 없습니다.<br>「대화」에서 거래처 이름과 분류를 고르고 보내면<br>여기에 거래처마다 모입니다.'}</div>`}</div>`;
 }
 function tcNameHtml() {
@@ -7589,13 +7701,15 @@ function tcNameHtml() {
 function tcRenderMain(scrollEnd) {
   const el = document.getElementById('tcMain'); if (!el) return;
   if (TC.view === 'name' || !tcMe()) { TC.view = 'name'; el.innerHTML = tcNameHtml(); const i = document.getElementById('tcNameIn'); if (i) i.onkeydown = e => { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) tcSetName(i.value); }; return; }
-  if (TC.view === 'board' && TC.room === '거래처 니즈') { const sc = (document.getElementById('tcBoard') || {}).scrollTop || 0; el.innerHTML = `<div class="tc-body" id="tcBoard">${tcBoardHtml()}</div>`; document.getElementById('tcBoard').scrollTop = sc; return; }
+  if (TC.view === 'board' && TC.room === '거래처 니즈') { const sc = (document.getElementById('tcBoard') || {}).scrollTop || 0; el.innerHTML = `<div class="tc-body" id="tcBoard">${tcBoardHtml()}</div>`; const bd = document.getElementById('tcBoard'); bd.scrollTop = sc; tcFillThumbs(bd); return; }
   TC.view = 'chat';
   const keep = (document.getElementById('tcIn') || {}).value || '';
   el.innerHTML = `<div class="tc-body" id="tcBody"></div><div class="tc-comp" id="tcComp">${tcCompHtml()}</div>`;
   const inp = document.getElementById('tcIn'); inp.value = keep; tcGrow(inp);
   inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !TC.coarse && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); tcSend(); } });
   inp.addEventListener('input', () => tcGrow(inp));
+  const fi = document.getElementById('tcFile'); if (fi) fi.addEventListener('change', () => { const fs = [...(fi.files || [])]; fi.value = ''; tcAddFiles(fs); });
+  tcRenderAtt();
   TC.sig = ''; tcRenderBody(scrollEnd !== false, true);
 }
 function tcSetName(n) {
@@ -7606,17 +7720,24 @@ function tcSetName(n) {
 async function tcPush(pm) {
   const o = tcLoad();
   try {
-    const j = await tcCall({ action: 'send', room: pm.r, text: pm.t, by: pm.by, dev: tcDev(), cid: pm.cid, kind: pm.k, cust: pm.c, cat: pm.g }, 25000);
-    delete o.msgs[pm.id]; tcMerge([j.msg], true); if ((o.seen[pm.r] || '') < j.msg.at) o.seen[pm.r] = j.msg.at;
+    if (pm.img) { const A = TC.blobs[pm.id]; if (!A) throw new Error('사진을 다시 골라 주세요'); pm.up = pm.up || [];
+      for (let k = 0; k < A.length; k++) { if (pm.up[k]) continue; pm.prog = `사진 올리는 중 ${k + 1}/${A.length}`; if (TC.open && TC.view === 'chat') tcRenderBody(false, true); pm.up[k] = await tcUpImg(A[k], pm.cid, k + 1); }
+      pm.prog = '보내는 중…'; }
+    const j = await tcCall({ action: 'send', room: pm.r, text: pm.t, by: pm.by, dev: tcDev(), cid: pm.cid, kind: pm.k, cust: pm.c, cat: pm.g, im: pm.up || [] }, 30000);
+    delete o.msgs[pm.id]; delete TC.blobs[pm.id]; tcMerge([j.msg], true); if ((o.seen[pm.r] || '') < j.msg.at) o.seen[pm.r] = j.msg.at;
   } catch (e) { pm.pend = 0; pm.fail = (e && e.message) || '보내지 못했어요'; o.msgs[pm.id] = pm; try { toast('⚠ 메시지를 보내지 못했어요 — ' + pm.fail); } catch (e2) {} }
   tcSave(); if (TC.open && TC.view === 'chat') tcRenderBody(true, true); tcBadge();
 }
 function tcSend() {
   const inp = document.getElementById('tcIn'), me = tcMe(); if (!me) { TC.view = 'name'; tcRenderMain(); return; }
-  const t = String(inp ? inp.value : '').trim(); if (!t) { if (inp) inp.focus(); return; }
+  const t = String(inp ? inp.value : '').trim();
+  if (TC.att.some(a => a.busy)) { toast('사진을 준비하는 중이에요 — 잠시 후 보내 주세요'); return; }
+  const atts = TC.att.filter(a => a.full && a.thumb);
+  if (!t && !atts.length) { if (inp) inp.focus(); return; }
   const need = TC.room === '거래처 니즈', ce = document.getElementById('tcCust'), cust = need && ce ? ce.value.trim() : '', isNeed = need && !!(cust || TC.cat);
   const cid = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), o = tcLoad();
   const pm = { id: 'p_' + cid, cid, r: TC.room, at: new Date().toISOString(), by: me, t: t.slice(0, 2000), k: isNeed ? 'need' : 'msg', c: isNeed ? cust.slice(0, 60) : '', g: isNeed ? TC.cat : '', st: isNeed ? '새 니즈' : '', d: 0, mt: '', pend: 1 };
+  if (atts.length) { pm.img = 1; pm.im = atts.map(a => ({ u: a.url, w: a.w, h: a.h })); TC.blobs[pm.id] = atts; TC.att = []; tcRenderAtt(); }
   o.msgs[pm.id] = pm; if (isNeed && cust) o.cust = cust;
   if (inp) { inp.value = ''; tcGrow(inp); if (!TC.coarse) inp.focus(); }
   if (TC.cat) { TC.cat = ''; document.querySelectorAll('#tcOv [data-tccat]').forEach(b => b.classList.remove('on')); }
@@ -7631,7 +7752,7 @@ async function tcSetSt(id, st) {
 }
 async function tcDel(id) {
   const o = tcLoad(), m = o.msgs[id]; if (!m) return;
-  if (m.fail) { delete o.msgs[id]; tcSave(); tcRenderBody(false, true); return; }
+  if (m.fail) { delete o.msgs[id]; delete TC.blobs[id]; tcSave(); tcRenderBody(false, true); return; }
   try { const j = await tcCall({ action: 'del', id, by: tcMe() }, 20000); tcMerge([j.msg], true); tcSave(); tcRenderBody(false, true); }
   catch (e) { try { toast('⚠ ' + e.message); } catch (e2) {} }
 }
@@ -7655,6 +7776,10 @@ function tcBind(ov) {
     if (d.tcroom) { TC.room = d.tcroom; o.room = TC.room; if (TC.view !== 'name') TC.view = 'chat'; TC.newBelow = 0; TC.picks = false; tcSave(); tcRenderRooms(); tcRenderSub(); return tcRenderMain(true); }
     if (d.tcview) { TC.view = d.tcview; tcRenderSub(); return tcRenderMain(true); }
     if (t.id === 'tcSend') return tcSend();
+    if (d.tcimg) { const p = d.tcimg.split('|'); return tcLbOpen(p[0], Number(p[1]) || 0); }
+    if (d.tcattx) { const a = TC.att.find(x => x.k === d.tcattx); TC.att = TC.att.filter(x => x.k !== d.tcattx); try { if (a && a.url) URL.revokeObjectURL(a.url); } catch (e2) {} return tcRenderAtt(); }
+    if (t.id === 'tcClip') { const fi = document.getElementById('tcFile'); if (fi) fi.click(); return; }
+    if (d.tccap) return tcCapture();
     if (d.tcq) return tcInsert(d.tcq);
     if (d.tcat) { const pk = document.getElementById('tcPicks'); if (!pk) return; if (!pk.hidden) { pk.hidden = true; return; } const me = tcMe(); const names = [...new Set(tcMembers().concat(TC_STAFF))].filter(n => n && n !== me).slice(0, 20); pk.innerHTML = names.map(n => `<button type="button" data-tcpick="${esc(n)}">@${esc(n)}</button>`).join(''); pk.hidden = false; return; }
     if (d.tcpick) { const pk = document.getElementById('tcPicks'); if (pk) pk.hidden = true; return tcInsert('@' + d.tcpick + ' '); }
@@ -7669,10 +7794,13 @@ function tcBind(ov) {
     if (t.id === 'tcNameOk') return tcSetName((document.getElementById('tcNameIn') || {}).value);
     if (t.id === 'tcNameBack') { TC.view = 'chat'; tcRenderSub(); return tcRenderMain(true); }
   });
+  ov.addEventListener('dragover', e => { if (!e.dataTransfer || ![...(e.dataTransfer.types || [])].includes('Files')) return; e.preventDefault(); const p = ov.querySelector('.tc-pan'); if (p) p.classList.add('tc-drop'); });
+  ov.addEventListener('dragleave', e => { const p = ov.querySelector('.tc-pan'); if (p && (!e.relatedTarget || !p.contains(e.relatedTarget))) p.classList.remove('tc-drop'); });
+  ov.addEventListener('drop', e => { const p = ov.querySelector('.tc-pan'); if (p) p.classList.remove('tc-drop'); const fs = e.dataTransfer && e.dataTransfer.files; if (!fs || !fs.length) return; e.preventDefault(); if (!tcMe()) return; if (TC.view !== 'chat') { TC.view = 'chat'; tcRenderSub(); tcRenderMain(true); } tcAddFiles(fs); });
   ov.addEventListener('scroll', e => { if (e.target && e.target.id === 'tcBody' && TC.newBelow) { const b = e.target; if (b.scrollHeight - b.scrollTop - b.clientHeight < 60) { TC.newBelow = 0; const p = document.getElementById('tcNew'); if (p) p.remove(); } } }, true);
 }
 function tcBoot() {
-  tcLoad(); tcHeadBtn(); tcBadge();
+  tcLoad(); tcHeadBtn(); tcBadge(); setTimeout(() => { try { tcImgPrune(); } catch (e) {} }, 20000);
   const go = () => { if (TC.ready) return; if (!tcKey()) { setTimeout(go, 2000); return; } TC.ready = true; tcPoll(true).then(() => { tcSchedule(); if (/(^|[#&])chat\b/.test(location.hash.slice(1))) tcOpen(); }); };
   go();
 }
