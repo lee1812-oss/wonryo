@@ -270,3 +270,75 @@
     ccp247Get = function (type, name) { const ix = (typeof CCP247_IX !== 'undefined' && CCP247_IX[type]) || null, base = _g(type, name); if (!ix) return base; const a = base ? base.slice() : []; let hit = false;
       Object.keys(ix).forEach(f => { const x = fldAvg7(type, f, name); if (x) { a[ix[f]] = x.v; hit = true; } }); return hit ? a : base; }; }
 })();
+
+/* ══ 생산량 입력: 박스·낱개·비상품을 눌러 각각 수량 입력 (2026-10-22 Aside, 사용자 「누르고 각각 수량 입력, 지금 구조는 합계 누적이 이상해」) ══
+   - 예전: 숫자 칸이 하나라 박스에서 친 숫자가 낱개로 바꿔도 그대로 남고, 하나씩 따로 「담기」해야 해서 합계가 헷갈림.
+   - 지금: 한 화면에 박스·낱개·비상품 칸이 따로 있고, 누른 칸에 숫자판 숫자가 들어감(칸을 바꾸면 처음 누른 숫자는 새로). 「담기」 한 번에 세 칸을 모두 담음.
+   - 칸의 숫자 = 이번에 보낼 그 단위의 수량(더하기가 아니라 그 값으로 바꿈). 0이나 빈칸이면 담은 줄을 뺌. 오늘 이미 보낸 수량은 칸 아래에 따로 보여 주고, 맨 아래 합계에 「오늘 보낸 것 + 이번」을 낱개 환산으로 보여 줌.
+   - 담는 방식은 원래 fldQtyPut과 같음(P.draft.lines 줄의 qty, mode ''). 보내기(이카운트)는 원래 화면 「이카운트로 보내기」 그대로. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fqu{display:grid;grid-template-columns:repeat(var(--n,3),minmax(0,1fr));gap:10px;margin:0 0 12px}'
+    + '#fld .fqu button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:128px;padding:12px 14px;border-radius:16px;border:3px solid #D5DDE0;background:#fff;text-align:left;cursor:pointer;color:#1d2a30}'
+    + '#fld .fqu button.on{border-color:#5F3DC4;background:#F3F0FF;box-shadow:0 0 0 3px #D0BFFF}#fld .fqu button .k{font-size:20px;font-weight:800;color:#5F3DC4}#fld .fqu button .k small{font-size:14px;color:#7a7f87;font-weight:600;margin-left:6px}'
+    + '#fld .fqu button .v{font-size:44px;font-weight:800;line-height:1.1;white-space:nowrap}#fld .fqu button .v .ph{font-size:20px;color:#adb5bd;font-weight:700}#fld .fqu button .v small{font-size:18px;color:#607D8B;margin-left:4px}'
+    + '#fld .fqu button .s{font-size:14.5px;color:#607D8B;word-break:keep-all}#fld .fqu button .s.sent{color:#2B8A3E;font-weight:700}'
+    + '#fld .fqsum{margin:12px 0;padding:12px 16px;border-radius:14px;background:#fff;border:2px solid #E5DBFF;font-size:17px;line-height:1.6;color:#2d2a3a;word-break:keep-all}#fld .fqsum b{font-size:20px;color:#5F3DC4}#fld .fqsum .w{color:#B35C00;font-weight:700}'
+    + '#fld .fqpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}#fld .fqpad button{min-height:66px;font-size:30px;font-weight:800;border-radius:14px;border:2px solid #DEE2E6;background:#F8F9FA;color:#173F4B;cursor:pointer}'
+    + '#fld .fqgo{display:flex;gap:10px;margin-top:12px}#fld .fqgo button{flex:1;min-height:66px;font-size:21px;font-weight:800;border-radius:14px;cursor:pointer}#fld .fqgo .pri{background:#5F3DC4;border:2px solid #5F3DC4;color:#fff}#fld .fqgo .sub{background:#fff;border:2px solid #C9B79F;color:#4a3a2a;flex:.45}'
+    + '#fld .fqchip{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}#fld .fqchip button{min-height:52px;padding:6px 16px;font-size:17px;font-weight:800;border-radius:12px;border:2px solid #C9B79F;background:#FFFBF5;color:#5A3A1E;cursor:pointer}#fld .fqchip button small{display:block;font-size:13px;font-weight:600;color:#8a7a66}'
+    + '@media (max-width:520px){#fld .fqu button{min-height:110px;padding:10px}#fld .fqu button .v{font-size:34px}}';
+  document.head.appendChild(st);
+  const units = () => { const it = prodItem(FLD.code) || { code: FLD.code, name: FLD.code, unit: '' }; const F = prodFamily(it);
+    const us = F ? [[F.B, '박스'], [F.E, '낱개'], [F.N, '비상품']].filter(x => x[0]).map(([u, k]) => ({ u, k })) : [{ u: it, k: it.unit || '수량' }]; return { it, F, us }; };
+  const famKey = U => U.us.map(x => x.u.code).join('|');
+  const draftQty = c => { const P = prodS(); if (!P.draft || P.draft.date !== fldD()) return ''; const l = P.draft.lines.find(x => x.code === c); return l && Number(l.qty) > 0 ? String(l.qty) : ''; };
+  const sentQty = c => { let s = 0; try { (prodS().log || []).forEach(en => { if (en.date !== fldD() || en.status === 'cancel') return; (en.lines || []).forEach(l => { if (l.code === c) s += Number(l.qty) || 0; }); }); } catch (e) {} return s; };
+  const init = U => { const k = famKey(U); if (FLD.qxKey === k) return; FLD.qxKey = k; FLD.qx = {}; U.us.forEach(x => { FLD.qx[x.u.code] = draftQty(x.u.code); }); FLD.qa = U.us.some(x => x.u.code === FLD.code) ? FLD.code : U.us[0].u.code; FLD.qt = {}; };
+  const n0 = v => Number(v) || 0, f1 = n => fmt(Math.round(n * 1000) / 1000);
+  fldQtyInHtml = function () { const U = units(); init(U); const pk = U.F && U.F.B ? prodPack(U.F.B) : 0;
+    const tile = x => { const c = x.u.code, v = FLD.qx[c] || '', sn = sentQty(c), unit = esc(x.u.unit || '');
+      return '<button type="button" data-fqa="' + esc(c) + '"' + (FLD.qa === c ? ' class="on"' : '') + '><span class="k">' + esc(x.k) + '<small>' + unit + '</small></span>'
+        + '<span class="v">' + (v === '' ? '<span class="ph">' + (FLD.qa === c ? '숫자를 누르세요' : '눌러서 입력') + '</span>' : esc(v) + '<small>' + unit + '</small>') + '</span>'
+        + '<span class="s' + (sn ? ' sent' : '') + '">' + (sn ? '오늘 이미 보냄 ' + f1(sn) + ' ' + unit : esc(c)) + '</span></button>'; };
+    let chips = ''; try { const s = (prodStats() || {})[FLD.qa] || {}, a = units().us.find(x => x.u.code === FLD.qa), u = esc((a && a.u.unit) || ''); const b = [];
+      const q = v => { const n = Number(v); return n > 0 ? String(Math.round(n * 1000) / 1000) : ''; }; const last = q(s.lastQty), med = q(s.med);
+      if (last) b.push('<button type="button" data-fqs="' + last + '">지난번 ' + last + ' ' + u + (s.last ? '<small>' + esc(String(s.last).slice(5).replace('-', '/')) + ' 생산</small>' : '') + '</button>');
+      if (med && med !== last) b.push('<button type="button" data-fqs="' + med + '">보통 ' + med + ' ' + u + '<small>자주 만든 양</small></button>');
+      if (b.length) chips = '<div class="fqchip">' + b.join('') + '</div>'; } catch (e) {}
+    /* 합계 (낱개 환산) */
+    let sum = ''; { const parts = [], tot = { now: 0, sent: 0 }; let can = true;
+      U.us.forEach(x => { const c = x.u.code, v = n0(FLD.qx[c]), sn = sentQty(c); const per = U.F ? (x.u === U.F.B ? pk : 1) : 1; if (U.F && x.u === U.F.B && !pk) can = false;
+        if (v) parts.push(esc(x.k) + ' ' + f1(v) + ' ' + esc(x.u.unit || '')); tot.now += v * per; tot.sent += sn * per; });
+      sum = '<div class="fqsum">이번에 담을 것: <b>' + (parts.length ? parts.join(' · ') : '없음') + '</b>'
+        + (U.F && can ? '<br>낱개로 환산하면 이번 <b>' + f1(tot.now) + '개</b>' + (tot.sent ? ' + 오늘 이미 보낸 ' + f1(tot.sent) + '개 = <b>오늘 합계 ' + f1(tot.now + tot.sent) + '개</b>' : '') + (pk ? ' <small>(박스 1개 = ' + pk + '개)</small>' : '') : '')
+        + (U.F && !can ? '<br><span class="w">박스 입수를 몰라 낱개 합계는 계산하지 않습니다</span>' : '') + '</div>'; }
+    const keys = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '.', '0', '⌫'].map(k => '<button type="button" data-fqk="' + k + '">' + k + '</button>').join('');
+    return '<h1 class="fld-h">' + fldPic(U.it.name, 1) + '📦 ' + esc(fldShort((U.F && (U.F.B || U.F.E) || U.it).name)) + '</h1>'
+      + '<p class="fld-p">' + (U.us.length > 1 ? '박스·낱개·비상품 칸을 하나씩 누르고 수량을 넣으세요. 다 넣고 「담기」 한 번이면 모두 담깁니다.' : '수량을 넣고 「담기」를 누르세요.') + '</p>'
+      + '<div class="fqu" style="--n:' + U.us.length + '">' + U.us.map(tile).join('') + '</div>' + chips
+      + '<div class="fqpad">' + keys + '</div>' + sum
+      + '<div class="fqgo"><button type="button" class="sub" data-fqclr="1">이 칸 지우기</button><button type="button" class="pri" data-fqput="1">✓ 담기</button></div>'; };
+  const put = () => { const U = units(), D = fldD(), P = prodS(); const codes = U.us.map(x => x.u.code);
+    const any = codes.some(c => n0(FLD.qx[c]) > 0), had = codes.some(c => draftQty(c));
+    if (!any && !had) { toast('수량을 입력하세요'); return; }
+    if (P.draft.date !== D) { if (P.draft.lines.some(l => Number(l.qty) > 0)) { toast('생산 입력에 ' + P.draft.date + ' 날짜로 담긴 품목이 있습니다 — 사무실에서 먼저 보내거나 비워 주세요', 4500); return; } P.draft.date = D; P.draft.lines = []; }
+    if (!(P.draft.workers || []).length) P.draft.workers = prodWorkersDefault(P);
+    const msg = [];
+    codes.forEach((c, i) => { const n = n0(FLD.qx[c]); let l = P.draft.lines.find(x => x.code === c);
+      if (n > 0) { if (!l) { l = prodNewLine(c); P.draft.lines.push(l); } l.qty = String(n); l.mode = ''; msg.push(U.us[i].k + ' ' + n); }
+      else if (l) P.draft.lines = P.draft.lines.filter(x => x !== l); });
+    save(); toast(msg.length ? '담음: ' + fldShort((U.F && (U.F.B || U.F.E) || U.it).name) + ' — ' + msg.join(' · ') : '담은 수량을 뺐습니다', 2500);
+    FLD.qxKey = ''; FLD.step = 'qty'; FLD.q = ''; fieldRender(); };
+  document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('#fld [data-fqa], #fld [data-fqk], #fld [data-fqput], #fld [data-fqclr], #fld [data-fqs], #fld [data-f="qtygo"], #fld [data-f="qtyedit"]'); if (!t) return;
+    if (t.dataset.f === 'qtygo' || t.dataset.f === 'qtyedit') { FLD.qxKey = ''; return; }   /* 원래 처리로 넘김 — 들어갈 때마다 새로 읽음 */
+    if (FLD.step !== 'qtyin') return; e.preventDefault(); e.stopPropagation(); FLD.qx = FLD.qx || {}; FLD.qt = FLD.qt || {};
+    if (t.dataset.fqa) { FLD.qa = t.dataset.fqa; FLD.qt[FLD.qa] = 0; return fieldRender(); }
+    if (t.dataset.fqput) return put();
+    if (t.dataset.fqclr) { FLD.qx[FLD.qa] = ''; return fieldRender(); }
+    if (t.dataset.fqs) { FLD.qx[FLD.qa] = t.dataset.fqs; FLD.qt[FLD.qa] = 0; return fieldRender(); }
+    const k = t.dataset.fqk; let v = String(FLD.qx[FLD.qa] || ''); if (!FLD.qt[FLD.qa] && k !== '⌫') v = ''; FLD.qt[FLD.qa] = 1;   /* 칸을 누른 뒤 처음 숫자는 새로 */
+    if (k === '⌫') v = v.slice(0, -1); else if (k === '.') { if (!v.includes('.')) v = (v || '0') + '.'; } else if (v.replace(/\D/g, '').length < 6) v = (v === '0' ? '' : v) + k;
+    FLD.qx[FLD.qa] = v; fieldRender(); }, true);
+})();
