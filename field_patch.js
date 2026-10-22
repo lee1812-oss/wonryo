@@ -1168,3 +1168,153 @@
   };
   document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#fld .fbr, #fld .fld-top .fld-tt'); if (!b) return; e.preventDefault(); e.stopPropagation(); fldGoStart(); }, true);
 })();
+
+/* ══ 한 일지 = 한 페이지: 위 「시작 · 2시간 · 종료」 3칸, 아래 「설정값」 (2026-10-22 Aside, 사용자 「태블릿 작업영역 페이지가 매 작업마다 넘어가는데, 시작·2시간·종료는 상단, 하단에 설정값, 하나의 일지가 1페이지로」) ══
+   - 오븐·급냉·배합: 품목 목록 화면을 건너뛰고 바로 그 일지 한 페이지로. 품목이 여럿이면 위에 품목 버튼(완료 ✓)으로 바꿈. 「뒤로」는 첫 화면으로.
+   - 3칸 아래 「설정값」 판: 다음에 누를 칸(시작/종료, 넣음/꺼냄, 배합/소진, 점검)에 들어갈 값을 미리 보여 줌(지금 기록 → 오늘 같은 품목 값 → 최근 7일 평균). −/＋로 맞추고, 숫자를 누르면 숫자판.
+   - 칸을 누르면 확인 창 없이 지금 시각 + 설정값으로 바로 저장(저장은 원래 fldSave 그대로: 기준 이탈 경고·개선조치 포함). 이미 저장된 칸을 누르면 고치기 화면.
+   - 오븐 종료: 「사이 2시간 측정 줄 자동」 체크(기본 켜짐)를 설정값 판에 둠. 시작 뒤 10분 안에 종료를 누르면 한 번 묻는다(잘못 누름 방지).
+   - 금속: 작업 전·후 점검/제품 확인의 O·X를 설정값 판에서 바꿈(기본 정상), 제품이 여럿이면 판 안에서 고름. 통과량·검출량은 그대로.
+   - 이 블록을 지우면 이전(확인 창 방식)으로 돌아감. 되돌리기 기준 커밋 7be7c3b. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fpv{background:#fff;border-radius:16px;padding:12px 14px 14px;margin:0 0 14px;box-shadow:0 2px 0 rgba(0,0,0,.15);color:#1F2328}'
+    + '#fld .fpv-hd{display:flex;align-items:baseline;gap:10px;margin:0 0 10px;flex-wrap:wrap}#fld .fpv-hd b{font-size:21px;font-weight:900}#fld .fpv-hd span{font-size:16px;font-weight:700;color:#495057}'
+    + '#fld .fpv-g{display:grid;grid-template-columns:repeat(var(--n,3),1fr);gap:10px}'
+    + '#fld .fpv-f{background:#F1F3F5;border:2px solid #CED4DA;border-radius:14px;padding:8px 8px 10px;text-align:center;min-width:0}#fld .fpv-f.bad{background:#FFF5F5;border-color:#FA5252}'
+    + '#fld .fpv-f small{display:block;font-size:16px;font-weight:800;color:#495057;word-break:keep-all;line-height:1.25;min-height:1.25em}'
+    + '#fld .fov3{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr)!important}@media (max-width:620px){#fld .fov3{grid-template-columns:repeat(3,minmax(0,1fr))!important}}'
+    + '#fld .fpv-r{display:flex;align-items:center;justify-content:center;gap:10px;margin:4px 0 6px}#fld .fpv-f>.v{display:block;margin:4px 0 2px}'
+    + '#fld .fpv-r button{flex:1;max-width:96px;height:56px;border-radius:12px;border:2px solid #ADB5BD;background:#fff;font-size:30px;font-weight:900;color:#1F2328;cursor:pointer;line-height:1;padding:0}#fld .fpv-r button:active{background:#FFF3BF}'
+    + '#fld .fpv-f .v{font-size:40px;font-weight:900;cursor:pointer;white-space:nowrap;line-height:1.1;text-decoration:underline dotted #ADB5BD 2px;text-underline-offset:6px}#fld .fpv-f .v i{font-style:normal;font-size:18px;font-weight:800;color:#495057;margin-left:2px}#fld .fpv-f.bad .v{color:#C92A2A}'
+    + '#fld .fpv-f .l{display:block;font-size:14px;font-weight:700;color:#6c757d;word-break:keep-all}#fld .fpv-f.bad .l{color:#C92A2A}'
+    + '#fld .fpv-ox{display:flex;gap:6px;margin-top:6px}#fld .fpv-ox button{flex:1;min-width:0;min-height:54px;border-radius:12px;border:2px solid #CED4DA;background:#fff;font-size:15px;font-weight:800;color:#868E96;cursor:pointer;white-space:nowrap;letter-spacing:-.3px;padding:2px}'
+    + '#fld .fpv-ox button.on{background:#1F2328;border-color:#1F2328;color:#fff}#fld .fpv-ox button.on.b{background:#C92A2A;border-color:#C92A2A}'
+    + '#fld .fpv-2h{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;border-radius:12px;background:#F8F9FA;border:2px solid #DEE2E6;font-size:17px;font-weight:800;cursor:pointer;word-break:keep-all}#fld .fpv-2h input{width:28px;height:28px;flex:none}'
+    + '#fld .fpv-info{margin:0 0 10px;padding:10px 12px;border-radius:12px;background:#F8F9FA;border:2px solid #DEE2E6;font-size:18px;font-weight:800;text-align:center}#fld .fpv-info.bad{background:#FFF5F5;border-color:#FFC9C9;color:#C92A2A}'
+    + '#fld .fpv-done{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:20px;font-weight:900;color:#2B8A3E}'
+    + '#fld .fpv-done button,#fld .fpv-pk button{min-height:54px;padding:6px 16px;border-radius:12px;border:2px solid #CED4DA;background:#F1F3F5;font-size:17px;font-weight:800;color:#1F2328;cursor:pointer}'
+    + '#fld .fpv-pk{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}#fld .fpv-pk button.on{background:#fff;border-color:#fff;color:#1F2328;box-shadow:0 0 0 3px #F59E0B}#fld .fpv-pk button.ok{color:#2B8A3E}'
+    + '#fld .fpv .fpv-pk{margin:0 0 10px}#fld .fpv .fpv-pk button.on{background:#1F2328;border-color:#1F2328;color:#fff;box-shadow:none}'
+    + '@media (max-width:620px){#fld .fpv-g{gap:6px}#fld .fpv-r{gap:6px}#fld .fpv-r button{height:48px;font-size:24px}#fld .fpv-f .v{font-size:28px}#fld .fpv-f .v i{font-size:14px}#fld .fpv-f small{font-size:14px}#fld .fpv-hd b{font-size:18px}#fld .fpv-hd span{font-size:14px}}';
+  document.head.appendChild(st);
+  const T3 = { oven: 1, freeze: 1, mix: 1 };
+  const mm = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || '')); return m ? +m[1] * 60 + +m[2] : null; };
+  const hm = n => String(Math.floor(n / 60) % 24).padStart(2, '0') + ':' + String(((n % 60) + 60) % 60).padStart(2, '0');
+  const rowsOf = (type, key) => { const g = fldLog(type); if (!g) return []; return (g.rows || []).filter(r => type === 'mix' ? r.name === key : r.code === key); };
+  const fieldsOf = (type, mode, name) => { const sv = FLD.name; try { FLD.name = name; return fldFieldsFor(type, mode) || []; } catch (e) { return []; } finally { FLD.name = sv; } };
+  /* 지금 이 일지에서 다음에 누를 칸 */
+  const state = () => { const type = FLD.type, g = fldLog(type); if (!g) return null;
+    if (type === 'oven') { const rs = rowsOf('oven', FLD.code), s = rs.find(r => r.tag === '시작' && r.time), e = rs.find(r => r.tag === '종료' && r.time);
+      return { type, code: FLD.code, name: FLD.name, mode: !s ? '시작' : !e ? '종료' : '', s, e }; }
+    if (type === 'freeze') { const rs = rowsOf('freeze', FLD.code), open = [...rs].reverse().find(r => r.t1 && !r.t2), done = rs.filter(r => r.t1 && r.t2);
+      return { type, code: FLD.code, name: FLD.name, mode: open ? 'out' : 'in', open, again: !open && done.length > 0 }; }
+    if (type === 'mix') { const rs = rowsOf('mix', FLD.code), open = [...rs].reverse().find(r => r.start && !r.end), done = rs.filter(r => r.start && r.end);
+      return { type, code: FLD.code, name: FLD.name, mode: open ? 'end' : 'start', open, again: !open && done.length > 0 }; }
+    if (type === 'metal') { const pre = (g.rows || []).find(r => r.kind === 'pre' && r.time), post = (g.rows || []).find(r => r.kind === 'post' && r.time);
+      return { type, mode: !pre ? 'pre' : post ? '' : 'item', pre, post }; }
+    return null; };
+  /* 설정값 (화면에 남겨 두고 −/＋로 바꿈) */
+  let P = null;
+  const metalProd = () => { const ps = fldProds('metal'); if (P && P.mp && ps.some(p => p.code === P.mp)) return ps.find(p => p.code === P.mp); return ps[0] || null; };
+  const defv = (type, mode, code, name, row) => { const V = {}; fieldsOf(type, mode, name).forEach(x => { if (x.k === 'time') return; if (x.k === 'ox') { V[x.f] = x.good; return; }
+      let v = row && row[x.f] !== '' && row[x.f] != null ? String(row[x.f]) : '';
+      if (!v && type === 'oven') { const last = [...rowsOf('oven', code)].reverse().find(r => r[x.f] !== '' && r[x.f] != null && r.time); if (last) v = String(last[x.f]); }
+      if (!v) { try { const a = fldAvg7(type, x.f, name); if (a) v = String(a.v); } catch (e) {} }
+      if (x.neg) v = v.replace(/^-/, ''); V[x.f] = v; }); return V; };
+  const panelFor = S => { const key = [fldD(), S.type, S.code || '', S.mode].join('|');
+    if (!P || P.key !== key) { let row = null; try { if (S.type === 'oven') row = rowsOf('oven', S.code).find(r => r.tag === S.mode) || null; else if (S.type === 'freeze' && S.mode === 'out') row = S.open; } catch (e) {}
+      const mp = P && P.mp; P = { key, v: defv(S.type, S.mode, S.code, S.name, row), c2h: true, mp }; }
+    return P; };
+  const valsFor = (type, mode, code, name, row) => { const d = defv(type, mode, code, name, row), out = {}; Object.keys(d).forEach(f => { out[f] = P && P.v && P.v[f] !== undefined && P.v[f] !== '' ? P.v[f] : d[f]; }); return out; };
+  /* 기준 벗어남 표시용 (그 칸만 넣은 줄로 판정) */
+  const badOf = (type, mode, name, x, V, extra) => { try { const r = Object.assign({ name, code: FLD.code, kind: mode, tag: mode }, extra || {}); fieldsOf(type, mode, name).forEach(y => { if (y.k !== 'time') r[y.f] = ''; });
+      r[x.f] = x.neg && V[x.f] !== '' ? '-' + V[x.f] : V[x.f]; if (r[x.f] === '' || r[x.f] == null) return false; return ccpRowState(type, 'rows', r, fldD()).bad.filter(b => !/시간 ?초과|소진|시각/.test(b)).length > 0; } catch (e) { return false; } };
+  const TITLE = { 시작: '시작 측정', 종료: '종료 측정', in: '넣을 때', out: '꺼낼 때', start: '배합할 때', end: '다 쓸 때', pre: '작업 전 점검', item: '제품 확인', post: '작업 후 점검' };
+  const panelHtml = S => {
+    if (!S) return '';
+    if (!S.mode) { let nx = ''; if (S.type === 'oven') { const o = fldProds('oven').find(p => p.code !== S.code && !rowsOf('oven', p.code).some(r => r.tag === '종료' && r.time)); if (o) nx = '<button type="button" data-fpv="item" data-c="' + esc(o.code) + '">다음 품목: ' + esc(fldShort(o.name)) + ' ›</button>'; }
+      return '<div class="fpv"><div class="fpv-done"><span>✓ ' + esc(S.type === 'metal' ? '금속검출' : fldShort(S.name)) + ' ' + esc(CCP_TYPES[S.type].short) + ' 일지 완료</span>' + nx + '</div></div>'; }
+    const Pn = panelFor(S); let name = S.name, extra = null;
+    let mprod = ''; if (S.type === 'metal' && S.mode === 'item') { const ps = fldProds('metal'), mp = metalProd(); name = mp ? mp.name : '';
+      if (ps.length > 1) mprod = '<div class="fpv-pk">' + ps.map(p => '<button type="button" data-fpv="mprod" data-c="' + esc(p.code) + '" class="' + (mp && p.code === mp.code ? 'on' : '') + '">' + esc(fldShort(p.name)) + '</button>').join('') + '</div>'; }
+    if (S.type === 'metal' && S.mode !== 'item') name = S.mode === 'pre' ? '작업 전' : '작업 후';
+    const fs = fieldsOf(S.type, S.mode, name).filter(x => x.k !== 'time'); const V = Pn.v;
+    fs.forEach(x => { if (V[x.f] === undefined) { const d = defv(S.type, S.mode, S.code, name, null); V[x.f] = d[x.f]; } });
+    if (S.type === 'freeze' && S.mode === 'out' && S.open) extra = { t1: S.open.t1, v1: S.open.v1 };
+    let info = '';
+    if (S.type === 'freeze' && S.mode === 'out' && S.open) { const L = (() => { try { return ccpLimAt(fldD()).frz || [60, 1440]; } catch (e) { return [60, 1440]; } })(), el = (mm(fldHM()) - mm(S.open.t1) + 1440) % 1440, bad = el < L[0] || el > L[1];
+      info = '<div class="fpv-info' + (bad ? ' bad' : '') + '">넣은 시각 ' + esc(S.open.t1) + ' → 지금까지 ' + (el < 60 ? el + '분' : Math.floor(el / 60) + '시간 ' + (el % 60) + '분') + (bad ? ' · 기준 ' + (L[0] / 60) + '~' + (L[1] / 60) + '시간' : ' ✓') + '</div>'; }
+    if (S.type === 'mix' && S.mode === 'end' && S.open) { const el = (mm(fldHM()) - mm(S.open.start) + 1440) % 1440; info = '<div class="fpv-info' + (el > 120 ? ' bad' : '') + '">' + esc(S.open.start) + ' 배합 → 지금 ' + el + '분' + (el > 120 ? ' · 기준 2시간 이내' : ' ✓ 2시간 이내') + '</div>'; }
+    const box = x => { if (x.k === 'ox') return '<div class="fpv-f"><small>' + esc(x.lb) + '</small><div class="fpv-ox">'
+        + ['O', 'X'].map(o => '<button type="button" data-fpv="ox" data-k="' + x.f + '" data-v="' + o + '" class="' + (V[x.f] === o ? 'on' + (o !== x.good ? ' b' : '') : '') + '">' + esc(o === 'O' ? x.yes : x.no) + '</button>').join('') + '</div></div>';
+      const bad = badOf(S.type, S.mode, name, x, V, extra), v = V[x.f];
+      return '<div class="fpv-f' + (bad ? ' bad' : '') + '"><small>' + esc(x.lb) + '</small><span class="v" data-fpv="kp" data-k="' + x.f + '">' + (x.neg && v ? '−' : '') + esc(v || '—') + '<i>' + esc(x.u || '') + '</i></span><div class="fpv-r"><button type="button" data-fpv="dn" data-k="' + x.f + '">−</button><button type="button" data-fpv="up" data-k="' + x.f + '">＋</button></div>' + (x.lim ? '<span class="l">기준 ' + esc(x.lim) + '</span>' : '') + '</div>'; };
+    let h2 = ''; if (S.type === 'oven' && S.mode === '종료' && S.s) { const sM = mm(S.s.time), eM = mm(fldHM()), have = rowsOf('oven', S.code).filter(r => r.tag !== '시작' && r.tag !== '종료' && r.time).map(r => mm(r.time)), sl = [];
+      for (let t = sM + 120; eM != null && sM != null && t < eM - 10; t += 120) if (!have.some(q => Math.abs(q - t) <= 30)) sl.push(hm(t));
+      h2 = '<label class="fpv-2h"><input type="checkbox" data-fpv="c2h"' + (Pn.c2h ? ' checked' : '') + '> 사이 2시간 측정 줄 자동으로 만들기' + (sl.length ? ' (' + esc(sl.join(' · ')) + ')' : ' (지금 종료하면 해당 없음)') + '</label>'; }
+    const n = fs.length ? Math.min(fs.length, fs.some(x => x.k === 'ox') ? (fs.length > 3 ? 3 : fs.length) : fs.length > 3 ? 2 : fs.length) : 1;
+    return '<div class="fpv"><div class="fpv-hd"><b>설정값 · ' + esc((S.again ? '다음 배치 ' : '') + TITLE[S.mode]) + '</b><span>' + (fs.length ? (fs.some(x => x.k === 'num') ? '다르면 − ＋ 로 맞추고 위 칸을 누르세요' : '다르면 바꾸고 위 칸을 누르세요') : '위 칸을 누르면 지금 시각으로 저장') + '</span></div>'
+      + mprod + info + (fs.length ? '<div class="fpv-g" style="--n:' + n + '">' + fs.map(box).join('') + '</div>' : '') + h2 + '</div>'; };
+  /* 품목 버튼 (오븐·급냉·배합) */
+  const doneOf = (type, code) => { const rs = rowsOf(type, code); if (type === 'oven') return rs.some(r => r.tag === '종료' && r.time); if (type === 'freeze') return rs.some(r => r.t2) && !rs.some(r => r.t1 && !r.t2); if (type === 'mix') return rs.some(r => r.end) && !rs.some(r => r.start && !r.end); return false; };
+  const pickHtml = () => { const ps = fldProds(FLD.type); if (ps.length < 2) return ''; return '<div class="fpv-pk">' + ps.map(p => { const ok = doneOf(FLD.type, p.code); return '<button type="button" data-fpv="item" data-c="' + esc(p.code) + '" class="' + (p.code === FLD.code ? 'on' : '') + (ok ? ' ok' : '') + '">' + esc(fldShort(p.name)) + (ok ? ' ✓' : '') + '</button>'; }).join('') + '</div>'; };
+  const choose = type => { const ps = fldProds(type); if (!ps.length) return null; return ps.find(p => p.code === FLD.code) || ps.find(p => !doneOf(type, p.code)) || ps[0]; };
+  /* 그리기: 품목 목록 → 바로 일지 한 페이지, 3칸 아래에 설정값 판 */
+  const _r = fieldRender;
+  fieldRender = function () {
+    try { if (FLD.open && FLD.step === 'type' && T3[FLD.type] && fldLog(FLD.type)) { const p = choose(FLD.type); if (p) { FLD.code = p.code; FLD.name = p.name; FLD.step = 'mode'; } } } catch (e) {}
+    _r.apply(this, arguments);
+    try { if (!FLD.open) return; const body = document.querySelector('#fld .fld-body'), g3 = body && body.querySelector('.fov3'); if (!g3) return;
+      const isPage = (FLD.step === 'mode' && T3[FLD.type]) || (FLD.step === 'type' && FLD.type === 'metal'); if (!isPage) return;
+      if (FLD.step === 'mode') { const pk = pickHtml(); if (pk) g3.insertAdjacentHTML('beforebegin', pk); }
+      g3.insertAdjacentHTML('afterend', panelHtml(state()));
+      try { fldFit(); } catch (e) {} } catch (e) {} };
+  /* 저장: 확인 창 없이 지금 시각 + 설정값 */
+  const save = (type, mode, code, name, row, sec, back, opt) => { const V = valsFor(type, mode, code, name, row);
+    FLD.type = type; FLD.mode = mode; FLD.code = code; FLD.name = name; fldStartForm(row || null, sec || 'rows'); if (FLD.step !== 'form') return;
+    const now = fldHM(); FLD.fields.forEach(x => { if (x.k === 'time') FLD.vals[x.f] = now; else if (V[x.f] !== '' && V[x.f] != null) FLD.vals[x.f] = String(V[x.f]); });
+    if (type === 'oven') { window.__f2hDirect = !!(opt && opt.c2h); window.__fq2Back = true; } else window.__fqBack = back || 'mode';
+    const no2h = type === 'oven' && mode === '종료' && !(opt && opt.c2h);
+    P = null; fldSave(); if (FLD.step === 'form') window.__f2hDirect = false;
+    if (no2h) [250, 500].forEach(ms => setTimeout(() => { const d = document.querySelector('.fwarn-bg.f2h'); if (d) d.remove(); }, ms)); };
+  /* 숫자판으로 직접 입력 (원래 입력 화면, 그 칸부터) */
+  const keypad = (type, mode, code, name, row, sec, back, f) => { const V = valsFor(type, mode, code, name, row);
+    FLD.type = type; FLD.mode = mode; FLD.code = code; FLD.name = name; fldStartForm(row || null, sec || 'rows'); if (FLD.step !== 'form') return;
+    FLD.fields.forEach((x, i) => { if (x.k !== 'time' && V[x.f] !== '' && V[x.f] != null) FLD.vals[x.f] = String(V[x.f]); if (x.f === f) FLD.fi = i; });
+    if (type === 'oven') window.__fq2Back = true; else window.__fqBack = back || 'mode'; fieldRender(); };
+  const edit = (type, mode, code, name, row, sec, back) => { FLD.type = type; FLD.mode = mode; FLD.code = code; FLD.name = name; if (type === 'oven') window.__fq2Back = true; else window.__fqBack = back || 'mode'; fldStartForm(row || null, sec || 'rows'); };
+  /* 지금 누른 것이 어느 일지 칸인지 */
+  const target = (S, mode) => { const type = S.type;
+    if (type === 'oven') { const rs = rowsOf('oven', S.code), row = mode === '중간' ? null : rs.find(r => r.tag === mode) || null; return { type, mode, code: S.code, name: S.name, row, done: !!(row && row.time), back: 'mode' }; }
+    if (type === 'freeze') { const tg = fldTarget('freeze', S.code, mode); return { type, mode, code: S.code, name: S.name, row: tg && tg.row, none: !tg || tg.none, back: 'mode' }; }
+    if (type === 'mix') { if (mode === 'end') { const r = S.open; return { type, mode, code: S.code, name: S.name, row: r, none: !r, back: 'mode' }; } const tg = fldTarget('mix', S.code, 'start'); return { type, mode, code: S.code, name: S.name, row: tg && tg.row, back: 'mode' }; }
+    if (type === 'metal') { if (mode === 'pre' || mode === 'post') { const tg = fldTarget('metal', mode, mode); const row = tg && tg.row; return { type, mode, code: mode, name: mode === 'pre' ? '작업 전' : '작업 후', row, done: !!(row && row.time), back: 'type' }; }
+      const p = metalProd(); if (!p) return { none: 1, msg: '오늘 금속검출 품목이 없습니다 — 먼저 작업 시작' }; const tg = fldTarget('metal', p.code, 'item'); return { type, mode: 'item', code: p.code, name: p.name, row: tg && tg.row, back: 'type' }; }
+    return null; };
+  const press = (S, mode) => { const t = target(S, mode); if (!t) return; if (t.none) { if (t.msg) toast(t.msg); return; }
+    if (t.done) return edit(t.type, t.mode, t.code, t.name, t.row, 'rows', t.back);
+    if (t.type === 'oven' && mode !== '시작' && !(S.s && S.s.time)) { toast('먼저 「시작 측정」을 누르세요'); return; }
+    if (t.type === 'oven' && mode === '종료') { const el = (mm(fldHM()) - mm(S.s.time) + 1440) % 1440; if (el < 10 && !confirm(fldShort(t.name) + ' — 시작(' + S.s.time + ')한 지 ' + el + '분밖에 안 됐습니다.\n지금 종료로 저장할까요?')) return; }
+    save(t.type, t.mode, t.code, t.name, t.row, 'rows', t.back, { c2h: !P || P.c2h !== false }); };
+  /* 누르기 (기존 확인 창보다 먼저 받음) */
+  window.addEventListener('click', ev => { const el = ev.target.closest && ev.target.closest('#fld [data-fpv], #fld .fov3 [data-fq2], #fld .fov3 [data-fq3], #fld .fov3 .mid[data-m="중간"], #fld .fld-top [data-f="back"]'); if (!el || !FLD.open) return;
+    if (el.matches('[data-f="back"]')) { if (FLD.step === 'mode' && T3[FLD.type]) { ev.preventDefault(); ev.stopImmediatePropagation(); P = null; FLD.step = 'home'; fieldRender(); } return; }
+    const S = state(); if (!S) return;
+    if (el.dataset.fpv === 'c2h') { if (P) P.c2h = el.checked; return; }
+    ev.preventDefault(); ev.stopImmediatePropagation();
+    const a = el.dataset.fpv;
+    if (a === 'item') { const p = fldProds(FLD.type).find(x => x.code === el.dataset.c); if (p) { FLD.code = p.code; FLD.name = p.name; P = null; } return fieldRender(); }
+    if (a === 'mprod') { if (P) P.mp = el.dataset.c; else P = { key: '', v: {}, mp: el.dataset.c }; return fieldRender(); }
+    if (a === 'ox') { if (P) P.v[el.dataset.k] = el.dataset.v; return fieldRender(); }
+    if (a === 'up' || a === 'dn') { if (!P) return; const k = el.dataset.k, fx = fieldsOf(S.type, S.mode, S.name).find(x => x.f === k) || {}; let v = parseFloat(P.v[k]); if (!isFinite(v)) v = 0;
+      let d = a === 'up' ? 1 : -1; if (fx.neg) d = -d; v = Math.round((v + d) * 10) / 10; if (v < 0) v = 0; P.v[k] = String(v); return fieldRender(); }
+    if (a === 'kp') { const t = target(S, S.mode); if (!t || t.none) return; return keypad(t.type, t.mode, t.code, t.name, t.row, 'rows', t.back, el.dataset.k); }
+    if (el.dataset.fq2) return press(S, el.dataset.fq2);
+    if (el.matches('.mid[data-m="중간"]')) { if (S.e && S.e.time) { toast('종료까지 저장됐습니다 — 2시간 측정은 아래 「오늘 기록」에서 고치세요'); return; } return press(S, '중간'); }
+    if (el.dataset.fq3) { const [type, m] = el.dataset.fq3.split(':'); if (!m) return; if (type !== S.type) return;
+      if (type === 'freeze' && m === 'in' && S.open) { toast('꺼냄을 먼저 누르세요 (' + S.open.t1 + ' 넣은 것)'); return; }
+      if (type === 'mix' && m === 'start' && S.open) { toast('소진을 먼저 누르세요 (' + S.open.start + ' 배합한 것)'); return; }
+      return press(S, m); } }, true);
+})();
