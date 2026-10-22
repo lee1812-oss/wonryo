@@ -992,3 +992,39 @@
     } catch (e) {}
     return h; };
 })();
+
+
+/* ══ 빵을그리다 로고 + HACCP 마크 + 기록 책임자 (2026-10-22 Aside, 사용자 「로고·해썹 마크를 넣어 일지 작성자가 소속감과 책임감을 갖도록」, 「일지 작성 완료가 불필요하게 뜸」) ══
+   - 위 제목줄: 🍞 대신 빵을그리다 로고 그림.
+   - 첫 화면 맨 위: 로고 · 「빵을그리다」 · HACCP 인증 번호(제2022-3-1013호) · 식약처 HACCP 마크 · 도장 모양 「기록 책임자 ○○○」(👤 작업자 이름).
+   - 「✍ 일지 작성 완료」 칸은 오늘 작업 시작한 품목이 있을 때만 보임(품목을 뺐는데 빈 배합·금속 일지가 남아 「입력 필요」로 뜨던 문제). 원래 함수는 감싸기만 함. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fbr-hlogo{height:26px;width:auto;vertical-align:-6px;margin-right:6px;background:#fff;border-radius:7px;padding:2px 4px}'
+    + '#fld .fbr{display:flex;align-items:center;gap:14px;background:#fff;border-radius:16px;padding:12px 16px;margin:0 0 12px;box-shadow:0 3px 0 rgba(0,0,0,.18)}'
+    + '#fld .fbr-logo{height:64px;width:auto;flex:none}'
+    + '#fld .fbr-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}'
+    + '#fld .fbr-t b{font-size:26px;font-weight:900;color:#7A4A23;letter-spacing:-.5px;line-height:1.15;white-space:nowrap}'
+    + '#fld .fbr-t span{font-size:15px;font-weight:700;color:#0F766E;white-space:nowrap}'
+    + '#fld .fbr-who{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid #B42318;color:#B42318;border-radius:12px;padding:4px 12px;transform:rotate(-3deg);line-height:1.15}'
+    + '#fld .fbr-who small{font-size:12px;font-weight:800;letter-spacing:1px;color:#B42318!important}#fld .fbr-who b{font-size:22px;font-weight:900;white-space:nowrap;color:#B42318!important}#fld .fbr-t b{color:#7A4A23!important}#fld .fbr-t span{color:#0F766E!important}'
+    + '#fld .fbr-mark{height:72px;width:72px;flex:none}'
+    + '@media (max-width:520px){#fld .fbr{gap:8px;padding:10px}#fld .fbr-logo{height:48px}#fld .fbr-mark{height:54px;width:54px}#fld .fbr-t b{font-size:21px}#fld .fbr-t span{font-size:12px}#fld .fbr-who b{font-size:17px}}';
+  document.head.appendChild(st);
+  const _head = fldHead;
+  fldHead = function () { const h = _head.apply(this, arguments); return h.replace('🍞 생산실', '<img class="fbr-hlogo" src="brand_logo.png" alt="">생산실'); };
+  const _home = fldHomeHtml;
+  fldHomeHtml = function () { let h = _home.apply(this, arguments);
+    try {
+      /* 오늘 작업 시작한 품목이 없으면 「일지 작성 완료」 칸 숨김 */
+      const started = /class="fsf-c done[^"]*" data-f="ws"/.test(h), a = h.indexOf('<div class="fld-card"><b>✍ 일지 작성 완료</b>');
+      if (!started && a >= 0) { const e = h.indexOf('<div class="fld-auto">', a); h = e < 0 ? h.slice(0, a) : h.slice(0, a) + h.slice(e); }
+      let wk = ''; try { wk = fldWk() || ''; } catch (er) {}
+      const br = '<div class="fbr"><img class="fbr-logo" src="brand_logo.png" alt="빵을그리다"><div class="fbr-t"><b>빵을그리다</b><span>HACCP 인증 제2022-3-1013호</span></div>'
+        + (wk ? '<div class="fbr-who"><small>기록 책임자</small><b>' + esc(wk) + '</b></div>' : '')
+        + '<img class="fbr-mark" src="haccp_mark.png" alt="HACCP"></div>';
+      h = br + h;
+    } catch (e) {}
+    return h; };
+})();
