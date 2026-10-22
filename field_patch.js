@@ -1363,3 +1363,74 @@
   const _wsMin = fldWsHtml;
   fldWsHtml = function () { let h = _wsMin(); try { h = String(h).replace(/<h1 class="fld-h">(?:(?!<\/h1>)[\s\S])*지금 만들 품목(?:(?!<\/h1>)[\s\S])*<\/h1>/, '').replace(/<p class="fld-p">(?:(?!<\/p>)[\s\S])*바로 생깁니다(?:(?!<\/p>)[\s\S])*<\/p>/, '').replace(' — 잘못 넣었으면 빼세요</b>', '</b>').replace(/(<div class="fwsdel">[\s\S]*?)<small>(?:(?!<\/small>)[\s\S])*<\/small>/, '$1'); } catch (e) {} return h; };
 })();
+
+/* ===== PC 화면 (넓은 화면 배치) — 2026-10-22 사용자 「생산실 일지 PC 버전으로도」 =====
+   - 같은 주소·같은 기록. 넓은 화면(가로 1100px 이상) + 마우스인 PC에서만 켜짐. 태블릿·휴대폰·포스기(1024)는 그대로.
+   - 왼쪽: 단계 목록(작업 시작~생산량)이 항상 보임, 지금 보는 단계는 흰색+파란 줄. 오른쪽: 지금 일지(원래 화면 그대로).
+   - 키보드: 원래 앱에 이미 있음(숫자판 숫자·Backspace, Enter = 다음 칸, Esc = 뒤로). 여기서는 왼쪽 아래 안내만 보여 줌. 저장은 직접 누름.
+   - 주소 끝 ?pc=1 이면 항상 PC 화면, ?pc=0 이면 끔(이 기기에 기억). 이 블록을 지우면 원래대로. */
+(function () { if (!window.FIELD_APP) return;
+  const KEY = 'fld_pc_mode';
+  try { const q = new URLSearchParams(location.search).get('pc'); if (q === '1' || q === '0') localStorage.setItem(KEY, q); } catch (e) {}
+  const pref = () => { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } };
+  const wideFine = () => innerWidth >= 1100 && matchMedia('(pointer:fine)').matches;
+  const isPC = () => { const p = pref(); if (p === '1') return innerWidth >= 900; if (p === '0') return false; return wideFine(); };
+  const css = document.createElement('style'); css.id = 'fpc-css';
+  css.textContent = ''
+    + 'html body #fld.fpc .fld-body{display:grid!important;grid-template-columns:300px minmax(0,1fr);gap:22px;align-items:start;max-width:none!important;padding-left:18px;padding-right:22px}'
+    + '#fld.fpc .fpc-main{min-width:0}'
+    + '#fld.fpc .fpc-side{position:sticky;top:12px;display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:18px;background:rgba(255,255,255,.06);border:1px solid #26365C}'
+    + '#fld.fpc .fpc-br{display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:10px 12px}'
+    + '#fld.fpc .fpc-br img{width:46px;height:46px;object-fit:contain;border-radius:10px}'
+    + '#fld.fpc .fpc-br b{display:block;font-size:19px;color:#7A4A23}#fld.fpc .fpc-br small{display:block;font-size:13px;color:#444;font-weight:700}'
+    + '#fld.fpc .fpc-i{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:40px 1fr;align-items:center;gap:8px;padding:12px 12px;border-radius:14px;background:#EEF1F5;border:3px solid transparent;color:#1B1F27;min-height:72px}'
+    + '#fld.fpc .fpc-i:hover{background:#fff}'
+    + '#fld.fpc .fpc-i .n{font-size:26px;font-weight:800;color:#5A6476;text-align:center}'
+    + '#fld.fpc .fpc-i b{display:block;font-size:19px;line-height:1.25}#fld.fpc .fpc-i b .tag{font-size:13px;margin-left:6px;color:#2B8A3E}'
+    + '#fld.fpc .fpc-i small{display:block;font-size:14px;font-weight:600;color:#495057;margin-top:3px;word-break:keep-all;overflow-wrap:break-word}'
+    + '#fld.fpc .fpc-i.done .n{color:#2B8A3E}'
+    + '#fld.fpc .fpc-i.kdue small{color:#C2410C;font-weight:800}'
+    + '#fld.fpc .fpc-i.now{background:linear-gradient(#FFE066,#FCC419);border-color:#1E4FD8}'
+    + '#fld.fpc .fpc-i.cur{background:#fff;border-color:#1E4FD8;box-shadow:inset 8px 0 0 #1E4FD8;padding-left:18px}'
+    + '#fld.fpc .fpc-kb{font-size:13px;color:#AFC0DD;font-weight:600;line-height:1.5;padding:4px 4px 0;word-break:keep-all}'
+    + '#fld.fpc .fpc-off,#fld .fpc-on{all:unset;cursor:pointer;font-size:13px;color:#AFC0DD;text-decoration:underline;padding:4px;text-align:center}'
+    + 'html body #fld.fpc .fld-save{left:322px!important}'
+    + '#fld.fpc .fpc-main > .fbr{display:none}'
+    + '#fld.fpc .fpc-main .fsf.kio .fsf-c.now{min-height:360px!important}';
+  document.head.appendChild(css);
+  const curKey = () => { const s = FLD.step; if (s === 'ws') return 'f:ws'; if (s === 'qty' || s === 'qtyin') return 'f:qty'; if (s === 'home' || s === 'who') return ''; return FLD.type ? 'g:' + FLD.type : ''; };
+  function sideHtml() { let h = ''; try { h = fldHomeHtml(); } catch (e) { return ''; }
+    const t = document.createElement('template'); t.innerHTML = h; const ck = curKey();
+    const br = t.content.querySelector('.fbr'); let top = '';
+    if (br) { const lg = br.querySelector('.fbr-logo'), who = br.querySelector('.fbr-who b');
+      top = '<button type="button" class="fpc-i fpc-home" data-fgo="home" style="display:none"></button><div class="fpc-br">' + (lg ? '<img src="' + lg.getAttribute('src') + '" alt="">' : '') + '<div><b>빵을그리다</b><small>기록 책임자 ' + (who ? who.textContent : '') + '</small></div></div>'; }
+    const items = [...t.content.querySelectorAll('.fsf-c')].map(c => { const d = c.dataset, k = d.fgo ? 'g:' + d.fgo : 'f:' + (d.f || '');
+      const at = d.fgo ? 'data-fgo="' + d.fgo + '"' : 'data-f="' + d.f + '"';
+      const cls = ['fpc-i'].concat(['done', 'now', 'kdue'].filter(x => c.classList.contains(x))); if (k === ck) cls.push('cur');
+      const n = c.querySelector('.n'), b = c.querySelector('.t b'), sm = c.querySelector('.t small');
+      return '<button type="button" class="' + cls.join(' ') + '" ' + at + '><span class="n">' + (n ? n.innerHTML : '') + '</span><span><b>' + (b ? b.innerHTML : '') + '</b>' + (sm ? '<small>' + sm.innerHTML + '</small>' : '') + '</span></button>'; }).join('');
+    return top + items + '<div class="fpc-kb">⌨ 숫자판이 보이면 키보드로 숫자 입력 · Enter 다음 칸 · Esc 뒤로</div><button type="button" class="fpc-off">태블릿 화면으로 보기</button>'; }
+  let busy = false;
+  function apply() { if (busy) return; const box = document.getElementById('fld'); if (!box) return; const body = box.querySelector('.fld-body');
+    const on = isPC() && FLD.open && body; box.classList.toggle('fpc', !!on);
+    if (!body) return;
+    if (!on) { const m = body.querySelector(':scope > .fpc-main'); if (m || body.querySelector(':scope > .fpc-side')) { busy = true; try { const sd = body.querySelector(':scope > .fpc-side'); if (sd) sd.remove(); if (m) { while (m.firstChild) body.insertBefore(m.firstChild, m); m.remove(); } } finally { busy = false; } }
+      addOn(body); return; }
+    busy = true; try {
+      let side = body.querySelector(':scope > .fpc-side'), main = body.querySelector(':scope > .fpc-main');
+      if (!main) { main = document.createElement('div'); main.className = 'fpc-main'; [...body.childNodes].filter(n => n !== side).forEach(n => main.appendChild(n)); body.appendChild(main); }
+      else { [...body.childNodes].filter(n => n !== side && n !== main).forEach(n => main.appendChild(n)); }
+      if (!side) { side = document.createElement('div'); side.className = 'fpc-side'; body.insertBefore(side, main); }
+      const sh = sideHtml(); if (side.__h !== sh) { side.innerHTML = sh; side.__h = sh; }
+    } finally { busy = false; }
+    try { fldFit(); } catch (e) {} }
+  function addOn(body) { if (pref() !== '0' || !wideFine()) return; const ft = body.querySelector('.fapp-foot'); if (!ft || ft.querySelector('.fpc-on')) return; ft.insertAdjacentHTML('beforeend', '<button type="button" class="fpc-on">🖥 PC 화면으로 보기</button>'); }
+  const _r = fieldRender; fieldRender = function () { const r = _r.apply(this, arguments); try { apply(); } catch (e) {} return r; };
+  const mo = new MutationObserver(() => { if (busy) return; const box = document.getElementById('fld'), body = box && box.querySelector('.fld-body'); if (!body) return;
+    const on = isPC() && FLD.open; const ok = on ? (body.children.length === 2 && body.querySelector(':scope > .fpc-side') && body.querySelector(':scope > .fpc-main')) : !body.querySelector(':scope > .fpc-main');
+    if (!ok) Promise.resolve().then(() => { try { apply(); } catch (e) {} }); });
+  const hook = () => { const box = document.getElementById('fld'); if (!box) return setTimeout(hook, 500); mo.observe(box, { childList: true, subtree: true }); apply(); }; hook();
+  addEventListener('resize', () => { clearTimeout(window.__fpcT); window.__fpcT = setTimeout(() => { try { apply(); } catch (e) {} }, 200); });
+  document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('#fld .fpc-off, #fld .fpc-on'); if (!t) return; e.preventDefault(); e.stopPropagation();
+    try { localStorage.setItem(KEY, t.classList.contains('fpc-on') ? '1' : '0'); } catch (er) {} try { fieldRender(); } catch (er) {} apply(); }, true);
+})();
