@@ -1494,3 +1494,54 @@
       if (dn && !dn.querySelector('[data-fgo="metal"]') && fldProds('metal').length) dn.insertAdjacentHTML('beforeend', '<button type="button" class="fpv-nm" data-fgo="metal">다음: 🧲 금속검출 ›</button>'); } } catch (e) {}
     return r; };
 })();
+
+
+/* ===== 품목 목록 분류 제목·카드 색 통일 — 2026-10-22 사용자 「화면 제목이랑 빵이랑 일관성 있게, 제목은 배경 채우기」 =====
+   - 분류 제목(몽블랑류·크로와상류…)을 그 분류 색으로 꽉 채우고 흰 글씨, 모서리·그림자는 품목 카드와 같게.
+   - 그 분류의 품목 카드에는 같은 색 왼쪽 띠 + 아주 옅은 같은 색 바탕 → 제목과 카드가 한 묶음으로 보임.
+   - 넓은 화면(PC, 위 「한 화면 배치」 블록의 .fwide)에서는 분류마다 한 단: 제목이 모두 맨 위 한 줄에 나란히, 그 분류 품목은 바로 아래로. 단 폭은 화면에 맞춰 같게 나눔.
+   - 색은 원래 제목 왼쪽 띠 색을 읽어 흰 글씨가 잘 보이게 진하게만 바꿈(새 분류도 자동). 이 블록을 지우면 원래대로. */
+(function () { if (!window.FIELD_APP) return;
+  const css = document.createElement('style'); css.id = 'fgh-css';
+  css.textContent = ''
+    + '#fld .fld-gh.fgc{background:var(--gc)!important;color:#fff!important;border:0!important;border-radius:14px!important;padding:8px 14px!important;'
+    + 'box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 3px 0 rgba(0,0,0,.18)!important;letter-spacing:-.2px;text-shadow:0 1px 1px rgba(0,0,0,.25)}'
+    + '#fld .fld-gh.fgc span{background:rgba(255,255,255,.24)!important;color:#fff!important;border-radius:999px;padding:1px 9px;margin-left:6px;font-weight:800}'
+    + '#fld .fld-grid.fgc > .ft{border-left:7px solid var(--gc)!important}'
+    + '#fld .fld-grid.fgc > .ft{background:var(--gt)!important}'
+    + '#fld.fwide .fwl{display:grid!important;columns:auto!important;grid-template-rows:auto auto;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);column-gap:10px;row-gap:0;align-items:start}'
+    + '#fld.fwide .fwl > .fld-gh{margin:0 0 8px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:10px!important;padding-right:8px!important}'
+    + '#fld.fwide .fwl > .fld-gh span{margin-left:4px;padding:1px 7px}'
+    + '#fld.fwide .fwl > .fld-grid{margin:0!important}'
+    + '#fld.fwide .fwl > .fld-grid > .ft{padding-left:8px!important;padding-right:8px!important;gap:8px}'
+    + '#fld.fwide .fwl .pimg{width:40px!important;height:40px!important}'
+    + '#fld.fwide .fwl .ft b,#fld.fwide .fwl .ft small{word-break:keep-all;overflow-wrap:anywhere}'
+    + '#fld.fwide .fwl > .fspan{grid-column:span 2}'
+    + '#fld.fwide .fwl > .fld-grid.fspan{display:grid!important;grid-template-columns:1fr 1fr;column-gap:8px;align-items:start}';
+  document.head.appendChild(css);
+  const cache = {};
+  function tone(c) { if (cache[c]) return cache[c]; const m = c.match(/\d+(\.\d+)?/g); if (!m || m.length < 3) return null;
+    let [r, g, b] = m.slice(0, 3).map(Number); if (m.length > 3 && Number(m[3]) === 0) return null;
+    const lum = (r, g, b) => { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(r) + .7152 * f(g) + .0722 * f(b); };
+    const hsl = (r, g, b) => { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0;
+      if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6; } return [h, s, l]; };
+    const rgb = (h, s, l) => { if (!s) return [l, l, l].map(v => v * 255); const q = l < .5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+      const f = t => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < .5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; }; return [f(h + 1 / 3), f(h), f(h - 1 / 3)].map(v => v * 255); };
+    let [hh, ss, ll] = hsl(r, g, b); ss = Math.min(1, ss < .15 ? ss : ss * 1.1); let o = rgb(hh, ss, ll);
+    for (let i = 0; i < 40 && lum(...o) > .2; i++) { ll -= .015; o = rgb(hh, ss, ll); }
+    const d = 'rgb(' + o.map(Math.round).join(',') + ')';
+    const t = 'rgb(' + [r, g, b].map(v => Math.round(255 - (255 - v) * .13)).join(',') + ')';
+    return (cache[c] = { d, t }); }
+  function paint() { const box = document.getElementById('fld'); if (!box) return;
+    box.querySelectorAll('.fld-gh').forEach(h => { let col = h.dataset.gc0; if (!col) { const bc = getComputedStyle(h).borderLeftColor, bw = parseFloat(getComputedStyle(h).borderLeftWidth); if (!bw) return; col = h.dataset.gc0 = bc; }
+      const t = tone(col); if (!t) return; h.classList.add('fgc'); h.style.setProperty('--gc', t.d);
+      const g = h.nextElementSibling; if (g && g.classList.contains('fld-grid')) { g.classList.add('fgc'); g.style.setProperty('--gc', t.d); g.style.setProperty('--gt', t.t); } }); }
+  /* 넓은 화면에서 그래도 아래로 넘치면 품목이 가장 많은 분류부터 2줄로 나눠 높이를 줄임(최대 2개 분류) */
+  function balance() { const box = document.getElementById('fld'); if (!box || !box.classList.contains('fwide')) return; const wl = box.querySelector('.fwl'); if (!wl || wl.dataset.fbal) return; wl.dataset.fbal = '1';
+    for (let k = 0; k < 2; k++) { if (box.scrollHeight - box.clientHeight <= 1) break;
+      const gs = [...wl.querySelectorAll(':scope > .fld-grid:not(.fspan)')].filter(g => g.offsetParent && g.children.length >= 4).sort((a, b) => b.offsetHeight - a.offsetHeight); const g = gs[0]; if (!g) break;
+      g.classList.add('fspan'); const h = g.previousElementSibling; if (h && h.classList.contains('fld-gh')) h.classList.add('fspan'); try { window.fldFit && window.fldFit(); } catch (e) {} } }
+  const _r = fieldRender; fieldRender = function () { const r = _r.apply(this, arguments); try { paint(); balance(); } catch (e) {} return r; };
+  document.addEventListener('click', () => setTimeout(() => { try { paint(); } catch (e) {} }, 80));
+  try { paint(); } catch (e) {}
+})();
