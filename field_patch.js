@@ -910,3 +910,60 @@
    통합재고관리(index.html)를 그대로 불러오므로 v247~ 발주 알림(poAuto: 열고 6초 뒤 + 5분마다, 기기당 하루 한 번)이 생산실 화면에도 떴음.
    이 페이지 안에서만 po_alert_auto 값을 'off'로 읽히게 함 — 저장된 설정은 안 바꿔서 같은 기기의 PC 통합재고관리 알림은 그대로. */
 (function () { if (!window.FIELD_APP) return; try { const g = Storage.prototype.getItem; Storage.prototype.getItem = function (k) { if (k === 'po_alert_auto' && this === window.localStorage) return 'off'; return g.apply(this, arguments); }; } catch (e) {} })();
+
+
+/* ══ 작업 시작한 품목 빼기 (2026-10-22 Aside, 사용자 「품목 추가를 했다가 삭제 버튼이 없어」) ══
+   - 「▶ 작업 시작」 화면 위에 오늘 시작한 품목마다 「✕ 빼기」 버튼. 「＋ 다른 품목」 카드 글도 「추가·빼기」로.
+   - 빼면: 작업 시작 기록(pday ws:날짜:코드)을 지우고 다른 기기에도 취소를 보냄(kind pday + del, 원래 있던 방식).
+     그 품목의 오븐·급냉·배합·금속 줄과 생산일지 줄은 「지운 줄(del)」로 표시해서 지움 → 태블릿 등 다른 기기 사본이 되살리지 않음.
+   - 막는 경우: 생산량을 이미 입력해 생산 기록이 있으면 빼지 않음(생산량 입력에서 취소해야 함 — 이카운트 전표와 얽힘).
+   - 측정값이 이미 들어간 줄이 있으면 몇 줄이 같이 지워지는지 한 번 더 묻고, 승인된 일지면 고친 기록(hist)을 남기고 승인을 풂(줄 삭제와 같은 규칙).
+   - 다시 같은 품목을 시작하면 줄이 새로 생기도록, 품목 목록(items)에만 남고 줄이 없는 경우를 정리함. */
+(function () { if (!window.FIELD_APP) return;
+  const VALF = ['time', 'temp', 'min', 'core', 't1', 'v1', 't2', 'v2', 'start', 'kg', 'room', 'end', 'fe', 'sus', 'p', 'fep', 'susp', 'det', 'passed'];
+  const hasVal = (r, sec) => VALF.some(f => !(sec === 'pass' && f === 'passed' && !r.pe) && r[f] !== '' && r[f] != null && !(sec === 'pass' && f === 'det' && String(r[f]) === '0' && !r.pe));
+  const logsOf = D => Object.values(ccpS().logs || {}).filter(g => g && g.date === D && CCP_ORDER.includes(g.type));
+  const st = document.createElement('style');
+  st.textContent = '.fwsdel{margin:6px 0 14px;padding:12px 14px;border-radius:14px;background:#fff;border:1px solid #E2DCCF;color:#3d342a}'
+    + '.fwsdel>b{display:block;font-size:17px;margin-bottom:8px}.fwsdel .row{display:flex;flex-wrap:wrap;gap:8px}'
+    + '.fwsdel .it{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 14px;border-radius:12px;background:#F6F3EE;font-size:17px;font-weight:700}'
+    + '.fwsdel .it button{min-height:54px;padding:0 16px;border-radius:10px;border:2px solid #C62828;background:#fff;color:#C62828;font-size:17px;font-weight:800;cursor:pointer}'
+    + '.fwsdel small{display:block;margin-top:8px;font-size:15px;color:#6b6258}';
+  document.head.appendChild(st);
+  const _wsh = fldWsHtml;
+  fldWsHtml = function () { let h = _wsh(); try { const D = fldD(), by = ccpProdByDate()[D] || {}; const its = Object.values(by); if (!its.length) return h;
+      const box = '<div class="fwsdel"><b>✓ 오늘 시작한 품목 — 잘못 넣었으면 빼세요</b><div class="row">' + its.map(x => '<span class="it">' + esc(fldShort(x.name || x.code)) + '<button type="button" data-fwsdel="' + esc(x.code) + '">✕ 빼기</button></span>').join('') + '</div><small>빼면 그 품목의 오늘 CCP 줄(오븐·급냉·금속·배합)도 같이 지워지고, 다른 기기에도 전달됩니다.</small></div>';
+      const at = h.indexOf('<input class="fld-q"'); h = at >= 0 ? h.slice(0, at) + box + h.slice(at) : box + h; } catch (e) {} return h; };
+  const _th = fldTypeHtml;
+  fldTypeHtml = function () { return String(_th()).replace('<small>작업 시작에서 추가</small>', '<small>작업 시작에서 추가·빼기</small>'); };
+  /* 다시 시작할 때: items에만 남고 줄이 없으면 정리해서 줄이 새로 생기게 */
+  const _add = ccpAddItem;
+  ccpAddItem = function (g, x) { try { if (g && g.skip && g.skipWhy === 'wsdel') { g.skip = false; g.skipWhy = ''; } if (g && g.type !== 'prod' && x && (g.items || []).includes(x.code) && !(g.rows || []).some(r => r.code === x.code) && !(g.pass || []).some(r => r.code === x.code)) { g.items = g.items.filter(c => c !== x.code); } } catch (e) {} return _add.apply(this, arguments); };
+  window.fldWsDel = function (code) {
+    const D = fldD(), P = prodS(); P.pday = P.pday || {}; const key = 'ws:' + D + ':' + code; const it = prodItem(code); const nm = fldShort((it && it.name) || code);
+    const saved = P.pday[key]; delete P.pday[key];
+    if ((ccpProdByDate()[D] || {})[code]) { if (saved) P.pday[key] = saved; alert(nm + '은(는) 생산량이 이미 입력되어 있어 여기서 뺄 수 없습니다.\n「📦 생산량 입력」에서 그 생산을 취소해 주세요.'); return; }
+    const Ls = logsOf(D); let nVal = 0, nRow = 0; Ls.forEach(g => ['rows', 'pass'].forEach(sec => (g[sec] || []).forEach(r => { if (r.code === code) { nRow++; if (hasVal(r, sec)) nVal++; } })));
+    const msg = nVal ? '⚠ ' + nm + '을(를) 오늘 작업에서 뺄까요?\n\n이미 적은 측정 기록 ' + nVal + '줄도 같이 지워집니다.\n(HACCP 기록이므로 정말 잘못 넣은 경우에만 빼세요)' : nm + '을(를) 오늘 작업에서 뺄까요?\n아직 적은 측정 기록은 없습니다.';
+    if (!confirm(msg)) { if (saved) P.pday[key] = saved; return; }
+    try { if (shareOn()) nbQueue({ ts: new Date().toISOString(), week: '', code: key, name: '작업 시작', kind: 'pday', note: '', del: true }); } catch (e) {}
+    const who = (() => { try { return fldWk(); } catch (e) { return ''; } })();
+    Ls.forEach(g => { let ch = false; const lost = [];
+      ['rows', 'pass'].forEach(sec => { g[sec] = (g[sec] || []).filter(r => { if (r.code !== code) return true; if (r.id) g.del = (g.del || []).concat(r.id).slice(-300); if (hasVal(r, sec)) lost.push(r); ch = true; return false; }); });
+      if ((g.items || []).includes(code)) { g.items = g.items.filter(c => c !== code); ch = true; }
+      if (!ch) return;
+      if (g.apAt && lost.length) { g.hist = (g.hist || []).slice(-30); g.hist.push({ at: new Date().toISOString(), by: who, f: nm + ' 작업 빼기(' + lost.length + '줄)', from: '', to: '', ap: g.apBy || '' }); g.apAt = ''; g.apBy = ''; }
+      if (!(g.rows || []).some(r => r.kind !== 'pre' && r.kind !== 'post') && !(g.pass || []).length && !(g.rows || []).some(r => hasVal(r, 'rows'))) { g.skip = true; g.skipWhy = 'wsdel'; }
+      try { ccpAutoDev(g); } catch (e) {} ccpTouch(g); });
+    /* 생산일지(A): 이 품목에서 온 수량 칸만 빼고, 남는 게 없는 줄은 지운 줄로 */
+    const A = ccpS().logs[D + '|prod'];
+    if (A) { let ch = false; A.rows = (A.rows || []).filter(r => { if (!r.src || !(code in r.src)) return true; delete r.src[code]; if (r.srcS) delete r.srcS[code]; ch = true;
+        ['box', 'ea', 'np'].forEach(sl => { if (r.m && r.m[sl]) return; const t = Object.entries(r.src).filter(([c]) => (r.srcS || {})[c] === sl).reduce((a, [, v]) => a + (Number(v) || 0), 0); r[sl] = t ? String(t) : ''; });
+        if (Object.keys(r.src).length) return true; if (r.id) A.del = (A.del || []).concat(r.id).slice(-300); return false; });
+      if ((A.items || []).includes(code)) { A.items = A.items.filter(c => c !== code); ch = true; }
+      if (ch) { if (!A.rows.length) { A.skip = true; A.skipWhy = 'wsdel'; } if (A.ts) ccpTouch(A); } }
+    try { ccpEnsure(D, ccpProdByDate()[D] || {}); } catch (e) {}
+    save(); toast('✕ ' + nm + ' — 오늘 작업에서 뺐습니다', 3000); fieldRender();
+  };
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#fld [data-fwsdel]'); if (!b) return; e.preventDefault(); e.stopPropagation(); fldWsDel(b.dataset.fwsdel); }, true);
+})();
