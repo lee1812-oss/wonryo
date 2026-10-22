@@ -821,3 +821,22 @@
     + '#fld .fsnav button.nx.fnow{border-color:#F59E0B!important}';
   document.head.appendChild(st);
 })();
+
+/* ══ 누를 곳 채우기: 노랑 + 보색(파랑) 테두리 (2026-10-22 Aside, 사용자 「배경 채우기 노랑색으로」) ══
+   - 채우기: 밝은 노랑 그라데이션 #FFE45C → #FFC915, 글씨는 진한 남색(#1E2A4A, 노랑 위에서 잘 읽힘).
+   - 테두리·빛나는 링: 파랑 #1D4ED8(노랑의 보색 쪽). 「지금 할 차례」·번호는 남색 바탕 흰 글씨, 「여기를 누르세요」는 흰 바탕 남색 글씨.
+   - 확인 창 주 버튼(✓ 저장 등)도 같은 노랑. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const Y1 = '#FFE45C', Y2 = '#FFC915', NV = '#1E2A4A', BL = '#1D4ED8';
+  const st = document.createElement('style');
+  st.textContent = 'html body #fld .fsf-c.now,html body #fld .fnow{--k:' + NV + '!important;background:linear-gradient(180deg,' + Y1 + ' 0%,' + Y2 + ' 100%)!important;border:3px solid ' + BL + '!important;color:' + NV + '!important;'
+    + 'box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 6px 0 #C79A00,0 14px 28px rgba(199,154,0,.35)!important}'
+    + 'html body #fld .fsf-c.now *,html body #fld .fnow *{color:' + NV + '!important}'
+    + 'html body #fld .fsf-c.now::after,html body #fld .fnow::after{border-color:' + BL + '!important}'
+    + 'html body #fld .fsf-c.now .tag{background:' + NV + '!important;color:#fff!important}html body #fld .fsf-c.now .n{background:' + NV + '!important;color:#fff!important}html body #fld .fsf-c.now .n *{color:#fff!important}'
+    + 'html body #fld .fsf-c.now .fpress,html body #fld .fnow .fpress{background:#fff!important;border:2px solid ' + BL + '!important;color:' + NV + '!important}html body #fld .fsf-c.now .fpress *,html body #fld .fnow .fpress *{color:' + NV + '!important}'
+    + 'html body #fld .fov3 .ft.fnow .tm,html body #fld .fov3 .ft.fnow .vv,html body #fld .fov3 .ft.fnow .lim{color:' + NV + '!important}'
+    + 'html body .fwarn-bt .go{background:linear-gradient(180deg,' + Y1 + ',' + Y2 + ')!important;border:3px solid ' + BL + '!important;color:' + NV + '!important;box-shadow:0 5px 0 #C79A00!important}html body .fwarn-bt .go:active{box-shadow:0 2px 0 #C79A00!important}';
+  document.head.appendChild(st);
+})();
