@@ -500,3 +500,42 @@
           return; } } } catch (e) {}
     return _save.apply(this, arguments); };
 })();
+
+/* ══ 한 화면 자동 맞춤 (2026-10-22 Aside, 사용자 「태블릿에서 한 화면에 꽉 차게, 스크롤 없이, 휴대폰도 자동 맞춤」) ══
+   - 화면을 그릴 때마다 내용 높이를 재서 화면(위 제목줄·아래 저장줄 뺀 높이)에 꽉 차게 비율대로 줄이거나 키움(zoom, 70%~140%). 첫 화면은 그래도 남는 높이만큼 단계 카드를 늘려 꽉 채움.
+   - 너무 작아지지 않게 최소 70%. 품목 목록처럼 원래 아주 긴 화면(화면 2배 넘음)은 줄이지 않고 그 부분만 스크롤.
+   - 첫 화면 아래 「화면 가장자리 여백」·앱 안내는 「⚙ 설정·새로고침」 한 줄로 접어 자리 확보. 화면을 돌리거나 크기가 바뀌면 다시 맞춤. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const MIN = 0.7, MAX = 1.4;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fld-body{padding-top:10px!important;padding-bottom:12px!important}'
+    + '#fld .fset-hide .fld-auto,#fld .fset-hide .fapp-foot{display:none!important}'
+    + '#fld .fset-btn{display:block;width:100%;min-height:48px;margin:10px 0 0;border-radius:12px;border:1.5px dashed #C9B79F;background:transparent;color:#6b5a48;font-size:16px;font-weight:700;cursor:pointer}'
+    + '#fld .fsf{margin-bottom:10px}#fld .fld-card{margin-bottom:10px}#fld .fsf-c .t b,#fld .ft b{word-break:keep-all}';
+  document.head.appendChild(st);
+  let setOpen = false;
+  const listy = () => FLD.step === 'ws' || FLD.step === 'qty' || FLD.step === 'who';
+  window.fldFit = function () { try { const box = document.getElementById('fld'), body = box && box.querySelector('.fld-body'); if (!body || !FLD.open) return;
+      const top = box.querySelector('.fld-top'), sv = [...box.querySelectorAll('.fld-save')].find(x => x.offsetParent !== null && getComputedStyle(x).position === 'fixed');
+      const saveH = sv ? sv.offsetHeight : 0; body.style.paddingBottom = saveH ? (saveH + 12) + 'px' : '';
+      body.querySelectorAll('.fsf-c').forEach(c => { c.style.minHeight = ''; }); body.style.zoom = ''; const avail = box.clientHeight - (top ? top.offsetHeight : 0); const need = body.scrollHeight;
+      if (listy()) { const s0 = avail / need; body.style.zoom = s0 < 1 && s0 >= 0.9 ? String(Math.floor(s0 * 995) / 1000) : ''; return; }   /* 목록 화면은 글씨를 줄이거나 키우지 않음 */
+      let s = need > 0 ? avail / need : 1; if (s < MIN) s = need > avail * 2 ? 1 : MIN; if (s > MAX) s = MAX;
+      for (let k = 0; k < 4; k++) { body.style.zoom = String(Math.floor(s * 995) / 1000); const over = box.scrollHeight - box.clientHeight;
+        if (over <= 1 || s <= MIN) break; const h2 = body.getBoundingClientRect().height; s = Math.max(MIN, s * (h2 - over) / h2); }
+      if (Math.abs(s - 1) < 0.02) body.style.zoom = '';
+      /* 첫 화면: 그래도 남는 높이는 단계 카드를 늘려서 채움 (가로 = 카드 높이, 세로 = 카드마다 나눠서) */
+      const fsf = body.querySelector('.fsf'), cs = fsf ? [...fsf.querySelectorAll('.fsf-c')] : [];
+      if (FLD.step === 'home' && cs.length) { const z = Number(body.style.zoom) || 1, left = (avail - body.getBoundingClientRect().height) / z - 6;
+        if (left > 16) { const row = getComputedStyle(fsf).flexDirection === 'row'; const hs = cs.map(c => c.getBoundingClientRect().height / z); cs.forEach((c, i) => { c.style.minHeight = Math.floor(hs[i] + (row ? left : left / cs.length)) + 'px'; });
+          for (let k = 0; k < 3; k++) { const over = box.scrollHeight - box.clientHeight; if (over <= 0) break; cs.forEach(c => { c.style.minHeight = Math.max(60, parseFloat(c.style.minHeight) - (row ? over : over / cs.length) / z - 2) + 'px'; }); } } } } catch (e) {} };
+  const _r = fieldRender;
+  fieldRender = function () { _r.apply(this, arguments);
+    try { const body = document.querySelector('#fld .fld-body'); if (body && FLD.step === 'home') { const foot = body.querySelector('.fapp-foot');
+        if (foot && !body.querySelector('.fset-btn')) { body.classList.toggle('fset-hide', !setOpen); const b = document.createElement('button'); b.type = 'button'; b.className = 'fset-btn';
+          b.textContent = setOpen ? '▲ 설정 접기' : '⚙ 설정·새로고침·로그아웃'; b.onclick = e => { e.stopPropagation(); setOpen = !setOpen; fieldRender(); }; const first = body.querySelector('.fld-auto') || foot; first.parentNode.insertBefore(b, first); } } } catch (e) {}
+    fldFit(); requestAnimationFrame(fldFit); };
+  let tm = 0; window.addEventListener('resize', () => { const a = document.activeElement; if (a && a.matches && a.matches('#fld [data-f="q"]')) return; clearTimeout(tm); tm = setTimeout(fldFit, 150); });
+  window.addEventListener('orientationchange', () => setTimeout(fldFit, 300));
+})();
