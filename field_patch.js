@@ -1060,3 +1060,41 @@
   };
   document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#fld [data-frst]'); if (!b) return; e.preventDefault(); e.stopPropagation(); fldReset(); }, true);
 })();
+
+/* ══ 첫 화면 키오스크식: 지금 누를 단계 하나만 보이기 (2026-10-22 Aside, 사용자 「몽블랑을 선택하면 다음 화면에 오븐 가열만, 나머지는 안 나오게, 키오스크처럼 눌러야 하는 것만」) ══
+   - 오늘 품목을 시작했으면 첫 화면에는 「지금 할 차례」 카드(노랑) 하나만 크게 보인다. 끝난 단계·나중 단계·화살표·「일지 작성 완료」 칸은 숨긴다.
+   - 모든 단계가 끝나면(지금 할 차례 없음) 예전처럼 전체 단계와 「일지 작성 완료」가 보인다.
+   - 안전장치: 숨긴 단계에 ⏰ 확인 시각이 10분 안으로 다가왔거나 지났으면(예: 금속검출 2시간 확인) 그 카드는 같이 보인다.
+   - 맨 아래 작은 「☰ 전체 단계 보기」로 잠깐 다 펼칠 수 있다(앞 단계 기록을 고칠 때). 다른 버튼을 누르면 다시 한 단계만 보기로 돌아간다. 원래 함수는 감싸기만 함. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fsf.kio>.fsf-ar{display:none}#fld .fsf.kio>.fsf-c:not(.now):not(.kdue){display:none}'
+    + '#fld .fsf.kio>.fsf-c.now{min-height:150px}#fld .fsf.kio>.fsf-c.now .t b{font-size:30px}#fld .fsf.kio>.fsf-c.now .n{width:66px;height:66px;font-size:36px}'
+    + '#fld .fsf.kio>.fsf-c.kdue{margin-top:12px;border-color:#E8590C}'
+    + '#fld .fkall{display:block;width:auto;min-height:48px;margin:6px auto 12px;padding:6px 22px;font-size:16px;font-weight:700;border-radius:99px;border:2px dashed #C9B79F;background:transparent;color:#C9B79F;cursor:pointer}';
+  document.head.appendChild(st);
+  window.__fkAll = false;
+  const _home = fldHomeHtml;
+  fldHomeHtml = function () { const h = _home.apply(this, arguments);
+    try {
+      const t = document.createElement('template'); t.innerHTML = h;
+      const f = t.content.querySelector('.fsf'), now = f && f.querySelector('.fsf-c.now');
+      if (!f || !now) return h;
+      if (!window.__fkAll) {
+        f.classList.add('kio');
+        const d0 = new Date(), cur = d0.getHours() * 60 + d0.getMinutes();
+        f.querySelectorAll('.fsf-c:not(.now)').forEach(c => { const d = c.querySelector('small.due'); if (!d) return;
+          const ms = [...d.textContent.matchAll(/(\d{1,2}):(\d{2})까지/g)].map(m => Number(m[1]) * 60 + Number(m[2]));
+          if (ms.some(m => m - cur <= 10)) c.classList.add('kdue'); });
+        t.content.querySelectorAll('.fld-card').forEach(c => { const b = c.querySelector('b'); if (b && /일지 작성 완료/.test(b.textContent)) c.remove(); });
+      }
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'fkall'; btn.setAttribute('data-fkall', '1');
+      btn.textContent = window.__fkAll ? '▲ 지금 할 단계만 보기' : '☰ 전체 단계 보기';
+      f.after(btn);
+      return t.innerHTML;
+    } catch (e) { return h; } };
+  document.addEventListener('click', e => { const el = e.target.closest && e.target.closest('#fld [data-fkall]');
+    if (el) { e.preventDefault(); e.stopPropagation(); window.__fkAll = !window.__fkAll; try { fieldRender(); } catch (er) {} return; }
+    if (e.target.closest && e.target.closest('#fld [data-f], #fld [data-fgo], #fld [data-frst]')) window.__fkAll = false; }, true);
+})();
