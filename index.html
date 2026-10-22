@@ -1450,7 +1450,7 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
 const APP_VER  = '247';
-const APP_BUILT = '2026-10-22 14:24';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_BUILT = '2026-10-22 14:29';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -7875,7 +7875,7 @@ function poAlertList(rb) {
 async function poAlertOpen() {
   poCss();
   let F; try { F = await facLoad(); } catch (e) { return toast(String((e && e.message) || e)); }
-  const rb = F && F.rawbuy; if (!rb) return toast('공장 자료에 원료 발주 계산이 아직 없어요');
+  const rb = F && (F.rawbuy || (F.factory && F.factory.rawbuy)); if (!rb) return toast('공장 자료에 원료 발주 계산이 아직 없어요');
   const list = poAlertList(rb); PO.alert = { rb, list };
   const nm = {}; (rb.rows || []).forEach(r => { nm[r.sup + '|' + r.nm] = r; });
   const goal = (rb.rule && rb.rule.boxes) || 100, mb = rb.maxBox;
@@ -7983,7 +7983,7 @@ async function poDraw(st) {
 async function poDocOpen(sup, lines, opt) {
   opt = opt || {}; poCss();
   const S1 = rbSup(sup); let room = opt.room || '';
-  if (!room) { try { const s = (((FAC || {}).rawbuy || {}).sups || []).find(x => x.name === sup); if (s) room = poRoom(s.rule); } catch (e) {} }
+  if (!room) { try { const s = ((((FAC || {}).rawbuy || ((FAC || {}).factory || {}).rawbuy) || {}).sups || []).find(x => x.name === sup); if (s) room = poRoom(s.rule); } catch (e) {} }
   const st = PO.doc = { sup, lines: lines.map(l => Object.assign({}, l)), due: opt.due || rbAddD(S1.lead || 2), note: opt.note || '', from: opt.from || 'send', no: poNo(sup), room, cv: null, blob: null };
   const qrows = st.lines.map((l, i) => `<div class="po-q"><span>${esc(l.bname || l.name)}</span><input type="number" min="0" step="1" inputmode="numeric" data-poq="${i}" value="${l.n}"><span>${esc(l.u)}</span></div>`).join('');
   modal(`<div class="po-wrap"><div class="po-hd"><div><h2>📄 ${esc(sup)} 발주서</h2><div class="po-sub">거래처가 받는 그대로예요 · 카톡으로 이미지 한 장이 갑니다</div></div>${opt.back ? '<button class="btn" data-podo="back" style="min-height:46px">← 알림으로</button>' : ''}</div>
@@ -8068,7 +8068,7 @@ async function poAuto() {
     if (localStorage.getItem('po_alert_auto') === 'off' || localStorage.getItem('po_alert_day') === today()) return;
     if ($('#modal') && $('#modal').classList.contains('on')) return;
     if (!(await facKey())) return;
-    const F = await facLoad(); const rb = F && F.rawbuy; if (!rb) return;
+    const F = await facLoad(); const rb = F && (F.rawbuy || (F.factory && F.factory.rawbuy)); if (!rb) return;
     if (!poAlertList(rb).some(s => s.lv === 'today' || s.lv === 'late' || s.lv === 'soon')) return;
     localStorage.setItem('po_alert_day', today()); poAlertOpen();
   } catch (e) {}
