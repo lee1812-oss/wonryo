@@ -1449,8 +1449,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '251';
-const APP_BUILT = '2026-10-22 16:16';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '252';
+const APP_BUILT = '2026-10-22 16:27';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -8957,12 +8957,69 @@ try { (function () {
 #wvOv .wv-memo{width:100%;margin-top:8px;min-height:44px;border:1px solid #DDD6CE;border-radius:10px;padding:8px 10px;font:inherit;font-size:15px}
 #wvOv .wv-foot{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap}#wvOv .wv-foot .muted{font-size:13px;color:#8A7F76}
 #wvOv table.wv-t{width:100%;border-collapse:collapse;background:#fff;font-size:15.5px}#wvOv .wv-t th,#wvOv .wv-t td{border:1px solid #E0D9D1;padding:8px;text-align:left}#wvOv .wv-t th{background:#F3EEE8}#wvOv .wv-t td.n{text-align:right;white-space:nowrap;font-weight:700}
+#wvOv .wv-tabs button{min-height:50px;font-size:16px}
+#wvOv .ss-row{display:grid;grid-template-columns:34px minmax(0,2.2fr) minmax(0,1fr) minmax(0,1.1fr) minmax(0,1.2fr) auto;gap:8px;align-items:center;background:#fff;border:1px solid #E4DED7;border-radius:12px;padding:10px;margin-bottom:8px}
+#wvOv .ss-row.done{box-shadow:inset 4px 0 0 #2E7D32}
+#wvOv .ss-no{font-weight:800;color:#7A4A23;text-align:center}
+#wvOv .ss-nm b{font-size:18px;display:block}#wvOv .ss-nm small{display:block;font-size:13px;color:#7A6E65;line-height:1.4}#wvOv .ss-nm small b{display:inline;font-size:13.5px;color:#1F1A16}#wvOv .tg{font-style:normal;background:#E3F2FD;color:#1565C0;border-radius:6px;padding:0 5px;font-size:11.5px;font-weight:700}
+#wvOv .ss-f{display:flex;flex-direction:column;gap:3px}#wvOv .ss-f>span{font-size:12.5px;font-weight:700;color:#6B6159}
+#wvOv .ss-f input{min-height:50px;border:1.5px solid #CFC6BC;border-radius:10px;padding:0 8px;font:inherit;font-size:19px;font-weight:700;text-align:right;background:#FFFDF9;width:100%;min-width:0}#wvOv .ss-f input[type=date]{font-size:15px;text-align:left}
+#wvOv .ss-sp{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600}#wvOv .ss-sp input{min-height:42px;font-size:17px}
+#wvOv .ss-ok .wv-btn{min-height:50px;white-space:nowrap}#wvOv .ss-ok .wv-btn.on{background:#2E7D32;border-color:#2E7D32;color:#fff}
+#wvOv .ss-res{grid-column:2 / -1;font-size:14.5px}#wvOv .ss-res .okc{color:#2E7D32;font-weight:800}#wvOv .ss-res .badc{color:#C25E00;font-weight:800}#wvOv .ss-res .muted{color:#9A9088}
+@media (max-width:760px){#wvOv .ss-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#wvOv .ss-no{display:none}#wvOv .ss-nm,#wvOv .ss-res{grid-column:1 / -1}#wvOv .ss-ok .wv-btn{width:100%;margin-top:18px}}
 @media (max-width:560px){#wvOv .wv-row{grid-template-columns:minmax(0,1fr) auto}#wvOv .wv-in{grid-column:1 / -1}#wvOv h2{font-size:19px}}
 `; document.head.appendChild(s); }
+  /* ── v252: 금요일 원료 실사 (종이 「원료수불부_양식(미개봉,개봉)」을 앱으로) — 실물재고 화면과 같은 자료(S.physical[주차]) ── */
+  function ssItems() { const cw = curWeek(); let a = itemsFor(cw); try { a = a.filter(i => !hidden(i.code)); } catch (e) {} return a.filter(i => /_gg\d+/.test(i.name || '') || WV_MAP[i.code]); }
+  function ssP(code) { const cw = curWeek(); return (S.physical[cw] || {})[code] || null; }
+  function ssCalc(it, p) { const q = p ? physQty(it, p) : null; const e = it.qty == null || it.qty === '' ? null : Number(it.qty); return { q, d: q != null && e != null ? Math.round((q - e) * 10) / 10 : null }; }
+  function ssRes(it, p) { const { q, d } = ssCalc(it, p); if (q == null) return '<span class="muted">입력하면 계산</span>'; return `실물 <b>${fmt(q)}g</b>${d == null ? '' : ` · <span class="${Math.abs(d) < 1 ? 'okc' : 'badc'}">${Math.abs(d) < 1 ? '전산과 같음' : '차이 ' + (d > 0 ? '+' : '') + fmt(d) + 'g'}</span>`}`; }
+  function ssRow(it, k) {
+    const p = ssP(it.code) || {}; const sp = specsOf(it.code); const pw = packWOf(it); const dir = p.mode === 'direct'; const pk = pkDecode(p.packs) || {};
+    const same = dir && p.direct !== '' && p.direct != null && Number(p.direct) === Number(it.qty);
+    const packIn = sp ? sp.map(s => `<label class="ss-sp">${esc(s.n)}<input inputmode="numeric" type="number" data-s="pk" data-id="${esc(s.id)}" value="${pk[s.id] ?? ''}" placeholder="개"></label>`).join('') : `<input inputmode="numeric" type="number" data-s="packs" value="${!dir && !pkDecode(p.packs) ? (p.packs ?? '') : ''}" placeholder="개">`;
+    return `<div class="ss-row ${physQty(it, p) != null ? 'done' : ''}" data-c="${esc(it.code)}"><div class="ss-no">${k}</div>
+<div class="ss-nm"><b>${esc(shortName(it.name))}</b><small>${esc(it.vendor || '')} · 규격 ${fmt(pw)}g${sp ? ' (여러 규격)' : ''}</small><small>전산 <b>${fmt(it.qty)}g</b> · 빈 용기 <b>${fmt(it.tare)}g</b>${it.tareEc != null ? ' <i class="tg">실측 반영</i>' : ''}</small></div>
+<div class="ss-f"><span>미개봉</span>${packIn}</div>
+<div class="ss-f"><span>개봉 (용기째 g)</span><input inputmode="decimal" type="number" data-s="gross" value="${!dir ? (p.gross ?? '') : ''}" placeholder="g"></div>
+<div class="ss-f"><span>소비기한</span><input type="date" data-s="expiry" value="${esc(p.expiry || '')}"></div>
+<div class="ss-f ss-ok"><button class="wv-btn sm ${same ? 'on' : ''}" data-ss="same" title="저울로 재 보니 전산과 같을 때">${same ? '✓ 같음' : '✓ 확인'}</button></div>
+<div class="ss-res">${ssRes(it, p)}</div></div>`;
+  }
+  function ssSet(code, f, v, id) {
+    const cw = curWeek(); if (!cw) { toast('주차 자료가 없습니다'); return; } const ph = physFor(cw); const p = ph[code] || (ph[code] = {}); const it = ssItems().find(i => i.code === code) || {};
+    if (f === 'same') { if (p.mode === 'direct' && Number(p.direct) === Number(it.qty)) { p.mode = 'packs'; p.direct = ''; } else { p.mode = 'direct'; p.direct = it.qty == null ? '' : Number(it.qty); p.packs = ''; p.gross = ''; } }
+    else if (f === 'expiry') { p.expiry = v || ''; if (v) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); m.expiry = v; m.expiryWeek = cw; } }
+    else { if (p.mode === 'direct') { p.mode = 'packs'; p.direct = ''; } if (f === 'pk') { const o = pkDecode(p.packs) || {}; if (v === '' || v == null) delete o[id]; else o[id] = Number(v); p.packs = pkEncode(o); } else p[f] = v === '' ? '' : Number(v); if (!p.mode) p.mode = 'packs'; }
+    p.ts = new Date().toISOString(); p.by = who(); save(); try { shareMark(cw, code, p.ts); } catch (e) {}
+  }
+  function ssHtml() {
+    const cw = curWeek(); const L = ssItems(); const n = L.filter(i => physQty(i, ssP(i.code) || {}) != null).length; const diff = L.filter(i => { const c = ssCalc(i, ssP(i.code)); return c.d != null && Math.abs(c.d) >= 1; }).length;
+    return `<div class="wv-guide"><b>금요일 원료 실사</b> · 종이 「원료수불부 양식(미개봉·개봉)」과 같은 순서입니다. <b>미개봉</b>은 뜯지 않은 포장 <b>개수</b>, <b>개봉</b>은 쓰던 것을 <b>용기째</b> 잰 무게를 적으면 빈 용기 무게를 빼고 실물을 계산합니다. 재 보니 전산과 같으면 「✓ 확인」. 이 값은 실물재고 화면·PC 비교와 같은 자료로 바로 저장·공유됩니다.</div>
+<div class="wv-nums" style="margin-bottom:10px"><div class="wv-num"><b>${n}/${L.length}</b><span>입력한 원료</span></div><div class="wv-num ${diff ? 'bad' : 'ok'}"><b>${diff}</b><span>전산과 다름</span></div><div class="wv-num"><b style="font-size:18px">${esc(cw || '—')}</b><span>실사 주차</span></div></div>
+${L.length ? L.map((it, i) => ssRow(it, i + 1)).join('') : '<div class="wv-guide">이 주차의 원료 자료가 없습니다. PC에서 이카운트 원료수불부를 먼저 가져와 주세요.</div>'}
+<div class="wv-foot" style="margin-top:12px"><button class="wv-btn brand" data-wv="ssprint">🖨 실사표 인쇄</button><button class="wv-btn" data-wv="ssdone">실사 끝 (입력 현황 확인)</button></div>`;
+  }
+  function ssPrint(blank) {
+    const cw = curWeek(); const L = ssItems(); let sum = 0;
+    const rows = L.map((it, i) => { const p = blank ? {} : (ssP(it.code) || {}); const { q, d } = ssCalc(it, p); const dir = p.mode === 'direct'; const pkT = dir ? '' : pkDecode(p.packs) ? packsText(it.code, p.packs) : (p.packs !== '' && p.packs != null ? fmt(p.packs) : ''); if (q != null) sum++;
+      return `<tr><td class="c">${i + 1}</td><td>${esc(it.vendor || '')}</td><td><b>${esc(shortName(it.name))}</b></td><td class="n">${fmt(packWOf(it))}</td><td class="n">${fmt(it.qty)}</td><td class="n">${fmt(it.tare)}${it.tareEc != null ? '*' : ''}</td><td class="n w">${esc(pkT)}</td><td class="n w">${!dir && p.gross !== '' && p.gross != null ? fmt(p.gross) : ''}</td><td class="n w">${q != null ? fmt(q) : ''}</td><td class="n ${d != null && Math.abs(d) >= 1 ? 'o' : 'g'}">${d == null ? '' : Math.abs(d) < 1 ? '같음' : (d > 0 ? '+' : '') + fmt(d)}</td><td class="c w">${dir && Number(p.direct) === Number(it.qty) ? '✓' : ''}</td><td class="c w">${esc(p.expiry ? p.expiry.slice(2).replace(/-/g, '.') : '')}</td></tr>`; }).join('');
+    const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>원료 실사표</title><style>@page{size:A4 portrait;margin:8mm 7mm}body{font-family:'Pretendard','Malgun Gothic',sans-serif;color:#2b1d14;font-size:11.5px;margin:0;word-break:keep-all}
+.hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #6b4226;padding-bottom:4px;margin-bottom:5px}h1{font-size:19px;margin:0;color:#4a2c17}.mt{font-size:11.5px;text-align:right;line-height:1.7}.mt span{display:inline-block;min-width:80px;border-bottom:1px solid #8a6a52}
+.gd{font-size:11px;color:#5d4a3c;margin-bottom:5px}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #b9a594;padding:5.6px 4px;vertical-align:middle}th{background:#6b4226;color:#fff;font-size:10.5px;line-height:1.2}td.n{text-align:right;white-space:nowrap}td.c{text-align:center}td.w{background:#fffdfa;font-weight:700}.o{color:#c25e00;font-weight:700}.g{color:#2e7d32}tr{page-break-inside:avoid}</style></head><body>
+<div class="hd"><div><h1>원료 실사표 <span style="font-size:11px;color:#8a6a52">원료수불부 양식(미개봉·개봉) · 통합재고관리</span></h1></div><div class="mt">주차 <b>${esc(cw || '')}</b> · 실사일 <span></span><br>실사자 <span>${blank ? '' : esc(who())}</span> 확인 <span></span></div></div>
+<div class="gd">미개봉 = 뜯지 않은 포장 개수 · 개봉 = 쓰던 것을 용기째 잰 무게(g) · 실물 = 미개봉 × 규격 + (개봉 − 빈 용기) · ✓ = 재 보니 전산과 같음 · 빈 용기 * = 현장 실측값 반영 · 출력 ${new Date().toLocaleString('ko-KR')}${blank ? '' : ' · 입력 ' + sum + '/' + L.length}</div>
+<table><thead><tr><th style="width:4%">No</th><th style="width:11%">매입처</th><th style="width:20%">품목명</th><th style="width:7.5%">규격 g</th><th style="width:9%">전산 g</th><th style="width:7%">빈 용기</th><th style="width:7.5%">미개봉 개</th><th style="width:8.5%">개봉 g</th><th style="width:8.5%">실물 g</th><th style="width:7%">차이</th><th style="width:4%">✓</th><th>소비기한</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+    let fr = document.getElementById('wvPrintFr'); if (fr) fr.remove(); fr = document.createElement('iframe'); fr.id = 'wvPrintFr'; fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(fr);
+    const dd = fr.contentWindow.document; dd.open(); dd.write(html); dd.close(); setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { toast('인쇄 창을 열지 못했습니다'); } }, 400);
+  }
   function wvTop() {
     let n = 0, bad = 0, app = 0; WV_REF.forEach(r => { const st = wvState(r); if (st.done) n++; if (st.bad) bad++; if ((wvS().app[r.c] || {}).ts && !(wvS().app[r.c] || {}).off) app++; });
     const seg = [['all', '전체'], ['A', '먼저 12'], ['todo', '미측정'], ['bad', '차이']].map(([k, t]) => `<button data-wvf="${k}" class="${wvF === k ? 'on' : ''}">${t}</button>`).join('');
-    return `<div class="wv-top"><div class="wv-h"><h2>⚖ 용기·포장 무게 검증</h2><button class="wv-btn sm" data-wv="print">🖨 인쇄</button><button class="wv-btn sm" data-wv="list">${wvView === 'list' ? '← 입력 화면' : '📋 이카운트 수정 목록'}</button><button class="wv-btn sm" data-wv="close">닫기</button></div>
+    const tabs = `<div class="wv-seg wv-tabs"><button data-wvt="silsa" class="${wvView === 'silsa' ? 'on' : ''}">📋 금요일 실사</button><button data-wvt="cards" class="${wvView !== 'silsa' ? 'on' : ''}">⚖ 용기·포장 검증</button></div>`;
+    if (wvView === 'silsa') return `<div class="wv-top"><div class="wv-h"><h2>📋 금요일 원료 실사</h2><button class="wv-btn sm" data-wv="ssblank">🖨 빈 양식</button><button class="wv-btn sm" data-wv="close">닫기</button></div><div class="wv-sub">실사자 ${esc(who() || '(이름 없음)')} · 입력하면 바로 저장되고 PC·다른 기기와 공유됩니다</div>${tabs}</div>`;
+    return `<div class="wv-top"><div class="wv-h"><h2>⚖ 용기·포장 무게 검증</h2><button class="wv-btn sm" data-wv="print">🖨 인쇄</button><button class="wv-btn sm" data-wv="list">${wvView === 'list' ? '← 입력 화면' : '📋 이카운트 수정 목록'}</button><button class="wv-btn sm" data-wv="close">닫기</button></div>${tabs}
 <div class="wv-sub">이카운트 기준 ${WV_AT} · 원료 ${WV_REF.length}개 · 입력하면 바로 저장되고 다른 기기와 공유됩니다</div>
 <div class="wv-nums"><div class="wv-num"><b>${n}/${WV_REF.length}</b><span>측정한 원료</span></div><div class="wv-num ${bad ? 'bad' : 'ok'}"><b>${bad}</b><span>이카운트와 다름</span></div><div class="wv-num"><b>${app}</b><span>앱에 반영</span></div></div>
 ${wvView === 'cards' ? `<div class="wv-seg">${seg}</div>` : ''}</div>`;
@@ -8989,7 +9046,8 @@ ${L.length ? `<table class="wv-t"><tr><th>원료</th><th>고칠 항목</th><th>�
     const ov = document.getElementById('wvOv'); if (!ov) return; const y = ov.scrollTop;
     let list = WV_REF; if (wvF === 'A') list = list.filter(r => r.g === 'A'); if (wvF === 'todo') list = list.filter(r => !wvState(r).done); if (wvF === 'bad') list = list.filter(r => wvState(r).bad);
     let body = '';
-    if (wvView === 'list') body = wvListHtml();
+    if (wvView === 'silsa') body = ssHtml();
+    else if (wvView === 'list') body = wvListHtml();
     else { body = `<div class="wv-guide"><b>재는 법</b> · ① <b>빈 용기</b>: 개봉분을 담는 빈 통·봉지를 저울에 올려 적기 ② <b>1개 무게</b>: 새 제품을 포장째 올려 적고, 빈 포장 무게를 알면 옆 칸에 적기(내용물 = 포장째 − 빈 포장) ③ 다 재면 「앱에 반영」을 누르면 실물재고 계산에 바로 쓰입니다.</div>`;
       const A = list.filter(r => r.g === 'A'), B = list.filter(r => r.g !== 'A');
       if (A.length) body += `<div class="wv-sec">A. 10/16 실사에서 장부와 달랐던 원료 · 먼저 재기</div>` + A.map(wvCard).join('');
@@ -9019,23 +9077,29 @@ h2{font-size:15px;color:#4a2c17;margin:10px 0 4px;page-break-before:always}</sty
   }
   function wvOpen() {
     wvCss(); let ov = document.getElementById('wvOv'); if (!ov) { ov = document.createElement('div'); ov.id = 'wvOv'; document.body.appendChild(ov);
-      ov.addEventListener('click', e => { const fb = e.target.closest('[data-wvf]'); if (fb) { wvF = fb.dataset.wvf; wvRender(); return; } const b = e.target.closest('[data-wv]'); if (!b) return; const a = b.dataset.wv; const card = b.closest('[data-c]'); const code = card && card.dataset.c;
-        if (a === 'close') { ov.remove(); document.body.style.overflow = ''; try { if (location.hash === '#wver') history.replaceState(null, '', location.pathname + location.search); } catch (e2) {} try { renderAll(); } catch (e2) {} return; }
+      ov.addEventListener('click', e => { const tb = e.target.closest('[data-wvt]'); if (tb) { wvView = tb.dataset.wvt; ov.scrollTop = 0; wvRender(); return; } const sb = e.target.closest('[data-ss]'); if (sb) { const rw = sb.closest('[data-c]'); if (rw) { ssSet(rw.dataset.c, 'same'); wvRender(); } return; } const fb = e.target.closest('[data-wvf]'); if (fb) { wvF = fb.dataset.wvf; wvRender(); return; } const b = e.target.closest('[data-wv]'); if (!b) return; const a = b.dataset.wv; const card = b.closest('[data-c]'); const code = card && card.dataset.c;
+        if (a === 'close') { ov.remove(); document.body.style.overflow = ''; try { if (location.hash === '#wver' || location.hash === '#silsa') history.replaceState(null, '', location.pathname + location.search); } catch (e2) {} try { renderAll(); } catch (e2) {} return; }
         if (a === 'list') { wvView = wvView === 'list' ? 'cards' : 'list'; ov.scrollTop = 0; wvRender(); return; }
         if (a === 'print') { wvPrint(); return; }
+        if (a === 'ssprint') { ssPrint(false); return; }
+        if (a === 'ssblank') { ssPrint(true); return; }
+        if (a === 'ssdone') { const L = ssItems(); const miss = L.filter(i => physQty(i, ssP(i.code) || {}) == null).map(i => shortName(i.name)); alert(miss.length ? `아직 입력 안 한 원료 ${miss.length}개:\n` + miss.join(', ') : `원료 ${L.length}개 모두 입력했습니다.\nPC의 실물재고·비교 화면에 같은 값이 보입니다.`); return; }
         if (a === 'copy') { const t = wvListText(); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('수정 목록을 복사했습니다'), () => { prompt('복사해 주세요', t); }); return; }
         if (a === 'apply' && code) { wvApply(code); wvRender(); return; }
         if (a === 'unapply' && code) { wvUnapply(code); wvRender(); return; }
         if (a === 'applyAll') { const cs = WV_REF.filter(r => wvState(r).done).map(r => r.c); if (!cs.length) { toast('측정값이 없습니다'); return; } if (!confirm(`측정한 원료 ${cs.length}개를 앱 계산에 반영할까요?\n(이카운트는 바뀌지 않습니다)`)) return; let k = 0; cs.forEach(c => { if (wvApply(c, true)) k++; }); toast(k + '개 원료를 앱에 반영했습니다'); wvRender(); return; } });
-      ov.addEventListener('change', e => { const i = e.target.closest('input[data-f]'); if (!i) return; const card = i.closest('[data-c]'); if (!card) return; wvSet(card.dataset.c, i.dataset.f, i.dataset.p, i.value); if (i.dataset.f !== 'm') setTimeout(wvRender, 0); });
+      ov.addEventListener('change', e => { const si = e.target.closest('input[data-s]'); if (si) { const rw = si.closest('[data-c]'); if (!rw) return; ssSet(rw.dataset.c, si.dataset.s, si.value, si.dataset.id); const it = ssItems().find(x => x.code === rw.dataset.c); if (it) { const p = ssP(it.code) || {}; rw.querySelector('.ss-res').innerHTML = ssRes(it, p); rw.classList.toggle('done', physQty(it, p) != null); const ob = rw.querySelector('[data-ss]'); if (ob) { ob.classList.remove('on'); ob.textContent = '✓ 확인'; } } return; } const i = e.target.closest('input[data-f]'); if (!i) return; const card = i.closest('[data-c]'); if (!card) return; wvSet(card.dataset.c, i.dataset.f, i.dataset.p, i.value); if (i.dataset.f !== 'm') setTimeout(wvRender, 0); });
     }
     document.body.style.overflow = 'hidden'; wvRender();
   }
   window.wverOpen = wvOpen;
-  function wvBtn() { const p = document.getElementById('btnPhysPrint'); if (p && !document.getElementById('btnWver')) p.insertAdjacentHTML('beforebegin', '<button class="btn sm brand" id="btnWver" title="용기 무게·포장 1개 무게를 저울로 재서 이카운트 값과 비교">⚖<span class="mh"> 용기·포장 검증</span></button>'); const b = document.getElementById('btnWver'); if (b && !b.dataset.on) { b.dataset.on = 1; b.addEventListener('click', wvOpen); } }
+  function wvBtn() { const p = document.getElementById('btnPhysPrint'); if (p && !document.getElementById('btnWver')) p.insertAdjacentHTML('beforebegin', '<button class="btn sm brand" id="btnWver" title="용기 무게·포장 1개 무게를 저울로 재서 이카운트 값과 비교">⚖<span class="mh"> 용기·포장 검증</span></button>'); const b = document.getElementById('btnWver'); if (b && !b.dataset.on) { b.dataset.on = 1; b.addEventListener('click', () => { wvView = 'cards'; wvOpen(); }); } }
   wvBtn(); setTimeout(wvBtn, 1500);
   const _rp = renderPhys; renderPhys = function () { const r = _rp.apply(this, arguments); try { wvBtn(); } catch (e) {} return r; };
-  const wvHash = () => { if (location.hash === '#wver') setTimeout(wvOpen, 300); }; window.addEventListener('hashchange', wvHash); setTimeout(wvHash, 1200);
+  window.silsaOpen = () => { wvView = 'silsa'; wvOpen(); };
+  function ssBtn() { const p = document.getElementById('btnWver'); if (p && !document.getElementById('btnSilsa')) p.insertAdjacentHTML('beforebegin', '<button class="btn sm brand" id="btnSilsa" title="금요일 원료 실사 (종이 원료수불부 양식과 같은 순서)">📋<span class="mh"> 금요일 실사</span></button>'); const b = document.getElementById('btnSilsa'); if (b && !b.dataset.on) { b.dataset.on = 1; b.addEventListener('click', window.silsaOpen); } }
+  ssBtn(); setTimeout(ssBtn, 1600); const _rp2 = renderPhys; renderPhys = function () { const r = _rp2.apply(this, arguments); try { ssBtn(); } catch (e) {} return r; };
+  const wvHash = () => { if (location.hash === '#wver') setTimeout(() => { wvView = 'cards'; wvOpen(); }, 300); if (location.hash === '#silsa') setTimeout(window.silsaOpen, 300); }; window.addEventListener('hashchange', wvHash); setTimeout(wvHash, 1200);
 })(); } catch (e) { console.warn('wver patch', e); }
 
 </script>
