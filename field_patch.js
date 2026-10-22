@@ -1145,3 +1145,26 @@
       return '<h2 class="fld-h2">오늘 기록</h2><div class="fovt-w"><table class="fovt"><thead><tr><th>제품명</th><th>시작</th>' + (hasMid ? '<th>2시간</th>' : '') + '<th>종료</th><th>온도</th><th>시간</th><th>품온</th></tr></thead><tbody>' + body + '</tbody></table></div>';
     } catch (e) { return _rec.apply(this, arguments); } };
 })();
+
+/* ══ 「빵을그리다」를 누르면 ① 작업 시작으로 (2026-10-22 Aside, 사용자 「빵을그리다를 누르면 1단계로 돌아가게」) ══
+   - 첫 화면 맨 위 빵을그리다 카드, 또는 어느 화면에서든 제목줄의 로고·「생산실」을 누르면 ① 작업 시작(품목 고르기) 화면으로 간다.
+   - 화면에 남아 있던 상태(고른 공정·품목·입력 중 숫자)는 비운다. 숫자를 입력하던 중이면 한 번 묻는다. 저장된 일지는 그대로. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fbr,#fld .fld-top .fld-tt{cursor:pointer;-webkit-tap-highlight-color:transparent}#fld .fbr:active{transform:scale(.99);background:#FFF8EE}#fld .fld-top .fld-tt:active{opacity:.6}';
+  document.head.appendChild(st);
+  const BASE = () => ({ open: true, step: 'ws', type: '', code: '', name: '', mode: '', rowId: '', sec: 'rows', vals: {}, fi: 0, fields: [], busy: false, edit: false, cart: false, q: '', date: '' });
+  window.fldGoStart = function () {
+    const typing = (FLD.step === 'form' && FLD.typed && Object.keys(FLD.typed).length) || FLD.step === 'act' || FLD.step === 'qtyin';
+    if (typing && !confirm('입력하던 숫자는 지워지고 ① 작업 시작으로 돌아갑니다.\n이미 저장된 일지는 그대로 남습니다.\n\n돌아갈까요?')) return;
+    try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+    try { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); } catch (e) {}
+    Object.keys(FLD).forEach(k => { delete FLD[k]; });
+    Object.assign(FLD, BASE());
+    window.__fqBack = ''; window.__fq2Back = false; window.__fkAll = false;
+    try { fieldRender(); } catch (e) {}
+    const box = document.getElementById('fld'); if (box) box.scrollTop = 0; try { window.scrollTo(0, 0); } catch (e) {}
+  };
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#fld .fbr, #fld .fld-top .fld-tt'); if (!b) return; e.preventDefault(); e.stopPropagation(); fldGoStart(); }, true);
+})();
