@@ -199,3 +199,58 @@
     const g = t.dataset.fgo; FLD.q = ''; if (g === 'home') FLD.step = 'home'; else if (g === 'qty') FLD.step = 'qty'; else { FLD.type = g; FLD.step = 'type'; }
     try { document.getElementById('fld').scrollTop = 0; } catch (er) {} fieldRender(); }, true);
 })();
+
+/* ══ CCP 측정값 자동 입력 (2026-10-22 Aside, 사용자 「키패드 터치 최소화 — 최근 1주 평균을 자동으로 넣고, 다르면 작업자가 고치게」) ══
+   - 오븐(가열온도·가열시간·품온) / 급냉(넣을 때·꺼낼 때 온도) / 배합(배합량·품온·작업장) 입력 화면을 열면 빈 칸에 「최근 7일 평균」을 미리 채운다.
+     같은 품목의 최근 7일 기록이 없으면 그 품목의 가장 최근 생산일들(최대 10일) 평균. 자료가 없는 품목은 비워 둠(직접 입력).
+   - 자료: ① 이 앱 CCP 일지(생산실 앱으로 쓴 기록) + ② ccp_recent.json(K-HACCP CCP 일지에서 뽑은 품목별 최근 측정값, 저장소에 따로 둠 → 파일만 바꾸면 갱신).
+   - 저장은 자동으로 하지 않는다. 작업자가 실제 값을 보고 「저장」을 눌러야 들어감(HACCP 기록 원칙). 고치려면 칸을 누르고 숫자를 치면 새 값으로 바뀜.
+   - 자동으로 채운 값을 고치지 않고 저장한 칸은 줄에 r.us={f:{칸:값},at,by,src:'avg7'} 표시(v247 「평소와 같음」과 같은 자리 → 같은 값 반복 점검에서 구분). */
+(function () {
+  if (!window.FIELD_APP) return;
+  const LS = 'wonryo_ccp_recent';
+  let SEED = null; try { SEED = JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) {}
+  fetch('ccp_recent.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.oven) { SEED = j; try { localStorage.setItem(LS, JSON.stringify(j)); } catch (e) {} } }).catch(() => {});
+  const F = { oven: { temp: 0, min: 1, core: 2 }, freeze: { v1: 0, v2: 1 }, mix: { kg: 0, temp: 1, room: 2 } };
+  const RND = { oven: { temp: 0, min: 0, core: 0 }, freeze: { v1: 1, v2: 1 }, mix: { kg: 2, temp: 0, room: 0 } };
+  const keyOf = n => { n = String(n || '').replace(/\((시작|종료|중간|오전|오후)[^)]*\)/g, '').replace(/^(D|DB|Db)\./i, '').replace(/\s/g, '').replace(/\d+EA/gi, '').replace(/BOX/gi, '').replace(/크라상/g, '크로와상');
+    if (/크림/.test(n) && /배합|소스/.test(n)) return '크림배합'; if (/마늘/.test(n) && /배합|소스/.test(n) && !/빵|바게트/.test(n)) return '마늘배합'; return n; };
+  const ymd = t => t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+  const rowsFor = (type, name) => { const k = keyOf(name), out = [];
+    const S = (SEED && SEED[type]) || {}; let sk = S[k] ? k : ''; if (!sk) { let bl = 0; Object.keys(S).forEach(x => { if (x.length >= 2 && k.includes(x) && x.length > bl) { bl = x.length; sk = x; } }); }
+    if (sk) S[sk].forEach(a => out.push({ d: a[0], v: a.slice(1) }));
+    try { Object.values(ccpS().logs || {}).forEach(g => { if (!g || g.skip || g.type !== type) return; (g.rows || []).forEach(r => { if (keyOf(r.name) !== k && keyOf(r.name) !== sk) return;
+        const v = Object.keys(F[type]).map(f => { const x = ccpNum(r[f]); return x == null ? null : x; }); if (v.some(x => x != null)) out.push({ d: g.date, v, app: 1 }); }); }); } catch (e) {}
+    return out; };
+  /* 최근 7일 평균 (없으면 최근 생산일 최대 10일 평균) */
+  window.fldAvg7 = function (type, f, name) { const ix = (F[type] || {})[f]; if (ix == null) return null; const D = fldD(); const t0 = new Date(D + 'T00:00:00'); t0.setDate(t0.getDate() - 7); const from = ymd(t0);
+    const all = rowsFor(type, name).filter(x => x.v[ix] != null && x.d <= D); if (!all.length) return null;
+    let use = all.filter(x => x.d > from), how = '최근 7일 평균'; if (!use.length) { const ds = [...new Set(all.map(x => x.d))].sort().slice(-10); use = all.filter(x => ds.includes(x.d)); how = '최근 생산 ' + ds.length + '일 평균'; }
+    const m = use.reduce((s, x) => s + x.v[ix], 0) / use.length, p = Math.pow(10, RND[type][f]); return { v: Math.round(m * p) / p, n: use.length, how }; };
+  const _start = fldStartForm;
+  fldStartForm = function (row, sec) { const r0 = FLD.render; FLD.autoF = {}; FLD.autoHow = '';
+    const _fr = fieldRender; let held = false; fieldRender = function () { held = true; };   /* 원래 함수가 그리기 전에 값을 먼저 채움 */
+    try { _start.apply(this, arguments); } finally { fieldRender = _fr; }
+    try { if (FLD.step === 'form' && F[FLD.type] && FLD.sec !== 'pass') { const nmx = FLD.name || (row && row.name) || '';
+        FLD.fields.forEach(x => { if (F[FLD.type][x.f] == null || FLD.vals[x.f] !== '') return; if (FLD.type === 'freeze' && x.f === 'v2' && !(row && row.t1)) return;
+          const a = fldAvg7(FLD.type, x.f, nmx); if (!a) return; let s = String(a.v); if (x.neg) s = s.replace(/^-/, ''); FLD.vals[x.f] = s; FLD.autoF[x.f] = s; FLD.autoHow = a.how; });
+        if (Object.keys(FLD.autoF).length) { const i = FLD.fields.findIndex(x => x.k !== 'time' && FLD.vals[x.f] === ''); FLD.fi = i < 0 ? FLD.fields.findIndex(x => FLD.autoF[x.f] != null) : i; if (FLD.fi < 0) FLD.fi = 0; } } } catch (e) {}
+    if (held || FLD.step === 'form') fieldRender(); };
+  /* 화면: 자동으로 채운 칸에 표시 + 안내 띠 */
+  const st = document.createElement('style');
+  st.textContent = '#fld .fav-tag{display:inline-block;margin-left:8px;padding:1px 9px;border-radius:99px;background:#E7F5FF;color:#1864AB;font-size:13px;font-weight:800;vertical-align:middle}'
+    + '#fld .fav-bar{margin:0 0 12px;padding:12px 16px;border-radius:14px;background:#EBFBEE;border:2px solid #8CE99A;color:#1b4d2a;font-size:17px;line-height:1.5;word-break:keep-all}#fld .fav-bar b{color:#2B8A3E}';
+  document.head.appendChild(st);
+  const _render2 = fieldRender;
+  fieldRender = function () { _render2.apply(this, arguments);
+    try { if (FLD.step !== 'form' || !FLD.autoF) return; const keep = FLD.fields.filter(x => FLD.autoF[x.f] != null && FLD.vals[x.f] === FLD.autoF[x.f]); if (!keep.length) return;
+      const btns = document.querySelectorAll('#fld .fld-fields > .fld-f'); FLD.fields.forEach((x, i) => { if (FLD.autoF[x.f] == null || FLD.vals[x.f] !== FLD.autoF[x.f]) return; const lb = btns[i] && btns[i].querySelector('label'); if (lb && !lb.querySelector('.fav-tag')) lb.insertAdjacentHTML('beforeend', '<span class="fav-tag">자동</span>'); });
+      const form = document.querySelector('#fld .fld-form'); if (form && !document.querySelector('#fld .fav-bar')) form.insertAdjacentHTML('beforebegin', '<div class="fav-bar"><b>✓ ' + esc(FLD.autoHow || '최근 평균') + '으로 미리 채웠습니다.</b> 판넬·온도계 값과 <b>같으면 「저장」만</b> 누르세요. 다르면 그 칸을 누르고 숫자를 치면 바뀝니다.</div>');
+    } catch (e) {} };
+  /* 저장: 자동 값을 그대로 쓴 칸 표시 */
+  const _save = fldSave;
+  fldSave = function () { const au = {}; try { (FLD.fields || []).forEach(x => { if (FLD.autoF && FLD.autoF[x.f] != null && FLD.vals[x.f] === FLD.autoF[x.f]) au[x.f] = (x.neg ? '-' : '') + FLD.vals[x.f]; }); } catch (e) {}
+    const type = FLD.type, prev = FLD.lastRow; const ret = _save.apply(this, arguments);
+    try { const row = FLD.lastRow; if (row && row !== prev && Object.keys(au).length) { const old = row.us && row.us.f || {}; row.us = { f: Object.assign({}, old, au), at: new Date().toISOString(), by: fldWk(), src: 'avg7' }; const g = fldLog(type); if (g) { ccpTouch(g); save(); } } } catch (e) {}
+    return ret; };
+})();
