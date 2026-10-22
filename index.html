@@ -1449,8 +1449,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '250';
-const APP_BUILT = '2026-10-22 15:18';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '251';
+const APP_BUILT = '2026-10-22 16:16';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -8866,6 +8866,178 @@ function rbHandTake() {
   try { homeGo('raw:rbuy'); } catch (e) { try { S.ui.menu = 'raw'; S.ui.tab = 'rbuy'; renderAll(); } catch (e2) {} }
 }
 setTimeout(() => { try { rbHandTake(); } catch (e) {} }, 1500);
+
+/* ═════════════ v251: 용기·포장 무게 현장 검증 (2026-10-22) ═════════════
+   이카운트 기준값(용기 무게 = 품목 「2중용기」, 1개 환산 = 품목 관계 비율)을 현장에서 저울로 재서 비교 →
+   ① 측정값을 기기 간 공유(kind wver, plog로 감싸 보냄: 예전 앱은 무시) ② 「앱에 반영」: 용기 무게 덮어쓰기(S.wver.app) + 1포 실중량/규격(setItemW)
+   ③ 이카운트 수정 목록(현재값 → 실측값) ④ 인쇄. 이카운트에는 쓰지 않음(수정은 사람이 확인 뒤 입력). 주소 #wver 로 바로 열림 */
+try { (function () {
+  const WV_AT = '2026-10-22 16:03';
+  const WV_REF = [{"c":"LH.1_0","n":"크림치즈(엘로이/스미스/JHL)","v":"로하스코리아","t":750,"g":"A","pk":[{"c":"JHL01","n":"JHL 크림치즈","s":"10000","w":10000},{"c":"LH.1","n":"엘로이 크림치즈","s":"13600","w":13600},{"c":"LH11","n":"스미스필드 크림치즈","s":"13600","w":13600}]},{"c":"CH.123_0","n":"생크림(에버휩/비앙코)","v":"철은인터내셔날","t":710,"g":"A","pk":[{"c":"CH.123","n":"에버휩 생크림","s":"1030","w":1000},{"c":"LH27","n":"비앙코 브리오 생크림","s":"1000","w":1000}]},{"c":"CH.000_0","n":"마요네즈","v":"철은인터내셔날","t":670,"g":"A","pk":[{"c":"CH.000","n":"마요네즈스파우트","s":"3200","w":3180}]},{"c":"CH.08_0","n":"머스타드","v":"철은인터내셔날","t":1020,"g":"A","pk":[{"c":"CH.08","n":"머스타드소시 모아하우스","s":"3628","w":3600}]},{"c":"CH.05_0","n":"다진마늘","v":"철은인터내셔날","t":660,"g":"A","pk":[{"c":"CH.05","n":"냉동마늘(황보)","s":"1,000","w":1000}]},{"c":"LH.2_0","n":"마가린","v":"로하스코리아","t":780,"g":"A","pk":[{"c":"KADS1","n":"K.스마트베이커마가린 BOX","s":"10,000g","w":10000},{"c":"LH.2","n":"스마트 베이커 마가린","s":"10000","w":10000}]},{"c":"LH.5_0","n":"연유(건국)","v":"로하스코리아","t":780,"g":"A","pk":[{"c":"LH.5","n":"건국연유","s":"5000","w":4980},{"c":"LH.5_1","n":"건국연유","s":"24000","w":24000}]},{"c":"SC02_0","n":"냉동전란(에그앤리치)","v":"사우스코어","t":740,"g":"A","pk":[{"c":"SC02","n":"에그앤리치 냉동전란","s":"10000","w":10000}]},{"c":"CH.A10_0","n":"하얀설탕","v":"철은인터내셔날","t":150,"g":"A","pk":[{"c":"CH.A10","n":"하얀설탕(큐원)","s":"15000","w":15000}]},{"c":"CH.27_0","n":"파슬리","v":"철은인터내셔날","t":690,"g":"A","pk":[{"c":"CH.27","n":"파슬리(선인)","s":"250","w":250}]},{"c":"CH.1225_0","n":"미로와데코젤","v":"철은인터내셔날","t":890,"g":"A","pk":[{"c":"CH.1225","n":"미로와데코젤","s":"5000","w":5000},{"c":"CH.1226","n":"미로와데코젤","s":"3000","w":3000},{"c":"CH.1227","n":"미로와(서브리모)","s":"1200","w":1200}]},{"c":"CH.B23_0","n":"펄솔트","v":"철은인터내셔날","t":800,"g":"A","pk":[{"c":"CH.B23","n":"펄솔트","s":"500","w":500}]},{"c":"CH.138_0","n":"갈색설탕","v":"철은인터내셔날","t":150,"g":"B","pk":[{"c":"CH.138","n":"갈색설탕","s":"15000","w":15000},{"c":"GNFS31","n":"GNFS.갈색설탕","s":"15000","w":null}]},{"c":"CH.A12_0","n":"강력밀가루(코끼리)","v":"철은인터내셔날","t":150,"g":"B","pk":[{"c":"CH.A12","n":"코끼리강력밀가루(면세)","s":"20000","w":20000}]},{"c":"CH.247_0","n":"검정깨 1kg","v":"철은인터내셔날","t":740,"g":"B","pk":[{"c":"CH.247","n":"검정깨","s":"1000","w":1000}]},{"c":"BK_01","n":"게랑드 소금","v":"(주)바이큰","t":720,"g":"B","pk":[{"c":"BK01","n":"게랑드 소금","s":"10000","w":10000}]},{"c":"CH.01_0","n":"꽃소금","v":"철은인터내셔날","t":690,"g":"B","pk":[{"c":"CH.01","n":"꽃소금","s":"15000","w":15000}]},{"c":"CH.G02-1_0","n":"드라이이스트(골드)","v":"철은인터내셔날","t":50,"g":"B","pk":[{"c":"CH.G02-1","n":"드라이이스트(골드)","s":"400","w":400},{"c":"CH.G26","n":"고당 드라이이스트(효모)","s":"3500","w":3500}]},{"c":"CH.25_1","n":"몰트엑기스(액상,선인) [1.25kg]","v":"철은인터내셔날","t":null,"g":"B","pk":[{"c":"CH.25","n":"몰트엑기스(액상,선인)","s":"1250","w":1250}]},{"c":"CH.30_0","n":"쇼트닝 4500","v":"철은인터내셔날","t":670,"g":"B","pk":[{"c":"CH.30","n":"(큐원)골든쇼트닝","s":"4500","w":4500}]},{"c":"CH.139_0","n":"식용유","v":"철은인터내셔날","t":null,"g":"B","pk":[{"c":"CH.139","n":"맑은식용유(큐원)","s":"16450","w":16450},{"c":"CP01","n":"식용유","s":"1.8L","w":16450},{"c":"MS01","n":"식용유","s":"500ml","w":450}]},{"c":"LH25_1","n":"앵커버터(엔지그래스)","v":"로하스코리아","t":1340,"g":"B","pk":[{"c":"GFS03","n":"(앵커)천연무염버터 454g","s":"454","w":454},{"c":"LH25","n":"앵커버터(엔지그래스 무염)","s":"25000","w":25000}]},{"c":"CH.95_0","n":"양조간장","v":"철은인터내셔날","t":null,"g":"B","pk":[{"c":"CH.95","n":"양조간장","s":"1700","w":1700},{"c":"CO.95_0","n":"양조간장 (쿠팡)","s":"g","w":2120}]},{"c":"CH.B21_0","n":"크리스탈 개량제","v":"철은인터내셔날","t":10,"g":"B","pk":[{"c":"CH.B21","n":"크리스탈 개량제","s":"500","w":500}]},{"c":"CH.B2_01","n":"탈지분유(서울)","v":"철은인터내셔날","t":670,"g":"B","pk":[{"c":"CH.B2_0","n":"탈지분유(서울)","s":"20000","w":20000}]},{"c":"CH.202_0","n":"파인소프트-202","v":"철은인터내셔날","t":710,"g":"B","pk":[{"c":"CH.202","n":"파인소프트-202","s":"2000","w":2000}]},{"c":"CH.07_0","n":"파인소프트T","v":"철은인터내셔날","t":150,"g":"B","pk":[{"c":"CH.07","n":"파인소프트T(대두)","s":"10000","w":null},{"c":"CH.77","n":"파인소프트T(대두)","s":"15000","w":15000}]},{"c":"CH.A01_0","n":"프랑스밀가루T65","v":"철은인터내셔날","t":150,"g":"B","pk":[{"c":"CH.A01","n":"프랑스밀가루T65","s":"25000","w":25000}]},{"c":"CH.A06_0","n":"K블레소레이유","v":"철은인터내셔날","t":150,"g":"B","pk":[{"c":"CH.A06","n":"K-블레소레이유","s":"20000","w":20000}]}];
+  const WV_MAP = {}; WV_REF.forEach(r => { WV_MAP[r.c] = r; });
+  const nOr = v => (v == null || v === '' || isNaN(Number(v))) ? null : Number(v);
+  const kgT = s => { const t = String(s || '').replace(/,/g, ''); if (/^\d+(\.\d+)?$/.test(t)) { const v = Number(t); return v >= 1000 ? (v / 1000) + 'kg' : v + 'g'; } return t; };
+  const pkLabel = p => p.n + (p.s ? ' ' + kgT(p.s) : '');
+  const who = () => { try { return nbMe() || S.settings.reporter || ''; } catch (e) { return (S.settings && S.settings.reporter) || ''; } };
+  function wvS() { if (!S.wver || typeof S.wver !== 'object') S.wver = { rec: {}, app: {} }; S.wver.rec = S.wver.rec || {}; S.wver.app = S.wver.app || {}; return S.wver; }
+  function wvRec(code) { const W = wvS(); return W.rec[code] || { t: null, p: {}, m: '' }; }
+  function wvNet(rec, pc) { const x = rec && rec.p && rec.p[pc]; if (!x) return null; const g = nOr(x.g); if (g == null) return null; return Math.round((g - (nOr(x.e) || 0)) * 10) / 10; }
+  const tareOk = (ec, me) => ec != null && Math.abs(me - ec) < 10;
+  const pkOk = (ec, me) => ec != null && Math.abs(me - ec) <= Math.max(5, ec * 0.003);
+  function wvState(r) { const rec = wvRec(r.c); let n = 0, bad = 0, need = 1 + r.pk.length; if (nOr(rec.t) != null) { n++; if (!tareOk(r.t, nOr(rec.t))) bad++; } r.pk.forEach(p => { const v = wvNet(rec, p.c); if (v != null) { n++; if (!pkOk(p.w, v)) bad++; } }); return { n, bad, need, done: n > 0 }; }
+  /* ── 공유: plog 로 감싸 보냄 (예전 앱의 prodSlogAdd 는 d·l 이 없어 무시) ── */
+  function wvSend(code) {
+    try { if (!shareOn()) return; const sh = shareCfg(); const W = wvS(); const row = { ts: new Date().toISOString(), week: '', code, name: (WV_MAP[code] || {}).n || code, kind: 'wver', note: JSON.stringify({ r: W.rec[code] || null, a: W.app[code] || null }) };
+      sh.outbox = sh.outbox.filter(r => shareKey(r) !== shareKey(row)); sh.outbox.push(row); save(); clearTimeout(wvSend.t); wvSend.t = setTimeout(() => { try { sharePush(); } catch (e) {} }, 900); } catch (e) {}
+  }
+  function wvApplyRemote(code, note) {
+    let o = null; try { o = JSON.parse(note || '{}'); } catch (e) { return; } if (!o || !WV_MAP[code]) return; const W = wvS(); let ch = false;
+    if (o.r && o.r.ts && (!W.rec[code] || (W.rec[code].ts || '') < o.r.ts)) { W.rec[code] = o.r; ch = true; }
+    if (o.a && o.a.ts && (!W.app[code] || (W.app[code].ts || '') < o.a.ts)) { W.app[code] = o.a; ch = true; }
+    if (ch) { save(); if (document.getElementById('wvOv') && !wvEditing()) setTimeout(wvRender, 0); }
+  }
+  const _sw = shareWire; shareWire = function (r) { if (r && r.kind === 'wver') return Object.assign({}, r, { kind: 'plog', code: 'wver~' + r.code, note: JSON.stringify({ x: 'wver', n: r.note || '' }) }); return _sw(r); };
+  const _su = shareUnwire; shareUnwire = function (r) { try { const m = r && r.kind === 'plog' && /^wver~(.+)$/.exec(String(r.code || '')); if (m) { let n = ''; try { n = (JSON.parse(r.note || '{}') || {}).n || ''; } catch (e) {} wvApplyRemote(m[1], n); return r; } } catch (e) {} return _su(r); };
+  /* ── 앱 반영: 용기 무게는 itemsFor 결과에 덮어씀(원래 값은 tareEc 로 남김) ── */
+  const _if = itemsFor; itemsFor = function (w) { const a = _if(w); const A = S.wver && S.wver.app; if (!A) return a; return a.map(it => { const o = A[it.code]; return o && nOr(o.t) != null && nOr(o.t) > 0 ? Object.assign({}, it, { tare: nOr(o.t), tareEc: it.tare }) : it; }); };
+  function wvApply(code, quiet) {
+    const r = WV_MAP[code]; if (!r) return false; const rec = wvRec(code); const W = wvS(); let did = [];
+    const t = nOr(rec.t); if (t != null && t > 0) { W.app[code] = { ts: new Date().toISOString(), who: who(), t }; did.push('용기 ' + fmt(t) + 'g'); }
+    const nets = r.pk.map(p => ({ p, v: wvNet(rec, p.c) })).filter(x => x.v != null && x.v > 0);
+    if (nets.length) {
+      const cur = specsOf(code);
+      if (cur) { const used = new Set(); const specs = cur.map(s => Object.assign({}, s)); nets.forEach(({ p, v }) => { const base = p.w || nOr(String(p.s).replace(/,/g, '')) || v; let best = null; specs.forEach((s, i) => { if (used.has(i)) return; const d = Math.abs(Number(s.w) - base) / base; if (d < 0.2 && (!best || d < best.d)) best = { i, d }; }); if (best) { specs[best.i].w = v; used.add(best.i); } else specs.push({ id: 'wv_' + p.c.replace(/\W/g, ''), n: pkLabel(p), w: v }); }); setItemW(code, { specs }); }
+      else if (r.pk.length === 1) setItemW(code, { w: nets[0].v });
+      else { const specs = r.pk.map(p => ({ id: 'wv_' + p.c.replace(/\W/g, ''), n: pkLabel(p), w: wvNet(rec, p.c) ?? p.w })).filter(s => Number(s.w) > 0); if (specs.length >= 2) setItemW(code, { specs }); else if (specs.length === 1) setItemW(code, { w: specs[0].w }); }
+      did.push('1개 무게 ' + nets.length + '종');
+    }
+    if (!did.length) { if (!quiet) toast('반영할 측정값이 없습니다'); return false; }
+    W.app[code] = Object.assign(W.app[code] || {}, { ts: new Date().toISOString(), who: who(), pk: nets.map(x => x.p.c) }); if (t != null && t > 0) W.app[code].t = t;
+    try { logAdd({ ts: new Date().toISOString(), kind: 'wver', code, text: `${r.n} 검증값 앱 반영: ${did.join(', ')}` }); } catch (e) {}
+    save(); wvSend(code); if (!quiet) toast(r.n + ' 앱에 반영했습니다'); return true;
+  }
+  function wvUnapply(code) { const W = wvS(); if (!W.app[code]) return; W.app[code] = { ts: new Date().toISOString(), who: who(), t: null, off: 1 }; save(); wvSend(code); toast('용기 무게를 이카운트 값으로 되돌렸습니다 (1개 무게는 「✎ 1포 무게 · 규격」에서 고칩니다)'); }
+  /* ── 이카운트 수정 목록 ── */
+  function wvDiffs() {
+    const L = []; WV_REF.forEach(r => { const rec = wvRec(r.c); const t = nOr(rec.t);
+      if (t != null && !tareOk(r.t, t)) L.push({ r, what: '용기 무게', where: `품목 ${r.c} 「2중용기」`, ec: r.t, me: t });
+      r.pk.forEach(p => { const v = wvNet(rec, p.c); if (v != null && !pkOk(p.w, v)) L.push({ r, what: pkLabel(p) + ' 1개 환산', where: `품목 관계 ${p.c} → ${r.c}`, ec: p.w, me: v }); }); });
+    return L;
+  }
+  function wvListText() { const L = wvDiffs(); if (!L.length) return '이카운트에서 고칠 곳이 없습니다.'; return `[이카운트 수정 목록] 용기·포장 무게 현장 검증 (${today()})\n` + L.map((x, i) => `${i + 1}. ${x.r.n} · ${x.what}: ${x.ec == null ? '없음' : fmt(x.ec) + 'g'} → ${fmt(x.me)}g (${x.where})`).join('\n'); }
+  /* ── 화면 ── */
+  let wvF = 'all', wvView = 'cards';
+  const wvEditing = () => { const a = document.activeElement; return !!(a && a.closest && a.closest('#wvOv') && a.tagName === 'INPUT'); };
+  function wvCss() { if (document.getElementById('wvCss')) return; const s = document.createElement('style'); s.id = 'wvCss'; s.textContent = `
+#wvOv{position:fixed;inset:0;z-index:9000;background:#F4F2EF;overflow:auto;font-size:17px;color:#1F1A16;-webkit-overflow-scrolling:touch;word-break:keep-all}
+#wvOv .wv-top{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid #DDD6CE;padding:10px 14px}
+#wvOv .wv-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#wvOv h2{margin:0;font-size:21px;flex:1 1 auto}
+#wvOv .wv-sub{font-size:13.5px;color:#6B6159;margin-top:2px}
+#wvOv .wv-nums{display:flex;gap:8px;margin-top:8px}#wvOv .wv-num{flex:1;background:#F7F5F2;border:1px solid #E4DED7;border-radius:12px;padding:6px 10px;text-align:center}#wvOv .wv-num b{display:block;font-size:24px}#wvOv .wv-num span{font-size:13px;color:#6B6159}
+#wvOv .wv-num.bad b{color:#C25E00}#wvOv .wv-num.ok b{color:#2E7D32}
+#wvOv .wv-seg{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}#wvOv .wv-seg button{flex:1;min-height:44px;border:1px solid #DDD6CE;background:#fff;border-radius:10px;font:inherit;font-size:15px;font-weight:700;color:#5C534B}#wvOv .wv-seg button.on{background:#7A4A23;color:#fff;border-color:#7A4A23}
+#wvOv .wv-btn{min-height:54px;padding:0 16px;border-radius:12px;border:1px solid #DDD6CE;background:#fff;font:inherit;font-size:16px;font-weight:700;color:#3B332D}
+#wvOv .wv-btn.brand{background:#7A4A23;border-color:#7A4A23;color:#fff}#wvOv .wv-btn.sm{min-height:44px;font-size:15px;padding:0 12px}
+#wvOv .wv-body{max-width:900px;margin:0 auto;padding:10px 12px 90px}
+#wvOv .wv-guide{background:#fff;border-left:5px solid #7A4A23;border-radius:10px;padding:10px 12px;font-size:15px;line-height:1.55;margin-bottom:10px}
+#wvOv .wv-sec{font-weight:800;color:#7A4A23;margin:14px 2px 6px;font-size:16px}
+#wvOv .wv-card{background:#fff;border:1px solid #E4DED7;border-radius:14px;padding:12px;margin-bottom:10px}
+#wvOv .wv-card.bad{border-color:#F0B37E;box-shadow:inset 4px 0 0 #EF6C00}#wvOv .wv-card.ok{box-shadow:inset 4px 0 0 #2E7D32}
+#wvOv .wv-name{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#wvOv .wv-name b{font-size:19px}#wvOv .wv-name small{color:#8A7F76;font-size:13px}
+#wvOv .wv-chip{margin-left:auto;font-size:13.5px;font-weight:800;border-radius:20px;padding:3px 10px;background:#EEE;color:#666;white-space:nowrap}
+#wvOv .wv-chip.ok{background:#E8F5E9;color:#2E7D32}#wvOv .wv-chip.bad{background:#FFF3E0;color:#C25E00}#wvOv .wv-chip.app{background:#E3F2FD;color:#1565C0}
+#wvOv .wv-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.8fr) minmax(0,1.5fr);gap:8px;align-items:center;padding:9px 0;border-top:1px dashed #E8E2DB}
+#wvOv .wv-row:first-of-type{border-top:0}
+#wvOv .wv-lab{font-size:15.5px;font-weight:700;line-height:1.3}#wvOv .wv-lab small{display:block;font-weight:500;color:#8A7F76;font-size:12.5px}
+#wvOv .wv-ec{font-size:15px;color:#5C534B;text-align:right;line-height:1.25}#wvOv .wv-ec b{display:block;font-size:17px;color:#1F1A16}#wvOv .wv-ec.none b{color:#C25E00}
+#wvOv .wv-in{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#wvOv .wv-in input{width:100%;min-width:0;flex:1 1 90px;min-height:50px;border:1.5px solid #CFC6BC;border-radius:10px;padding:0 10px;font:inherit;font-size:19px;font-weight:700;text-align:right;background:#FFFDF9}
+#wvOv .wv-in input.e{flex:0 1 92px;font-size:16px;font-weight:600}
+#wvOv .wv-in .res{flex:1 1 100%;font-size:14px;font-weight:700}#wvOv .res.ok{color:#2E7D32}#wvOv .res.bad{color:#C25E00}
+#wvOv .wv-memo{width:100%;margin-top:8px;min-height:44px;border:1px solid #DDD6CE;border-radius:10px;padding:8px 10px;font:inherit;font-size:15px}
+#wvOv .wv-foot{display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap}#wvOv .wv-foot .muted{font-size:13px;color:#8A7F76}
+#wvOv table.wv-t{width:100%;border-collapse:collapse;background:#fff;font-size:15.5px}#wvOv .wv-t th,#wvOv .wv-t td{border:1px solid #E0D9D1;padding:8px;text-align:left}#wvOv .wv-t th{background:#F3EEE8}#wvOv .wv-t td.n{text-align:right;white-space:nowrap;font-weight:700}
+@media (max-width:560px){#wvOv .wv-row{grid-template-columns:minmax(0,1fr) auto}#wvOv .wv-in{grid-column:1 / -1}#wvOv h2{font-size:19px}}
+`; document.head.appendChild(s); }
+  function wvTop() {
+    let n = 0, bad = 0, app = 0; WV_REF.forEach(r => { const st = wvState(r); if (st.done) n++; if (st.bad) bad++; if ((wvS().app[r.c] || {}).ts && !(wvS().app[r.c] || {}).off) app++; });
+    const seg = [['all', '전체'], ['A', '먼저 12'], ['todo', '미측정'], ['bad', '차이']].map(([k, t]) => `<button data-wvf="${k}" class="${wvF === k ? 'on' : ''}">${t}</button>`).join('');
+    return `<div class="wv-top"><div class="wv-h"><h2>⚖ 용기·포장 무게 검증</h2><button class="wv-btn sm" data-wv="print">🖨 인쇄</button><button class="wv-btn sm" data-wv="list">${wvView === 'list' ? '← 입력 화면' : '📋 이카운트 수정 목록'}</button><button class="wv-btn sm" data-wv="close">닫기</button></div>
+<div class="wv-sub">이카운트 기준 ${WV_AT} · 원료 ${WV_REF.length}개 · 입력하면 바로 저장되고 다른 기기와 공유됩니다</div>
+<div class="wv-nums"><div class="wv-num"><b>${n}/${WV_REF.length}</b><span>측정한 원료</span></div><div class="wv-num ${bad ? 'bad' : 'ok'}"><b>${bad}</b><span>이카운트와 다름</span></div><div class="wv-num"><b>${app}</b><span>앱에 반영</span></div></div>
+${wvView === 'cards' ? `<div class="wv-seg">${seg}</div>` : ''}</div>`;
+  }
+  function wvCard(r) {
+    const rec = wvRec(r.c); const st = wvState(r); const ap = wvS().app[r.c]; const apOn = ap && ap.ts && !ap.off;
+    const chip = apOn ? '<span class="wv-chip app">앱 반영됨</span>' : !st.done ? '<span class="wv-chip">미측정</span>' : st.bad ? `<span class="wv-chip bad">다름 ${st.bad}</span>` : '<span class="wv-chip ok">일치</span>';
+    const t = nOr(rec.t); const tRes = t == null ? '' : r.t == null ? `<span class="res bad">이카운트 값 없음 → ${fmt(t)}g 넣어야 함</span>` : tareOk(r.t, t) ? `<span class="res ok">✓ 일치 (차이 ${fmt(t - r.t)}g)</span>` : `<span class="res bad">차이 ${t - r.t > 0 ? '+' : ''}${fmt(Math.round((t - r.t) * 10) / 10)}g</span>`;
+    let h = `<div class="wv-card ${st.done ? (st.bad ? 'bad' : 'ok') : ''}" data-c="${esc(r.c)}"><div class="wv-name"><b>${esc(r.n)}</b><small>${esc(r.v)}</small>${chip}</div>
+<div class="wv-row"><div class="wv-lab">빈 용기 무게<small>개봉분을 담는 통·봉지</small></div><div class="wv-ec ${r.t == null ? 'none' : ''}">이카운트<b>${r.t == null ? '없음' : fmt(r.t) + 'g'}</b></div><div class="wv-in"><input inputmode="decimal" type="number" placeholder="잰 무게 g" data-f="t" value="${t == null ? '' : t}">${tRes}</div></div>`;
+    r.pk.forEach(p => { const x = (rec.p || {})[p.c] || {}; const v = wvNet(rec, p.c); const res = v == null ? '' : p.w == null ? `<span class="res bad">내용물 ${fmt(v)}g · 이카운트 값 확인 안 됨</span>` : pkOk(p.w, v) ? `<span class="res ok">✓ 내용물 ${fmt(v)}g · 일치</span>` : `<span class="res bad">내용물 ${fmt(v)}g · 차이 ${v - p.w > 0 ? '+' : ''}${fmt(Math.round((v - p.w) * 10) / 10)}g</span>`;
+      h += `<div class="wv-row"><div class="wv-lab">${esc(pkLabel(p))} 1개<small>새 제품을 포장째 재기</small></div><div class="wv-ec ${p.w == null ? 'none' : ''}">이카운트<b>${p.w == null ? '확인 안 됨' : fmt(p.w) + 'g'}</b></div><div class="wv-in"><input inputmode="decimal" type="number" placeholder="포장째 g" data-f="g" data-p="${esc(p.c)}" value="${x.g ?? ''}"><input class="e" inputmode="decimal" type="number" placeholder="빈 포장 g" data-f="e" data-p="${esc(p.c)}" value="${x.e ?? ''}">${res}</div></div>`; });
+    h += `<input class="wv-memo" data-f="m" placeholder="메모 (예: 24kg 통으로 바뀜, 용기 2개 사용)" value="${esc(rec.m || '')}">
+<div class="wv-foot"><button class="wv-btn ${st.done && !apOn ? 'brand' : ''}" data-wv="apply" ${st.done ? '' : 'disabled'}>${apOn ? '다시 반영' : '앱에 반영'}</button>${apOn && nOr(ap.t) ? '<button class="wv-btn sm" data-wv="unapply">용기 무게 되돌리기</button>' : ''}<span class="muted">${rec.ts ? '측정 ' + esc(rec.who || '') + ' ' + esc(String(rec.ts).slice(5, 16).replace('T', ' ')) : ''}${apOn ? ' · 반영 ' + esc(String(ap.ts).slice(5, 16).replace('T', ' ')) : ''}</span></div></div>`;
+    return h;
+  }
+  function wvListHtml() {
+    const L = wvDiffs();
+    return `<div class="wv-guide">현장에서 잰 값이 이카운트와 다른 곳입니다. 이카운트 <b>품목등록</b>의 「2중용기」(용기 무게)와 <b>품목 관계</b>의 환산 수량(1개 환산)을 이 값으로 고치면 됩니다. 이카운트 수정은 확인 후 사람이 입력합니다.</div>
+${L.length ? `<table class="wv-t"><tr><th>원료</th><th>고칠 항목</th><th>이카운트 지금</th><th>실측</th><th>고칠 곳</th></tr>${L.map(x => `<tr><td><b>${esc(x.r.n)}</b></td><td>${esc(x.what)}</td><td class="n">${x.ec == null ? '없음' : fmt(x.ec) + 'g'}</td><td class="n" style="color:#C25E00">${fmt(x.me)}g</td><td style="font-size:13.5px">${esc(x.where)}</td></tr>`).join('')}</table>` : '<div class="wv-guide" style="border-color:#2E7D32">아직 이카운트와 다른 측정값이 없습니다.</div>'}
+<div class="wv-foot" style="margin-top:12px"><button class="wv-btn brand" data-wv="copy">목록 복사</button><button class="wv-btn" data-wv="print">🖨 인쇄</button><button class="wv-btn" data-wv="applyAll">측정값 모두 앱에 반영</button></div>`;
+  }
+  function wvRender() {
+    const ov = document.getElementById('wvOv'); if (!ov) return; const y = ov.scrollTop;
+    let list = WV_REF; if (wvF === 'A') list = list.filter(r => r.g === 'A'); if (wvF === 'todo') list = list.filter(r => !wvState(r).done); if (wvF === 'bad') list = list.filter(r => wvState(r).bad);
+    let body = '';
+    if (wvView === 'list') body = wvListHtml();
+    else { body = `<div class="wv-guide"><b>재는 법</b> · ① <b>빈 용기</b>: 개봉분을 담는 빈 통·봉지를 저울에 올려 적기 ② <b>1개 무게</b>: 새 제품을 포장째 올려 적고, 빈 포장 무게를 알면 옆 칸에 적기(내용물 = 포장째 − 빈 포장) ③ 다 재면 「앱에 반영」을 누르면 실물재고 계산에 바로 쓰입니다.</div>`;
+      const A = list.filter(r => r.g === 'A'), B = list.filter(r => r.g !== 'A');
+      if (A.length) body += `<div class="wv-sec">A. 10/16 실사에서 장부와 달랐던 원료 · 먼저 재기</div>` + A.map(wvCard).join('');
+      if (B.length) body += `<div class="wv-sec">B. 나머지 원료</div>` + B.map(wvCard).join('');
+      if (!list.length) body += '<div class="wv-guide">해당하는 원료가 없습니다.</div>'; }
+    ov.innerHTML = wvTop() + `<div class="wv-body">${body}</div>`; ov.scrollTop = y;
+  }
+  function wvSet(code, f, pc, val) {
+    const W = wvS(); const rec = Object.assign({ t: null, p: {}, m: '' }, W.rec[code] || {}); rec.p = Object.assign({}, rec.p || {});
+    if (f === 't') rec.t = nOr(val); else if (f === 'm') rec.m = String(val || '').slice(0, 200); else { const x = Object.assign({}, rec.p[pc] || {}); x[f] = nOr(val); rec.p[pc] = x; }
+    rec.ts = new Date().toISOString(); rec.who = who(); W.rec[code] = rec; save(); wvSend(code);
+  }
+  function wvPrint() {
+    const rows = WV_REF.map(r => { const rec = wvRec(r.c); const t = nOr(rec.t); const lines = [{ lab: '빈 용기', ec: r.t, me: t, ok: t == null ? null : tareOk(r.t, t) }].concat(r.pk.map(p => { const v = wvNet(rec, p.c); const x = (rec.p || {})[p.c] || {}; return { lab: pkLabel(p) + ' 1개', ec: p.w, me: v, gross: x.g, empty: x.e, ok: v == null ? null : pkOk(p.w, v) }; }));
+      return lines.map((l, i) => `<tr class="${i === lines.length - 1 ? 'last' : ''}">${i === 0 ? `<td rowspan="${lines.length}" class="nm"><b>${esc(r.n)}</b>${r.g === 'A' ? '<br><span class="a">먼저</span>' : ''}</td>` : ''}<td>${esc(l.lab)}</td><td class="n">${l.ec == null ? '<span class="o">없음</span>' : fmt(l.ec) + 'g'}</td><td class="n w">${l.gross != null ? fmt(l.gross) : l.me != null && l.lab === '빈 용기' ? fmt(l.me) : ''}</td><td class="n w">${l.empty != null ? fmt(l.empty) : ''}</td><td class="n w">${l.me != null ? fmt(l.me) + 'g' : ''}</td><td class="${l.ok == null ? '' : l.ok ? 'g' : 'o'}">${l.ok == null ? '' : l.ok ? '일치' : '다름 ' + (l.me - (l.ec || 0) > 0 ? '+' : '') + fmt(Math.round((l.me - (l.ec || 0)) * 10) / 10) + 'g'}</td>${i === 0 ? `<td rowspan="${lines.length}" class="memo">${esc(rec.m || '')}</td>` : ''}</tr>`).join(''); }).join('');
+    const L = wvDiffs();
+    const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>용기·포장 무게 검증표</title><style>@page{size:A4 landscape;margin:7mm}body{font-family:'Pretendard','Malgun Gothic',sans-serif;color:#2b1d14;font-size:12px;margin:0;word-break:keep-all}
+h1{font-size:20px;margin:0 0 2px;color:#4a2c17}.sub{font-size:12px;color:#6b5a4c;margin-bottom:6px}table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #b9a594;padding:6px 5px;vertical-align:middle}th{background:#6b4226;color:#fff;font-size:11.5px}
+td.n{text-align:right;font-weight:700;white-space:nowrap}td.w{background:#fffdfa}td.nm b{font-size:12.5px}.a{font-size:10px;color:#b71c1c;font-weight:700}.o{color:#c25e00;font-weight:700}.g{color:#2e7d32;font-weight:700}td.memo{font-size:10.5px}tr{page-break-inside:avoid}thead{display:table-header-group}
+h2{font-size:15px;color:#4a2c17;margin:10px 0 4px;page-break-before:always}</style></head><body>
+<h1>용기·포장 무게 검증표 <span style="font-size:12px;color:#8a6a52">빵을그리다 · 통합재고관리</span></h1><div class="sub">이카운트 기준 ${WV_AT} · 출력 ${new Date().toLocaleString('ko-KR')} · 측정 ${WV_REF.filter(r => wvState(r).done).length}/${WV_REF.length} · 빈칸은 현장에서 적어 주세요 (내용물 = 포장째 − 빈 포장)</div>
+<table><thead><tr><th style="width:14%">원료</th><th style="width:19%">항목</th><th style="width:9%">이카운트</th><th style="width:10%">잰 무게 (포장째)</th><th style="width:8%">빈 포장</th><th style="width:10%">실측 (내용물)</th><th style="width:11%">결과</th><th>메모</th></tr></thead><tbody>${rows}</tbody></table>
+<h2>이카운트 수정 목록 (${L.length}건)</h2>${L.length ? `<table><tr><th style="width:18%">원료</th><th style="width:24%">고칠 항목</th><th style="width:12%">이카운트 지금</th><th style="width:12%">실측</th><th>고칠 곳</th></tr>${L.map(x => `<tr><td><b>${esc(x.r.n)}</b></td><td>${esc(x.what)}</td><td class="n">${x.ec == null ? '없음' : fmt(x.ec) + 'g'}</td><td class="n o">${fmt(x.me)}g</td><td>${esc(x.where)}</td></tr>`).join('')}</table>` : '<p>아직 이카운트와 다른 측정값이 없습니다.</p>'}
+</body></html>`;
+    let fr = document.getElementById('wvPrintFr'); if (fr) fr.remove(); fr = document.createElement('iframe'); fr.id = 'wvPrintFr'; fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(fr);
+    const d = fr.contentWindow.document; d.open(); d.write(html); d.close(); setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { toast('인쇄 창을 열지 못했습니다'); } }, 400);
+  }
+  function wvOpen() {
+    wvCss(); let ov = document.getElementById('wvOv'); if (!ov) { ov = document.createElement('div'); ov.id = 'wvOv'; document.body.appendChild(ov);
+      ov.addEventListener('click', e => { const fb = e.target.closest('[data-wvf]'); if (fb) { wvF = fb.dataset.wvf; wvRender(); return; } const b = e.target.closest('[data-wv]'); if (!b) return; const a = b.dataset.wv; const card = b.closest('[data-c]'); const code = card && card.dataset.c;
+        if (a === 'close') { ov.remove(); document.body.style.overflow = ''; try { if (location.hash === '#wver') history.replaceState(null, '', location.pathname + location.search); } catch (e2) {} try { renderAll(); } catch (e2) {} return; }
+        if (a === 'list') { wvView = wvView === 'list' ? 'cards' : 'list'; ov.scrollTop = 0; wvRender(); return; }
+        if (a === 'print') { wvPrint(); return; }
+        if (a === 'copy') { const t = wvListText(); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('수정 목록을 복사했습니다'), () => { prompt('복사해 주세요', t); }); return; }
+        if (a === 'apply' && code) { wvApply(code); wvRender(); return; }
+        if (a === 'unapply' && code) { wvUnapply(code); wvRender(); return; }
+        if (a === 'applyAll') { const cs = WV_REF.filter(r => wvState(r).done).map(r => r.c); if (!cs.length) { toast('측정값이 없습니다'); return; } if (!confirm(`측정한 원료 ${cs.length}개를 앱 계산에 반영할까요?\n(이카운트는 바뀌지 않습니다)`)) return; let k = 0; cs.forEach(c => { if (wvApply(c, true)) k++; }); toast(k + '개 원료를 앱에 반영했습니다'); wvRender(); return; } });
+      ov.addEventListener('change', e => { const i = e.target.closest('input[data-f]'); if (!i) return; const card = i.closest('[data-c]'); if (!card) return; wvSet(card.dataset.c, i.dataset.f, i.dataset.p, i.value); if (i.dataset.f !== 'm') setTimeout(wvRender, 0); });
+    }
+    document.body.style.overflow = 'hidden'; wvRender();
+  }
+  window.wverOpen = wvOpen;
+  function wvBtn() { const p = document.getElementById('btnPhysPrint'); if (p && !document.getElementById('btnWver')) p.insertAdjacentHTML('beforebegin', '<button class="btn sm brand" id="btnWver" title="용기 무게·포장 1개 무게를 저울로 재서 이카운트 값과 비교">⚖<span class="mh"> 용기·포장 검증</span></button>'); const b = document.getElementById('btnWver'); if (b && !b.dataset.on) { b.dataset.on = 1; b.addEventListener('click', wvOpen); } }
+  wvBtn(); setTimeout(wvBtn, 1500);
+  const _rp = renderPhys; renderPhys = function () { const r = _rp.apply(this, arguments); try { wvBtn(); } catch (e) {} return r; };
+  const wvHash = () => { if (location.hash === '#wver') setTimeout(wvOpen, 300); }; window.addEventListener('hashchange', wvHash); setTimeout(wvHash, 1200);
+})(); } catch (e) { console.warn('wver patch', e); }
+
 </script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════
