@@ -444,3 +444,59 @@
     + '#fld .fqu button.on{border-color:#7A4A23!important;background:#FBF3EA!important;box-shadow:0 0 0 3px #E9D3BC!important}#fld .fqu button.on .k{color:#7A4A23!important}';
   document.head.appendChild(st);
 })();
+
+/* ══ 한계기준 이탈 경고창 + 저장 전 한 번 더 확인 (2026-10-22 Aside, 사용자 「수동 입력 값이 한계기준을 벗어나면 경고창, 저장할 때 한 번 더 물어봐」) ══
+   - 손으로 고친 칸(숫자판·O/X)을 벗어날 때 그 값이 기준 밖이면 큰 경고창: 「값 다시 고치기」(누를 곳 색) / 「이 값이 맞습니다」. 같은 값으로는 한 번만 띄움.
+   - 저장을 누를 때 기준 밖 칸이 하나라도 있으면(미리 채운 값 포함) 한 번 더 확인: 「값 다시 확인」 / 「그대로 저장 → 개선조치 적기」. 그대로 저장하면 원래 흐름대로 개선조치 화면으로 감.
+   - 판정은 원래 함수 fldFieldBad(그날 기준표 CCP_LIM_HIST) 그대로. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '.fwarn-bg{position:fixed;inset:0;z-index:100;background:rgba(20,10,5,.55);display:flex;align-items:center;justify-content:center;padding:16px}'
+    + '.fwarn{width:min(560px,100%);background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.35);animation:fwin .18s ease-out}@keyframes fwin{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}'
+    + '.fwarn-hd{background:#C92A2A;color:#fff;padding:16px 20px;font-size:24px;font-weight:900;line-height:1.3}.fwarn-hd small{display:block;font-size:16px;font-weight:600;opacity:.95;margin-top:4px}'
+    + '.fwarn-bd{padding:16px 20px;font-size:18px;color:#2b1d14;line-height:1.55;word-break:keep-all}.fwarn-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:10px 12px;margin:0 0 8px;border-radius:12px;background:#FFF5F5;border:2px solid #FFC9C9}'
+    + '.fwarn-row b{font-size:17px;color:#5c3b2a}.fwarn-row .v{font-size:30px;font-weight:900;color:#C92A2A;white-space:nowrap}.fwarn-row .lim{font-size:16px;color:#5c3b2a;white-space:nowrap}'
+    + '.fwarn-bt{display:flex;flex-direction:column;gap:10px;padding:0 20px 20px}.fwarn-bt button{min-height:62px;border-radius:14px;font-size:20px;font-weight:900;cursor:pointer}'
+    + '.fwarn-bt .go{background:linear-gradient(180deg,#9A6236,#7A4A23);border:2px solid #5a3519;color:#fff;box-shadow:0 5px 0 #4E2E14}.fwarn-bt .go:active{transform:translateY(3px);box-shadow:0 2px 0 #4E2E14}'
+    + '.fwarn-bt .alt{background:#fff;border:2px solid #E03131;color:#C92A2A}';
+  document.head.appendChild(st);
+  const valTxt = x => { const v = FLD.vals[x.f]; if (x.k === 'ox') return v === 'O' ? (x.yes + ' (O)') : v === 'X' ? (x.no + ' (X)') : v; return (x.neg && v !== '' ? '−' : '') + v + (x.u || ''); };
+  const limTxt = (x, b) => x.k === 'ox' ? '정상: ' + (x.good === 'O' ? x.yes : x.no) : x.lim ? '기준 ' + x.lim : (b || []).join(', ');
+  const badOf = x => { try { const b = fldFieldBad(x); return b && b.length ? b : null; } catch (e) { return null; } };
+  const close = () => { const m = document.querySelector('.fwarn-bg'); if (m) m.remove(); };
+  const show = (title, sub, xs, goTxt, altTxt, onGo, onAlt) => { close();
+    const rows = xs.map(({ x, b }) => '<div class="fwarn-row"><b>' + esc(x.lb) + '</b><span class="v">' + esc(valTxt(x)) + '</span><span class="lim">' + esc(limTxt(x, b)) + '</span></div>').join('');
+    const bg = document.createElement('div'); bg.className = 'fwarn-bg';
+    bg.innerHTML = '<div class="fwarn" role="alertdialog"><div class="fwarn-hd">⚠ ' + esc(title) + '<small>' + esc(sub) + '</small></div><div class="fwarn-bd">' + rows + '</div>'
+      + '<div class="fwarn-bt"><button type="button" class="go">' + esc(goTxt) + '</button><button type="button" class="alt">' + esc(altTxt) + '</button></div></div>';
+    (document.getElementById('fld') || document.body).appendChild(bg);
+    bg.querySelector('.go').onclick = e => { e.stopPropagation(); close(); onGo && onGo(); };
+    bg.querySelector('.alt').onclick = e => { e.stopPropagation(); close(); onAlt && onAlt(); };
+    bg.addEventListener('click', e => e.stopPropagation()); };
+  window.fldWarnClose = close;
+  /* 1) 손으로 고친 칸을 벗어날 때 */
+  let lastFields = null, lastFi = -1, lastOx = {}, warned = {};
+  const _r = fieldRender;
+  fieldRender = function () { _r.apply(this, arguments);
+    try { if (FLD.step !== 'form' || !FLD.fields) { lastFields = null; return; }
+      if (lastFields !== FLD.fields) { lastFields = FLD.fields; lastFi = FLD.fi; warned = {}; lastOx = {}; FLD.fields.forEach(x => { if (x.k === 'ox') lastOx[x.f] = FLD.vals[x.f]; }); return; }
+      let hit = null;
+      FLD.fields.forEach((x, i) => { if (hit || x.k !== 'ox') return; const v = FLD.vals[x.f]; if (v !== lastOx[x.f]) { lastOx[x.f] = v; const b = badOf(x); if (b) hit = { x, b, i }; } });
+      if (!hit && lastFi !== FLD.fi && lastFi >= 0) { const x = FLD.fields[lastFi]; if (x && x.k !== 'ox' && FLD.typed && FLD.typed[x.f] && FLD.vals[x.f] !== '') { const b = badOf(x); if (b) hit = { x, b, i: lastFi }; } }
+      lastFi = FLD.fi;
+      if (hit) { const key = hit.x.f + '=' + FLD.vals[hit.x.f]; if (warned[key]) return; warned[key] = 1;
+        show('한계기준을 벗어난 값입니다', '판넬·온도계를 다시 보고, 맞으면 그대로 두세요', [hit], '✎ 값 다시 고치기', '이 값이 맞습니다',
+          () => { if (hit.x.k !== 'ox') { FLD.fi = hit.i; if (FLD.typed) delete FLD.typed[hit.x.f]; } fieldRender(); }, null); }
+    } catch (e) {} };
+  /* 2) 저장할 때 한 번 더 */
+  const _save = fldSave;
+  fldSave = function () { try { if (!FLD.okBad && FLD.step === 'form' && FLD.fields) {
+        const xs = FLD.fields.map((x, i) => ({ x, i, b: FLD.vals[x.f] !== '' ? badOf(x) : null })).filter(o => o.b);
+        if (xs.length) { const args = arguments, self = this;
+          show('기준을 벗어난 값이 있습니다', '그대로 저장하면 다음 화면에서 개선조치를 적어야 합니다', xs, '✎ 값 다시 확인', '그대로 저장 → 개선조치 적기',
+            () => { FLD.fi = xs[0].i; if (FLD.typed) delete FLD.typed[xs[0].x.f]; fieldRender(); },
+            () => { FLD.okBad = true; try { _save.apply(self, args); } finally { FLD.okBad = false; } });
+          return; } } } catch (e) {}
+    return _save.apply(this, arguments); };
+})();
