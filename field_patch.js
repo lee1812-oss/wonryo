@@ -360,14 +360,14 @@
   const ymd = d => String(d || '').replace(/-/g, '/');
   const lineOf = l => { const it = prodItem(l.code) || {}; return { code: l.code, name: it.name || l.code, unit: l.mode === 'ea' ? '개' : (it.unit || ''), mode: l.mode || '', qty: Number(l.qty), ecQty: prodEcQty(it, l.qty, l.mode), ecUnit: prodEcUnit(it), note: String(l.note || '').trim() }; };
   window.fldEcView = function (entry, opt) { opt = opt || {}; let rows = []; try { rows = prodRows(entry); } catch (e) { return ''; }
-    const c = entry.cfg || prodS().cfg, same = c.whF && c.whF === c.whT;
+    const c = entry.cfg || prodS().cfg;   /* 2026-10-22 사용자 결정: 창고는 구분하지 않음(재고는 전체 합계) → 주황 표시 없음 */
     const tr = rows.map((r, i) => { const l = entry.lines[i] || {}, it = prodItem(r.PROD_CD) || {};
       return '<tr><td class="c">' + esc(r.PROD_CD) + '</td><td>' + esc(it.ecName || l.name || r.PROD_CD) + '</td><td class="n">' + esc(fmt(Number(r.QTY))) + ' <small>' + esc(l.ecUnit || prodEcUnit(it) || '') + '</small></td><td class="r">' + esc(r.REMARKS || '') + '</td></tr>'; }).join('');
     const st = opt.status ? '<span class="st ' + (opt.status.cls || '') + '">' + esc(opt.status.t) + '</span>' : '';
     return '<div class="ecv"><div class="ecv-top"><b>ECOUNT</b><span class="path">재고 › 생산/외주 › 생산입고</span><span class="tag">' + esc(opt.tag || '이렇게 들어갑니다') + '</span></div>'
       + '<div class="ecv-ttl">생산입고 입력' + (entry.test ? ' <small style="color:#C92A2A">(테스트 모드 — 실제로는 안 들어감)</small>' : '') + '</div>'
       + '<div class="ecv-hd"><span class="l">일자</span><span class="v">' + esc(ymd(entry.date)) + '</span><span class="l">담당자</span><span class="v">' + esc(c.emp || '(없음)') + '</span>'
-      + '<span class="l">생산된 공장</span><span class="v' + (same ? ' warn' : '') + '">' + esc(c.whF || '(없음)') + '</span><span class="l">받는 창고</span><span class="v' + (same ? ' warn' : '') + '">' + esc(c.whT || '(없음)') + '</span></div>'
+      + '<span class="l">생산된 공장</span><span class="v' + '' + '">' + esc(c.whF || '(없음)') + '</span><span class="l">받는 창고</span><span class="v' + '' + '">' + esc(c.whT || '(없음)') + '</span></div>'
       + '<table><thead><tr><th>품목코드</th><th>품목명</th><th style="text-align:right">수량</th><th class="rm">적요</th></tr></thead><tbody>' + (tr || '<tr><td colspan="4">담은 품목이 없습니다</td></tr>') + '</tbody></table>'
       + '<div class="ecv-ft"><span class="btn8">저장(F8)</span>' + st + '<span>' + esc(opt.foot || '') + '</span></div></div>'; };
   const holdTxt = () => { const c = prodS().cfg; return c.batch === false ? '보내면 바로 이카운트에 들어갑니다' : '오늘 생산은 ' + (c.cutoff || '17:30') + '에 한 전표로 합쳐서 들어갑니다'; };
