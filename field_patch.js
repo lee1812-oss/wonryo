@@ -967,3 +967,28 @@
   };
   document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#fld [data-fwsdel]'); if (!b) return; e.preventDefault(); e.stopPropagation(); fldWsDel(b.dataset.fwsdel); }, true);
 })();
+
+
+/* ══ 첫 화면 글 줄이기, 키오스크식 (2026-10-22 Aside, 사용자 「불필요한 글이 없도록, 직관적인 버튼만 차례대로」 「햄버거집·스타벅스 키오스크처럼 설명 없이」) ══
+   - 빼는 것: 「① 작업 시작에서… 예) 몽블랑 → …」 설명 상자, 「✓ 오늘 빠진 기록이 없습니다」(빠진 게 있으면 경고는 그대로 보임),
+     「일지 작성 완료」 옆 설명 문장, 「오늘 만들 품목을 고르세요」·「👆 여기부터 시작하세요」·「지금 할 차례」 배지(노랑 채우기로 충분),
+     생산량 카드 설명, 「· 눌러서 품목 추가」, 「어떤 품목의 단계를 볼까요?」.
+   - 남는 것: 번호+아이콘+짧은 이름+숫자(품목·진행 상태·입력 필요 n), ✓ 완료 표시, 일지 작성 완료 줄, 설정 버튼. 원래 함수는 감싸기만 함. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fsf-c .fpress{display:none!important}#fld .fsf-c[data-f="ws"]:not(.done) .t small{display:none!important}';
+  document.head.appendChild(st);
+  const _home = fldHomeHtml;
+  fldHomeHtml = function () { let h = _home.apply(this, arguments);
+    try {
+      h = h.replace(/<div class="fsf-hint">[\s\S]*?<\/div>/, '');
+      h = h.replace(/<div class="fld-card ok"><b>✓ 오늘 빠진 기록이 없습니다<\/b><\/div>/, '');
+      h = h.replace(/<span class="tag">지금 할 차례<\/span>/g, '');
+      h = h.replace(/ · 눌러서 품목 추가/, '');
+      h = h.replace(/<small class="">작업이 끝나면 박스 수 입력 → 이카운트·생산작업일보<\/small>/, '');
+      h = h.replace(/<span class="lb">어떤 품목의 단계를 볼까요\?<\/span>/, '');
+      h = h.replace(/(<b>✍ 일지 작성 완료<\/b>)\s*<small>[^<]*<\/small>/, '$1');
+    } catch (e) {}
+    return h; };
+})();
