@@ -1449,8 +1449,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '246';
-const APP_BUILT = '2026-10-21 22:04';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '247';
+const APP_BUILT = '2026-10-22 14:24';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -7806,6 +7806,276 @@ function tcBoot() {
 }
 try { tcBoot(); } catch (e) { try { console.warn('사내 대화 시작 실패', e); } catch (e2) {} }
 /* ── v243 사내 대화 끝 ── */
+
+/* ══ v247 (2026-10-22 Aside) 오늘 발주 알림 + 거래처용 발주서 이미지(카톡) ══
+   - 오늘 발주 알림: 공장 자료(factory.enc.json)의 rawbuy(이카운트 아침 06:30 재고 · 육쪽마늘빵 100박스분 기준)로
+     거래처별 발주 마감·품목을 보여 줌. 하루 한 번 자동으로 뜸(이 기기에서 끌 수 있음) · 원료 발주 탭 맨 위 버튼 · 주소 #po-alert.
+   - 발주서: 거래처가 한눈에 보는 이미지(PNG). 휴대폰은 공유 창에서 카톡 선택, PC는 이미지 복사 → 카톡 대화방에 Ctrl+V.
+     가격은 넣지 않음(단가가 바뀔 수 있어 거래처와 금액 다툼 방지). 보낸 뒤 「보낸 것으로 기록」 → 기존과 같이 S.rbuy.po 「발주 중」.
+   - ③ 발주 보내기의 「○○에 발주 보내기」도 이 발주서 화면으로 열림. 글·메일·문자는 「글·메일·문자로 보내기」(기존 창). */
+try {
+var PO = { alert: null, doc: null };
+const PO_FONT = '"Pretendard","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif';
+const PO_C = { brown: '#7a4a1e', dark: '#3d2410', soft: '#f8f3ec', line: '#e4d6c4', text: '#2a1d12', mute: '#7a6a5a', red: '#b3261e' };
+function poKD(d) { if (!d) return ''; const t = new Date(d + 'T00:00:00'); if (isNaN(t)) return d; return `${t.getFullYear()}년 ${t.getMonth() + 1}월 ${t.getDate()}일 (${'일월화수목금토'[t.getDay()]})`; }
+function poDays(a, b) { return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 864e5); }
+function poLD(iso) { const d = new Date(iso); return isNaN(d) ? '' : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function poRoom(rule) { const m = String(rule || '').match(/「([^」]+)」/); return m ? m[1] : ''; }
+function poHour(rule) { const m = String(rule || '').match(/(\d{1,2})시까지/); return m ? Number(m[1]) : null; }
+function poSent(sup, since) { try { return (rbS().po || []).filter(p => p.sup === sup && p.status !== 'cancel' && poLD(p.at) >= since); } catch (e) { return []; } }
+function poNo(sup) {
+  const td = today(), n = (() => { try { return (rbS().po || []).filter(p => poLD(p.at) === td).length; } catch (e) { return 0; } })();
+  return 'PO-' + td.slice(2).replace(/-/g, '') + '-' + String(n + 1).padStart(2, '0');
+}
+function poCss() {
+  if (document.getElementById('poCss')) return;
+  const st = document.createElement('style'); st.id = 'poCss';
+  st.textContent = `.po-wrap{font-size:16px;line-height:1.55;word-break:keep-all;overflow-wrap:break-word;color:#2a1d12}
+.po-hd{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;border-bottom:3px solid #7a4a1e;padding-bottom:10px;margin-bottom:12px}
+.po-hd h2{margin:0;font-size:22px}.po-sub{color:#6b5a4a;font-size:14px}
+.po-sum{background:#fdf2f2;border:1px solid #f3c4c4;color:#8a1c1c;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-weight:600}
+.po-card{border:1px solid #e4d6c4;border-left:7px solid #9a8a7a;border-radius:12px;padding:14px 16px;margin-bottom:12px;background:#fff}
+.po-card.late,.po-card.today{border-left-color:#c62828}.po-card.soon{border-left-color:#e08a00}.po-card.done{border-left-color:#2e7d32;background:#f6fbf6}
+.po-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}.po-name{font-size:20px;font-weight:800}
+.po-badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:14.5px;font-weight:700;white-space:nowrap}
+.po-badge.late,.po-badge.today{background:#c62828;color:#fff}.po-badge.soon{background:#fff3e0;color:#b35c00;border:1px solid #f5c58a}
+.po-badge.info{background:#eef2f7;color:#3b4a5e}.po-badge.done{background:#e8f5e9;color:#1b5e20}
+.po-deliv{margin-left:auto;color:#4a3a2a;font-weight:700;white-space:nowrap}
+.po-items{width:100%;border-collapse:collapse;margin:4px 0 8px}.po-items td{padding:7px 4px;border-bottom:1px solid #f0e7dc;font-size:16.5px}
+.po-items td.q{text-align:right;font-weight:800;font-size:18px;white-space:nowrap;color:#3d2410}
+.po-rule{color:#6b5a4a;font-size:14px;margin-bottom:10px}
+.po-btns{display:flex;gap:8px;flex-wrap:wrap}.po-btns .btn{min-height:50px;font-size:16px;padding:0 16px}
+.po-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(290px,1fr);gap:16px;align-items:start}
+@media(max-width:820px){.po-grid{grid-template-columns:1fr}}
+.po-prev{background:#efe8df;border-radius:12px;padding:10px;text-align:center;max-height:70vh;overflow:auto}
+.po-prev img{width:100%;box-shadow:0 2px 12px rgba(0,0,0,.18);border-radius:4px;background:#fff;display:block}
+.po-form{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 10px}.po-form label{display:flex;flex-direction:column;font-size:14px;color:#4a3a2a;gap:4px}
+.po-form input{font-size:16px;padding:8px;min-height:46px}
+.po-q{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f0e7dc;font-size:16px}.po-q span:first-child{flex:1}
+.po-q input{width:86px;font-size:18px;font-weight:700;padding:6px;text-align:right;min-height:44px}
+.po-guide{border-radius:10px;padding:10px 14px;margin-top:10px;font-size:15.5px;line-height:1.6}
+.po-guide.ok{background:#e8f5e9;border:1px solid #b9dfbb;color:#1b4d1e}.po-guide.warn{background:#fff3e0;border:1px solid #f5c58a;color:#7a3d00}
+.po-kk{background:#FEE500!important;color:#191919!important;border:1px solid #e6cf00!important;font-weight:800!important;width:100%}
+.po-bar{display:flex;justify-content:flex-end;margin:0 0 10px}.po-bar .btn{min-height:46px;font-size:15.5px;border:2px solid #c62828;color:#8a1c1c;background:#fff;font-weight:700}`;
+  document.head.appendChild(st);
+}
+function poAlertList(rb) {
+  const td = today(); const ord = { late: 0, today: 1, soon: 2, info: 3, done: 4 };
+  return (rb.sups || []).filter(s => (s.items || []).some(i => Number(i.packs) > 0)).map(s => {
+    const sent = poSent(s.name, rb.snap || td), d = s.nextOrder ? poDays(td, s.nextOrder) : null, hr = poHour(s.rule);
+    let lv, lab;
+    if (sent.length) { lv = 'done'; lab = `✓ ${rbMd(poLD(sent[sent.length - 1].at))} 발주 기록 있음`; }
+    else if (d == null) { lv = 'info'; lab = '발주일 확인 필요'; }
+    else if (d < 0) { lv = 'late'; lab = '발주일 지남 · 바로 발주'; }
+    else if (d === 0) { lv = 'today'; lab = '오늘' + (hr ? ` ${hr}시` : '') + '까지 발주'; }
+    else { lv = d <= 3 ? 'soon' : 'info'; lab = `${rbMd(s.nextOrder)}까지 발주 (D-${d})`; }
+    return Object.assign({}, s, { lv, lab, d, sent });
+  }).sort((a, b) => ord[a.lv] - ord[b.lv]);
+}
+async function poAlertOpen() {
+  poCss();
+  let F; try { F = await facLoad(); } catch (e) { return toast(String((e && e.message) || e)); }
+  const rb = F && F.rawbuy; if (!rb) return toast('공장 자료에 원료 발주 계산이 아직 없어요');
+  const list = poAlertList(rb); PO.alert = { rb, list };
+  const nm = {}; (rb.rows || []).forEach(r => { nm[r.sup + '|' + r.nm] = r; });
+  const goal = (rb.rule && rb.rule.boxes) || 100, mb = rb.maxBox;
+  const sum = mb != null && mb < goal ? `<div class="po-sum">지금 재고로 육쪽마늘빵 <b>${mb > 0 ? mb : 0}박스</b>까지 만들 수 있어요${rb.firstOut && rb.firstOut.length ? ` · 먼저 떨어지는 원료: <b>${esc(rb.firstOut.join(', '))}</b>` : ''} <span style="font-weight:400">(목표 ${goal}박스분)</span></div>` : '';
+  const cards = list.length ? list.map((s, i) => {
+    const rows = s.items.filter(it => Number(it.packs) > 0).map(it => { const r = nm[s.name + '|' + it.nm] || {}; return `<tr><td>${esc(r.item || it.nm)}</td><td class="q">${it.packs} ${esc(it.unit)}</td></tr>`; }).join('');
+    return `<div class="po-card ${s.lv}"><div class="po-top"><span class="po-badge ${s.lv}">${esc(s.lab)}</span><span class="po-name">${esc(s.name)}</span>${s.deliv ? `<span class="po-deliv">입고 예정 ${rbMd(s.deliv)}</span>` : ''}</div>
+      <table class="po-items">${rows}</table>${s.rule ? `<div class="po-rule">${esc(s.rule)}</div>` : ''}
+      <div class="po-btns"><button class="btn primary" data-poal="${i}">📄 발주서 만들기 · 카톡 보내기</button></div></div>`;
+  }).join('') : '<div class="po-card done"><b>지금 발주할 원료가 없어요.</b> 모든 원료가 목표(100박스분) 이상 있어요.</div>';
+  const auto = localStorage.getItem('po_alert_auto') !== 'off';
+  modal(`<div class="po-wrap"><div class="po-hd"><div><h2>🔔 오늘 발주 알림</h2><div class="po-sub">이카운트 ${rbMd(rb.snap)} 아침 06:30 재고 기준 · 육쪽마늘빵 100박스분 · 미로와데코젤 3통 유지</div></div></div>
+    ${sum}${cards}
+    <div class="po-sub" style="margin:4px 0 12px">· 수량은 아침 재고로 계산했어요. 오늘 이 앱에서 「보낸 것으로 기록」한 거래처는 초록색으로 바뀌어요.<br>· 발주서 화면에서 수량·입고 희망일을 고칠 수 있어요.</div>
+    <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><label class="row" style="gap:6px;font-size:14.5px"><input type="checkbox" id="poAuto" ${auto ? 'checked' : ''}> 이 기기에서 하루 한 번 자동으로 띄우기</label><button class="btn" onclick="closeModal()" style="min-height:50px;padding:0 22px">닫기</button></div></div>`);
+  $('#modalBody').classList.add('wide');
+  const ck = $('#poAuto'); if (ck) ck.onchange = () => { try { localStorage.setItem('po_alert_auto', ck.checked ? 'on' : 'off'); } catch (e) {} };
+}
+function poFromAlert(s) {
+  const rows = (PO.alert && PO.alert.rb.rows) || [];
+  const lines = s.items.filter(i => Number(i.packs) > 0).map(i => {
+    const r = rows.find(x => x.sup === s.name && x.nm === i.nm) || {}, c = r.code;
+    if (c && RB_RAW0[c]) { const P = rbPat(c); return { raw: c, name: P.name, buy: P.buy, bname: P.bname, n: Number(i.packs), u: P.u, g: P.g, price: P.price }; }
+    return { raw: c || '', name: i.nm, buy: '', bname: r.item || i.nm, n: Number(i.packs), u: i.unit, g: r.packG || 0, price: null };
+  });
+  poDocOpen(s.name, lines, { from: 'alert', due: s.deliv || '', room: poRoom(s.rule), back: true });
+}
+/* ── 발주서 그림 ── */
+let PO_LOGO = null;
+function poLogo() { if (PO_LOGO) return PO_LOGO; PO_LOGO = new Promise(res => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = () => res(null); im.src = 'https://lee1812-oss.github.io/wonryo/brand_logo.png'; setTimeout(() => res(null), 5000); }); return PO_LOGO; }
+function poFit(ctx, t, w, size, max) { let s = size; ctx.font = `${w} ${s}px ${PO_FONT}`; while (s > 12 && ctx.measureText(t).width > max) { s -= 1; ctx.font = `${w} ${s}px ${PO_FONT}`; } }
+function poWrap(ctx, t, max) { const out = []; String(t).split('\n').forEach(par => { let cur = ''; for (const ch of par) { if (ctx.measureText(cur + ch).width > max && cur) { out.push(cur); cur = ch; } else cur += ch; } out.push(cur); }); return out; }
+function poRR(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+function poPaint(ctx, d, logo) {
+  const C = PO_C, W = 900, P = 44, gw = W - 2 * P, F = (w, s) => `${w} ${s}px ${PO_FONT}`;
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, 4000); ctx.fillStyle = C.brown; ctx.fillRect(0, 0, W, 10);
+  let y = 40, lx = P;
+  if (logo) { const h = 66, w = logo.width * h / logo.height; ctx.drawImage(logo, P, y, w, h); lx = P + w + 14; }
+  ctx.fillStyle = C.brown; ctx.font = F(800, 27); ctx.fillText('빵을그리다(주)', lx, y + 31);
+  ctx.fillStyle = C.mute; ctx.font = F(600, 15.5); ctx.fillText('원료 발주서 · PURCHASE ORDER', lx, y + 57);
+  ctx.textAlign = 'right'; ctx.fillStyle = C.dark; ctx.font = F(800, 46); ctx.fillText('발 주 서', W - P, y + 44);
+  ctx.fillStyle = C.mute; ctx.font = F(600, 15.5); ctx.fillText('No. ' + d.no, W - P, y + 68); ctx.textAlign = 'left';
+  y += 66 + 22; ctx.fillStyle = C.dark; ctx.fillRect(P, y, gw, 2.5); y += 20;
+  const info = [['수신', d.sup + ' 귀하'], ['발신', '빵을그리다(주)'], ['발주일', poKD(d.date)], ['담당', (d.who ? d.who + ' · ' : '') + '☎ 031-762-1533'], ['입고 희망일', d.due ? poKD(d.due) : '협의'], ['품목 수', d.lines.length + '품목']];
+  const rh = 54, cw = gw / 2;
+  poRR(ctx, P, y, gw, rh * 3, 10); ctx.fillStyle = C.soft; ctx.fill(); ctx.strokeStyle = C.line; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(P + cw, y + 10); ctx.lineTo(P + cw, y + rh * 3 - 10); for (let r = 1; r < 3; r++) { ctx.moveTo(P + 14, y + rh * r); ctx.lineTo(P + gw - 14, y + rh * r); } ctx.stroke();
+  info.forEach(([k, v], i) => {
+    const x = P + (i % 2) * cw, yy = y + Math.floor(i / 2) * rh, hot = k === '입고 희망일';
+    ctx.fillStyle = C.mute; ctx.font = F(600, 16); ctx.fillText(k, x + 18, yy + 34);
+    ctx.fillStyle = hot ? C.red : C.text; poFit(ctx, v, hot ? 800 : 700, 20, cw - 140); ctx.fillText(v, x + 122, yy + 35);
+  });
+  y += rh * 3 + 34;
+  ctx.fillStyle = C.text; poFit(ctx, `${d.sup} 담당자님, 늘 감사드립니다. 아래와 같이 발주드립니다.`, 600, 19.5, gw); ctx.fillText(`${d.sup} 담당자님, 늘 감사드립니다. 아래와 같이 발주드립니다.`, P, y); y += 22;
+  const c1 = P + 66, c3 = W - P - 96, c2r = c3 - 22, hh = 50, rH = 62;
+  ctx.fillStyle = C.brown; poRR(ctx, P, y, gw, hh, 8); ctx.fill(); ctx.fillRect(P, y + hh - 8, gw, 8);
+  ctx.fillStyle = '#fff'; ctx.font = F(700, 18); ctx.textAlign = 'center'; ctx.fillText('No', P + 33, y + 32); ctx.fillText('단위', c3 + 48, y + 32);
+  ctx.textAlign = 'left'; ctx.fillText('품목명', c1, y + 32); ctx.textAlign = 'right'; ctx.fillText('수량', c2r, y + 32); ctx.textAlign = 'left';
+  y += hh;
+  (d.lines.length ? d.lines : [null]).forEach((l, i) => {
+    if (i % 2 === 1) { ctx.fillStyle = '#fcf9f5'; ctx.fillRect(P, y, gw, rH); }
+    if (l) {
+      ctx.fillStyle = C.mute; ctx.font = F(600, 18); ctx.textAlign = 'center'; ctx.fillText(String(i + 1), P + 33, y + 39);
+      ctx.fillStyle = C.text; ctx.textAlign = 'center'; ctx.font = F(600, 19); ctx.fillText(l.u || '', c3 + 48, y + 39);
+      ctx.textAlign = 'right'; ctx.fillStyle = C.dark; ctx.font = F(800, 28); ctx.fillText(String(l.n), c2r, y + 41);
+      ctx.textAlign = 'left'; ctx.fillStyle = C.text; poFit(ctx, l.bname || l.name, 600, 20, c2r - 90 - c1); ctx.fillText(l.bname || l.name, c1, y + 39);
+    } else { ctx.fillStyle = C.mute; ctx.font = F(600, 18); ctx.fillText('주문 품목 없음', c1, y + 39); }
+    ctx.fillStyle = C.line; ctx.fillRect(P, y + rH - 1, gw, 1); y += rH;
+  });
+  ctx.fillStyle = C.soft; ctx.fillRect(P, y, gw, 48); ctx.fillStyle = C.dark; ctx.fillRect(P, y, gw, 2);
+  ctx.font = F(800, 18); ctx.fillStyle = C.dark; ctx.fillText('합계', c1, y + 31); ctx.textAlign = 'right'; ctx.fillText(d.lines.length + '품목', W - P - 18, y + 31); ctx.textAlign = 'left';
+  y += 48 + 24;
+  if (d.note) {
+    ctx.font = F(600, 18.5); const nl = poWrap(ctx, d.note, gw - 150); const bh = 26 + nl.length * 28;
+    poRR(ctx, P, y, gw, bh, 10); ctx.fillStyle = '#fff6f5'; ctx.fill(); ctx.strokeStyle = '#efc4c0'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = C.red; ctx.font = F(800, 17); ctx.fillText('요청사항', P + 18, y + 35);
+    ctx.fillStyle = C.text; ctx.font = F(600, 18.5); nl.forEach((t, i) => ctx.fillText(t, P + 120, y + 35 + i * 28));
+    y += bh + 18;
+  }
+  const notes = ['확인 후 회신 부탁드립니다.'];
+  if (d.mail) notes.push('번거로우시겠지만 거래명세표는 ' + d.mail + ' 으로 보내 주시면 감사하겠습니다.');
+  notes.push('입고 희망일에 맞추기 어렵거나 일부 품목이 늦어지면 미리 알려 주세요.');
+  ctx.font = F(600, 17); const wl = []; notes.forEach(t => poWrap(ctx, t, gw - 64).forEach((s, j) => wl.push([j === 0, s])));
+  const bh2 = 22 + wl.length * 29; poRR(ctx, P, y, gw, bh2, 10); ctx.fillStyle = '#f4f7fb'; ctx.fill(); ctx.strokeStyle = '#d6e0ec'; ctx.lineWidth = 1.2; ctx.stroke();
+  wl.forEach(([first, s], i) => { const yy = y + 33 + i * 29; if (first) { ctx.fillStyle = '#3c5a80'; ctx.beginPath(); ctx.arc(P + 26, yy - 6, 3.5, 0, Math.PI * 2); ctx.fill(); } ctx.fillStyle = '#26384f'; ctx.font = F(600, 17); ctx.fillText(s, P + 40, yy); });
+  y += bh2 + 28;
+  ctx.fillStyle = C.line; ctx.fillRect(P, y, gw, 1.5); y += 34;
+  ctx.fillStyle = C.dark; ctx.font = F(800, 20); ctx.fillText('빵을그리다(주)', P, y);
+  const bw = ctx.measureText('빵을그리다(주)').width; ctx.fillStyle = C.text; ctx.font = F(600, 17); ctx.fillText((d.who ? '  담당 ' + d.who : '') + '  ·  ☎ 031-762-1533', P + bw, y);
+  ctx.textAlign = 'right'; ctx.fillStyle = C.mute; ctx.font = F(600, 14); ctx.fillText('발행 ' + d.at, W - P, y); ctx.textAlign = 'left';
+  y += 26; ctx.fillStyle = C.brown; ctx.fillRect(0, y + 12, W, 6);
+  return y + 18;
+}
+async function poDraw(st) {
+  try { await document.fonts.ready; } catch (e) {}
+  const logo = await poLogo(), on = (() => { try { return featureOn('po'); } catch (e) { return true; } })();
+  const nw = new Date();
+  const d = { sup: st.sup, lines: st.lines.filter(l => Number(l.n) > 0), due: st.due, note: st.note, no: st.no, date: today(), who: on ? '서재우 차장' : ((S.settings && S.settings.reporter) || ''), mail: on ? 'drawbread@naver.com' : '', at: today().replace(/-/g, '.') + ' ' + String(nw.getHours()).padStart(2, '0') + ':' + String(nw.getMinutes()).padStart(2, '0') };
+  const m = document.createElement('canvas'); m.width = 10; m.height = 10; const H = Math.ceil(poPaint(m.getContext('2d'), d, logo));
+  const SC = 2, cv = document.createElement('canvas'); cv.width = 900 * SC; cv.height = H * SC;
+  const ctx = cv.getContext('2d'); ctx.scale(SC, SC); poPaint(ctx, d, logo); return cv;
+}
+/* ── 발주서 창 ── */
+async function poDocOpen(sup, lines, opt) {
+  opt = opt || {}; poCss();
+  const S1 = rbSup(sup); let room = opt.room || '';
+  if (!room) { try { const s = (((FAC || {}).rawbuy || {}).sups || []).find(x => x.name === sup); if (s) room = poRoom(s.rule); } catch (e) {} }
+  const st = PO.doc = { sup, lines: lines.map(l => Object.assign({}, l)), due: opt.due || rbAddD(S1.lead || 2), note: opt.note || '', from: opt.from || 'send', no: poNo(sup), room, cv: null, blob: null };
+  const qrows = st.lines.map((l, i) => `<div class="po-q"><span>${esc(l.bname || l.name)}</span><input type="number" min="0" step="1" inputmode="numeric" data-poq="${i}" value="${l.n}"><span>${esc(l.u)}</span></div>`).join('');
+  modal(`<div class="po-wrap"><div class="po-hd"><div><h2>📄 ${esc(sup)} 발주서</h2><div class="po-sub">거래처가 받는 그대로예요 · 카톡으로 이미지 한 장이 갑니다</div></div>${opt.back ? '<button class="btn" data-podo="back" style="min-height:46px">← 알림으로</button>' : ''}</div>
+    <div class="po-grid"><div class="po-prev"><img id="poImg" alt="발주서 미리보기"></div>
+    <div><div class="po-form"><label>입고 희망일<input type="date" id="poDue" value="${st.due}"></label><label style="flex:1;min-width:170px">요청사항 (선택)<input id="poNote" placeholder="예) 오전 입고 부탁드립니다" value="${esc(st.note)}"></label></div>
+      <div class="po-sub" style="margin-bottom:2px">주문 수량 · 고치면 발주서도 바로 바뀌어요</div>${qrows}
+      <div class="po-btns" style="margin-top:14px"><button class="btn po-kk" data-podo="kakao" style="min-height:58px;font-size:18px">💬 카카오톡으로 보내기</button></div>
+      <div class="po-btns" style="margin-top:8px"><button class="btn" data-podo="copy">🖼 이미지 복사</button><button class="btn" data-podo="save">⬇ 이미지 저장</button><button class="btn" data-podo="text">📝 글로 복사</button></div>
+      <div id="poGuide"></div>
+      <div class="po-btns" style="margin-top:14px;border-top:1px solid #eadfd2;padding-top:14px"><button class="btn primary" data-podo="mark">✓ 보낸 것으로 기록</button>${st.from === 'send' ? '<button class="btn" data-podo="other">글·메일·문자로 보내기</button>' : ''}<button class="btn" onclick="closeModal()">닫기</button></div>
+      <div class="po-sub" style="margin-top:6px">기록하면 입고 희망일까지 「발주 중」으로 계산돼, 같은 원료를 두 번 주문하지 않게 돼요.</div></div></div></div>`);
+  $('#modalBody').classList.add('wide');
+  const re = () => { const a = $('#poDue'), b = $('#poNote'); if (a) st.due = a.value; if (b) st.note = b.value.trim(); poRender(); };
+  ['#poDue', '#poNote'].forEach(s => { const el = $(s); if (el) el.addEventListener('change', re); });
+  $$('[data-poq]').forEach(el => el.addEventListener('change', () => { const i = Number(el.dataset.poq); st.lines[i].n = Math.max(0, Math.round(Number(el.value) || 0)); el.value = st.lines[i].n; poRender(); }));
+  await poRender();
+}
+async function poRender() {
+  const st = PO.doc; if (!st) return;
+  try { st.cv = await poDraw(st); st.blob = null; const img = $('#poImg'); if (img) img.src = st.cv.toDataURL('image/png'); } catch (e) { poGuide('warn', '발주서 그림을 만들지 못했어요: ' + esc((e && e.message) || e)); }
+}
+function poBlob() { const st = PO.doc; if (st.blob) return Promise.resolve(st.blob); return new Promise(res => st.cv.toBlob(b => { st.blob = b; res(b); }, 'image/png')); }
+function poFile(st) { return today().replace(/-/g, '') + '_발주서_' + st.sup.replace(/[\\/:*?"<>|()\s]/g, '') + '.png'; }
+function poGuide(kind, html) { const g = $('#poGuide'); if (g) g.innerHTML = `<div class="po-guide ${kind}">${html}</div>`; }
+async function poCopyImg(b) { try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': b })]); return true; } catch (e) { return false; } }
+function poText(st) { try { return rbMsg(st.sup, st.lines.filter(l => Number(l.n) > 0), st.due, st.note); } catch (e) { return ''; } }
+function poRoomTxt(st) { return st.room ? `「${esc(st.room)}」` : `${esc(st.sup)} 대화방`; }
+async function poDo(kind) {
+  const st = PO.doc; if (!st) return;
+  if (kind === 'back') return poAlertOpen();
+  if (kind === 'other') { closeModal(); return _poOpenSend0(st.sup); }
+  if (kind === 'mark') return poRecord();
+  if (!st.lines.some(l => Number(l.n) > 0)) return toast('주문 수량이 모두 0이에요');
+  if (kind === 'text') { const t = poText(st); try { await navigator.clipboard.writeText(t); poGuide('ok', '발주서 글을 복사했어요. 카톡 대화방에 붙여넣으세요.'); } catch (e) { poGuide('warn', '복사하지 못했어요.'); } return; }
+  if (!st.cv) await poRender();
+  const b = await poBlob(); if (!b) return poGuide('warn', '이미지를 만들지 못했어요.');
+  if (kind === 'save') { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = poFile(st); document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); poGuide('ok', `이미지를 저장했어요 (${esc(poFile(st))}). 카톡 ${poRoomTxt(st)}에 끌어다 놓으면 보내져요.`); return; }
+  if (kind === 'copy') { const ok = await poCopyImg(b); poGuide(ok ? 'ok' : 'warn', ok ? `이미지를 복사했어요. 카톡 ${poRoomTxt(st)}에서 <b>Ctrl + V</b> → 전송.` : '이미지 복사가 막혔어요. 「⬇ 이미지 저장」을 써 주세요.'); return; }
+  if (kind === 'kakao') {
+    const file = new File([b], poFile(st), { type: 'image/png' });
+    const mobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+    if (mobile && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: '빵을그리다 발주서', text: `[빵을그리다 발주서] ${st.sup} · 입고 희망 ${rbMd(st.due) || '협의'}` }); poGuide('ok', `공유 창에서 <b>카카오톡 → ${poRoomTxt(st)}</b>을 고르면 보내져요.<br>보낸 뒤 「✓ 보낸 것으로 기록」을 눌러 주세요.`); }
+      catch (e) { if (!e || e.name !== 'AbortError') poGuide('warn', '공유 창을 열지 못했어요. 「⬇ 이미지 저장」 뒤 카톡에서 사진으로 보내 주세요.'); }
+      return;
+    }
+    const ok = await poCopyImg(b);
+    poGuide(ok ? 'ok' : 'warn', ok ? `<b>발주서 이미지를 복사했어요.</b><br>① 카카오톡 PC에서 ${poRoomTxt(st)} 열기<br>② 입력 칸에 <b>Ctrl + V</b> → 전송<br>③ 보낸 뒤 여기서 「✓ 보낸 것으로 기록」` : '이미지 복사가 막혔어요. 「⬇ 이미지 저장」으로 내려받아 카톡 대화방에 끌어다 놓아 주세요.');
+  }
+}
+function poRecord() {
+  const st = PO.doc; const lines = st.lines.filter(l => Number(l.n) > 0); if (!lines.length) return toast('주문 수량이 모두 0이에요');
+  if (!confirm(`${st.sup} 발주(${lines.length}품목)를 보낸 것으로 기록할까요?\n입고 희망일(${rbMd(st.due) || '미정'})까지 「발주 중」으로 계산합니다.`)) return;
+  const R = rbS(), now = new Date().toISOString();
+  const po = { id: 'po' + Date.now().toString(36), at: now, sup: st.sup, due: st.due || '', note: st.note || '', lines: lines.map(l => ({ raw: l.raw, name: l.name, buy: l.buy, bname: l.bname, n: Number(l.n), u: l.u, g: l.g, price: l.price })), status: 'sent', via: '카톡(발주서 이미지)', by: (S.settings && S.settings.reporter) || '', mt: now, no: st.no };
+  R.po.push(po); lines.forEach(l => { if (l.raw && R.ovr) delete R.ovr[l.raw]; });
+  if (RB.hand) RB.hand = null;
+  rbSave(); closeModal(); PO.doc = null;
+  RB.msg = `✓ ${esc(st.sup)} 발주 ${lines.length}품목을 카톡(발주서 이미지)으로 보낸 것으로 기록 · 입고 희망일 ${rbMd(po.due)}까지 「발주 중」으로 계산합니다.`;
+  try { renderRbuy(); } catch (e) {} toast('발주 기록됨');
+  try { logAdd({ ts: now, user: po.by, device: (S.share || {}).device || '', text: `원료 발주 ${st.sup} ${lines.map(l => l.name + ' ' + l.n + l.u).join(', ')} (카톡 발주서 이미지 ${st.no})` }); } catch (e) {}
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-poal]'); if (a) { e.preventDefault(); const s = PO.alert && PO.alert.list[Number(a.dataset.poal)]; if (s) poFromAlert(s); return; }
+  const b = e.target.closest('[data-podo]'); if (b) { e.preventDefault(); poDo(b.dataset.podo); return; }
+  const c = e.target.closest('[data-poopen]'); if (c) { e.preventDefault(); poAlertOpen(); }
+});
+/* ③ 발주 보내기 → 발주서 화면 */
+var _poOpenSend0 = rbOpenSend;
+rbOpenSend = function (sup) {
+  try {
+    const rows = rbCalc().filter(r => r.n > 0 && (r.P.sup || '(거래처 미정)') === sup); if (!rows.length) return _poOpenSend0.apply(this, arguments);
+    const S1 = rbSup(sup); poDocOpen(sup, rbLinesOf(rows), { from: 'send', due: rbAddD(S1.lead || 2) });
+  } catch (e) { return _poOpenSend0.apply(this, arguments); }
+};
+/* 원료 발주 탭 맨 위 「오늘 발주 알림」 버튼 */
+renderRbuy = (function (orig) { return function () { const r = orig.apply(this, arguments); try { poCss(); const box = document.getElementById('rbuyBody'); if (box && !box.querySelector('.po-bar')) box.insertAdjacentHTML('afterbegin', '<div class="po-bar"><button class="btn" data-poopen="1">🔔 오늘 발주 알림 · 이카운트 아침 재고 기준</button></div>'); } catch (e) {} return r; }; })(renderRbuy);
+/* 하루 한 번 자동 알림 + #po-alert 주소 */
+async function poAuto() {
+  try {
+    if (/^#po-alert/.test(location.hash)) { if (!(await facKey())) return; try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} return poAlertOpen(); }
+    if (localStorage.getItem('po_alert_auto') === 'off' || localStorage.getItem('po_alert_day') === today()) return;
+    if ($('#modal') && $('#modal').classList.contains('on')) return;
+    if (!(await facKey())) return;
+    const F = await facLoad(); const rb = F && F.rawbuy; if (!rb) return;
+    if (!poAlertList(rb).some(s => s.lv === 'today' || s.lv === 'late' || s.lv === 'soon')) return;
+    localStorage.setItem('po_alert_day', today()); poAlertOpen();
+  } catch (e) {}
+}
+setTimeout(poAuto, 6000); (function poHashWait(n) { if (!/^#po-alert/.test(location.hash) || n > 60) return; facKey().then(k => { if (k) poAuto(); else setTimeout(() => poHashWait(n + 1), 3000); }).catch(() => setTimeout(() => poHashWait(n + 1), 3000)); })(0); setInterval(poAuto, 5 * 60e3);
+} catch (e) { console.warn('v247 발주 알림·발주서', e); }
+
 
 function renderAll() {
   renderTabs(); renderHeader(); renderNotice(); if (typeof renderSyncPill === 'function') renderSyncPill(); if (typeof renderChanges === 'function') setTimeout(renderChanges, 0);
