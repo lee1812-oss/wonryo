@@ -386,3 +386,50 @@
       const v = es.map(en => fldEcView(en, { tag: '오늘 보낸 전표', status: stOf(en), foot: en.status === 'sent' ? '' : holdTxt() })).join('');
       const i = h.indexOf('<input class="fld-q"'); return i < 0 ? h + v : h.slice(0, i) + '<h2 class="fld-h2">🧾 오늘 이카운트로 보낸 생산</h2>' + v + h.slice(i); } catch (e) { return h; } };
 })();
+
+/* ══ 「지금 할 차례」 돋보이게 + 입체 카드 + 도형 채우기 (2026-10-22 Aside, 사용자 「어디를 눌러야 하는지 미리 배경색으로, 다른 화면에도, 처음 화면이 낯설지 않게」) ══
+   - 모든 카드: 자기 색의 연한 바탕(채우기) + 아래 그림자(입체), 누르면 쑥 들어감.
+   - 지금 누를 곳: 진한 색으로 꽉 채우고 흰 글씨 · 조금 크게 · 빛나는 테두리가 천천히 퍼짐 · 「👆 여기를 누르세요」. 아직 차례가 아닌 단계는 살짝 옅게.
+   - 안쪽 화면도 같은 규칙(.fnow): 오븐·급냉·금속 고르기 → 아직 안 한 첫 칸 / 품목 → 기록 안 끝난 첫 품목 / 숫자 다 채운 입력 → 「저장」 / 생산량 → 담았으면 「이카운트로 보내기」, 수량 넣었으면 「담기」. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = ''
+    + '#fld .ft,#fld .fsf-c,#fld .fsg-r,#fld .fqu button,#fld .fsnav button,#fld .fb{position:relative;transition:transform .08s,box-shadow .08s}'
+    + '#fld .ft,#fld .fsf-c{box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 4px 0 rgba(0,0,0,.10),0 8px 16px rgba(0,0,0,.07)!important}'
+    + '#fld .ft:active,#fld .fsf-c:active,#fld .fb:active,#fld .fsnav button:active,#fld .fqu button:active{transform:translateY(3px)!important;box-shadow:0 1px 0 rgba(0,0,0,.12)!important}'
+    /* 채우기: 자기 색의 연한 바탕 */
+    + '#fld .fsf-c{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 9%,#fff),color-mix(in srgb,var(--c) 20%,#fff))}'
+    + '#fld .ft.big{background:linear-gradient(180deg,color-mix(in srgb,var(--c,#90A4AE) 8%,#fff),color-mix(in srgb,var(--c,#90A4AE) 18%,#fff))}'
+    + '#fld .ft:not(.big):not(.on):not(.today):not(.bad){background:linear-gradient(180deg,#fff,#F1F4F6)}'
+    + '#fld .ft.on{background:linear-gradient(180deg,#F1FBF3,#DDF5E3)!important}#fld .ft.today{background:linear-gradient(180deg,#F0F7FF,#DCEBFC)!important}'
+    + '#fld .fsf-c.done{background:linear-gradient(180deg,#F3FBF5,#DFF3E5)!important;border-color:#8CD3A0!important}#fld .fsf-c.done .t b{color:#2B8A3E!important}'
+    + '#fld .fsf-c:not(.now):not(.done){opacity:.8}'
+    + '#fld .fsnav button{box-shadow:0 4px 0 rgba(0,0,0,.12)}#fld .fsnav button.nx{box-shadow:0 4px 0 #4E2E14}'
+    /* 지금 누를 곳: 꽉 채움 + 흰 글씨 + 빛 */
+    + '#fld .fsf-c.now,#fld .fnow{--k:var(--c,#7A4A23);background:linear-gradient(180deg,color-mix(in srgb,var(--k) 82%,#fff),var(--k))!important;border-color:color-mix(in srgb,var(--k) 75%,#000)!important;color:#fff!important;opacity:1!important;'
+    + 'box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 6px 0 color-mix(in srgb,var(--k) 60%,#000),0 14px 26px color-mix(in srgb,var(--k) 45%,transparent)!important;transform:translateY(-2px) scale(1.015);z-index:1}'
+    + '#fld .fsf-c.now *,#fld .fnow *{color:#fff!important}#fld .fsf-c.now .n{background:#fff!important;color:var(--k)!important}#fld .fsf-c.now .n *{color:var(--k)!important}'
+    + '#fld .fsf-c.now .tag{background:#fff!important;color:var(--k)!important}#fld .fsf-c.now .go{font-size:40px}'
+    + '#fld .fsf-c.now::after,#fld .fnow::after{content:"";position:absolute;inset:-4px;border-radius:inherit;border:3px solid var(--k);animation:fpulse 1.8s ease-out infinite;pointer-events:none}'
+    + '@keyframes fpulse{0%{opacity:.9;transform:scale(1)}80%,100%{opacity:0;transform:scale(1.06)}}'
+    + '#fld .fpress{display:inline-block;margin-top:6px;padding:4px 14px;border-radius:99px;background:rgba(255,255,255,.95);color:var(--k)!important;font-size:16px;font-weight:900;box-shadow:0 2px 0 rgba(0,0,0,.15);animation:fbob 1.2s ease-in-out infinite;width:max-content}'
+    + '#fld .fsf-c.now .fpress,#fld .fnow .fpress,#fld .fsf-c.now .fpress *,#fld .fnow .fpress *{color:var(--k)!important}#fld .fpress *{color:var(--k)!important}@keyframes fbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}'
+    + '#fld .fnow.ft .pimg{outline:3px solid rgba(255,255,255,.8)}'
+    + '@media (prefers-reduced-motion:reduce){#fld .fsf-c.now::after,#fld .fnow::after,#fld .fpress{animation:none}}';
+  document.head.appendChild(st);
+  const press = (el, t) => { if (!el || el.querySelector('.fpress')) return; const host = el.querySelector('.t') || el; host.insertAdjacentHTML('beforeend', '<span class="fpress">👆 ' + (t || '여기를 누르세요') + '</span>'); };
+  const mark = (el, t, noLabel, col) => { if (!el) return; if (col) el.style.setProperty('--c', col); el.classList.add('fnow'); if (!noLabel) press(el, t); };
+  const vis = el => el && !el.classList.contains('fsx') && el.offsetParent !== null;
+  const _r = fieldRender;
+  fieldRender = function () { _r.apply(this, arguments);
+    try { const body = document.querySelector('#fld .fld-body'); if (!body) return; const s = FLD.step;
+      if (s === 'home') { press(body.querySelector('.fsf-c.now'), body.querySelector('.fsf-c.now[data-f="ws"]') ? '여기부터 시작하세요' : '여기를 누르세요'); return; }
+      if (s === 'mode' || (s === 'type' && body.querySelector('.fld-grid .ft.big'))) { const t = [...body.querySelectorAll('.fld-grid .ft.big')].find(b => vis(b) && !b.classList.contains('on') && !b.classList.contains('dim')); mark(t); return; }
+      if (s === 'type') { const t = [...body.querySelectorAll('[data-f="prod"]')].find(b => vis(b) && !b.classList.contains('on')); mark(t, '이 품목 기록하기'); return; }
+      if (s === 'qty') { const send = body.querySelector('[data-f="qtysend"]'); if (send) { mark(send, '', true, '#5F3DC4'); return; } const top = body.querySelector('.fld-gh.top'); const g = top && top.nextElementSibling; const t = g && [...g.querySelectorAll('.ft')].find(b => !b.classList.contains('on')); mark(t, '수량 넣기'); return; }
+      if (s === 'qtyin') { const any = Object.values(FLD.qx || {}).some(v => Number(v) > 0); if (any) mark(body.querySelector('[data-fqput]'), '', true, '#5F3DC4'); return; }
+      if (s === 'form') { const full = (FLD.fields || []).every(x => FLD.vals[x.f] !== '' && FLD.vals[x.f] != null); if (full) body.querySelectorAll('[data-f="save"]').forEach(b => mark(b, '', true, '#2F9E44')); return; }
+      if (s === 'act') { mark(body.querySelector('[data-f="actsave"]'), '', true, '#C92A2A'); }
+    } catch (e) {} };
+})();
