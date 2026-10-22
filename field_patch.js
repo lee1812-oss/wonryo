@@ -610,14 +610,77 @@
     (document.getElementById('fld') || document.body).appendChild(bg); bg.addEventListener('click', e => e.stopPropagation());
     bg.querySelector('.go').onclick = e => { e.stopPropagation(); bg.remove(); try { make(code, P); } catch (er) { toast('만들기 오류: ' + er.message); } fieldRender(); };
     bg.querySelector('.alt').onclick = e => { e.stopPropagation(); bg.remove(); }; };
-  window.fld2hAsk = ask;
+  window.fld2hAsk = ask; window.fld2hPlan = plan;
   let pend = '';
   const _save = fldSave;
   fldSave = function () { const type = FLD.type, mode = FLD.mode, code = FLD.code, prev = FLD.step; const r = _save.apply(this, arguments);
-    try { if (type === 'oven' && (mode === '종료' || mode === '시작') && FLD.step !== 'form' && plan(code)) { pend = code; if (FLD.step !== 'act') { pend = ''; setTimeout(() => ask(code), 200); } } } catch (e) {}
+    try { if (type === 'oven' && (mode === '종료' || mode === '시작') && FLD.step !== 'form' && plan(code)) { if (window.__f2hDirect) { window.__f2hDirect = false; if (FLD.step !== 'act') { make(code, plan(code)); setTimeout(() => { try { fieldRender(); } catch (e) {} }, 50); } else pend = code; } else { pend = code; if (FLD.step !== 'act') { pend = ''; setTimeout(() => ask(code), 200); } } } } catch (e) {}
+    window.__f2hDirect = false;
     return r; };
   const _r = fieldRender;
   fieldRender = function () { _r.apply(this, arguments); try { if (pend && FLD.step !== 'act' && FLD.step !== 'form') { const c = pend; pend = ''; setTimeout(() => ask(c), 200); } } catch (e) {}
     try { if (FLD.step === 'mode' && FLD.type === 'oven') { const g = fldLog('oven'), e = g && (g.rows || []).find(r => r.code === FLD.code && r.tag === '종료' && r.time);   /* 종료까지 끝난 품목은 더 누를 곳 없음 */
         if (e) document.querySelectorAll('#fld .fld-body .fnow').forEach(b => { b.classList.remove('fnow'); const p = b.querySelector('.fpress'); if (p) p.remove(); }); } } catch (e) {} };
+})();
+
+/* ══ 오븐 화면 간단하게: 시작 측정 · 2시간 측정 · 종료 측정을 맨 위 한 줄 (2026-10-22 Aside, 사용자 「생산실은 시작·종료만 누르면 되게, 직관적으로」) ══
+   - 오븐 품목 화면 = 🟢 시작 측정 → ⏱ 2시간 측정(자동) → 🏁 종료 측정 세 칸 한 줄. 누를 곳(시작 → 종료)만 갈색.
+   - 시작·종료 칸을 누르면 작은 확인 창: 지금 시각 + 평소 값(가열온도·가열시간·품온) → 「✓ 저장」 한 번. 값·시각이 다르면 「고치기」로 원래 입력 화면.
+   - 종료 저장 때 사이 2시간 측정 줄을 함께 만듦(확인 창에 미리 보여 주고, 끄고 싶으면 체크 해제). 저장은 원래 fldSave 흐름 그대로(기준 이탈 경고·개선조치 포함). */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fov3{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:stretch;gap:8px;margin:4px 0 14px}'
+    + '#fld .fov3 .ar{align-self:center;font-size:30px;font-weight:900;color:#ADB5BD}'
+    + '#fld .fov3 .ft.big{min-height:170px;align-items:center;text-align:center;justify-content:center;gap:6px}#fld .fov3 .ft.big i{font-size:34px}'
+    + '#fld .fov3 .ft.big b{font-size:24px}#fld .fov3 .tm{font-size:34px;font-weight:900;line-height:1.1;letter-spacing:.5px}#fld .fov3 .tm.ph{font-size:18px;font-weight:800;opacity:.8}'
+    + '#fld .fov3 .vv{font-size:15px;font-weight:700;word-break:keep-all;line-height:1.35}#fld .fov3 .mid .tm{font-size:22px}'
+    + '@media (max-width:620px){#fld .fov3{grid-template-columns:1fr 1fr 1fr;gap:6px}#fld .fov3 .ar{display:none}#fld .fov3 .ft.big{min-height:150px;padding:10px 6px}#fld .fov3 .ft.big b{font-size:18px}#fld .fov3 .tm{font-size:26px}#fld .fov3 .vv{font-size:13px}}'
+    + '.fq2 .fwarn-hd{background:#495057}.fq2 .tmbox{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 12px}.fq2 .tmbig{font-size:52px;font-weight:900;color:#1F2328;letter-spacing:1px}.fq2 .tmlab{font-size:16px;color:#495057;font-weight:700}'
+    + '.fq2 .vals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.fq2 .vals div{background:#F1F3F5;border:2px solid #CED4DA;border-radius:12px;padding:8px;text-align:center}.fq2 .vals small{display:block;font-size:14px;color:#495057;font-weight:700}.fq2 .vals b{font-size:28px;color:#1F2328}'
+    + '.fq2 .mid2{margin-top:12px;display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:#F8F9FA;border:2px solid #DEE2E6;font-size:17px;font-weight:700;color:#1F2328}.fq2 .mid2 input{width:28px;height:28px}'
+    + '.fq2 .src{font-size:14px;color:#495057;margin-top:8px}.fq2 .fwarn-bt .row2{display:flex;gap:10px}.fq2 .fwarn-bt .row2 button{flex:1}';
+  document.head.appendChild(st);
+  const rowsOf = code => { const g = fldLog('oven'); return g ? (g.rows || []).filter(r => r.code === code) : []; };
+  const valsFor = (code, name, row) => { const out = {}; ['temp', 'min', 'core'].forEach(f => { let v = row && row[f] !== '' && row[f] != null ? String(row[f]) : ''; if (!v) { try { const a = fldAvg7('oven', f, name); if (a) v = String(a.v); } catch (e) {} } out[f] = v; }); return out; };
+  const _mode = fldModeHtml;
+  fldModeHtml = function () { if (FLD.type !== 'oven') return _mode();
+    try { const g = fldLog('oven'); if (!g) return _mode(); const rs = rowsOf(FLD.code), s = rs.find(r => r.tag === '시작'), e = rs.find(r => r.tag === '종료'), mids = rs.filter(r => r.tag !== '시작' && r.tag !== '종료' && r.time);
+      const card = (r, tag, ico) => { const done = !!(r && r.time); return '<button type="button" class="ft big' + (done ? ' on' : '') + '" data-fq2="' + tag + '"><i>' + ico + '</i><b>' + tag + ' 측정</b>'
+        + (done ? '<span class="tm">' + esc(r.time) + '</span><span class="vv">' + esc((r.temp || '—') + '℃ · ' + (r.min || '—') + '분') + '<br>' + esc('품온 ' + (r.core || '—') + '℃') + '</span>' : '<span class="tm ph">눌러서 저장</span><span class="vv">지금 시각으로</span>') + '</button>'; };
+      let plan = null; try { plan = s && s.time && !(e && e.time) ? null : fld2hPlan(FLD.code); } catch (er) {}
+      const midTxt = mids.length ? mids.map(r => r.time).join(' · ') : (s && s.time && !(e && e.time) ? '종료를 저장하면 자동' : '—');
+      const mid = '<button type="button" class="ft big mid" data-f="mode" data-m="중간"><i>⏱</i><b>2시간 측정</b><span class="tm">' + (mids.length ? mids.length + '줄' : '자동') + '</span><span class="vv">' + esc(midTxt) + '</span></button>';
+      return '<h1 class="fld-h">' + fldPic(FLD.name, 1) + '🔥 ' + esc(fldShort(FLD.name)) + '</h1><div class="fld-grid fov3">' + card(s, '시작', '🟢') + '<span class="ar">→</span>' + mid + '<span class="ar">→</span>' + card(e, '종료', '🏁') + '</div>' + fldRecHtml(g, FLD.code);
+    } catch (er) { return _mode(); } };
+  /* 누를 곳: 시작 안 했으면 시작, 시작했으면 종료, 다 했으면 없음 (2시간 칸은 강조 안 함) */
+  const _r = fieldRender;
+  fieldRender = function () { _r.apply(this, arguments);
+    try { if (FLD.step !== 'mode' || FLD.type !== 'oven') return; const body = document.querySelector('#fld .fld-body'); if (!body || !body.querySelector('.fov3')) return;
+      body.querySelectorAll('.fnow').forEach(b => { b.classList.remove('fnow'); const p = b.querySelector('.fpress'); if (p) p.remove(); });
+      const s = body.querySelector('[data-fq2="시작"]'), e = body.querySelector('[data-fq2="종료"]'); const t = !s.classList.contains('on') ? s : !e.classList.contains('on') ? e : null;
+      if (t) { t.classList.add('fnow'); t.insertAdjacentHTML('beforeend', '<span class="fpress">👆 여기를 누르세요</span>'); } try { fldFit(); } catch (er) {} } catch (e) {} };
+  /* 시작·종료 빠른 저장 창 */
+  const sheet = tag => { const code = FLD.code, name = FLD.name, rs = rowsOf(code), row = rs.find(r => r.tag === tag); const V = valsFor(code, name, row); const now = fldHM();
+    let mids = []; if (tag === '종료') { const s = rs.find(r => r.tag === '시작' && r.time); if (s) { const m = t => { const x = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return x ? +x[1] * 60 + +x[2] : null; }; const S = m(s.time), E = m(now), have = rs.filter(r => r.tag !== '시작' && r.tag !== '종료' && r.time).map(r => m(r.time));
+        for (let t = S + 120; E != null && t < E - 10; t += 120) if (!have.some(h => Math.abs(h - t) <= 30)) mids.push(String(Math.floor(t / 60) % 24).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0')); } }
+    const old = document.querySelector('.fwarn-bg'); if (old) old.remove(); const bg = document.createElement('div'); bg.className = 'fwarn-bg fq2';
+    bg.innerHTML = '<div class="fwarn" role="dialog"><div class="fwarn-hd">' + (tag === '시작' ? '🟢' : '🏁') + ' ' + tag + ' 측정<small>' + esc(fldShort(name)) + '</small></div><div class="fwarn-bd">'
+      + '<div class="tmbox"><span class="tmlab">측정 시각</span><span class="tmbig">' + esc(now) + '</span><span class="tmlab">지금</span></div>'
+      + '<div class="vals"><div><small>가열온도</small><b>' + esc(V.temp || '—') + '</b>℃</div><div><small>가열시간</small><b>' + esc(V.min || '—') + '</b>분</div><div><small>품온</small><b>' + esc(V.core || '—') + '</b>℃</div></div>'
+      + '<div class="src">' + (row && row.temp ? '지금 기록된 값' : '평소 값(최근 7일 평균)') + ' — 판넬·온도계와 다르면 「고치기」</div>'
+      + (mids.length ? '<label class="mid2"><input type="checkbox" checked> 사이 2시간 측정 ' + mids.length + '줄도 함께 만들기 (' + esc(mids.join(', ')) + ')</label>' : '')
+      + '</div><div class="fwarn-bt"><button type="button" class="go">✓ 저장</button><div class="row2"><button type="button" class="alt fix" style="border-color:#ADB5BD;color:#1F2328">✎ 값·시각 고치기</button><button type="button" class="alt no" style="border-color:#ADB5BD;color:#495057">취소</button></div></div></div>';
+    (document.getElementById('fld') || document.body).appendChild(bg); bg.addEventListener('click', ev => ev.stopPropagation());
+    const open = () => { FLD.mode = tag; const tg = fldTarget('oven', code, tag); if (!tg) return false; fldStartForm(tg.row, tg.sec); return true; };
+    bg.querySelector('.no').onclick = ev => { ev.stopPropagation(); bg.remove(); };
+    bg.querySelector('.fix').onclick = ev => { ev.stopPropagation(); bg.remove(); open(); };
+    bg.querySelector('.go').onclick = ev => { ev.stopPropagation(); const cb = bg.querySelector('.mid2 input'); bg.remove(); if (!open()) return;
+      FLD.vals.time = now; ['temp', 'min', 'core'].forEach(f => { if (V[f] !== '' && FLD.fields.some(x => x.f === f)) FLD.vals[f] = V[f]; });
+      window.__f2hDirect = !!(cb && cb.checked); window.__fq2Back = true; fldSave(); if (FLD.step === 'form') window.__f2hDirect = false; };
+  };
+  document.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('#fld [data-fq2]'); if (!b) return; ev.preventDefault(); ev.stopPropagation(); sheet(b.dataset.fq2); }, true);
+  /* 빠른 저장 뒤에는 품목 목록 대신 이 3칸 화면으로 돌아옴 */
+  const _r2 = fieldRender;
+  fieldRender = function () { if (window.__fq2Back && FLD.step === 'type' && FLD.type === 'oven') { window.__fq2Back = false; FLD.step = 'mode'; } else if (FLD.step !== 'form') window.__fq2Back = false; return _r2.apply(this, arguments); };
 })();
