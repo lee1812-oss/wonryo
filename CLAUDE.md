@@ -236,3 +236,15 @@
 - 구조: field.html은 껍데기다. index.html을 fetch해서 app-code 끝에 field_patch.js를 끼워 넣고 document.write로 띄운다. 그래서 로그인·자료·동기화·이카운트 전송은 index.html과 완전히 같고, PC의 통합 재고관리에서 그대로 보고 고치고 승인한다. index.html을 고치면 생산실 앱도 자동으로 최신이 된다.
 - field_patch.js는 window.FIELD_APP일 때만 동작한다(index.html에서는 아무것도 안 함). 하는 일: 현장 입력(fieldOpen)을 항상 열어 두기, ✕ 닫기·「켜면 바로 현장 입력」 숨기기, fieldClose → 첫 화면, fldHomeHtml 아래 안내·새로고침·로그아웃, fldHead 제목 「🍞 생산실」, 휴대폰 폭(520px 이하) 2칸 배치.
 - ⚠ 주의: fieldOpen, fieldClose, fieldRender, fldHomeHtml, fldHead, FLD, APP_VER, APP_BUILT, WLOCK.logout 이름을 바꾸거나 없애면 생산실 앱이 깨진다. 바꿀 때는 field_patch.js도 같이 고친다. app-code 스크립트 태그(<script type="text/plain" id="app-code">) 모양도 유지한다.
+
+
+## 🧭 생산실 앱 진행 원칙 (2026-10-22 사용자 결정 「방향이 왔다 갔다 하지 않게」 — 새 기능은 이 원칙에 맞춰서만)
+1. **현장은 고르고 확인만** — 생산실은 기름·위생장갑 때문에 터치를 최소로. 품목은 목록에서 누르고(자판 없이), 숫자는 미리 채우고, 맞으면 「저장」 1번.
+2. **순서는 첫 화면 한 줄** — ① 작업 시작(품목 고르기) → 그 품목에 필요한 CCP만(배합 → 오븐 → 급냉 → 금속) → 마지막 생산량 입력. 관련 없는 단계는 안 보임. 번호(①②…)는 이 단계에만 쓰고, 안쪽 화면은 🟢 시작 · ⏱ 2시간 · 🏁 종료. 「작업 시작」은 품목 고르기에만, 오븐 안쪽은 「시작 측정·종료 측정」.
+3. **평소 값은 하나 = 최근 7일 평균** — fldAvg7(type, f, name): 같은 품목 최근 7일 평균, 없으면 최근 생산 최대 10일 평균. 자료 = 앱 CCP 일지 + ccp_recent.json(K-HACCP에서 뽑은 품목별 최근 측정값). 생산실 미리 채우기·PC 흐린 글씨·「평소와 같음」 모두 이 값(v247 CCP_USUAL은 자료 없을 때만).
+4. **저장은 사람이 누른다** — 자동 저장 금지(HACCP 기록 원칙). 미리 채운 값을 그대로 저장한 칸은 r.us = {f:{칸:값}, at, by[, src:'avg7']} 로 표시해 PC에서 구분.
+5. **PC는 보고·고치고·승인** — 확인·수정·작성 완료·승인은 PC 통합재고관리(v247 작성 완료 → 승인자 승인).
+6. **코드는 한 벌로 모은다** — 생산실 전용 기능은 field_patch.js에서 먼저 시험(window.FIELD_APP일 때만), 확정되면 다음 index.html 버전에 옮겨 PC 「📱 현장 입력」도 같게 만든다. 옮긴 뒤 field_patch.js에는 앱 껍데기(닫기 숨김·제목·안내)만 남긴다.
+- field_patch.js 블록(2026-10-22): ① 앱 껍데기 ② 품목 찾기 목록(작업 시작·생산량, 분류 버튼, 자판 없이, 초성, 지난번·보통 수량) ③ 단계 화면(번호·화살표·이전/다음, 품목 하나만 보기) ④ CCP 미리 채우기(fldAvg7) ⑤ 용어·번호 정리 + v247 평소 값 맞춤.
+- 감싸는 함수: fieldRender · fldHomeHtml · fldTypeHtml · fldModeHtml · fldQtyHtml · fldQtyInHtml · fldWsHtml · fldStartForm · fldSave · ccp247Get(있을 때). 이 이름을 바꾸면 생산실 앱이 깨짐.
+- v247 배포대기본(드라이브 20261022_index_v247_배포대기.html)에는 END v247 바로 뒤에 같은 fldAvg7 블록을 넣어 둠(PC 흐린 글씨도 최근 7일 평균).

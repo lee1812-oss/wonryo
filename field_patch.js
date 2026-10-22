@@ -223,7 +223,7 @@
         const v = Object.keys(F[type]).map(f => { const x = ccpNum(r[f]); return x == null ? null : x; }); if (v.some(x => x != null)) out.push({ d: g.date, v, app: 1 }); }); }); } catch (e) {}
     return out; };
   /* 최근 7일 평균 (없으면 최근 생산일 최대 10일 평균) */
-  window.fldAvg7 = function (type, f, name) { const ix = (F[type] || {})[f]; if (ix == null) return null; const D = fldD(); const t0 = new Date(D + 'T00:00:00'); t0.setDate(t0.getDate() - 7); const from = ymd(t0);
+  if (!window.fldAvg7) window.fldAvg7 = function (type, f, name) { const ix = (F[type] || {})[f]; if (ix == null) return null; const D = fldD(); const t0 = new Date(D + 'T00:00:00'); t0.setDate(t0.getDate() - 7); const from = ymd(t0);
     const all = rowsFor(type, name).filter(x => x.v[ix] != null && x.d <= D); if (!all.length) return null;
     let use = all.filter(x => x.d > from), how = '최근 7일 평균'; if (!use.length) { const ds = [...new Set(all.map(x => x.d))].sort().slice(-10); use = all.filter(x => ds.includes(x.d)); how = '최근 생산 ' + ds.length + '일 평균'; }
     const m = use.reduce((s, x) => s + x.v[ix], 0) / use.length, p = Math.pow(10, RND[type][f]); return { v: Math.round(m * p) / p, n: use.length, how }; };
@@ -244,13 +244,29 @@
   const _render2 = fieldRender;
   fieldRender = function () { _render2.apply(this, arguments);
     try { if (FLD.step !== 'form' || !FLD.autoF) return; const keep = FLD.fields.filter(x => FLD.autoF[x.f] != null && FLD.vals[x.f] === FLD.autoF[x.f]); if (!keep.length) return;
-      const btns = document.querySelectorAll('#fld .fld-fields > .fld-f'); FLD.fields.forEach((x, i) => { if (FLD.autoF[x.f] == null || FLD.vals[x.f] !== FLD.autoF[x.f]) return; const lb = btns[i] && btns[i].querySelector('label'); if (lb && !lb.querySelector('.fav-tag')) lb.insertAdjacentHTML('beforeend', '<span class="fav-tag">자동</span>'); });
-      const form = document.querySelector('#fld .fld-form'); if (form && !document.querySelector('#fld .fav-bar')) form.insertAdjacentHTML('beforebegin', '<div class="fav-bar"><b>✓ ' + esc(FLD.autoHow || '최근 평균') + '으로 미리 채웠습니다.</b> 판넬·온도계 값과 <b>같으면 「저장」만</b> 누르세요. 다르면 그 칸을 누르고 숫자를 치면 바뀝니다.</div>');
+      const btns = document.querySelectorAll('#fld .fld-fields > .fld-f'); FLD.fields.forEach((x, i) => { if (FLD.autoF[x.f] == null || FLD.vals[x.f] !== FLD.autoF[x.f]) return; const lb = btns[i] && btns[i].querySelector('label'); if (lb && !lb.querySelector('.fav-tag')) lb.insertAdjacentHTML('beforeend', '<span class="fav-tag">평소</span>'); });
+      const form = document.querySelector('#fld .fld-form'); if (form && !document.querySelector('#fld .fav-bar')) form.insertAdjacentHTML('beforebegin', '<div class="fav-bar"><b>✓ ' + esc(FLD.autoHow || '최근 평균') + '(평소 값)으로 미리 채웠습니다.</b> 판넬·온도계 값과 <b>같으면 「저장」만</b> 누르세요. 다르면 그 칸을 누르고 숫자를 치면 바뀝니다.</div>');
     } catch (e) {} };
   /* 저장: 자동 값을 그대로 쓴 칸 표시 */
   const _save = fldSave;
   fldSave = function () { const au = {}; try { (FLD.fields || []).forEach(x => { if (FLD.autoF && FLD.autoF[x.f] != null && FLD.vals[x.f] === FLD.autoF[x.f]) au[x.f] = (x.neg ? '-' : '') + FLD.vals[x.f]; }); } catch (e) {}
-    const type = FLD.type, prev = FLD.lastRow; const ret = _save.apply(this, arguments);
-    try { const row = FLD.lastRow; if (row && row !== prev && Object.keys(au).length) { const old = row.us && row.us.f || {}; row.us = { f: Object.assign({}, old, au), at: new Date().toISOString(), by: fldWk(), src: 'avg7' }; const g = fldLog(type); if (g) { ccpTouch(g); save(); } } } catch (e) {}
+    const type = FLD.type; FLD.lastRow = null; const ret = _save.apply(this, arguments);
+    try { const row = FLD.lastRow; if (row && Object.keys(au).length) { const old = row.us && row.us.f || {}; row.us = { f: Object.assign({}, old, au), at: new Date().toISOString(), by: fldWk(), src: 'avg7' }; const g = fldLog(type); if (g) { ccpTouch(g); save(); } } } catch (e) {}
     return ret; };
+})();
+
+/* ══ 생산실 앱 용어·번호 한 체계로 (2026-10-22 Aside, 사용자 「방향이 왔다 갔다 하지 않게 일관성 있게」) ══
+   - 번호(①②③…)는 첫 화면 「단계」에만 쓴다. 단계 안쪽 화면(오븐 시작/2시간/종료, 금속 작업 전/제품/작업 후)은 번호 대신 🟢·⏱·🏁.
+   - 「작업 시작」은 품목 고르기(①)에만 쓴다. 오븐 안쪽은 「시작 측정」「종료 측정」.
+   - v247(평소 값·작성 완료)이 함께 있으면 평소 값도 fldAvg7(최근 7일 평균) 하나로 맞춘다 → 흐린 글씨·「평소와 같음」·미리 채움 숫자가 같음. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const sym = h => String(h).replace(/<i>①<\/i>/g, '<i>🟢</i>').replace(/<i>②<\/i>/g, '<i>⏱</i>').replace(/<i>③<\/i>/g, '<i>🏁</i>');
+  const _mode = fldModeHtml;
+  fldModeHtml = function () { let h = sym(_mode()); if (FLD.type === 'oven') h = h.replace('<b>작업 시작</b>', '<b>시작 측정</b>').replace('<b>작업 종료</b>', '<b>종료 측정</b>'); return h; };
+  const _type = fldTypeHtml;
+  fldTypeHtml = function () { return sym(_type()); };
+  if (typeof ccp247Get === 'function' && window.fldAvg7 && !window.__avgGet) { window.__avgGet = 1; const _g = ccp247Get;
+    ccp247Get = function (type, name) { const ix = (typeof CCP247_IX !== 'undefined' && CCP247_IX[type]) || null, base = _g(type, name); if (!ix) return base; const a = base ? base.slice() : []; let hit = false;
+      Object.keys(ix).forEach(f => { const x = fldAvg7(type, f, name); if (x) { a[ix[f]] = x.v; hit = true; } }); return hit ? a : base; }; }
 })();
