@@ -1449,8 +1449,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '248';
-const APP_BUILT = '2026-10-22 14:42';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '249';
+const APP_BUILT = '2026-10-22 15:05';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -7895,9 +7895,12 @@ function poPlan(rb, sup) {
     else if (r.perBox && atDeliv < keep) { lv = 'amber'; why = `입고일(${rbMd(deliv)})쯤 최소선(${fl}박스분) 아래`; }
     else if (rec > 0) { lv = 'blue'; why = `다음 발주(약 ${PO_WEEKS}주 뒤)까지 모자람 → 같이 주문`; }
     else { lv = 'green'; why = '충분 · 이번엔 주문 안 함'; }
-    return { code: r.code, nm: r.nm, item: r.item || r.nm, unit: r.unit, stock: st, packG: pg, weekly: wk, weeks, outDay, rec, fill: Number(r.packs) || 0, lv, why, lastIn: r.lastIn, lastQty: r.lastQty, boxes: r.boxes };
+    return { code: r.code, nm: r.nm, item: r.item || r.nm, unit: r.unit, stock: st, packG: pg, weekly: wk, weeks, outDay, rec, fill: Number(r.packs) || 0, lv, why, lastIn: r.lastIn, lastQty: r.lastQty, boxes: r.boxes, price: Number(r.price) || 0, priceAt: r.priceAt || '', pricePrev: r.pricePrev || null, vf: !!r.vatFree };
   }).sort((a, b) => ({ red: 0, amber: 1, blue: 2, green: 3 })[a.lv] - ({ red: 0, amber: 1, blue: 2, green: 3 })[b.lv]);
 }
+function poWon(v) { return Math.round(v).toLocaleString('ko-KR') + '원'; }
+function poPr(p) { if (!p.price) return '<span class="po-r">단가 없음</span>'; const ch = p.pricePrev && p.pricePrev !== p.price ? (p.price > p.pricePrev ? ' <b style="color:#c62828">▲ 인상</b>' : ' <b style="color:#2e7d32">▼ 인하</b>') + ` (이전 ${poWon(p.pricePrev)})` : ''; return (p.rec ? `<b>${poWon(p.rec * p.price)}</b>` : '') + `<div class="po-r">단가 ${poWon(p.price)} · ${rbMd(p.priceAt)}${p.vf ? ' · 면세' : ''}${ch}</div>`; }
+function poTot(plan) { const o = plan.filter(p => p.rec > 0 && p.price > 0), sa = o.reduce((a, p) => a + p.rec * p.price, 0), va = o.reduce((a, p) => a + (p.vf ? 0 : Math.round(p.rec * p.price * 0.1)), 0), miss = plan.filter(p => p.rec > 0 && !p.price).length; return sa ? `<div class="po-tot2">예상 매입가 <b>약 ${poWon(sa + va)}</b> <span class="po-r">(공급가 ${poWon(sa)} + 부가세 ${poWon(va)} · 최근 매입 단가 기준${miss ? ' · 단가 없는 ' + miss + '품목 빠짐' : ''})</span></div>` : ''; }
 function poAmt(g, pg, u) { if (g <= 0) return '0' + u; const n = g / pg; return (n >= 10 ? Math.round(n) : Math.round(n * 10) / 10) + u; }
 function poSupWhy(rb, s, plan) {
   const out = [], red = plan.filter(p => p.lv === 'red'), amb = plan.filter(p => p.lv === 'amber');
@@ -7924,12 +7927,12 @@ async function poAlertOpen() {
       <td class="n">${esc(poAmt(p.stock, p.packG, p.unit))}<div class="po-r">${p.weeks != null ? (p.weeks <= 0 ? '0주' : (Math.round(p.weeks * 10) / 10) + '주분') : ''}</div></td>
       <td class="n">${esc(poAmt(p.weekly, p.packG, p.unit))}</td>
       <td class="n">${p.lastIn ? rbMd(p.lastIn) + '<div class="po-r">' + (p.lastQty || '') + esc(p.unit) + '</div>' : '-'}</td>
-      <td class="q">${p.rec ? p.rec + ' ' + esc(p.unit) : '<span class="po-r">-</span>'}${p.rec && p.fill && p.fill !== p.rec ? `<div class="po-r">최소 ${p.fill}${esc(p.unit)}</div>` : ''}</td></tr>`).join('');
+      <td class="q">${p.rec ? p.rec + ' ' + esc(p.unit) : '<span class="po-r">-</span>'}${p.rec && p.fill && p.fill !== p.rec ? `<div class="po-r">최소 ${p.fill}${esc(p.unit)}</div>` : ''}</td><td class="n">${poPr(p)}</td></tr>`).join('');
     const nOrd = plan.filter(p => p.rec > 0).length;
     return `<div class="po-card ${s.lv}"><div class="po-top"><span class="po-badge ${s.lv}">${esc(s.lab)}</span><span class="po-name">${esc(s.name)}</span>${s.deliv ? `<span class="po-deliv">입고 예정 ${rbMd(s.deliv)}</span>` : ''}</div>
       <div class="po-whyh">왜 지금 발주하나요?</div>${why}
       <div class="po-listh">발주 리스트 · ${nOrd}품목 <span class="po-r">(추천 = ${PO_WEEKS}주 쓸 양 + 최소 남길 양 − 지금 재고 · 「최소」 = 100박스분만 채우는 양)</span></div>
-      <div class="tablewrap"><table class="po-tb"><tr><th></th><th class="l">원료 · 이유</th><th>지금 재고</th><th>일주일 사용</th><th>지난 입고</th><th>추천 주문</th></tr>${rows}</table></div>
+      <div class="tablewrap"><table class="po-tb"><tr><th></th><th class="l">원료 · 이유</th><th>지금 재고</th><th>일주일 사용</th><th>지난 입고</th><th>추천 주문</th><th>예상 금액</th></tr>${rows}</table></div>${poTot(plan)}
       <div class="po-btns" style="margin-top:10px"><button class="btn primary" data-poal="${i}">📄 이 리스트로 발주서 만들기 · 카톡 보내기</button></div></div>`;
   }).join('') : '<div class="po-card done"><b>지금 발주할 원료가 없어요.</b> 모든 원료가 목표(100박스분) 이상 있어요.</div>';
   const auto = localStorage.getItem('po_alert_auto') !== 'off';
@@ -7957,6 +7960,7 @@ function poCss2() {
 .po-tb td.nm{text-align:left;white-space:normal}.po-tb td.q{font-weight:800;font-size:19px;color:#3d2410}
 .po-tb tr.off td{color:#9a8f84}.po-tb tr.off td.q{font-size:15px}
 .po-r{font-size:12.5px;color:#7a6a5a;font-weight:500}
+.po-tot2{margin:10px 0 2px;padding:9px 12px;border-radius:10px;background:#eef4fb;border:1px solid #c7dbf5;color:#1d3f6e;font-size:16px}.po-tot2 b{font-size:19px}.modal.po-bigm .po-tot2{font-size:19px}
 .po-lv{display:inline-block;font-size:12.5px;font-weight:800;padding:2px 7px;border-radius:6px;white-space:nowrap}
 .po-lv.red{background:#c62828;color:#fff}.po-lv.amber{background:#e08a00;color:#fff}.po-lv.blue{background:#e3edf8;color:#244a70}.po-lv.green{background:#e8f5e9;color:#2e6b31}
 .modal.po-bigm{max-width:1400px!important;width:98vw}.modal.po-bigm .po-wrap{font-size:19px}.modal.po-bigm .po-tb{font-size:19px}.modal.po-bigm .po-tb td.q{font-size:24px}
@@ -7967,7 +7971,7 @@ function poFromAlert(s) {
   const plan = (s.plan || poPlan(PO.alert.rb, s.name)).filter(p => p.rec > 0);
   const lines = plan.map(p => {
     const c = p.code;
-    if (c && RB_RAW0[c]) { const P = rbPat(c); return { raw: c, name: P.name, buy: P.buy, bname: P.bname, n: p.rec, u: P.u, g: P.g, price: P.price }; }
+    if (c && RB_RAW0[c]) { const P = rbPat(c); return { raw: c, name: P.name, buy: P.buy, bname: P.bname, n: p.rec, u: P.u, g: P.g, price: p.price || P.price, vf: p.vf, priceAt: p.priceAt }; }
     return { raw: c || '', name: p.nm, buy: '', bname: p.item, n: p.rec, u: p.unit, g: p.packG, price: null };
   });
   poDocOpen(s.name, lines, { from: 'alert', due: s.deliv || '', room: poRoom(s.rule), back: true });
@@ -7977,7 +7981,7 @@ function poFromAlert(s) {
 let PO_LOGO = null;
 function poLogo() { if (PO_LOGO) return PO_LOGO; PO_LOGO = new Promise(res => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = () => res(null); im.src = 'https://lee1812-oss.github.io/wonryo/brand_logo.png'; setTimeout(() => res(null), 5000); }); return PO_LOGO; }
 function poFit(ctx, t, w, size, max) { let s = size; ctx.font = `${w} ${s}px ${PO_FONT}`; while (s > 12 && ctx.measureText(t).width > max) { s -= 1; ctx.font = `${w} ${s}px ${PO_FONT}`; } }
-function poWrap(ctx, t, max) { const out = []; String(t).split('\n').forEach(par => { let cur = ''; for (const ch of par) { if (ctx.measureText(cur + ch).width > max && cur) { out.push(cur); cur = ch; } else cur += ch; } out.push(cur); }); return out; }
+function poWrap(ctx, t, max) { const out = []; String(t).split('\n').forEach(par => { let cur = ''; par.split(' ').forEach(w => { const nx = cur ? cur + ' ' + w : w; if (ctx.measureText(nx).width <= max) { cur = nx; return; } if (cur) out.push(cur); cur = ''; for (const ch of w) { if (ctx.measureText(cur + ch).width > max && cur) { out.push(cur); cur = ch; } else cur += ch; } }); out.push(cur); }); return out; }
 function poRR(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function poPaint(ctx, d, logo) {
   const C = PO_C, W = 900, P = 44, gw = W - 2 * P, F = (w, s) => `${w} ${s}px ${PO_FONT}`;
@@ -7990,7 +7994,7 @@ function poPaint(ctx, d, logo) {
   ctx.textAlign = 'right'; ctx.fillStyle = C.dark; ctx.font = F(800, 46); ctx.fillText('발 주 서', W - P, y + 44);
   ctx.fillStyle = C.mute; ctx.font = F(600, 15.5); ctx.fillText('No. ' + d.no, W - P, y + 68); ctx.textAlign = 'left';
   y += 66 + 22; ctx.fillStyle = C.dark; ctx.fillRect(P, y, gw, 2.5); y += 20;
-  const info = [['수신', d.sup + ' 귀하'], ['발신', '빵을그리다(주)'], ['발주일', poKD(d.date)], ['담당', (d.who ? d.who + ' · ' : '') + '☎ 031-762-1533'], ['입고 희망일', d.due ? poKD(d.due) : '협의'], ['품목 수', d.lines.length + '품목']];
+  const info = [['수신', d.sup + ' 귀하'], ['발신', '빵을그리다(주)'], ['발주일', poKD(d.date)], ['담당', (d.who ? d.who + ' ' : '') + (d.tel || '031-762-1533')], ['입고 희망일', d.due ? poKD(d.due) : '협의'], ['품목 수', d.lines.length + '품목']];
   const rh = 54, cw = gw / 2;
   poRR(ctx, P, y, gw, rh * 3, 10); ctx.fillStyle = C.soft; ctx.fill(); ctx.strokeStyle = C.line; ctx.lineWidth = 1.5; ctx.stroke();
   ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(P + cw, y + 10); ctx.lineTo(P + cw, y + rh * 3 - 10); for (let r = 1; r < 3; r++) { ctx.moveTo(P + 14, y + rh * r); ctx.lineTo(P + gw - 14, y + rh * r); } ctx.stroke();
@@ -8026,8 +8030,13 @@ function poPaint(ctx, d, logo) {
     ctx.fillStyle = C.text; ctx.font = F(600, 18.5); nl.forEach((t, i) => ctx.fillText(t, P + 120, y + 35 + i * 28));
     y += bh + 18;
   }
-  const notes = ['확인 후 회신 부탁드립니다.'];
-  if (d.mail) notes.push('번거로우시겠지만 거래명세표는 ' + d.mail + ' 으로 보내 주시면 감사하겠습니다.');
+  if (d.mail) { /* 2026-10-22 사용자 요청: 입고 전 거래명세표 메일 요청을 눈에 띄게 */
+    ctx.font = F(500, 17); const ml = poWrap(ctx, '받는 곳 ' + d.mail + ' — 입고할 때 바로 대조할 수 있도록 미리 보내 주시면 큰 도움이 됩니다. 늘 협조해 주셔서 감사합니다.', gw - 48); const mh = 62 + ml.length * 27;
+    poRR(ctx, P, y, gw, mh, 10); ctx.fillStyle = '#fbf3e8'; ctx.fill(); ctx.strokeStyle = C.brown; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = C.brown; ctx.font = F(800, 20); ctx.fillText('입고 전에 거래명세표를 메일로 미리 보내 주세요', P + 24, y + 38);
+    ctx.fillStyle = C.text; ctx.font = F(600, 17); ml.forEach((t, i) => { if (i === 0 && t.indexOf(d.mail) >= 0) { const a = t.split(d.mail); let xx = P + 24; ctx.fillText(a[0], xx, y + 70); xx += ctx.measureText(a[0]).width; ctx.fillStyle = C.red; ctx.font = F(800, 17); ctx.fillText(d.mail, xx, y + 70); xx += ctx.measureText(d.mail).width; ctx.fillStyle = C.text; ctx.font = F(600, 17); ctx.fillText(a.slice(1).join(d.mail), xx, y + 70); } else ctx.fillText(t, P + 24, y + 70 + i * 27); });
+    y += mh + 16; }
+  const notes = ['확인 후 회신 부탁드립니다.' + (d.tel ? ' (담당 ' + d.who + ' ' + d.tel + ')' : '')];
   notes.push('입고 희망일에 맞추기 어렵거나 일부 품목이 늦어지면 미리 알려 주세요.');
   ctx.font = F(600, 17); const wl = []; notes.forEach(t => poWrap(ctx, t, gw - 64).forEach((s, j) => wl.push([j === 0, s])));
   const bh2 = 22 + wl.length * 29; poRR(ctx, P, y, gw, bh2, 10); ctx.fillStyle = '#f4f7fb'; ctx.fill(); ctx.strokeStyle = '#d6e0ec'; ctx.lineWidth = 1.2; ctx.stroke();
@@ -8035,7 +8044,7 @@ function poPaint(ctx, d, logo) {
   y += bh2 + 28;
   ctx.fillStyle = C.line; ctx.fillRect(P, y, gw, 1.5); y += 34;
   ctx.fillStyle = C.dark; ctx.font = F(800, 20); ctx.fillText('빵을그리다(주)', P, y);
-  const bw = ctx.measureText('빵을그리다(주)').width; ctx.fillStyle = C.text; ctx.font = F(600, 17); ctx.fillText((d.who ? '  담당 ' + d.who : '') + '  ·  ☎ 031-762-1533', P + bw, y);
+  const bw = ctx.measureText('빵을그리다(주)').width; ctx.fillStyle = C.text; ctx.font = F(600, 17); ctx.fillText((d.who ? '  담당 ' + d.who : '') + (d.tel ? '  ☎ ' + d.tel : '') + '  ·  대표 031-762-1533', P + bw, y);
   ctx.textAlign = 'right'; ctx.fillStyle = C.mute; ctx.font = F(600, 14); ctx.fillText('발행 ' + d.at, W - P, y); ctx.textAlign = 'left';
   y += 26; ctx.fillStyle = C.brown; ctx.fillRect(0, y + 12, W, 6);
   return y + 18;
@@ -8044,7 +8053,7 @@ async function poDraw(st) {
   try { await document.fonts.ready; } catch (e) {}
   const logo = await poLogo(), on = (() => { try { return featureOn('po'); } catch (e) { return true; } })();
   const nw = new Date();
-  const d = { sup: st.sup, lines: st.lines.filter(l => Number(l.n) > 0), due: st.due, note: st.note, no: st.no, date: today(), who: on ? '서재우 차장' : ((S.settings && S.settings.reporter) || ''), mail: on ? 'drawbread@naver.com' : '', at: today().replace(/-/g, '.') + ' ' + String(nw.getHours()).padStart(2, '0') + ':' + String(nw.getMinutes()).padStart(2, '0') };
+  const d = { sup: st.sup, lines: st.lines.filter(l => Number(l.n) > 0), due: st.due, note: st.note, no: st.no, date: today(), who: on ? '서재우 차장' : ((S.settings && S.settings.reporter) || ''), tel: on ? '010-9054-1061' : '', mail: 'drawbread@naver.com', at: today().replace(/-/g, '.') + ' ' + String(nw.getHours()).padStart(2, '0') + ':' + String(nw.getMinutes()).padStart(2, '0') };
   const m = document.createElement('canvas'); m.width = 10; m.height = 10; const H = Math.ceil(poPaint(m.getContext('2d'), d, logo));
   const SC = 2, cv = document.createElement('canvas'); cv.width = 900 * SC; cv.height = H * SC;
   const ctx = cv.getContext('2d'); ctx.scale(SC, SC); poPaint(ctx, d, logo); return cv;
@@ -8059,7 +8068,7 @@ async function poDocOpen(sup, lines, opt) {
   modal(`<div class="po-wrap"><div class="po-hd"><div><h2>📄 ${esc(sup)} 발주서</h2><div class="po-sub">거래처가 받는 그대로예요 · 카톡으로 이미지 한 장이 갑니다</div></div>${opt.back ? '<button class="btn" data-podo="back" style="min-height:46px">← 알림으로</button>' : ''}</div>
     <div class="po-grid"><div class="po-prev"><img id="poImg" alt="발주서 미리보기"></div>
     <div><div class="po-form"><label>입고 희망일<input type="date" id="poDue" value="${st.due}"></label><label style="flex:1;min-width:170px">요청사항 (선택)<input id="poNote" placeholder="예) 오전 입고 부탁드립니다" value="${esc(st.note)}"></label></div>
-      <div class="po-sub" style="margin-bottom:2px">주문 수량 · 고치면 발주서도 바로 바뀌어요</div>${qrows}
+      <div class="po-sub" style="margin-bottom:2px">주문 수량 · 고치면 발주서도 바로 바뀌어요</div>${qrows}<div id="poAmt" class="po-tot2"></div>
       <div class="po-btns" style="margin-top:14px"><button class="btn po-kk" data-podo="kakao" style="min-height:58px;font-size:18px">💬 카카오톡으로 보내기</button></div>
       <div class="po-btns" style="margin-top:8px"><button class="btn" data-podo="copy">🖼 이미지 복사</button><button class="btn" data-podo="save">⬇ 이미지 저장</button><button class="btn" data-podo="text">📝 글로 복사</button></div>
       <div id="poGuide"></div>
@@ -8073,6 +8082,7 @@ async function poDocOpen(sup, lines, opt) {
 }
 async function poRender() {
   const st = PO.doc; if (!st) return;
+  try { const ls = st.lines.filter(l => Number(l.n) > 0 && Number(l.price) > 0), sa = ls.reduce((a, l) => a + l.n * l.price, 0), va = ls.reduce((a, l) => a + (l.vf ? 0 : Math.round(l.n * l.price * 0.1)), 0), miss = st.lines.filter(l => Number(l.n) > 0 && !(Number(l.price) > 0)).length, el = $('#poAmt'); if (el) el.innerHTML = sa ? `예상 매입가 <b>약 ${poWon(sa + va)}</b> <span class="po-r">(공급가 ${poWon(sa)} + 부가세 ${poWon(va)}${st.lines.some(l => l.priceAt) ? ' · 최근 매입 단가' : ' · 기준 정보 단가'}${miss ? ' · 단가 없는 ' + miss + '품목 빠짐' : ''} · 발주서 이미지에는 안 나가요)</span>` : ''; } catch (e) {}
   try { st.cv = await poDraw(st); st.blob = null; const img = $('#poImg'); if (img) img.src = st.cv.toDataURL('image/png'); } catch (e) { poGuide('warn', '발주서 그림을 만들지 못했어요: ' + esc((e && e.message) || e)); }
 }
 function poBlob() { const st = PO.doc; if (st.blob) return Promise.resolve(st.blob); return new Promise(res => st.cv.toBlob(b => { st.blob = b; res(b); }, 'image/png')); }
@@ -8123,6 +8133,11 @@ document.addEventListener('click', e => {
   const c = e.target.closest('[data-poopen]'); if (c) { e.preventDefault(); poAlertOpen(); }
 });
 var _poCM = closeModal; closeModal = function () { _poCM.apply(this, arguments); try { $('#modalBody').classList.remove('po-bigm'); } catch (e) {} };
+/* 2026-10-22 사용자 요청: 글·인쇄·카톡 글에도 「입고 전 거래명세표 메일」 문구와 서재우 차장 휴대폰 */
+const PO_MAILTXT = '입고 전에 거래명세표를 drawbread@naver.com 으로 미리 보내 주시면 입고할 때 바로 대조할 수 있어 큰 도움이 됩니다. 늘 협조해 주셔서 감사합니다.';
+rbMsg = (o => function () { let t = o.apply(this, arguments); try { if (!featureOn('po')) return t; t = t.replace(/번거로우시겠지만 거래명세표는 drawbread@naver\.com으로 회신해 주시면 감사하겠습니다\. 협조에 늘 감사드립니다\./, PO_MAILTXT).replace('빵을그리다(주) 담당 서재우 차장 ☎ 031-762-1533', '빵을그리다(주) 담당 서재우 차장 ☎ 010-9054-1061 (대표 031-762-1533)'); } catch (e) {} return t; })(rbMsg);
+rbPrintHtml = (o => function () { let h = o.apply(this, arguments); try { if (!featureOn('po')) return h; h = h.replace(/번거로우시겠지만 <b>거래명세표는 drawbread@naver\.com<\/b>으로 회신해 주시면 감사하겠습니다\. 협조에 늘 감사드립니다\./, '<b>입고 전에 거래명세표를 drawbread@naver.com 으로 미리 보내 주세요.</b> 입고할 때 바로 대조할 수 있어 큰 도움이 됩니다. 늘 협조해 주셔서 감사합니다.').split('담당 서재우 차장 ☎ 031-762-1533').join('담당 서재우 차장 ☎ 010-9054-1061 (대표 031-762-1533)'); } catch (e) {} return h; })(rbPrintHtml);
+rbKakaoText = (o => function () { let t = o.apply(this, arguments); try { if (!featureOn('po')) return t; t = t.replace('거래명세표는 drawbread@naver.com으로 회신 부탁드립니다. 감사합니다.', '입고 전 거래명세표는 drawbread@naver.com으로 미리 부탁드립니다.').replace('빵을그리다 서재우 차장 031-762-1533', '빵을그리다 서재우 차장 010-9054-1061'); if (t.length > 200) t = t.slice(0, 200); } catch (e) {} return t; })(rbKakaoText);
 /* ③ 발주 보내기 → 발주서 화면 */
 var _poOpenSend0 = rbOpenSend;
 rbOpenSend = function (sup) {
