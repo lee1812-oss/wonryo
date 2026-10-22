@@ -1098,3 +1098,50 @@
     if (el) { e.preventDefault(); e.stopPropagation(); window.__fkAll = !window.__fkAll; try { fieldRender(); } catch (er) {} return; }
     if (e.target.closest && e.target.closest('#fld [data-f], #fld [data-fgo], #fld [data-frst]')) window.__fkAll = false; }, true);
 })();
+
+/* ══ 오븐 화면 정리: 시작·2시간·종료 칸 그림 빼고 같은 높이에 맞춤 + 「오늘 기록」을 표로 (2026-10-22 Aside, 사용자 「이모티콘 빼고 시작·2시간·종료가 같은 위치에」 「오늘 기록을 제품명·시작·종료·온도·시간·품온 표로」) ══
+   - 세 칸: 🟢·⏱·🏁 그림을 숨기고, 이름 → 시각 → 값 줄이 세 칸 모두 같은 높이에 오게 고정.
+   - 오븐 「오늘 기록」: 표(제품명 | 시작 | (2시간) | 종료 | 온도 | 시간 | 품온). 2시간 열은 2시간 측정 줄이 있을 때만. 줄을 누르면 예전처럼 고치기. 기준 이탈 줄은 빨강.
+   - 다른 공정(급냉·배합·금속)의 기록 목록은 그대로. 원래 함수는 감싸기만 함. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fov3 .ft.big>i{display:none!important}'
+    + '#fld .fov3 .ft.big{justify-content:flex-start!important;padding-top:18px}'
+    + '#fld .fov3 .ft.big>b{display:flex;align-items:center;justify-content:center;min-height:34px;margin:0}'
+    + '#fld .fov3 .ft.big .tm{display:flex;align-items:center;justify-content:center;height:52px;font-size:34px}#fld .fov3 .ft.big .tm.ph{font-size:18px}#fld .fov3 .mid .tm{font-size:34px}'
+    + '#fld .fov3 .ft.big .vv{display:block;min-height:2.8em}'
+    + '@media (max-width:620px){#fld .fov3 .ft.big .tm,#fld .fov3 .mid .tm{font-size:26px;height:42px}#fld .fov3 .ft.big .tm.ph{font-size:16px}}'
+    + '#fld .fovt-w{background:#fff;border-radius:14px;overflow-x:auto;margin:4px 0 14px;box-shadow:0 2px 0 rgba(0,0,0,.15)}'
+    + '#fld table.fovt{width:100%;border-collapse:collapse;table-layout:auto;color:#1F2328}'
+    + '#fld table.fovt th{background:#495057;color:#fff;font-size:16px;font-weight:800;padding:10px 6px;text-align:center;white-space:nowrap}'
+    + '#fld table.fovt td{font-size:19px;font-weight:700;padding:14px 6px;text-align:center;border-top:1px solid #DEE2E6;white-space:nowrap}'
+    + '#fld table.fovt td.nm{text-align:left;padding-left:12px;white-space:normal;word-break:keep-all}'
+    + '#fld table.fovt td.em{color:#ADB5BD;font-weight:600}'
+    + '#fld table.fovt tbody tr{cursor:pointer}#fld table.fovt tbody tr:active{background:#FFF3BF}'
+    + '#fld table.fovt tr.bad td{background:#FFF5F5;color:#C92A2A}#fld table.fovt tr.badm td{background:#FFF5F5;color:#C92A2A;font-size:15px;text-align:left;padding:4px 12px 10px;border-top:0;white-space:normal}'
+    + '@media (max-width:620px){#fld table.fovt th{font-size:14px;padding:8px 2px}#fld table.fovt td{font-size:16px;padding:12px 2px}#fld table.fovt td.nm{padding-left:8px}}'
+    + '@media (max-width:420px){#fld table.fovt th{font-size:12px}#fld table.fovt td{font-size:14px}}';
+  document.head.appendChild(st);
+  const _rec = fldRecHtml;
+  fldRecHtml = function (g, key) {
+    if (!g || g.type !== 'oven') return _rec.apply(this, arguments);
+    try {
+      const D = fldD();
+      const rows = (g.rows || []).filter(r => !key || r.code === key).filter(r => fldAny(r, ['time', 'temp']));
+      if (!rows.length) return '';
+      const kind = r => r.tag === '시작' ? 's' : r.tag === '종료' ? 'e' : 'm';
+      const ord = { s: 0, m: 1, e: 2 };
+      rows.sort((a, b) => String(a.name).localeCompare(String(b.name), 'ko') || (ccpMin(a.time) ?? 9999) - (ccpMin(b.time) ?? 9999) || ord[kind(a)] - ord[kind(b)]);
+      const hasMid = rows.some(r => kind(r) === 'm');
+      const cell = (on, v) => on ? '<td>' + esc(v || '--:--') + '</td>' : '<td class="em">·</td>';
+      const n = v => (v === '' || v == null) ? '—' : esc(v);
+      const cols = hasMid ? 7 : 6;
+      const body = rows.map(r => { const k = kind(r), b = ccpRowState('oven', 'rows', r, D).bad;
+        return '<tr class="' + (b.length ? 'bad' : '') + '" data-f="editrow" data-id="' + esc(r.id) + '"><td class="nm">' + esc(fldShort(r.name)) + '</td>'
+          + cell(k === 's', r.time) + (hasMid ? cell(k === 'm', r.time) : '') + cell(k === 'e', r.time)
+          + '<td>' + n(r.temp) + '℃</td><td>' + n(r.min) + '분</td><td>' + n(r.core) + '℃</td></tr>'
+          + (b.length ? '<tr class="badm" data-f="editrow" data-id="' + esc(r.id) + '"><td colspan="' + cols + '">⚠ 기준 벗어남 — ' + esc(b.join(', ')) + '</td></tr>' : ''); }).join('');
+      return '<h2 class="fld-h2">오늘 기록</h2><div class="fovt-w"><table class="fovt"><thead><tr><th>제품명</th><th>시작</th>' + (hasMid ? '<th>2시간</th>' : '') + '<th>종료</th><th>온도</th><th>시간</th><th>품온</th></tr></thead><tbody>' + body + '</tbody></table></div>';
+    } catch (e) { return _rec.apply(this, arguments); } };
+})();
