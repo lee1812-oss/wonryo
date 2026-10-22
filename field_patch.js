@@ -840,3 +840,21 @@
     + 'html body .fwarn-bt .go{background:linear-gradient(180deg,' + Y1 + ',' + Y2 + ')!important;border:3px solid ' + BL + '!important;color:' + NV + '!important;box-shadow:0 5px 0 #C79A00!important}html body .fwarn-bt .go:active{box-shadow:0 2px 0 #C79A00!important}';
   document.head.appendChild(st);
 })();
+
+/* ══ 전체 바탕 남색 (2026-10-22 Aside, 사용자 「전체 바탕 배경색은 남색」) ══
+   - 바탕 #16233F(남색), 위 제목줄 #0E1830(더 진한 남색). 카드·칸은 지금처럼 연회색, 누를 곳은 노랑+파랑 테두리 → 남색 위에서 노랑이 가장 먼저 보임.
+   - 바탕 위에 바로 놓인 글자(화면 제목·설명·화살표·설정 버튼)는 흰색·연한 회청색으로 바꿔 읽히게. 아래 고정 저장줄도 남색. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const BG = '#16233F', TOP = '#0E1830';
+  const st = document.createElement('style');
+  st.textContent = 'html body #fld{background:' + BG + '!important}html body #fld .fld-top{background:' + TOP + '!important;border-bottom:1px solid #26365C}'
+    + 'html body #fld .fld-body .fld-h,html body #fld .fld-body .fld-h2{color:#FFFFFF!important}html body #fld .fld-body .fld-h *{color:#FFFFFF}html body #fld .fld-body .fld-h .ed{color:#8F5F00}'
+    + 'html body #fld .fld-body > .fld-p,html body #fld .fld-body .fld-p{color:#C9D3E6!important}'
+    + 'html body #fld .fsf-ar,html body #fld .fov3 .ar{color:#7E8DB0!important}'
+    + 'html body #fld .fset-btn{color:#C9D3E6!important;border-color:#4A5A80!important}html body #fld .fld-auto{color:#C9D3E6!important}'
+    + 'html body #fld .fsn-b{background:#F1F3F5!important;color:' + BG + '!important}'
+    + 'html body #fld .fld-save{background:rgba(14,24,48,.96)!important;border-top-color:#26365C!important}'
+    + 'html body #fld .fsf-pk .lb{color:#C9D3E6!important}';
+  document.head.appendChild(st);
+})();
