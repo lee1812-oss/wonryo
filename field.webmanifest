@@ -1,0 +1,33 @@
+{
+  "name": "빵을그리다 생산실",
+  "short_name": "생산실",
+  "description": "생산일지·CCP 일지 현장 입력 (휴대폰·태블릿용). 입력한 내용은 통합 재고관리와 연동",
+  "start_url": "./field.html",
+  "scope": "./field.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F4F1EA",
+  "theme_color": "#7A4A23",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "field_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "field_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "field_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "id": "./field.html"
+}
