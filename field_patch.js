@@ -1028,3 +1028,35 @@
     } catch (e) {}
     return h; };
 })();
+
+
+/* ══ ↺ 초기화 버튼 (2026-10-22 Aside, 사용자 「일지 작성할 때 이전 기록이 남아서 화면이 이상해 — 초기화 버튼」) ══
+   - 위 제목줄(뒤로 · 생산실 · 👤 사이)에 「↺ 초기화」. 첫 화면에서는 안 보이고, 일지를 쓰는 화면에서만 보인다.
+   - 누르면 화면에 남아 있던 것(고른 공정·품목·측정 단계, 입력 중이던 숫자, 찾기 글자, 열린 품목 목록, 다른 날짜 보기)을 모두 비우고 첫 화면을 새로 그린다.
+   - 저장된 일지·생산 기록·작업자 이름(👤)은 지우지 않는다. 화면만 처음 상태로.
+   - 숫자를 입력하던 중이면 한 번 묻는다. 원래 함수는 감싸기만 함. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '.fld-top .fb.frst{background:rgba(255,255,255,.12);border-color:#FFA8A8;color:#fff}'
+    + '@media (max-width:520px){.fld-top .fb.frst{padding-left:8px;padding-right:8px;font-size:15px}}';
+  document.head.appendChild(st);
+  const _head = fldHead;
+  fldHead = function () { const h = _head.apply(this, arguments);
+    const hide = FLD.step === 'home' ? ' style="visibility:hidden"' : '';
+    return h.replace('<button class="fb who"', '<button type="button" class="fb frst" data-frst="1"' + hide + ' title="화면을 처음 상태로 (저장된 일지는 그대로)">↺ 초기화</button><button class="fb who"'); };
+  const BASE = () => ({ open: true, step: 'home', type: '', code: '', name: '', mode: '', rowId: '', sec: 'rows', vals: {}, fi: 0, fields: [], busy: false, edit: false, cart: false, q: '', date: '' });
+  window.fldReset = function () {
+    const typing = (FLD.step === 'form' && FLD.typed && Object.keys(FLD.typed).length) || FLD.step === 'act' || FLD.step === 'qtyin';
+    if (typing && !confirm('입력하던 숫자는 지워지고 첫 화면으로 돌아갑니다.\n이미 저장된 일지는 그대로 남습니다.\n\n초기화할까요?')) return;
+    try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+    try { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); } catch (e) {}   /* 열린 품목 목록 닫기 */
+    Object.keys(FLD).forEach(k => { delete FLD[k]; });
+    Object.assign(FLD, BASE());
+    window.__fqBack = ''; window.__fq2Back = false;
+    try { fieldRender(); } catch (e) {}
+    const box = document.getElementById('fld'); if (box) box.scrollTop = 0; try { window.scrollTo(0, 0); } catch (e) {}
+    try { toast('↺ 화면을 처음 상태로 되돌렸습니다 (저장된 일지는 그대로)'); } catch (e) {}
+  };
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#fld [data-frst]'); if (!b) return; e.preventDefault(); e.stopPropagation(); fldReset(); }, true);
+})();
