@@ -793,3 +793,19 @@
   /* 1분마다 시간 표시 새로 고침 (창이 떠 있거나 입력 중이면 건너뜀) */
   setInterval(() => { try { if (FLD.open && (FLD.step === 'mode' || FLD.step === 'type') && !document.querySelector('.fwarn-bg') && document.querySelector('#fld [data-fq3], #fld [data-fq2]')) fieldRender(); } catch (e) {} }, 60000);
 })();
+
+/* ══ 누를 곳 색: 갈색 → 신뢰감 있는 진한 파랑 + 보색(주황) 테두리 (2026-10-22 Aside, 사용자 「갈색은 안 예뻐, 고퀄리티 색으로, 보색 테두리」) ══
+   - 채우기: 진한 로열 블루 그라데이션(#2F6BFF → #1D4ED8), 흰 글씨. 테두리·빛나는 링: 주황(#F59E0B, 파랑의 보색).
+   - 확인 창의 「✓ 저장」「✎ 값 다시 고치기」 같은 주 버튼도 같은 색. 나머지는 그대로 연회색. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fsf-c.now,#fld .fnow{--k:#1D4ED8!important;background:linear-gradient(180deg,#3B76FF 0%,#1D4ED8 100%)!important;border:3px solid #F59E0B!important;'
+    + 'box-shadow:inset 0 2px 0 rgba(255,255,255,.35),0 6px 0 #1E3A8A,0 14px 28px rgba(29,78,216,.40)!important}'
+    + '#fld .fsf-c.now::after,#fld .fnow::after{border-color:#F59E0B!important;border-width:3px!important}'
+    + '#fld .fsf-c.now .tag{background:#F59E0B!important;color:#fff!important}#fld .fsf-c.now .n{background:#fff!important;color:#1D4ED8!important}#fld .fsf-c.now .n *{color:#1D4ED8!important}'
+    + '#fld .fsf-c.now .fpress,#fld .fnow .fpress,#fld .fsf-c.now .fpress *,#fld .fnow .fpress *{color:#1D4ED8!important}#fld .fpress{border:2px solid #F59E0B}'
+    + '.fwarn-bt .go{background:linear-gradient(180deg,#3B76FF,#1D4ED8)!important;border:3px solid #F59E0B!important;color:#fff!important;box-shadow:0 5px 0 #1E3A8A!important}.fwarn-bt .go:active{box-shadow:0 2px 0 #1E3A8A!important}'
+    + '#fld .fov3 .ft.fnow .tm,#fld .fov3 .ft.fnow .vv,#fld .fov3 .ft.fnow .lim{color:#fff!important}';
+  document.head.appendChild(st);
+})();
