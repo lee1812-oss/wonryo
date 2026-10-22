@@ -342,3 +342,47 @@
     if (k === '⌫') v = v.slice(0, -1); else if (k === '.') { if (!v.includes('.')) v = (v || '0') + '.'; } else if (v.replace(/\D/g, '').length < 6) v = (v === '0' ? '' : v) + k;
     FLD.qx[FLD.qa] = v; fieldRender(); }, true);
 })();
+
+/* ══ 「이카운트로 보내기」 → 이카운트 생산입고 입력 화면 모양 미리보기 (2026-10-22 Aside, 사용자 「이카운트에 입력되는 화면을 이미지로 직관적으로」) ══
+   - 보내기 확인 창 맨 위에 이카운트 「생산입고 입력」 화면처럼 그린 그림: 일자·담당자·생산된 공장·받는 창고 + 품목코드·품목명·수량·적요 줄. 값은 실제로 보내는 prodRows()와 같음.
+   - 생산량 입력 화면 위에는 오늘 보낸 전표를 같은 모양으로(전송 중·모아 두는 중·입력 완료 전표번호) 보여 줌. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '.ecv{border:1px solid #B8C4D6;border-radius:10px;overflow:hidden;background:#fff;margin:6px 0 12px;font-family:inherit;box-shadow:0 2px 8px rgba(31,78,140,.12);color:#222}'
+    + '.ecv-top{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#1F4E8C;color:#fff;font-size:14px}.ecv-top b{font-size:16px;letter-spacing:.5px}.ecv-top .path{opacity:.85}.ecv-top .tag{margin-left:auto;padding:2px 10px;border-radius:99px;background:#fff;color:#1F4E8C;font-weight:800;font-size:13px;white-space:nowrap}'
+    + '.ecv-ttl{padding:8px 12px;font-size:18px;font-weight:800;color:#1F4E8C;border-bottom:1px solid #DDE3EC;background:#F4F7FB}'
+    + '.ecv-hd{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:6px 10px;padding:10px 12px;font-size:15px;align-items:center;border-bottom:1px solid #DDE3EC}.ecv-hd .l{color:#556;font-weight:700;white-space:nowrap}.ecv-hd .v{border:1px solid #C9D3E0;border-radius:4px;padding:5px 8px;background:#FBFCFE;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ecv-hd .v.warn{border-color:#F08C00;background:#FFF4E6}'
+    + '.ecv table{width:100%;border-collapse:collapse;font-size:15px}.ecv th{background:#E9EEF5;color:#334;font-weight:800;padding:7px 8px;border-bottom:1px solid #C9D3E0;text-align:left;white-space:nowrap}.ecv td{padding:8px;border-bottom:1px solid #EEF1F5;vertical-align:top;word-break:keep-all}.ecv td.n{text-align:right;font-weight:800;white-space:nowrap;font-size:17px}.ecv td.c{color:#1F4E8C;font-weight:700;white-space:nowrap}.ecv td.r{font-size:13px;color:#667}.ecv tr.sum td{background:#F4F7FB;font-weight:800}'
+    + '.ecv-ft{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;background:#F4F7FB;font-size:14px;color:#445;word-break:keep-all}.ecv-ft .btn8{padding:4px 12px;border-radius:4px;background:#1F4E8C;color:#fff;font-weight:800;font-size:13px}.ecv-ft .st{font-weight:800}.ecv-ft .st.ok{color:#2B8A3E}.ecv-ft .st.wait{color:#B35C00}.ecv-ft .st.bad{color:#C92A2A}'
+    + '@media (max-width:560px){.ecv-hd{grid-template-columns:auto 1fr}.ecv th.rm,.ecv td.r{display:none}}';
+  document.head.appendChild(st);
+  const ymd = d => String(d || '').replace(/-/g, '/');
+  const lineOf = l => { const it = prodItem(l.code) || {}; return { code: l.code, name: it.name || l.code, unit: l.mode === 'ea' ? '개' : (it.unit || ''), mode: l.mode || '', qty: Number(l.qty), ecQty: prodEcQty(it, l.qty, l.mode), ecUnit: prodEcUnit(it), note: String(l.note || '').trim() }; };
+  window.fldEcView = function (entry, opt) { opt = opt || {}; let rows = []; try { rows = prodRows(entry); } catch (e) { return ''; }
+    const c = entry.cfg || prodS().cfg, same = c.whF && c.whF === c.whT;
+    const tr = rows.map((r, i) => { const l = entry.lines[i] || {}, it = prodItem(r.PROD_CD) || {};
+      return '<tr><td class="c">' + esc(r.PROD_CD) + '</td><td>' + esc(it.ecName || l.name || r.PROD_CD) + '</td><td class="n">' + esc(fmt(Number(r.QTY))) + ' <small>' + esc(l.ecUnit || prodEcUnit(it) || '') + '</small></td><td class="r">' + esc(r.REMARKS || '') + '</td></tr>'; }).join('');
+    const st = opt.status ? '<span class="st ' + (opt.status.cls || '') + '">' + esc(opt.status.t) + '</span>' : '';
+    return '<div class="ecv"><div class="ecv-top"><b>ECOUNT</b><span class="path">재고 › 생산/외주 › 생산입고</span><span class="tag">' + esc(opt.tag || '이렇게 들어갑니다') + '</span></div>'
+      + '<div class="ecv-ttl">생산입고 입력' + (entry.test ? ' <small style="color:#C92A2A">(테스트 모드 — 실제로는 안 들어감)</small>' : '') + '</div>'
+      + '<div class="ecv-hd"><span class="l">일자</span><span class="v">' + esc(ymd(entry.date)) + '</span><span class="l">담당자</span><span class="v">' + esc(c.emp || '(없음)') + '</span>'
+      + '<span class="l">생산된 공장</span><span class="v' + (same ? ' warn' : '') + '">' + esc(c.whF || '(없음)') + '</span><span class="l">받는 창고</span><span class="v' + (same ? ' warn' : '') + '">' + esc(c.whT || '(없음)') + '</span></div>'
+      + '<table><thead><tr><th>품목코드</th><th>품목명</th><th style="text-align:right">수량</th><th class="rm">적요</th></tr></thead><tbody>' + (tr || '<tr><td colspan="4">담은 품목이 없습니다</td></tr>') + '</tbody></table>'
+      + '<div class="ecv-ft"><span class="btn8">저장(F8)</span>' + st + '<span>' + esc(opt.foot || '') + '</span></div></div>'; };
+  const holdTxt = () => { const c = prodS().cfg; return c.batch === false ? '보내면 바로 이카운트에 들어갑니다' : '오늘 생산은 ' + (c.cutoff || '17:30') + '에 한 전표로 합쳐서 들어갑니다'; };
+  /* 1) 보내기 확인 창 맨 위 */
+  const _conf = prodConfirm;
+  prodConfirm = function () { const r = _conf.apply(this, arguments);
+    try { const mb = document.getElementById('modalBody'); const h2 = mb && mb.querySelector('h2'); if (h2 && /이카운트 생산입고로 보낼까요/.test(h2.textContent) && !mb.querySelector('.ecv')) { const P = prodS();
+        const entry = { date: P.draft.date, workers: (P.draft.workers || []).slice(), test: !!P.cfg.test, lines: P.draft.lines.filter(l => Number(l.qty) > 0).map(lineOf), cfg: { emp: P.cfg.emp, whF: P.cfg.whF, whT: P.cfg.whT, extra: P.cfg.extra, wkRem: P.cfg.wkRem !== false } };
+        h2.insertAdjacentHTML('afterend', fldEcView(entry, { tag: '보내기 전 미리보기', foot: holdTxt() })); } } catch (e) {}
+    return r; };
+  /* 2) 생산량 입력 화면 위: 오늘 보낸 전표 */
+  const stOf = en => en.status === 'sent' ? { t: '✓ 이카운트 입력 완료' + (en.slip ? ' · 전표 ' + (Array.isArray(en.slip) ? en.slip.join(', ') : en.slip) : ''), cls: 'ok' }
+    : en.status === 'fail' ? { t: '⚠ 보내지 못함 — ' + (en.err || '사무실에 알려 주세요'), cls: 'bad' } : en.status === 'wait' || en.status === 'queued' ? { t: '⏳ 중계에 모아 두는 중', cls: 'wait' } : { t: '⏳ 보내는 중', cls: 'wait' };
+  const _qty = fldQtyHtml;
+  fldQtyHtml = function () { let h = _qty(); try { const D = fldD(), es = (prodS().log || []).filter(en => en.date === D && en.status !== 'cancel'); if (!es.length) return h;
+      const v = es.map(en => fldEcView(en, { tag: '오늘 보낸 전표', status: stOf(en), foot: en.status === 'sent' ? '' : holdTxt() })).join('');
+      const i = h.indexOf('<input class="fld-q"'); return i < 0 ? h + v : h.slice(0, i) + '<h2 class="fld-h2">🧾 오늘 이카운트로 보낸 생산</h2>' + v + h.slice(i); } catch (e) { return h; } };
+})();
