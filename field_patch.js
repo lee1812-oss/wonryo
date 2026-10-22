@@ -858,3 +858,46 @@
     + 'html body #fld .fsf-pk .lb{color:#C9D3E6!important}';
   document.head.appendChild(st);
 })();
+
+/* ══ 한계기준 이탈 말풍선 (2026-10-22 Aside, 사용자 「이탈 시 말풍선 설명 화살표, 쉽게 이해되도록」) ══
+   - 입력 화면에서 기준 밖 칸 바로 아래에 빨간 말풍선(위로 향한 화살표)이 붙음: 「⚠ 기준보다 17℃ 높아요」 + 「기준 152~158℃ · 판넬을 다시 보세요」.
+   - 기준 글(155±3℃, 85~99℃, -30 ~ -35℃, 10~50kg, 24℃ 이하, 10℃±5 ~ 20℃±5, 0 이어야 정상)을 숫자 범위로 바꿔 높다/낮다·얼마나를 계산. 시간 기준(급냉 시간·소진 2시간)과 O/X는 원래 판정 문구를 쉬운 말로.
+   - 같은 설명을 이탈 경고창(값 다시 고치기)에도 한 줄 넣음. 칸 아래 작은 「⚠ 기준을 벗어났습니다」 글은 말풍선으로 대신함. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fbub{position:relative;display:block;margin:12px 0 2px;padding:10px 12px;border-radius:12px;background:#C92A2A;color:#fff!important;text-align:left;box-shadow:0 4px 12px rgba(201,42,42,.35);animation:fbubin .2s ease-out}'
+    + '#fld .fbub::before{content:"";position:absolute;top:-10px;left:24px;border:10px solid transparent;border-top:0;border-bottom-color:#C92A2A}'
+    + '#fld .fbub b{display:block;font-size:19px;font-weight:900;color:#fff!important;line-height:1.3}#fld .fbub span{display:block;font-size:15px;font-weight:700;color:#FFE3E3!important;margin-top:2px;line-height:1.35;word-break:keep-all}'
+    + '@keyframes fbubin{from{transform:translateY(-4px);opacity:0}to{transform:none;opacity:1}}'
+    + '#fld .fld-f.has-bub > small.bad{display:none!important}'
+    + '.fwarn-row .why{flex-basis:100%;font-size:17px;font-weight:900;color:#C92A2A}';
+  document.head.appendChild(st);
+  const num = s => Number(String(s).replace(/[^\d.\-]/g, ''));
+  /* 기준 글 → [아래, 위] */
+  const range = (lim, neg) => { const s = String(lim || '').replace(/\s/g, ''); if (!s) return null; let m;
+    if (/~/.test(s) && /±/.test(s)) { const [l, r] = s.split('~'); const a = /(-?\d+(?:\.\d+)?)[^\d±-]*±(\d+(?:\.\d+)?)/.exec(l), b = /(-?\d+(?:\.\d+)?)[^\d±-]*±(\d+(?:\.\d+)?)/.exec(r); if (a && b) return [Math.min(+a[1] - +a[2], +b[1] - +b[2]), Math.max(+a[1] + +a[2], +b[1] + +b[2])]; }
+    if ((m = /(-?\d+(?:\.\d+)?)±(\d+(?:\.\d+)?)/.exec(s))) return [+m[1] - +m[2], +m[1] + +m[2]];
+    if ((m = /(-?\d+(?:\.\d+)?)[^\d~-]*~(-?\d+(?:\.\d+)?)/.exec(s))) { const a = +m[1], b = +m[2]; return [Math.min(a, b), Math.max(a, b)]; }
+    if ((m = /(-?\d+(?:\.\d+)?).*이하/.exec(s))) return [-Infinity, +m[1]];
+    if ((m = /(-?\d+(?:\.\d+)?).*이상/.exec(s))) return [+m[1], Infinity];
+    if (/^0이어야/.test(s)) return [0, 0]; return null; };
+  const r1 = n => Math.round(n * 10) / 10;
+  window.fldBubText = function (x, bad) { const v = FLD.vals[x.f]; if (x.k === 'ox') return { t: '⚠ 「' + (v === 'O' ? x.yes : x.no) + '」은(는) 비정상이에요', s: '정상은 「' + (x.good === 'O' ? x.yes : x.no) + '」 · 기계를 다시 확인하세요' };
+    const u = x.u || '', val = (x.neg ? -1 : 1) * num(v), R = x.k === 'num' ? range(x.lim, x.neg) : null;
+    if (R && isFinite(val)) { const lo = R[0], hi = R[1], rt = (isFinite(lo) ? r1(lo) : '') + (isFinite(lo) && isFinite(hi) ? '~' : '') + (isFinite(hi) ? r1(hi) : '') + u + (!isFinite(lo) ? ' 이하' : !isFinite(hi) ? ' 이상' : '');
+      const what = /온도|품온/.test(x.lb) ? (/판넬/.test(x.lb) ? '판넬 온도를 다시 보세요' : '온도계로 다시 재 보세요') : /시간/.test(x.lb) ? '시간을 다시 확인하세요' : /배합량/.test(x.lb) ? '저울 무게를 다시 보세요' : /검출/.test(x.lb) ? '검출된 제품을 따로 두세요' : '값을 다시 확인하세요';
+      if (x.neg) { if (val > hi) return { t: '⚠ 기준보다 ' + r1(val - hi) + u + ' 덜 차가워요', s: '기준 ' + rt + ' · ' + what }; if (val < lo) return { t: '⚠ 기준보다 ' + r1(lo - val) + u + ' 더 차가워요', s: '기준 ' + rt + ' · ' + what }; }
+      const W = /kg|개/.test(u) ? ['많아요', '적어요'] : u === '분' ? ['길어요', '짧아요'] : ['높아요', '낮아요'];
+      if (val > hi) return { t: '⚠ 기준보다 ' + r1(val - hi) + u + ' ' + W[0], s: '기준 ' + rt + ' · ' + what }; if (val < lo) return { t: '⚠ 기준보다 ' + r1(lo - val) + u + ' ' + W[1], s: '기준 ' + rt + ' · ' + what }; }
+    const msg = (bad || []).join(', '); return { t: '⚠ 기준을 벗어났어요', s: (msg || ('기준 ' + (x.lim || ''))) + (x.k === 'time' ? ' · 시각을 다시 확인하세요' : '') }; };
+  const _r = fieldRender;
+  fieldRender = function () { _r.apply(this, arguments);
+    try { if (FLD.step !== 'form' || !FLD.fields) return; const els = document.querySelectorAll('#fld .fld-fields > .fld-f');
+      FLD.fields.forEach((x, i) => { const el = els[i]; if (!el || FLD.vals[x.f] === '' || FLD.vals[x.f] == null) return; let b = null; try { b = fldFieldBad(x); } catch (e) {} if (!b || !b.length) return;
+        const T = fldBubText(x, b); el.classList.add('has-bub'); el.insertAdjacentHTML('beforeend', '<span class="fbub"><b>' + esc(T.t) + '</b><span>' + esc(T.s) + '</span></span>'); });
+      try { fldFit(); } catch (e) {} } catch (e) {} };
+  /* 이탈 경고창에도 같은 한 줄 */
+  const mo = new MutationObserver(() => { document.querySelectorAll('.fwarn-bg:not(.fq2):not(.f2h) .fwarn-row:not([data-why])').forEach(row => { row.setAttribute('data-why', '1'); try { const lb = (row.querySelector('b') || {}).textContent; const x = (FLD.fields || []).find(f => f.lb === lb); if (!x) return; const T = fldBubText(x, fldFieldBad(x)); row.insertAdjacentHTML('beforeend', '<span class="why">' + esc(T.t.replace(/^⚠ /, '')) + '</span>'); } catch (e) {} }); });
+  mo.observe(document.body, { childList: true, subtree: true });
+})();
