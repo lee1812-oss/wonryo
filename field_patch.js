@@ -539,3 +539,42 @@
   let tm = 0; window.addEventListener('resize', () => { const a = document.activeElement; if (a && a.matches && a.matches('#fld [data-f="q"]')) return; clearTimeout(tm); tm = setTimeout(fldFit, 150); });
   window.addEventListener('orientationchange', () => setTimeout(fldFit, 300));
 })();
+
+/* ══ 누를 곳만 갈색, 나머지 도형은 모두 연회색 + 읽기 쉬운 진한 글꼴 + 보내기 창은 미리보기만 (2026-10-22 Aside, 사용자 요청) ══
+   - 색은 딱 두 가지: 지금 누를 곳 = 갈색, 나머지 카드·버튼·칸 = 연회색(#F1F3F5). 단계별 색·완료 초록·고른 칸 보라 등은 모두 회색 계열로. 기준 이탈(⚠) 빨간 글씨만 남김.
+   - 글꼴: Pretendard(인터넷으로 받음, 못 받으면 기기 기본 글꼴), 본문 굵게(600)·제목 더 굵게(800)·글자색 진하게.
+   - 「이카운트 생산입고로 보낼까요?」 창: 이카운트 화면 미리보기 + 경고(있을 때만) + 취소/보내기만 남기고 아래 표·생지 소모·안내 글은 숨김. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const lk = document.createElement('link'); lk.rel = 'stylesheet'; lk.href = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css'; document.head.appendChild(lk);
+  const G = '#F1F3F5', GB = '#CED4DA', TX = '#1F2328', T2 = '#343A40';
+  const st = document.createElement('style');
+  st.textContent = ''
+    + '#fld,#fld button,#fld input,.fwarn,.ecv,#modalBody{font-family:"Pretendard Variable",Pretendard,"Noto Sans KR","Malgun Gothic",-apple-system,sans-serif!important}'
+    + '#fld .fld-body{font-weight:600;color:' + TX + '}#fld .fld-body b,#fld .fld-h,#fld .fld-h2,#fld .fld-gh{font-weight:800!important;color:' + TX + '}#fld .fld-p,#fld .fld-body small{color:' + T2 + '}'
+    /* 단계 카드 (차례 아닌 것 · 완료 포함) */
+    + '#fld .fsf-c:not(.now){background:' + G + '!important;border-color:' + GB + '!important;opacity:1!important}'
+    + '#fld .fsf-c:not(.now) .t b{color:' + TX + '!important}#fld .fsf-c:not(.now) .t small{color:' + T2 + '!important;font-weight:600}#fld .fsf-c:not(.now) .t small.bad{color:#C92A2A!important}'
+    + '#fld .fsf-c:not(.now) .n{background:#868E96!important;color:#fff!important}#fld .fsf-c:not(.now) .go{color:#868E96!important}#fld .fsf-c:not(.now) .tag{background:#495057!important;color:#fff!important}'
+    + '#fld .fsf-ar{color:#ADB5BD!important}'
+    /* 안쪽 카드·목록·칸·버튼 */
+    + '#fld .ft:not(.fnow),#fld .fsg-r,#fld .fqu button:not(.fnow),#fld .fqchip button,#fld .fqv button,#fld .fsmore,#fld .fsnav button:not(.fnow),#fld .fld-body .fb:not(.fnow),#fld .fsg-hd button,#fld .fsg-gp button,#fld .fsf-pk button{background:' + G + '!important;border-color:' + GB + '!important;color:' + TX + '!important}'
+    + '#fld .ft:not(.fnow) b,#fld .ft:not(.fnow) small,#fld .fsg-r b{color:' + TX + '!important}#fld .ft:not(.fnow) small{color:' + T2 + '!important}#fld .ft:not(.fnow) small.bad{color:#C92A2A!important}'
+    + '#fld .fsnav button.nx:not(.fnow){box-shadow:0 4px 0 rgba(0,0,0,.12)!important}#fld .fsg-r .go{color:#495057!important}#fld .fsg-r small.on{color:' + T2 + '!important}'
+    + '#fld .fsg-gp button.on,#fld .fsf-pk button.on{background:#495057!important;border-color:#495057!important;color:#fff!important}'
+    + '#fld .fqu button.on{background:#fff!important;border-color:#495057!important;box-shadow:0 0 0 3px ' + GB + '!important}#fld .fqu button .k,#fld .fqu button.on .k{color:' + TX + '!important}#fld .fqu button .s.sent{color:' + T2 + '!important}'
+    + '#fld .fld-f{background:#F8F9FA!important;border-color:' + GB + '!important}#fld .fld-f.on{background:#fff!important;border-color:#495057!important;box-shadow:0 0 0 3px ' + GB + '}#fld .fld-f.bad{border-color:#E03131!important;background:#FFF5F5!important}'
+    + '#fld .fld-f label{color:' + T2 + '!important;font-weight:700}#fld .fav-tag{background:#E9ECEF!important;color:#495057!important}#fld .fav-bar{background:#F8F9FA!important;border-color:' + GB + '!important;color:' + TX + '!important}#fld .fav-bar b{color:' + TX + '!important}'
+    + '#fld .fld-card.ok{background:#F8F9FA!important;border-color:' + GB + '!important}#fld .fld-card.ok b{color:' + TX + '!important}'
+    + '#fld .keys button{background:' + G + '!important;border-color:' + GB + '!important;color:' + TX + '!important}';
+  document.head.appendChild(st);
+  try { document.fonts && document.fonts.ready.then(() => { try { fldFit(); } catch (e) {} }); lk.onload = () => setTimeout(() => { try { fldFit(); } catch (e) {} }, 200); } catch (e) {}
+  /* 보내기 창: 미리보기만 */
+  const _conf = prodConfirm;
+  prodConfirm = function () { const r = _conf.apply(this, arguments);
+    try { const mb = document.getElementById('modalBody'); if (mb && mb.querySelector('.ecv')) { const ecv = mb.querySelector('.ecv');
+        [...mb.children].forEach(el => { if (el === ecv || el.tagName === 'H2') return; const t = el.textContent || '';
+          const keep = el.querySelector && (el.querySelector('#pSendOk') || /보낼 수 없습니다|2배가 넘습니다|오늘\(.*\)이 아닙니다/.test(t));
+          if (!keep) el.style.display = 'none'; }); } } catch (e) {}
+    return r; };
+})();
