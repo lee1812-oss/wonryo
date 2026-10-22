@@ -528,7 +528,7 @@
       /* 첫 화면: 그래도 남는 높이는 단계 카드를 늘려서 채움 (가로 = 카드 높이, 세로 = 카드마다 나눠서) */
       const fsf = body.querySelector('.fsf'), cs = fsf ? [...fsf.querySelectorAll('.fsf-c')] : [];
       if (FLD.step === 'home' && cs.length) { const z = Number(body.style.zoom) || 1, left = (avail - body.getBoundingClientRect().height) / z - 6;
-        if (left > 16) { const row = getComputedStyle(fsf).flexDirection === 'row'; const hs = cs.map(c => c.getBoundingClientRect().height / z); cs.forEach((c, i) => { c.style.minHeight = Math.floor(hs[i] + (row ? left : left / cs.length)) + 'px'; });
+        if (left > 16) { const row = getComputedStyle(fsf).flexDirection === 'row'; const hs = cs.map(c => c.getBoundingClientRect().height / z); cs.forEach((c, i) => { c.style.minHeight = Math.floor(hs[i] + Math.min(160, row ? left : left / cs.length)) + 'px';   /* 한 카드가 너무 커지지 않게 최대 160px만 늘림 */ });
           for (let k = 0; k < 3; k++) { const over = box.scrollHeight - box.clientHeight; if (over <= 0) break; cs.forEach(c => { c.style.minHeight = Math.max(60, parseFloat(c.style.minHeight) - (row ? over : over / cs.length) / z - 2) + 'px'; }); } } } } catch (e) {} };
   const _r = fieldRender;
   fieldRender = function () { _r.apply(this, arguments);
