@@ -1354,3 +1354,12 @@
     const box = document.getElementById('fld'); if (box) box.scrollTop = 0; try { window.scrollTo(0, 0); } catch (e) {} };
   window.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#fld .fld-top .fld-tt'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation(); fldGoHome(); }, true);
 })();
+
+/* ══ ① 작업 시작(품목 고르기) 화면: 맨 위 「▶ 지금 만들 품목을 누르세요」 제목과 그 아래 설명 글 빼기 (2026-10-22 Aside, 사용자 「상단 지금 만들 품목을 누르세요, 그 아래 보조 설명도 모두 삭제, 텍스트는 최소화」) ══
+   - 「오늘 시작한 품목」 상자도 「 — 잘못 넣었으면 빼세요」와 아래 설명(small)을 뺀다. ✕ 빼기를 누르면 확인 창이 그대로 뜨므로 안전 안내는 확인 창이 맡는다.
+   - 화면에서 글만 뺀다. 품목 찾기 칸·품목 카드·✕ 빼기 버튼은 그대로. 이 블록을 지우면 원래대로. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const _wsMin = fldWsHtml;
+  fldWsHtml = function () { let h = _wsMin(); try { h = String(h).replace(/<h1 class="fld-h">(?:(?!<\/h1>)[\s\S])*지금 만들 품목(?:(?!<\/h1>)[\s\S])*<\/h1>/, '').replace(/<p class="fld-p">(?:(?!<\/p>)[\s\S])*바로 생깁니다(?:(?!<\/p>)[\s\S])*<\/p>/, '').replace(' — 잘못 넣었으면 빼세요</b>', '</b>').replace(/(<div class="fwsdel">[\s\S]*?)<small>(?:(?!<\/small>)[\s\S])*<\/small>/, '$1'); } catch (e) {} return h; };
+})();
