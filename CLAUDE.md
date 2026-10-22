@@ -229,3 +229,10 @@
 - 값은 이 앱과 같게 복사해 씀: 1박스 원료 g = RB_PROD0 'DBA12' 낱개당 g × 36, 매입 단위·거래처·안전재고 = RB_RAW0. (⚙ 기준 정보에서 바꾼 값은 대시보드에 반영 안 됨 — 바꾸면 dash.html 의 YJ·RPK 도 같이 고칠 것)
 - 고른 원료·수량 「발주하기」 → localStorage 'dash_rbuy_hand' {v,at,src,plan:{DBA12:박스},pick:{원료코드:주문수량}} + 이 앱 #rbuy-dash 로 열기. 앱 코드 맨 끝 v244 블록(rbHandTake)이 로그인 뒤 1.5초에 읽어(6시간 안 것만, 읽으면 지움) RB.hand 로 두고 homeGo('raw:rbuy') + RB.step=3.
 - RB.hand 동안 rbCalc 는 넘어온 생산량으로 필요량을 내고 주문 수량 n 은 고른 원료만(나머지 0), renderRbuy 맨 위에 주황 안내 띠 + 「전체 계산으로 돌아가기」(RB.hand=null). 저장 안 함 — S.rbuy.plan·ovr 그대로, 발주서를 보내면 기존처럼 S.rbuy.po 에 기록.
+
+
+## 📱 생산실 앱 (field.html) — 2026-10-22 Aside 추가
+- 휴대폰·태블릿용 「생산일지·CCP 현장 입력」 전용 앱. 주소: https://lee1812-oss.github.io/wonryo/field.html (홈 화면 아이콘 이름 「생산실」, field.webmanifest·field_192/512/apple.png)
+- 구조: field.html은 껍데기다. index.html을 fetch해서 app-code 끝에 field_patch.js를 끼워 넣고 document.write로 띄운다. 그래서 로그인·자료·동기화·이카운트 전송은 index.html과 완전히 같고, PC의 통합 재고관리에서 그대로 보고 고치고 승인한다. index.html을 고치면 생산실 앱도 자동으로 최신이 된다.
+- field_patch.js는 window.FIELD_APP일 때만 동작한다(index.html에서는 아무것도 안 함). 하는 일: 현장 입력(fieldOpen)을 항상 열어 두기, ✕ 닫기·「켜면 바로 현장 입력」 숨기기, fieldClose → 첫 화면, fldHomeHtml 아래 안내·새로고침·로그아웃, fldHead 제목 「🍞 생산실」, 휴대폰 폭(520px 이하) 2칸 배치.
+- ⚠ 주의: fieldOpen, fieldClose, fieldRender, fldHomeHtml, fldHead, FLD, APP_VER, APP_BUILT, WLOCK.logout 이름을 바꾸거나 없애면 생산실 앱이 깨진다. 바꿀 때는 field_patch.js도 같이 고친다. app-code 스크립트 태그(<script type="text/plain" id="app-code">) 모양도 유지한다.
