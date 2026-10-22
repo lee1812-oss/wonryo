@@ -578,3 +578,46 @@
           if (!keep) el.style.display = 'none'; }); } } catch (e) {}
     return r; };
 })();
+
+/* ══ 오븐: 시작·종료를 저장하면 그 사이 2시간 측정 줄을 자동으로 만들어 줌 (2026-10-22 Aside, 사용자 「K-HACCP처럼 시작·종료 사이 2시간 단위 자동 생성」) ══
+   - 「종료 측정」을 저장하면(시작 측정이 있을 때) 시작 + 2시간, + 4시간 … (종료 10분 전까지) 칸 중 「중간」 기록이 없는 시각만 골라 확인 창을 띄움.
+     예) 시작 07:58 · 종료 13:09 → 09:58, 11:58 두 줄.
+   - 값: 가열온도·가열시간 = 시작 측정 값(오븐 설정), 품온 = 시작·종료 품온 평균. 「✓ N줄 만들기」를 눌러야 들어감(자동 저장 없음), 만든 줄은 r.us src:'auto2h' 표시 → PC에서 구분.
+   - 이미 손으로 넣은 2시간 측정(±30분 안)이 있으면 그 칸은 건너뜀. 만든 뒤 「오늘 기록」에서 줄을 눌러 고칠 수 있음. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '.f2h .fwarn-hd{background:#495057}.f2h .fwarn-row{background:#F8F9FA;border-color:#DEE2E6}.f2h .fwarn-row .v{color:#1F2328;font-size:26px}.f2h .note{font-size:16px;color:#495057;margin-top:6px}';
+  document.head.appendChild(st);
+  const mm = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || '')); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+  const hm = n => String(Math.floor(n / 60) % 24).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0');
+  const plan = code => { const g = fldLog('oven'); if (!g) return null; const rs = (g.rows || []).filter(r => r.code === code);
+    const s = rs.find(r => r.tag === '시작' && mm(r.time) != null), e = rs.find(r => r.tag === '종료' && mm(r.time) != null); if (!s || !e) return null;
+    const S = mm(s.time), E = mm(e.time); if (!(E > S)) return null; const mids = rs.filter(r => r.tag !== '시작' && r.tag !== '종료' && mm(r.time) != null).map(r => mm(r.time));
+    const core = (() => { const a = Number(s.core), b = Number(e.core); return isFinite(a) && isFinite(b) && s.core !== '' && e.core !== '' ? Math.round((a + b) / 2) : (s.core || e.core || ''); })();
+    const slots = []; for (let t = S + 120; t < E - 10; t += 120) { if (!mids.some(m => Math.abs(m - t) <= 30)) slots.push(hm(t)); }
+    return slots.length ? { g, s, e, slots, temp: s.temp, min: s.min, core: String(core), name: s.name } : null; };
+  const make = (code, P) => { const D = fldD(), wk = fldWk(); P.slots.forEach(t => { const nr = fldNewRow(P.g, 'oven', code, '중간'); const i = fldIdx(P.g, 'rows', nr.id);
+      [['time', t], ['temp', P.temp], ['min', P.min], ['core', P.core]].forEach(([f, v]) => { if (v !== '' && v != null) ccpSet(D + '|oven|rows|' + i + '|' + f, String(v)); });
+      nr.sg = wk; nr.mt = new Date().toISOString(); nr.us = { f: { temp: String(P.temp), min: String(P.min), core: String(P.core) }, at: nr.mt, by: wk, src: 'auto2h' }; });
+    ccpTouch(P.g); save(); toast('⏱ 2시간 측정 ' + P.slots.length + '줄을 만들었습니다 — 「오늘 기록」에서 눌러 고칠 수 있습니다', 3500); };
+  const ask = code => { const P = plan(code); if (!P) return; const old = document.querySelector('.fwarn-bg'); if (old) old.remove();
+    const bg = document.createElement('div'); bg.className = 'fwarn-bg f2h';
+    bg.innerHTML = '<div class="fwarn" role="dialog"><div class="fwarn-hd">⏱ 2시간 측정 줄 만들기<small>' + esc(fldShort(P.name)) + ' · 시작 ' + esc(P.s.time) + ' ~ 종료 ' + esc(P.e.time) + '</small></div><div class="fwarn-bd">'
+      + P.slots.map(t => '<div class="fwarn-row"><span class="v">' + esc(t) + '</span><b>' + esc(P.temp) + '℃ · ' + esc(P.min) + '분 · 품온 ' + esc(P.core) + '℃</b></div>').join('')
+      + '<div class="note">2시간마다 확인한 값이 이와 같을 때 만드세요. 다른 값은 만든 뒤 「오늘 기록」에서 그 줄을 눌러 고치면 됩니다.</div></div>'
+      + '<div class="fwarn-bt"><button type="button" class="go">✓ ' + P.slots.length + '줄 만들기</button><button type="button" class="alt" style="border-color:#ADB5BD;color:#495057">만들지 않기</button></div></div>';
+    (document.getElementById('fld') || document.body).appendChild(bg); bg.addEventListener('click', e => e.stopPropagation());
+    bg.querySelector('.go').onclick = e => { e.stopPropagation(); bg.remove(); try { make(code, P); } catch (er) { toast('만들기 오류: ' + er.message); } fieldRender(); };
+    bg.querySelector('.alt').onclick = e => { e.stopPropagation(); bg.remove(); }; };
+  window.fld2hAsk = ask;
+  let pend = '';
+  const _save = fldSave;
+  fldSave = function () { const type = FLD.type, mode = FLD.mode, code = FLD.code, prev = FLD.step; const r = _save.apply(this, arguments);
+    try { if (type === 'oven' && (mode === '종료' || mode === '시작') && FLD.step !== 'form' && plan(code)) { pend = code; if (FLD.step !== 'act') { pend = ''; setTimeout(() => ask(code), 200); } } } catch (e) {}
+    return r; };
+  const _r = fieldRender;
+  fieldRender = function () { _r.apply(this, arguments); try { if (pend && FLD.step !== 'act' && FLD.step !== 'form') { const c = pend; pend = ''; setTimeout(() => ask(c), 200); } } catch (e) {}
+    try { if (FLD.step === 'mode' && FLD.type === 'oven') { const g = fldLog('oven'), e = g && (g.rows || []).find(r => r.code === FLD.code && r.tag === '종료' && r.time);   /* 종료까지 끝난 품목은 더 누를 곳 없음 */
+        if (e) document.querySelectorAll('#fld .fld-body .fnow').forEach(b => { b.classList.remove('fnow'); const p = b.querySelector('.fpress'); if (p) p.remove(); }); } } catch (e) {} };
+})();
