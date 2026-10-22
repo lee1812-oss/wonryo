@@ -1465,3 +1465,32 @@
   addEventListener('resize', () => { clearTimeout(window.__fwlT); window.__fwlT = setTimeout(() => { try { fieldRender(); } catch (e) {} }, 250); });
   document.addEventListener('click', () => setTimeout(() => { try { if (on()) { layout(); fit(); } } catch (e) {} }, 60));
 })();
+
+/* ===== CCP 공정 신규 기준 (시범) — 2026-10-22 사용자 결정 =====
+   - 오븐 가열 품목: 오븐 종료 → 바로 금속검출 (급속냉동 빠짐)
+   - 육쪽마늘빵·마늘바게트·치즈듬뿍마늘바게트·마늘배합·크림배합: 급속냉동 빠짐
+   - 생지(이름에 「생지」): 급속냉동 → 금속검출만 (오븐 빠짐, 사용자 선택 2026-10-22)
+   - 적용: 작업 날짜가 pilotFrom(2026-10-22) 이후면 새 기준. 그 전 날짜는 예전 기준 그대로(지난 기록 안 바뀜, 지우지 않음).
+   - 정식 적용은 11월 예정(officialFrom, 사용자가 시점을 다시 알려 주기로 함). on:false 로 바꾸면 시범을 끄고 officialFrom부터만 적용.
+   - 이 블록을 지우면 예전 기준(오븐 → 급냉 → 금속)으로 돌아감. */
+(function () { if (!window.FIELD_APP) return;
+  const STD = window.CCP_STD = { on: true, pilotFrom: '2026-10-22', officialFrom: '2026-11-01' };
+  const dayOf = () => { try { return fldD(); } catch (e) { return new Date().toISOString().slice(0, 10); } };
+  const newOn = d => { d = d || dayOf(); return (STD.on && d >= STD.pilotFrom) || d >= STD.officialFrom; };
+  window.ccpNewStd = newOn;
+  const nameOf = it => { try { const r = (it && it.code && prodItem(it.code)) || it; return String((r && r.name) || (it && it.name) || ''); } catch (e) { return String((it && it.name) || ''); } };
+  const _c = ccpOf;
+  ccpOf = function (it) { const o = _c.apply(this, arguments); if (!o || !newOn()) return o;
+    const n = { oven: !!o.oven, freeze: !!o.freeze, metal: !!o.metal, mix: !!o.mix };
+    if (!(n.oven || n.freeze || n.metal || n.mix)) return o;
+    if (/생지/.test(nameOf(it))) { n.oven = false; } else { n.freeze = false; }
+    return Object.assign({}, o, n); };
+})();
+
+/* 신규 기준: 오븐(또는 생지 급속냉동) 일지가 끝나면 「다음: 🧲 금속검출 ›」 버튼 (오븐 다른 품목이 남았으면 「다음 품목」과 같이 보임) */
+(function () { if (!window.FIELD_APP) return;
+  const _r = fieldRender; fieldRender = function () { const r = _r.apply(this, arguments);
+    try { if (window.ccpNewStd && ccpNewStd() && FLD.open && (FLD.type === 'oven' || FLD.type === 'freeze')) { const dn = document.querySelector('#fld .fpv-done');
+      if (dn && !dn.querySelector('[data-fgo="metal"]') && fldProds('metal').length) dn.insertAdjacentHTML('beforeend', '<button type="button" class="fpv-nm" data-fgo="metal">다음: 🧲 금속검출 ›</button>'); } } catch (e) {}
+    return r; };
+})();
