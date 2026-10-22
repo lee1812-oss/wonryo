@@ -1318,3 +1318,39 @@
       if (type === 'mix' && m === 'start' && S.open) { toast('소진을 먼저 누르세요 (' + S.open.start + ' 배합한 것)'); return; }
       return press(S, m); } }, true);
 })();
+
+/* ══ 제목줄 가운데: 로고 | 날짜 | 생산실 크게 나눠 보이기 + 누르면 어느 화면에서든 첫 화면(홈)으로 (2026-10-22 Aside, 사용자 「가운데 생산실 빵을그리다 로고를 누르면 홈으로, 로고·날짜·생산실이 확실히 구분되게, 지금은 전체적으로 작아」) ══
+   - 바로 앞 블록(「빵을그리다」를 누르면 ① 작업 시작)에서 제목줄만 홈으로 바꿈. 첫 화면 큰 빵을그리다 카드는 그대로 ① 작업 시작.
+   - 화면 상태(고른 공정·품목·입력 중 숫자)만 비우고, 저장된 일지·작업자 이름은 그대로. 숫자 입력 중이면 한 번 묻는다. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fld-top .fld-tt.fhd{flex:1 1 auto;min-width:0;flex-direction:row;align-items:center;justify-content:center;gap:0;line-height:1.1}'
+    + '#fld .fhd .fhd-lg{flex:none;display:flex;align-items:center;justify-content:center;height:66px;padding:4px 12px;background:#fff;border-radius:14px;opacity:1!important}#fld .fhd .fhd-lg img{height:58px;width:auto;display:block}'
+    + '#fld .fhd .fhd-dt{flex:none;margin:0 0 0 14px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.4);font-size:26px!important;font-weight:800;opacity:1!important;color:#fff;white-space:nowrap}'
+    + '#fld .fhd .fhd-dt em{color:#FFD43B;font-style:normal;font-weight:900;margin-left:4px}'
+    + '#fld .fhd .fhd-nm{flex:none;margin-left:14px;padding-left:14px;border-left:3px solid rgba(255,255,255,.5);font-size:34px!important;font-weight:900;color:#fff;letter-spacing:1px;white-space:nowrap}'
+    + '#fld .fhd .fhd-lg{padding:0!important;overflow:hidden;aspect-ratio:1/1;background:#FBF6F0!important}#fld .fhd .fhd-lg img{width:136%!important;height:136%!important;max-width:none;margin:-18%;flex:none}'
+    + '#fld .fld-top .fld-tt.fhd:active{opacity:.6}#fld .fld-top{min-height:84px}#fld .fld-top .fb{min-height:54px;font-size:17px}'
+    + '@media (max-height:700px) and (min-width:721px){#fld .fld-top{min-height:60px;padding-top:4px;padding-bottom:4px}#fld .fhd .fhd-lg{height:50px}#fld .fhd .fhd-lg img{height:42px}#fld .fhd .fhd-dt{font-size:21px!important;padding:6px 10px}#fld .fhd .fhd-nm{font-size:27px!important}#fld .fld-top .fb{min-height:46px}}'
+    + '@media (max-width:720px){#fld .fld-top{min-height:60px}#fld .fhd .fhd-lg{height:46px;padding:3px 7px}#fld .fhd .fhd-lg img{height:38px}#fld .fhd .fhd-dt{font-size:17px!important;padding:6px 8px;margin-left:8px}#fld .fhd .fhd-nm{font-size:22px!important;margin-left:8px;padding-left:8px}#fld .fld-top .fb{min-height:46px;font-size:15px}}'
+    + '@media (max-width:520px){#fld .fhd .fhd-lg{height:34px;padding:2px 5px;border-radius:8px}#fld .fhd .fhd-lg img{height:28px}#fld .fhd .fhd-dt{font-size:13px!important;padding:4px 6px;margin-left:6px}#fld .fhd .fhd-nm{font-size:16px!important;margin-left:6px;padding-left:6px;border-left-width:2px;letter-spacing:0}}'
+    + '@media (max-width:400px){#fld .fhd .fhd-dt{display:none}}';
+  document.head.appendChild(st);
+  const _head = fldHead;
+  fldHead = function () { const h = _head.apply(this, arguments);
+    try { return h.replace(/<div class="fld-tt">([\s\S]*?)<\/div>/, (all, inner) => { const m = /<span>([\s\S]*?)<\/span>/.exec(inner); const dt = m ? m[1] : '';
+        return '<div class="fld-tt fhd" role="button" title="첫 화면으로"><span class="fhd-lg"><img src="brand_logo.png" alt="빵을그리다"></span><span class="fhd-dt">' + dt + '</span><b class="fhd-nm">생산실</b></div>'; }); } catch (e) { return h; } };
+  const BASE = () => ({ open: true, step: 'home', type: '', code: '', name: '', mode: '', rowId: '', sec: 'rows', vals: {}, fi: 0, fields: [], busy: false, edit: false, cart: false, q: '', date: '' });
+  window.fldGoHome = function () {
+    const typing = (FLD.step === 'form' && FLD.typed && Object.keys(FLD.typed).length) || FLD.step === 'act' || FLD.step === 'qtyin';
+    if (typing && !confirm('입력하던 숫자는 지워지고 첫 화면으로 돌아갑니다.\n이미 저장된 일지는 그대로 남습니다.\n\n돌아갈까요?')) return;
+    try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+    try { document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); } catch (e) {}
+    document.querySelectorAll('.fwarn-bg').forEach(x => x.remove());
+    Object.keys(FLD).forEach(k => { delete FLD[k]; }); Object.assign(FLD, BASE());
+    window.__fqBack = ''; window.__fq2Back = false; window.__fkAll = false;
+    try { fieldRender(); } catch (e) {}
+    const box = document.getElementById('fld'); if (box) box.scrollTop = 0; try { window.scrollTo(0, 0); } catch (e) {} };
+  window.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#fld .fld-top .fld-tt'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation(); fldGoHome(); }, true);
+})();
