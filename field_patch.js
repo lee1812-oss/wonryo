@@ -905,3 +905,8 @@
 /* ══ 값 고치기·통과량 화면 아래쪽 가림 방지 (2026-10-22 Aside, 10/21 일지 시뮬레이션에서 발견) ══
    아래 고정 저장 줄(.form-save, 약 106px)이 마지막 칸·숫자판 아랫줄을 가렸음 → 그 높이만큼 아래 여백을 두면 fldFit이 여백까지 재서 한 화면에 맞춤. */
 (function () { if (!window.FIELD_APP) return; const st = document.createElement('style'); st.textContent = '#fld:has(.form-save){padding-bottom:118px!important;box-sizing:border-box}'; document.head.appendChild(st); })();
+
+/* ══ 생산실 앱에서는 「오늘 발주 알림」 자동 창을 띄우지 않음 (2026-10-22 Aside, 사용자 「작업 시작을 누르면 왜 발주창이 뜨나」) ══
+   통합재고관리(index.html)를 그대로 불러오므로 v247~ 발주 알림(poAuto: 열고 6초 뒤 + 5분마다, 기기당 하루 한 번)이 생산실 화면에도 떴음.
+   이 페이지 안에서만 po_alert_auto 값을 'off'로 읽히게 함 — 저장된 설정은 안 바꿔서 같은 기기의 PC 통합재고관리 알림은 그대로. */
+(function () { if (!window.FIELD_APP) return; try { const g = Storage.prototype.getItem; Storage.prototype.getItem = function (k) { if (k === 'po_alert_auto' && this === window.localStorage) return 'off'; return g.apply(this, arguments); }; } catch (e) {} })();
