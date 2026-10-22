@@ -433,3 +433,14 @@
       if (s === 'act') { mark(body.querySelector('[data-f="actsave"]'), '', true, '#C92A2A'); }
     } catch (e) {} };
 })();
+
+/* ══ 지금 누를 곳 색은 하나 (2026-10-22 Aside, 사용자 「색이 달라지면 머뭇거림 → 모두 동일하게」) ══
+   - 첫 화면 단계 카드·안쪽 화면·저장·담기·이카운트로 보내기·개선조치 저장 모두 같은 「누르세요 색」(갈색 #7A4A23, 앱 아이콘·「다음 ›」 버튼과 같은 색).
+   - 단계 고유 색(오븐 주황·급냉 파랑 등)은 차례가 아닌 카드의 연한 채우기에만 남김. 생산량 칸 고른 테두리도 같은 색. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fsf-c.now,#fld .fnow{--k:#7A4A23!important}'
+    + '#fld .fqu button.on{border-color:#7A4A23!important;background:#FBF3EA!important;box-shadow:0 0 0 3px #E9D3BC!important}#fld .fqu button.on .k{color:#7A4A23!important}';
+  document.head.appendChild(st);
+})();
