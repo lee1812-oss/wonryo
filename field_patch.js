@@ -1434,3 +1434,34 @@
   document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('#fld .fpc-off, #fld .fpc-on'); if (!t) return; e.preventDefault(); e.stopPropagation();
     try { localStorage.setItem(KEY, t.classList.contains('fpc-on') ? '1' : '0'); } catch (er) {} try { fieldRender(); } catch (er) {} apply(); }, true);
 })();
+
+/* ===== 넓은 화면 품목 목록 한 화면 배치 — 2026-10-22 사용자 「한 화면에 모두 나오게」 (PC 작업 시작 화면 사진) =====
+   - 가로 1100px 이상 화면의 품목 목록(① 작업 시작, ⑤ 생산량)만: 분류 묶음을 여러 단으로 나란히 놓고, 카드는 조금 작게.
+   - 그래도 넘치면 글씨를 최대 70%까지 줄여 스크롤 없이 한 화면에 맞춤. 태블릿·휴대폰·포스기(1024)는 그대로. 이 블록을 지우면 원래대로. */
+(function () { if (!window.FIELD_APP) return;
+  const wide = () => innerWidth >= 1100;
+  const on = () => wide() && FLD.open && (FLD.step === 'ws' || FLD.step === 'qty');
+  const css = document.createElement('style'); css.id = 'fwl-css';
+  css.textContent = ''
+    + '#fld.fwide .fwl{columns:220px auto;column-gap:12px;margin-top:8px}'
+    + '#fld.fwide .fwl .fld-gh{break-after:avoid;break-inside:avoid;margin:0 0 6px!important}'
+    + '#fld.fwide .fwl .fld-grid{display:block!important;margin:0 0 12px!important}'
+    + '#fld.fwide .fwl .fld-grid > *{width:100%!important;box-sizing:border-box;break-inside:avoid;margin:0 0 6px!important;min-height:0!important;padding-top:7px!important;padding-bottom:7px!important}'
+    + '#fld.fwide .fwl .pimg{width:46px!important;height:46px!important}'
+    + 'html body #fld.fwide .fld-body{max-width:none!important}';
+  document.head.appendChild(css);
+  function layout() { const box = document.getElementById('fld'); if (!box) return; const isOn = on(); box.classList.toggle('fwide', isOn); if (!isOn) return;
+    const body = box.querySelector('.fld-body'); if (!body) return; const host = body.querySelector(':scope > .fpc-main') || body;
+    if (host.querySelector(':scope > .fwl')) return;
+    const kids = [...host.children]; const first = kids.findIndex(c => c.classList.contains('fld-gh')); if (first < 0) return;
+    let last = first; for (let i = first; i < kids.length; i++) { if (kids[i].classList.contains('fld-gh') || kids[i].classList.contains('fld-grid')) last = i; else break; }
+    const wrap = document.createElement('div'); wrap.className = 'fwl'; host.insertBefore(wrap, kids[first]);
+    for (let i = first; i <= last; i++) wrap.appendChild(kids[i]); }
+  function fit() { const box = document.getElementById('fld'); if (!box || !box.classList.contains('fwide')) return; const body = box.querySelector('.fld-body'), top = box.querySelector('.fld-top'); if (!body) return;
+    body.style.zoom = ''; const avail = box.clientHeight - (top ? top.offsetHeight : 0); let s = avail / body.scrollHeight; if (s >= 1) return; s = Math.max(0.7, s);
+    for (let k = 0; k < 4; k++) { body.style.zoom = String(Math.floor(s * 995) / 1000); const over = box.scrollHeight - box.clientHeight; if (over <= 1 || s <= 0.7) break; const h2 = body.getBoundingClientRect().height; s = Math.max(0.7, s * (h2 - over) / h2); } }
+  const _f = window.fldFit; window.fldFit = function () { const r = _f && _f.apply(this, arguments); try { fit(); } catch (e) {} return r; };
+  const _r = fieldRender; fieldRender = function () { const r = _r.apply(this, arguments); try { layout(); fit(); } catch (e) {} return r; };
+  addEventListener('resize', () => { clearTimeout(window.__fwlT); window.__fwlT = setTimeout(() => { try { fieldRender(); } catch (e) {} }, 250); });
+  document.addEventListener('click', () => setTimeout(() => { try { if (on()) { layout(); fit(); } } catch (e) {} }, 60));
+})();
