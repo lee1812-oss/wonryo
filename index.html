@@ -1449,8 +1449,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '249';
-const APP_BUILT = '2026-10-22 15:05';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '250';
+const APP_BUILT = '2026-10-22 15:18';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -8555,6 +8555,264 @@ body.fld-on .toast{bottom:104px;z-index:60}
 setTimeout(() => { try { if (location.hash === '#field' || localStorage.getItem(FLD_AUTO_KEY) === '1') fieldOpen(); } catch (e) {} }, 1200);
 
 document.addEventListener('click', e => { const b = e.target.closest('[data-fldopen]'); if (b) { e.preventDefault(); e.stopPropagation(); fieldOpen(); } }, true);
+
+/* ═════════ BEGIN v247 블록 ═════════ */
+/* ── 평소 값 (K-HACCP CCP 일지 599장, 2026-01-01~10-21 중앙값 · ccp_defaults_2026.json) ──
+   키 = 품목 이름에서 D./DB./Db. · 공백 · 「36EA·BOX」 · (시작) 같은 꼬리를 뗀 이름. 이름에 키가 들어 있으면 일치(긴 키 우선).
+   값 = [..., 만든 날 수]. 3일 미만 품목(쌀소금빵 등)은 일부러 뺌 → 흐린 글씨·버튼이 안 나옴(직접 입력).
+   oven [판넬온도℃, 가열시간분, 품온℃, 일수] · freeze [급냉 전℃, 급냉 후℃, 걸린 분, 일수] · mix [배합량kg, 품온℃, 작업장℃, 일수] */
+const CCP_USUAL = {
+  v: '2026-10-22', period: '2026-01-01~2026-10-21',
+  oven: { '구운크로와상78': [170, 15, 93, 16], '빅몽블랑': [154, 27, 97, 97], '몽블랑': [154, 26, 97, 95], '구운냉동소금빵': [170, 15, 92, 25],
+    '구운골든통밀소금빵': [170, 15, 92, 11], '통밀소금빵': [170, 15, 92, 11], '빅크로와상': [170, 15, 92, 16], '구운소금빵': [170, 14, 92, 5] },
+  freeze: { '육쪽마늘빵': [-32.8, -32.4, 286, 36], '구운크로와상78': [-32.6, -33, 74, 16], '빅몽블랑': [-32.4, -33.4, 79, 97], '몽블랑': [-32.6, -33.4, 86, 95],
+    '구운냉동소금빵': [-32.5, -32.6, 78, 25], '구운골든통밀소금빵': [-33.5, -32.1, 75, 11], '통밀소금빵': [-33.5, -32.1, 75, 11], '빅크로와상': [-33.1, -32.8, 83, 16],
+    '치즈듬뿍마늘바게트': [-32.7, -32, 157, 13], '마늘바게트': [-32.7, -32.6, 169, 7], '구운소금빵': [-32.5, -33.6, 109, 6] },
+  mix: { '크림배합': [25, 22, 23, 32], '마늘배합': [17.9, 23, 23, 33] }
+};
+const CCP247_IX = { oven: { temp: 0, min: 1, core: 2 }, freeze: { v1: 0, v2: 1 }, mix: { kg: 0, temp: 1, room: 2 } };
+function ccp247Norm(n) { return String(n || '').replace(/\((시작|종료|중간|오전|오후)[^)]*\)/g, '').replace(/^(D|DB|Db)\./i, '').replace(/\s+\d+\s*EA/gi, '').replace(/\s/g, '').replace(/\d+EA/gi, '').replace(/BOX/gi, '').replace(/크라상/g, '크로와상'); }
+function ccp247Get(type, name) { const T = CCP_USUAL[type]; if (!T) return null; const n = ccp247Norm(name); let best = null, bl = 0; Object.keys(T).forEach(k => { if (n.includes(k) && k.length > bl) { bl = k.length; best = T[k]; } }); return best; }
+function ccp247Val(type, f, name) { const u = ccp247Get(type, name), ix = CCP247_IX[type]; if (!u || !ix || ix[f] == null) return null; return u[ix[f]]; }
+const ccp247Now = () => { const n = new Date(); return String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0'); };
+function ccp247ProdQty(date, code) { const x = (ccpProdByDate()[date] || {})[code]; return x ? (Number(x.ea) || Number(x.ec) || 0) : 0; }
+
+/* ── 1) 흐린 글씨(평소 값): 우리 K-HACCP 자료 먼저, 없으면 예전 방식(이 앱 기록 중앙값) ── */
+const ccpHint_v246 = ccpHint;
+ccpHint = function (type, f, name) { const v = ccp247Val(type, f, name); if (v != null) return '평소 ' + v; if (type === 'metal' && f === 'det') return '평소 0'; return ccpHint_v246(type, f, name); };
+
+/* ── 2) 줄 하나에 「평소와 같음」으로 채울 값 (비어 있는 칸만, 측정 단계가 안 온 칸은 안 채움) ── */
+function ccp247Plan(g, sec, r) {
+  const e = f => r[f] === '' || r[f] == null, p = {}, td = g.date === today();
+  const put = (f, v) => { if (v != null && v !== '' && e(f)) p[f] = String(v); };
+  const tm = f => { if (Object.keys(p).length && td && e(f)) p[f] = ccp247Now(); };
+  if (g.type === 'oven') { const u = ccp247Get('oven', r.name); if (u) { put('temp', u[0]); put('min', u[1]); put('core', u[2]); tm('time'); } }
+  else if (g.type === 'freeze') { const u = ccp247Get('freeze', r.name); if (u) {
+    if (e('v1')) { put('v1', u[0]); tm('t1'); }                                  /* 급냉 넣을 때 */
+    else if (r.t1 && e('v2') && !(td && ccpMin(ccp247Now()) - ccpMin(r.t1) < 30)) { put('v2', u[1]); tm('t2'); } } }   /* Aside: 넣은 지 30분 안에는 꺼낼 때 값을 안 채움(두 번 눌러 넣은 시각=꺼낸 시각 방지) */                 /* 꺼낼 때 (넣은 뒤에만) */
+  else if (g.type === 'mix') { const u = ccp247Get('mix', r.name); if (u && e('kg')) { put('kg', u[0]); put('temp', u[1]); put('room', u[2]); tm('start'); } }   /* 소진 시각은 직접 */
+  else if (g.type === 'metal' && sec === 'pass') { const q = ccp247ProdQty(g.date, r.code); if (q) put('passed', q); put('det', '0'); }
+  else if (g.type === 'metal') { put('fe', 'O'); put('sus', 'O'); if (r.kind === 'item') { put('p', 'X'); put('fep', 'O'); put('susp', 'O'); } tm('time'); }
+  return p;
+}
+function ccp247Fill(k, sec, i) {
+  const g = ccpGet(k); if (!g) return; const r = ((sec === 'pass' ? g.pass : g.rows) || [])[i]; if (!r) return;
+  const plan = ccp247Plan(g, sec, r), fs = Object.keys(plan); if (!fs.length) { toast('이 줄은 채울 평소 값이 없습니다 — 직접 입력하세요'); return; }
+  const [d, t] = k.split('|'), meas = []; fs.forEach(f => { ccpSet(`${d}|${t}|${sec}|${i}|${f}`, plan[f]); if (f !== 'time') meas.push(f); });
+  const g2 = ccpGet(k), r2 = g2 && ((sec === 'pass' ? g2.pass : g2.rows) || [])[i]; if (!r2) return; const now = new Date().toISOString();
+  r2.us = r2.us || { f: {} }; r2.us.f = r2.us.f || {}; meas.forEach(f => { r2.us.f[f] = plan[f]; }); r2.us.at = now; r2.us.by = S.settings.reporter || fldWk() || ''; r2.mt = now; ccpTouch(g2); renderCcp();
+  toast(`평소 값으로 채웠습니다 (${meas.length}칸) — 실제와 다르면 숫자를 고치세요`);
+}
+
+/* ── 3) 작성 완료 / 승인 ── */
+const ccpDone = g => !!(g && (g.doneAt || ccpApproved(g)));                       /* 예전에 승인된 일지는 작성 완료로 봄 */
+const ccpState_v246 = ccpState;
+ccpState = function (g) { const s = ccpState_v246(g); s.ready = s.done; s.done = s.done && ccpDone(g); return s; };   /* done = 입력 끝 + 작성 완료 눌림 */
+const ccpPill_v246 = ccpPill;
+ccpPill = function (g) { const s = ccpState(g); if (!s.bad && !s.miss && !ccpDone(g)) return '<span class="pill warn">입력 끝 · 작성 완료 대기</span>'; return ccpPill_v246(g); };
+const ccpSheet_v246 = ccpSheet;
+ccpSheet = function (g, ed) {   /* 작성자(+생산일보·기록서는 검토자) 도장은 「작성 완료」 전에는 안 찍음 — 승인 도장은 그대로 */
+  let h = ccpSheet_v246(g, ed); if (ccpDone(g)) return h; let n = 0; const max = (g.type === 'prod' || g.type === 'lot') ? 2 : 1;
+  return h.replace(/<td class="st">(?:<span class="ccp-stamp"[^>]*>[^<]*<\/span>)?<\/td>/g, m => (n++ < max ? '<td class="st"></td>' : m));
+};
+const ccpSet_v246 = ccpSet;
+ccpSet = function (path, v) {   /* 값을 고치면 「평소와 같음」 표시(그 칸)와 「작성 완료」가 풀림 */
+  try { const [d, t, sec, i, f] = path.split('|'), g = ccpGet(d + '|' + t); if (g) { const r0 = sec === 'log' ? g : ((sec === 'pass' ? g.pass : g.rows) || [])[Number(i)];
+    if (r0 && String(r0[f] == null ? '' : r0[f]) !== String(v)) {
+      if (sec !== 'log' && r0.us && r0.us.f && f in r0.us.f) { delete r0.us.f[f]; if (!Object.keys(r0.us.f).length) delete r0.us; }
+      if (g.doneAt && !(sec === 'log' && (f === 'ok' || f === 'rev'))) { g.doneAt = ''; g.doneBy = ''; toast('작성 완료된 일지를 고쳐 「작성 완료」가 풀렸습니다 — 다시 눌러 주세요', 4000); } } } } catch (e) {}
+  return ccpSet_v246(path, v);
+};
+function ccp247Done(k) { const g = ccpGet(k); if (!g) return false; const s = ccpState(g); if (s.miss) { toast(`입력 필요 ${s.miss}칸이 남아 있어 작성 완료할 수 없습니다`); return false; }
+  g.doneAt = new Date().toISOString(); g.doneBy = String(g.who || '').trim() || S.settings.reporter || ''; ccpTouch(g); toast('✓ 작성 완료 — 승인자가 확인하면 승인 도장이 찍힙니다'); return true; }
+function ccp247Undone(k) { const g = ccpGet(k); if (!g) return false; if (ccpApproved(g)) { toast('승인된 일지입니다 — 승인자가 먼저 승인 취소해야 합니다'); return false; } g.doneAt = ''; g.doneBy = ''; ccpTouch(g); return true; }
+/* 승인자 기기 = 이 브라우저에 번호(4자리)를 등록한 기기만. 등록 안 한 기기에는 승인 버튼 자체가 안 보임.
+   (실수 방지 장치 — 보안 장치는 아님. 승인한 번호는 10분 동안 다시 묻지 않음) */
+const CCP247_APV = 'wonryo_apv'; let ccp247ApvUntil = 0;
+const ccp247ApvGet = () => { try { return JSON.parse(localStorage.getItem(CCP247_APV) || 'null'); } catch (e) { return null; } };
+const ccp247ApvH = p => ccpHash('wonryo-apv|' + String(p || '').trim());
+function ccp247ApvAsk(cb) { const a = ccp247ApvGet(); if (!a) { toast('이 기기는 승인자 기기가 아닙니다 — 이혜영 님 기기에서 「🔑 승인자 설정」으로 등록하세요', 5000); return; }
+  if (Date.now() < ccp247ApvUntil) { cb(a); return; } const p = prompt(`${a.n} 님 승인 번호(숫자 4자리)를 입력하세요`); if (p == null) return;
+  if (ccp247ApvH(p) !== a.h) { toast('승인 번호가 맞지 않습니다'); return; } ccp247ApvUntil = Date.now() + 10 * 60000; cb(a); }
+function ccp247ApvSet() {
+  const a = ccp247ApvGet();
+  if (a) { const p = prompt('현재 승인 번호를 입력하세요'); if (p == null) return; if (ccp247ApvH(p) !== a.h) { toast('승인 번호가 맞지 않습니다'); return; }
+    const c = prompt('새 승인 번호 4자리 (비워 두면 이 기기의 승인자 등록을 해제합니다)'); if (c == null) return;
+    if (!c.trim()) { localStorage.removeItem(CCP247_APV); ccp247ApvUntil = 0; toast('이 기기의 승인자 등록을 해제했습니다'); renderCcp(); return; }
+    if (!/^\d{4}$/.test(c.trim())) { toast('숫자 4자리로 입력하세요'); return; } localStorage.setItem(CCP247_APV, JSON.stringify({ n: a.n, h: ccp247ApvH(c) })); toast('승인 번호를 바꿨습니다'); return; }
+  const n = (prompt('승인자 이름', prodS().cfg.ccpOk || '이혜영') || '').trim(); if (!n) return;
+  const p = (prompt('승인 번호로 쓸 숫자 4자리를 정하세요') || '').trim(); if (!/^\d{4}$/.test(p)) { toast('숫자 4자리로 입력하세요'); return; }
+  localStorage.setItem(CCP247_APV, JSON.stringify({ n, h: ccp247ApvH(p) })); ccp247ApvUntil = Date.now() + 10 * 60000; toast(`${n} 님 기기로 등록했습니다 — 이제 이 기기에서만 승인할 수 있습니다`, 4500); renderCcp(); }
+
+/* ── 4) 금속 통과량: 새로 만드는 줄은 생산량을 자동으로 넣지 않음 (예전 줄·승인된 일지는 그대로) ── */
+const ccpAddItem_v246 = ccpAddItem;
+ccpAddItem = function (g, x) {
+  if (g.type !== 'metal') return ccpAddItem_v246(g, x);
+  const keep = {}, had = new Set(); (g.pass || []).forEach(p => { had.add(p.id); if (p.nv) keep[p.id] = p.passed; });
+  const r = ccpAddItem_v246(g, x);
+  (g.pass || []).forEach(p => { if (!had.has(p.id)) { p.passed = ''; p.nv = 1; } else if (p.nv) p.passed = keep[p.id]; });   /* 새 줄은 비움 · v247 줄은 생산 변경에도 안 바뀜 */
+  return r;
+};
+
+/* ── 5) 주간 「같은 값 반복」 점검: 「평소와 같음」으로 채운 값은 제외 ── */
+const ccpWeeklyData_v246 = ccpWeeklyData;
+ccpWeeklyData = function (f, t) {
+  const D = ccpWeeklyData_v246(f, t);
+  try { const nm = r => String(r.name || '').replace(/^(D|DB|Db)\.\s*/, ''), F = { oven: [['temp', '가열온도', '℃'], ['min', '가열시간', '분'], ['core', '품온', '℃']], freeze: [['v1', '급냉 전 온도', '℃'], ['v2', '급냉 후 온도', '℃']], mix: [['temp', '배합 품온', '℃'], ['room', '작업장 온도', '℃']] };
+    const logs = Object.values(ccpS().logs).filter(g => g && !g.skip && g.date >= f && g.date <= t && CCP_ORDER.includes(g.type)), same = []; let us = 0;
+    Object.entries(F).forEach(([type, fs]) => fs.forEach(([f2, lab, u]) => { const per = {};
+      logs.filter(g => g.type === type).forEach(g => (g.rows || []).forEach(r => { const v = r[f2]; if (v === '' || v == null) return; if (r.us && r.us.f && r.us.f[f2] !== undefined) { us++; return; } (per[nm(r)] = per[nm(r)] || []).push([g.date, String(v)]); }));
+      Object.entries(per).forEach(([item, a]) => { const days = [...new Set(a.map(x => x[0]))], vals = [...new Set(a.map(x => x[1]))]; if (days.length >= 3 && vals.length === 1) same.push({ kind: '같은 값 반복', text: `${CCP_TYPES[type].short} · ${item} · ${lab}이(가) ${days.length}일 동안 모두 ${vals[0]}${u}`, ask: '실제로 그때그때 재서 적었는지 확인 — 온도계·타이머를 보고 적는 습관' }); }); }));
+    D.sus = same.concat((D.sus || []).filter(x => x.kind !== '같은 값 반복')); D.summary = D.summary || {}; D.summary.sus = D.sus.length; D.summary.usual = us;   /* usual = 「평소와 같음」으로 확인한 칸 수 */
+  } catch (e) {}
+  return D;
+};
+
+/* ── 6) PC 일지 화면: 「평소와 같음」 버튼 · 작성 완료/승인 단추 · 측정 예정 띠 · 승인자 설정 ── */
+function ccp247Due(g) {
+  if (g.skip || g.date !== today()) return ''; const hm = m => String(Math.floor(m / 60) % 24).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'), nm = r => String(r.name || '').replace(/^(D|DB|Db)\./, '').trim(), rows = g.rows || [], out = [];
+  if (g.type === 'oven') { const by = {}; rows.forEach(r => { const m = ccpMin(r.time); if (m == null) return; const o = by[r.code] = by[r.code] || { n: nm(r), m: 0, end: false }; o.m = Math.max(o.m, m); if (r.tag === '종료') o.end = true; }); Object.values(by).forEach(o => { if (!o.end) out.push(`${o.n} → ${hm(o.m + 120)}까지 다음 측정`); }); }
+  else if (g.type === 'metal') { const ts = rows.map(r => ccpMin(r.time)).filter(m => m != null), post = rows.find(r => r.kind === 'post'); if (ts.length && !(post && post.time)) out.push(`${hm(Math.max(...ts) + 120)}까지 다음 확인`); }
+  else if (g.type === 'freeze') rows.filter(r => r.t1 && !r.t2).forEach(r => out.push(`${nm(r)} 급냉 중(${r.t1} 넣음) — 꺼낼 때 기록`));
+  else if (g.type === 'mix') rows.filter(r => r.start && !r.end).forEach(r => out.push(`${nm(r)} ${r.start} 배합 → ${hm(ccpMin(r.start) + 120)}까지 소진`));
+  return out.length ? `<div class="c247-due">⏰ 측정 예정 · ${out.map(esc).join(' · ')}</div>` : '';
+}
+function ccp247Enhance() {
+  const box = $('#prodCcp'); if (!box) return; if (!box.__c247) { box.__c247 = 1; box.addEventListener('click', ccp247Click, true); }
+  const top = box.querySelector('#ccpRange'); if (top && !box.querySelector('[data-ccpapvset]')) { const a = ccp247ApvGet(); top.insertAdjacentHTML('afterend', `<button class="btn sm" data-ccpapvset="1" title="이 기기를 승인자 기기로 등록 (번호 4자리)">${a ? '🔑 승인자 기기 ✓ ' + esc(a.n) : '🔑 승인자 설정'}</button>`); }
+  const isApv = !!ccp247ApvGet();
+  box.querySelectorAll('.card[id^="ccpc-"]').forEach(card => {
+    const an = card.querySelector('[data-ccprmlog]'); if (!an) return; const k = an.dataset.ccprmlog, g = ccpGet(k); if (!g) return;
+    const hdr = an.parentElement, s = ccpState(g), dn = ccpDone(g), apv = ccpApproved(g), ap = hdr.querySelector('[data-ccpappr]'), un = hdr.querySelector('[data-ccpunappr]'), ek = esc(k);
+    const mk = h => { const x = document.createElement('span'); x.className = 'c247-h'; x.innerHTML = h; return x; };
+    if (!apv) {
+      if (ap) { if (!dn || !isApv) ap.remove(); else { ap.textContent = '🔑 승인'; ap.classList.add('primary'); ap.disabled = false; } }
+      if (!dn) an.before(mk(`<button class="btn sm primary" data-ccpdone="${ek}" ${s.miss ? 'disabled title="입력 필요 칸을 먼저 채우세요"' : ''}>✓ 작성 완료</button>`));
+      else an.before(mk(`<span class="pill ok" title="${esc(hmOf(g.doneAt || ''))}">✓ 작성 완료 ${esc(g.doneBy || '')}</span> <button class="btn sm" data-ccpundone="${ek}">작성 취소</button>${isApv ? '' : ' <span class="pill warn">승인 대기 · 승인자 기기에서</span>'}`));
+    } else { if (un) { if (!isApv) un.remove(); else un.textContent = '승인 취소 🔑'; } if (g.doneAt) an.before(mk(`<span class="pill ok" title="${esc(hmOf(g.doneAt))}">✓ 작성 완료 ${esc(g.doneBy || '')}</span>`)); }
+    const due = ccp247Due(g), sh = card.querySelector('div[style*="overflow-x"]'); if (due && sh) sh.insertAdjacentHTML('beforebegin', due);
+    if (!CCP_ORDER.includes(g.type)) return;
+    card.querySelectorAll('.ccp-sheet table.m tbody tr').forEach(tr => {
+      const el = tr.querySelector('[data-c]'); if (!el) return; const [d, t, sec, i] = el.dataset.c.split('|'); if (sec !== 'rows' && sec !== 'pass') return;
+      const r = ((sec === 'pass' ? g.pass : g.rows) || [])[Number(i)]; if (!r) return; const cell = sec === 'pass' ? tr.querySelector('td') : tr.querySelector('td:last-child');
+      if (sec === 'pass') { const pi = tr.querySelector('[data-c$="|passed"]'), q = ccp247ProdQty(g.date, r.code); if (pi && !pi.value && q) { pi.placeholder = '생산 ' + q; pi.title = '오늘 생산량(개) — 실제 통과량을 확인해 입력하거나 「평소와 같음」(=생산량)을 누르세요'; } }
+      if (r.us && r.us.f && Object.keys(r.us.f).length && cell) cell.insertAdjacentHTML('beforeend', `<div class="c247-us" title="${esc('평소와 같음 확인 ' + (r.us.by || '') + ' ' + hmOf(r.us.at || ''))}">평소 확인</div>`);
+      if (cell && Object.keys(ccp247Plan(g, sec, r)).length) cell.insertAdjacentHTML('beforeend', `<button class="ccp-mini c247-btn" data-ccpusual="${esc(k + '|' + sec + '|' + i)}" title="흐린 글씨의 평소 값으로 비어 있는 칸을 채웁니다 (고칠 수 있음)">평소와 같음</button>`);
+    });
+  });
+}
+function ccp247Click(e) {
+  const b = e.target.closest && e.target.closest('button'); if (!b) return; const stop = () => { e.stopPropagation(); e.preventDefault(); };
+  if (b.dataset.ccpusual) { stop(); const p = b.dataset.ccpusual.split('|'); ccp247Fill(p[0] + '|' + p[1], p[2], Number(p[3])); return; }
+  if (b.dataset.ccpdone) { stop(); if (ccp247Done(b.dataset.ccpdone)) renderCcp(); return; }
+  if (b.dataset.ccpundone) { stop(); if (ccp247Undone(b.dataset.ccpundone)) renderCcp(); return; }
+  if (b.dataset.ccpapvset) { stop(); ccp247ApvSet(); renderCcp(); return; }
+  if (b.dataset.ccpappr) { stop(); const g = ccpGet(b.dataset.ccpappr); if (!g) return; const s = ccpState(g); if (s.miss) { toast('입력 필요 칸이 남아 승인할 수 없습니다'); return; } if (!ccpDone(g)) { toast('먼저 작성자가 「작성 완료」를 눌러야 합니다'); return; }
+    ccp247ApvAsk(a => { g.apAt = new Date().toISOString(); g.apBy = a.n; if (!String(g.ok || '').trim()) g.ok = a.n; ccpTouch(g); renderCcp(); toast(`${a.n} 승인했습니다`); }); return; }
+  if (b.dataset.ccpunappr) { stop(); const g = ccpGet(b.dataset.ccpunappr); if (!g) return;
+    ccp247ApvAsk(a => { if (!confirm('승인을 취소할까요?')) return; g.hist = (g.hist || []).concat([{ at: new Date().toISOString(), by: a.n, f: '승인 취소', from: g.apBy || '', to: '', ap: g.apBy || '' }]); g.apAt = ''; g.apBy = ''; ccpTouch(g); renderCcp(); }); return; }
+}
+const renderCcp_v246 = renderCcp;
+renderCcp = function () { renderCcp_v246(); try { ccp247Enhance(); } catch (e) { console.error('v247', e); } };
+
+/* ── 7) 📱 현장 입력: 흐린 「평소 N」 · 「평소와 같음」 한 번에 · 줄별 표시 · 홈에 「작성 완료」 ── */
+function fld247Usual(x) {   /* 이 칸의 평소 값(부호 없는 글자). 없으면 '' */
+  if (!x || x.k === 'time') return ''; if (x.k === 'ox') return x.good || '';
+  if (FLD.type === 'metal' && FLD.mode === 'pass') { if (x.f === 'det') return '0'; if (x.f === 'passed') { const q = ccp247ProdQty(fldD(), FLD.code); return q ? String(q) : ''; } return ''; }
+  const v = ccp247Val(FLD.type, x.f, FLD.name); return v == null ? '' : String(Math.abs(v));
+}
+function fld247UsualFill() {
+  FLD.us = FLD.us || {}; let n = 0;
+  FLD.fields.forEach(x => { if (x.k === 'time' || FLD.vals[x.f] !== '') return; const u = fld247Usual(x); if (u === '') return; FLD.vals[x.f] = u; FLD.us[x.f] = (x.neg ? '-' : '') + u; n++; });
+  if (!n) toast('채울 평소 값이 없습니다 — 직접 입력하세요'); else { const nx = FLD.fields.findIndex(x => x.k !== 'time' && FLD.vals[x.f] === ''); if (nx >= 0) FLD.fi = nx; }
+  fieldRender();
+}
+const fldStartForm_v246 = fldStartForm;
+fldStartForm = function (row, sec) {
+  FLD.us = row && row.us && row.us.f ? Object.assign({}, row.us.f) : {};
+  fldStartForm_v246(row, sec);
+  if (FLD.type === 'metal' && FLD.mode === 'pass' && row && row.nv && String(row.det == null ? '' : row.det) === '') {   /* 검출량 0 자동 입력 끝 */
+    FLD.vals.det = ''; const nx = FLD.fields.findIndex(x => x.k !== 'time' && FLD.vals[x.f] === ''); FLD.fi = nx >= 0 ? nx : 0; fieldRender(); }
+};
+const fldKey_v246 = fldKey;
+fldKey = function (k) { const x = FLD.fields[FLD.fi]; if (x && FLD.us) delete FLD.us[x.f]; return fldKey_v246(k); };   /* 직접 숫자를 누르면 「평소」 표시 해제 */
+const fldSave_v246 = fldSave;
+fldSave = function () {
+  const us = FLD.us || {}, type = FLD.type; FLD.lastRow = null; fldSave_v246(); const r = FLD.lastRow; if (!r) return;   /* 검증에서 막히면 lastRow 없음 */
+  const f = {}; Object.keys(us).forEach(k => { if (r[k] != null && String(r[k]) === String(us[k])) f[k] = us[k]; });
+  if (Object.keys(f).length) r.us = { f, at: new Date().toISOString(), by: fldWk() }; else delete r.us;
+  const g = ccpGet(fldD() + '|' + type); if (g) ccpTouch(g);
+};
+const fldFormHtml_v246 = fldFormHtml;
+fldFormHtml = function () {
+  let h = fldFormHtml_v246(); h = h.replace('<button class="fb ok big" data-f="allok">✓ 모두 정상 (한 번에)</button>', '');   /* 「모두 정상」은 「평소와 같음」으로 합침 */
+  const n = FLD.fields.filter(x => x.k !== 'time' && FLD.vals[x.f] === '' && fld247Usual(x) !== '').length;
+  return n ? h.replace('<div class="fld-fields">', `<div class="fld-fields"><button class="fb ok big" data-f="usual">✓ 평소와 같음 — 비어 있는 ${n}칸을 평소 값으로</button>`) : h;
+};
+const fieldRender_v246 = fieldRender;
+fieldRender = function () {
+  fieldRender_v246(); const box = $('#fld'); if (!box || !FLD.open || FLD.step !== 'form') return;
+  box.querySelectorAll('[data-f="fi"]').forEach(b => { const x = FLD.fields[Number(b.dataset.i)]; if (!x) return; const ph = b.querySelector('.ph'), u = fld247Usual(x);
+    if (ph && u) { ph.textContent = '평소 ' + (x.neg ? '−' : '') + u; ph.classList.add('us'); }
+    const v = b.querySelector('.v'); if (v && FLD.us && FLD.us[x.f] !== undefined) v.insertAdjacentHTML('beforeend', '<small class="us-tag">평소</small>'); });
+};
+const fldHomeHtml_v246 = fldHomeHtml;
+fldHomeHtml = function () {
+  const h = fldHomeHtml_v246(), D = fldD(), L = ccpS().logs, gs = ['prod', 'mix', 'oven', 'freeze', 'metal'].map(t => L[D + '|' + t]).filter(g => g && !g.skip); if (!gs.length) return h;
+  const row = g => { const s = ccpState(g), k = esc(ccpKey(g)); return `<div class="fld-cart"><span>${CCP_TYPES[g.type].ico} ${esc(CCP_TYPES[g.type].short)}</span>${ccpApproved(g) ? '<b>✔ 승인됨</b>' : ccpDone(g) ? `<b>✓ 작성 완료</b><button class="fb" data-f="undone" data-k="${k}">취소</button>` : s.miss ? `<b style="color:#B76E00">입력 필요 ${s.miss}</b>` : `<button class="fb ok" data-f="done" data-k="${k}">✓ 작성 완료</button>`}</div>`; };
+  const blk = `<div class="fld-card"><b>✍ 일지 작성 완료</b> <small>점검자가 확인하고 누르면 → 승인자(이혜영 님)가 승인합니다</small>${gs.map(row).join('')}</div>`, i = h.indexOf('<div class="fld-auto">');
+  return i < 0 ? h + blk : h.slice(0, i) + blk + h.slice(i);
+};
+document.addEventListener('click', e => {   /* 현장 입력 단추 (화면 안쪽 기존 처리보다 먼저) */
+  const t = e.target; if (!t || !t.closest) return;
+  const u = t.closest('#fld [data-f="usual"]'); if (u) { e.stopPropagation(); fld247UsualFill(); return; }
+  const o = t.closest('#fld [data-f="ox"]'); if (o && FLD.us) delete FLD.us[o.dataset.k];
+  const dn = t.closest('#fld [data-f="done"]'); if (dn) { e.stopPropagation(); ccp247Done(dn.dataset.k); fieldRender(); return; }
+  const ud = t.closest('#fld [data-f="undone"]'); if (ud) { e.stopPropagation(); ccp247Undone(ud.dataset.k); fieldRender(); return; }
+}, true);
+(() => { try { const s = document.createElement('style'); s.textContent = `
+.c247-due{background:#E7F5FF;border:1px solid #A5D8FF;color:#1864AB;border-radius:8px;padding:6px 10px;margin:0 0 8px;font-size:13px;font-weight:700}
+.c247-btn{white-space:normal;line-height:1.2;color:#1864AB;border-color:#74C0FC;background:#F3FAFF;display:block;margin:2px auto 0}
+.c247-us{font-size:10px;color:#1864AB;font-weight:700;line-height:1.2}
+.c247-h{display:inline-flex;align-items:center;gap:6px}
+#fld .fld-f .ph.us{color:#98A8B3;font-size:24px;font-style:italic;font-weight:600}
+#fld .fld-f .v small.us-tag{font-size:13px;background:#E7F5FF;color:#1864AB;padding:2px 8px;border-radius:99px;margin-left:8px;vertical-align:middle}`; document.head.appendChild(s); } catch (e) {} })();
+/* ═════════ END v247 블록 ═════════ */
+
+/* ══ 평소 값 = 최근 7일 평균 (2026-10-22 Aside, 사용자 결정) — v247 평소 값(CCP_USUAL 1~10월 중앙값)을 이것으로 먼저 채움 ══
+   같은 품목의 최근 7일 기록 평균(없으면 최근 생산 최대 10일 평균). 자료 = 이 앱 CCP 일지 + 저장소 ccp_recent.json(K-HACCP에서 뽑은 최근 측정값).
+   생산실 앱(field_patch.js)의 미리 채우기와 PC 흐린 글씨·「평소와 같음」이 같은 숫자를 쓰게 하려는 것. 자료가 없으면 CCP_USUAL 그대로. */
+(function () {
+  const LS = 'wonryo_ccp_recent';
+  let SEED = null; try { SEED = JSON.parse(localStorage.getItem(LS) || 'null'); } catch (e) {}
+  fetch('ccp_recent.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.oven) { SEED = j; try { localStorage.setItem(LS, JSON.stringify(j)); } catch (e) {} } }).catch(() => {});
+  const F = { oven: { temp: 0, min: 1, core: 2 }, freeze: { v1: 0, v2: 1 }, mix: { kg: 0, temp: 1, room: 2 } };
+  const RND = { oven: { temp: 0, min: 0, core: 0 }, freeze: { v1: 1, v2: 1 }, mix: { kg: 2, temp: 0, room: 0 } };
+  const keyOf = n => { n = String(n || '').replace(/\((시작|종료|중간|오전|오후)[^)]*\)/g, '').replace(/^(D|DB|Db)\./i, '').replace(/\s+\d+\s*EA/gi, '').replace(/\s/g, '').replace(/\d+EA/gi, '').replace(/BOX/gi, '').replace(/크라상/g, '크로와상');
+    if (/크림/.test(n) && /배합|소스/.test(n)) return '크림배합'; if (/마늘/.test(n) && /배합|소스/.test(n) && !/빵|바게트/.test(n)) return '마늘배합'; return n; };
+  const ymd = t => t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+  const rowsFor = (type, name) => { const k = keyOf(name), out = [];
+    const S = (SEED && SEED[type]) || {}; let sk = S[k] ? k : ''; if (!sk) { let bl = 0; Object.keys(S).forEach(x => { if (x.length >= 2 && k.includes(x) && x.length > bl) { bl = x.length; sk = x; } }); }
+    if (sk) S[sk].forEach(a => out.push({ d: a[0], v: a.slice(1) }));
+    try { Object.values(ccpS().logs || {}).forEach(g => { if (!g || g.skip || g.type !== type) return; (g.rows || []).forEach(r => { if (keyOf(r.name) !== k && keyOf(r.name) !== sk) return;
+        const v = Object.keys(F[type]).map(f => { const x = ccpNum(r[f]); return x == null ? null : x; }); if (v.some(x => x != null)) out.push({ d: g.date, v, app: 1 }); }); }); } catch (e) {}
+    return out; };
+  /* 최근 7일 평균 (없으면 최근 생산일 최대 10일 평균) */
+  if (!window.fldAvg7) window.fldAvg7 = function (type, f, name) { const ix = (F[type] || {})[f]; if (ix == null) return null; const D = fldD(); const t0 = new Date(D + 'T00:00:00'); t0.setDate(t0.getDate() - 7); const from = ymd(t0);
+    const all = rowsFor(type, name).filter(x => x.v[ix] != null && x.d <= D); if (!all.length) return null;
+    let use = all.filter(x => x.d > from), how = '최근 7일 평균'; if (!use.length) { const ds = [...new Set(all.map(x => x.d))].sort().slice(-10); use = all.filter(x => ds.includes(x.d)); how = '최근 생산 ' + ds.length + '일 평균'; }
+    const m = use.reduce((s, x) => s + x.v[ix], 0) / use.length, p = Math.pow(10, RND[type][f]); return { v: Math.round(m * p) / p, n: use.length, how }; };
+  if (typeof ccp247Get === 'function' && !window.__avgGet) { window.__avgGet = 1; const _g = ccp247Get;
+    ccp247Get = function (type, name) { const ix = CCP247_IX[type] || null, base = _g(type, name); if (!ix) return base; const a = base ? base.slice() : []; let hit = false;
+      Object.keys(ix).forEach(f => { const x = fldAvg7(type, f, name); if (x) { a[ix[f]] = x.v; hit = true; } }); return hit ? a : base; }; }
+})();
+
+/* ══ v250 (2026-10-22 Aside) 낱개(1EA)·비상품은 CCP 줄을 따로 만들지 않음 ══
+   10/21 일지 시뮬레이션에서 생산량에 낱개를 담으면 낱개가 새 작업 품목이 되어 오븐·급냉·금속 빈 줄과 「기록 없음」 경고가 생겼음.
+   같은 묶음(prodFamily)에 박스 품목이 있으면 낱개·비상품의 CCP는 박스 품목 기록에 포함(K-HACCP도 박스 품목 이름으로만 적음).
+   생산작업일지(prod)는 그대로(박스·낱개 칸 같이). 금속 통과량도 박스 품목 기준. 이 블록을 지우면 예전처럼 돌아감. */
+(function () { try { const _ccpOf = ccpOf; ccpOf = function (it) { try { const real = (it && it.code && prodItem(it.code)) || it; const F = real && prodFamily(real); if (F && F.B && real.code !== F.B.code) return { oven: false, freeze: false, metal: false, mix: false }; } catch (e) {} return _ccpOf.apply(this, arguments); }; } catch (e) {} })();
+
 
 
 /* ══ v244 (2026-10-20 Aside) 업무 대시보드 → 원료 발주 넘기기 ══

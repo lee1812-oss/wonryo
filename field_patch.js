@@ -213,7 +213,7 @@
   fetch('ccp_recent.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.oven) { SEED = j; try { localStorage.setItem(LS, JSON.stringify(j)); } catch (e) {} } }).catch(() => {});
   const F = { oven: { temp: 0, min: 1, core: 2 }, freeze: { v1: 0, v2: 1 }, mix: { kg: 0, temp: 1, room: 2 } };
   const RND = { oven: { temp: 0, min: 0, core: 0 }, freeze: { v1: 1, v2: 1 }, mix: { kg: 2, temp: 0, room: 0 } };
-  const keyOf = n => { n = String(n || '').replace(/\((시작|종료|중간|오전|오후)[^)]*\)/g, '').replace(/^(D|DB|Db)\./i, '').replace(/\s/g, '').replace(/\d+EA/gi, '').replace(/BOX/gi, '').replace(/크라상/g, '크로와상');
+  const keyOf = n => { n = String(n || '').replace(/\((시작|종료|중간|오전|오후)[^)]*\)/g, '').replace(/^(D|DB|Db)\./i, '').replace(/\s+\d+\s*EA/gi, '').replace(/\s/g, '').replace(/\d+EA/gi, '').replace(/BOX/gi, '').replace(/크라상/g, '크로와상');
     if (/크림/.test(n) && /배합|소스/.test(n)) return '크림배합'; if (/마늘/.test(n) && /배합|소스/.test(n) && !/빵|바게트/.test(n)) return '마늘배합'; return n; };
   const ymd = t => t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
   const rowsFor = (type, name) => { const k = keyOf(name), out = [];
@@ -901,3 +901,7 @@
   const mo = new MutationObserver(() => { document.querySelectorAll('.fwarn-bg:not(.fq2):not(.f2h) .fwarn-row:not([data-why])').forEach(row => { row.setAttribute('data-why', '1'); try { const lb = (row.querySelector('b') || {}).textContent; const x = (FLD.fields || []).find(f => f.lb === lb); if (!x) return; const T = fldBubText(x, fldFieldBad(x)); row.insertAdjacentHTML('beforeend', '<span class="why">' + esc(T.t.replace(/^⚠ /, '')) + '</span>'); } catch (e) {} }); });
   mo.observe(document.body, { childList: true, subtree: true });
 })();
+
+/* ══ 값 고치기·통과량 화면 아래쪽 가림 방지 (2026-10-22 Aside, 10/21 일지 시뮬레이션에서 발견) ══
+   아래 고정 저장 줄(.form-save, 약 106px)이 마지막 칸·숫자판 아랫줄을 가렸음 → 그 높이만큼 아래 여백을 두면 fldFit이 여백까지 재서 한 화면에 맞춤. */
+(function () { if (!window.FIELD_APP) return; const st = document.createElement('style'); st.textContent = '#fld:has(.form-save){padding-bottom:118px!important;box-sizing:border-box}'; document.head.appendChild(st); })();
