@@ -809,3 +809,15 @@
     + '#fld .fov3 .ft.fnow .tm,#fld .fov3 .ft.fnow .vv,#fld .fov3 .ft.fnow .lim{color:#fff!important}';
   document.head.appendChild(st);
 })();
+
+/* ══ 남은 갈색 정리 (2026-10-22 Aside): 찾기 목록 테두리·머리, 단계 번호 배지, 안내 상자, 설정 버튼 등 → 회색/파랑 계열로 (누를 곳 파랑+주황 원칙과 맞춤) ══ */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fsg{border-color:#1D4ED8!important}#fld .fsg-hd{background:#EEF3FF!important;color:#1F2328!important;border-bottom-color:#D0DBFF!important}'
+    + '#fld .fsg-r:active,#fld .fsg-r.k{background:#EEF3FF!important}#fld .fsg-gp{background:#F8F9FA!important}'
+    + '#fld .fsn-b{background:#495057!important}#fld .fsf-hint{background:#F8F9FA!important;border-color:#CED4DA!important;color:#343A40!important}#fld .fsf-pk .lb{color:#343A40!important}'
+    + '#fld .fset-btn{border-color:#CED4DA!important;color:#495057!important}#fld .fqchip button small,#fld .fqv button small{color:#6C757D!important}'
+    + '#fld .fsnav button.nx.fnow{border-color:#F59E0B!important}';
+  document.head.appendChild(st);
+})();
