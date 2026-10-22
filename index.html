@@ -1449,8 +1449,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '247';
-const APP_BUILT = '2026-10-22 14:29';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '248';
+const APP_BUILT = '2026-10-22 14:42';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -7807,7 +7807,7 @@ function tcBoot() {
 try { tcBoot(); } catch (e) { try { console.warn('사내 대화 시작 실패', e); } catch (e2) {} }
 /* ── v243 사내 대화 끝 ── */
 
-/* ══ v247 (2026-10-22 Aside) 오늘 발주 알림 + 거래처용 발주서 이미지(카톡) ══
+/* ══ v247~v248 (2026-10-22 Aside) 오늘 발주 알림 + 거래처용 발주서 이미지(카톡) ══
    - 오늘 발주 알림: 공장 자료(factory.enc.json)의 rawbuy(이카운트 아침 06:30 재고 · 육쪽마늘빵 100박스분 기준)로
      거래처별 발주 마감·품목을 보여 줌. 하루 한 번 자동으로 뜸(이 기기에서 끌 수 있음) · 원료 발주 탭 맨 위 버튼 · 주소 #po-alert.
    - 발주서: 거래처가 한눈에 보는 이미지(PNG). 휴대폰은 공유 창에서 카톡 선택, PC는 이미지 복사 → 카톡 대화방에 Ctrl+V.
@@ -7872,37 +7872,107 @@ function poAlertList(rb) {
     return Object.assign({}, s, { lv, lab, d, sent });
   }).sort((a, b) => ord[a.lv] - ord[b.lv]);
 }
+/* v248: 거래처별 「왜 지금 발주하나요?」 + 원료별 근거(지금 재고·일주일 사용·남은 기간) + 추천 주문 수량(3주 주기)
+   추천 수량 = 3주 사용량 + 최소 남길 양(육쪽 36박스분, 미로와데코젤 9kg) − 지금 재고 → 포장·주문단위로 올림(0.1포장 여유)
+   「100박스분 채움」 수량(rawbuy.packs)도 작게 같이 보여 줌. 생산실에 보여 주고 같이 정하는 용도. */
+const PO_WEEKS = 3;
+function poPlan(rb, sup) {
+  const fl = (rb.rule && rb.rule.floor) || 36, miro = (rb.rule && rb.rule.miroMin) || 9000;
+  const s = (rb.sups || []).find(x => x.name === sup) || {}, deliv = s.deliv || '', td = today();
+  const dDays = deliv ? Math.max(0, poDays(td, deliv)) : 6;
+  return (rb.rows || []).filter(r => r.sup === sup).map(r => {
+    const wk = Number(r.weekly) || 0, st = Number(r.stock) || 0, pg = Number(r.packG) || 1, ou = Math.max(1, Number(r.ou) || 1);
+    const keep = r.perBox ? fl * r.perBox : (r.nm === '미로와데코젤' ? miro : (Number(r.target) || 0) * 0.36);
+    const needG = PO_WEEKS * wk + keep - st;
+    let rec = 0; if (needG > 0) { const p = needG / pg; rec = Math.ceil(Math.max(0, p - 0.1) / ou) * ou; if (rec === 0) rec = ou; }
+    const weeks = wk > 0 ? st / wk : null;
+    const outDay = wk > 0 && st > 0 ? rbAddD(Math.floor(st / wk * 7)) : (st <= 0 ? td : '');
+    const atDeliv = st - wk * dDays / 7;
+    let lv, why;
+    if (st <= 0) { lv = 'red'; why = '재고 바닥 (전산 ' + Math.round(st) + 'g)'; }
+    else if (weeks != null && weeks < 1) { lv = 'red'; why = `1주도 안 남음 · ${rbMd(outDay)}쯤 바닥`; }
+    else if (r.nm === '미로와데코젤' && st < miro) { lv = 'red'; why = `기준 3통(9kg)보다 적음`; }
+    else if (r.perBox && atDeliv < keep) { lv = 'amber'; why = `입고일(${rbMd(deliv)})쯤 최소선(${fl}박스분) 아래`; }
+    else if (rec > 0) { lv = 'blue'; why = `다음 발주(약 ${PO_WEEKS}주 뒤)까지 모자람 → 같이 주문`; }
+    else { lv = 'green'; why = '충분 · 이번엔 주문 안 함'; }
+    return { code: r.code, nm: r.nm, item: r.item || r.nm, unit: r.unit, stock: st, packG: pg, weekly: wk, weeks, outDay, rec, fill: Number(r.packs) || 0, lv, why, lastIn: r.lastIn, lastQty: r.lastQty, boxes: r.boxes };
+  }).sort((a, b) => ({ red: 0, amber: 1, blue: 2, green: 3 })[a.lv] - ({ red: 0, amber: 1, blue: 2, green: 3 })[b.lv]);
+}
+function poAmt(g, pg, u) { if (g <= 0) return '0' + u; const n = g / pg; return (n >= 10 ? Math.round(n) : Math.round(n * 10) / 10) + u; }
+function poSupWhy(rb, s, plan) {
+  const out = [], red = plan.filter(p => p.lv === 'red'), amb = plan.filter(p => p.lv === 'amber');
+  if (red.length) out.push(['red', '부족', red.map(p => `${p.nm} ${p.why}`).join(' · ')]);
+  if (amb.length) out.push(['amber', '곧 부족', amb.map(p => `${p.nm} ${p.weeks != null ? (Math.round(p.weeks * 10) / 10) + '주분' : ''} 남음`).join(' · ') + ' — 입고 전 최소선 아래로 내려감']);
+  if (s.deliv) out.push(['blue', '마감', `${s.nextOrder && s.nextOrder <= today() ? '오늘' : rbMd(s.nextOrder)}${poHour(s.rule) ? ' ' + poHour(s.rule) + '시' : ''}까지 발주하면 ${rbMd(s.deliv)} 입고` + (s.rule ? ` (${s.rule.replace(/ · 납품 전날.*$/, '')})` : '')]);
+  const ol = rb.orders && rb.orders.room && s.rule && s.rule.includes(rb.orders.room) ? rb.orders.list || [] : [];
+  if (ol.length) { const last = ol[ol.length - 1].d; out.push(['gray', '지난 발주', `${rbMd(last)} (${poDays(last, today())}일 전) · 평소 약 ${rb.orders.avgGap || 21}일 간격`]); }
+  else if (s.lastIn) out.push(['gray', '지난 입고', `${rbMd(s.lastIn)} (${poDays(s.lastIn, today())}일 전)`]);
+  return out;
+}
 async function poAlertOpen() {
-  poCss();
+  poCss(); poCss2();
   let F; try { F = await facLoad(); } catch (e) { return toast(String((e && e.message) || e)); }
   const rb = F && (F.rawbuy || (F.factory && F.factory.rawbuy)); if (!rb) return toast('공장 자료에 원료 발주 계산이 아직 없어요');
   const list = poAlertList(rb); PO.alert = { rb, list };
-  const nm = {}; (rb.rows || []).forEach(r => { nm[r.sup + '|' + r.nm] = r; });
   const goal = (rb.rule && rb.rule.boxes) || 100, mb = rb.maxBox;
   const sum = mb != null && mb < goal ? `<div class="po-sum">지금 재고로 육쪽마늘빵 <b>${mb > 0 ? mb : 0}박스</b>까지 만들 수 있어요${rb.firstOut && rb.firstOut.length ? ` · 먼저 떨어지는 원료: <b>${esc(rb.firstOut.join(', '))}</b>` : ''} <span style="font-weight:400">(목표 ${goal}박스분)</span></div>` : '';
+  const LV = { red: '부족', amber: '곧 부족', blue: '같이 주문', green: '충분' };
   const cards = list.length ? list.map((s, i) => {
-    const rows = s.items.filter(it => Number(it.packs) > 0).map(it => { const r = nm[s.name + '|' + it.nm] || {}; return `<tr><td>${esc(r.item || it.nm)}</td><td class="q">${it.packs} ${esc(it.unit)}</td></tr>`; }).join('');
+    const plan = poPlan(rb, s.name); s.plan = plan;
+    const why = poSupWhy(rb, s, plan).map(([c, k, t]) => `<div class="po-why ${c}"><span class="k">${esc(k)}</span><span>${esc(t)}</span></div>`).join('');
+    const rows = plan.map(p => `<tr class="${p.lv === 'green' ? 'off' : ''}"><td><span class="po-lv ${p.lv}">${LV[p.lv]}</span></td><td class="nm"><b>${esc(p.item)}</b><div class="po-r">${esc(p.why)}</div></td>
+      <td class="n">${esc(poAmt(p.stock, p.packG, p.unit))}<div class="po-r">${p.weeks != null ? (p.weeks <= 0 ? '0주' : (Math.round(p.weeks * 10) / 10) + '주분') : ''}</div></td>
+      <td class="n">${esc(poAmt(p.weekly, p.packG, p.unit))}</td>
+      <td class="n">${p.lastIn ? rbMd(p.lastIn) + '<div class="po-r">' + (p.lastQty || '') + esc(p.unit) + '</div>' : '-'}</td>
+      <td class="q">${p.rec ? p.rec + ' ' + esc(p.unit) : '<span class="po-r">-</span>'}${p.rec && p.fill && p.fill !== p.rec ? `<div class="po-r">최소 ${p.fill}${esc(p.unit)}</div>` : ''}</td></tr>`).join('');
+    const nOrd = plan.filter(p => p.rec > 0).length;
     return `<div class="po-card ${s.lv}"><div class="po-top"><span class="po-badge ${s.lv}">${esc(s.lab)}</span><span class="po-name">${esc(s.name)}</span>${s.deliv ? `<span class="po-deliv">입고 예정 ${rbMd(s.deliv)}</span>` : ''}</div>
-      <table class="po-items">${rows}</table>${s.rule ? `<div class="po-rule">${esc(s.rule)}</div>` : ''}
-      <div class="po-btns"><button class="btn primary" data-poal="${i}">📄 발주서 만들기 · 카톡 보내기</button></div></div>`;
+      <div class="po-whyh">왜 지금 발주하나요?</div>${why}
+      <div class="po-listh">발주 리스트 · ${nOrd}품목 <span class="po-r">(추천 = ${PO_WEEKS}주 쓸 양 + 최소 남길 양 − 지금 재고 · 「최소」 = 100박스분만 채우는 양)</span></div>
+      <div class="tablewrap"><table class="po-tb"><tr><th></th><th class="l">원료 · 이유</th><th>지금 재고</th><th>일주일 사용</th><th>지난 입고</th><th>추천 주문</th></tr>${rows}</table></div>
+      <div class="po-btns" style="margin-top:10px"><button class="btn primary" data-poal="${i}">📄 이 리스트로 발주서 만들기 · 카톡 보내기</button></div></div>`;
   }).join('') : '<div class="po-card done"><b>지금 발주할 원료가 없어요.</b> 모든 원료가 목표(100박스분) 이상 있어요.</div>';
   const auto = localStorage.getItem('po_alert_auto') !== 'off';
-  modal(`<div class="po-wrap"><div class="po-hd"><div><h2>🔔 오늘 발주 알림</h2><div class="po-sub">이카운트 ${rbMd(rb.snap)} 아침 06:30 재고 기준 · 육쪽마늘빵 100박스분 · 미로와데코젤 3통 유지</div></div></div>
+  modal(`<div class="po-wrap"><div class="po-hd"><div><h2>🔔 오늘 발주 알림</h2><div class="po-sub">이카운트 ${rbMd(rb.snap)} 아침 06:30 재고 · 최근 8주 사용량 기준 · 육쪽마늘빵 100박스분 · 미로와데코젤 3통 유지</div></div><button class="btn" data-podo="big" style="min-height:46px">🔍 크게 보기</button></div>
     ${sum}${cards}
     <div class="po-sub" style="margin:4px 0 12px">· 수량은 아침 재고로 계산했어요. 오늘 이 앱에서 「보낸 것으로 기록」한 거래처는 초록색으로 바뀌어요.<br>· 발주서 화면에서 수량·입고 희망일을 고칠 수 있어요.</div>
     <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><label class="row" style="gap:6px;font-size:14.5px"><input type="checkbox" id="poAuto" ${auto ? 'checked' : ''}> 이 기기에서 하루 한 번 자동으로 띄우기</label><button class="btn" onclick="closeModal()" style="min-height:50px;padding:0 22px">닫기</button></div></div>`);
-  $('#modalBody').classList.add('wide');
+  $('#modalBody').classList.add('wide'); if (PO.big) $('#modalBody').classList.add('po-bigm');
   const ck = $('#poAuto'); if (ck) ck.onchange = () => { try { localStorage.setItem('po_alert_auto', ck.checked ? 'on' : 'off'); } catch (e) {} };
 }
+function poCss2() {
+  if (document.getElementById('poCss2')) return;
+  const st = document.createElement('style'); st.id = 'poCss2';
+  st.textContent = `.po-whyh{font-weight:800;font-size:16px;margin:8px 0 6px;color:#3d2410}
+.po-why{display:flex;gap:10px;align-items:baseline;padding:6px 10px;border-radius:8px;margin-bottom:4px;font-size:15.5px;line-height:1.5}
+.po-why .k{flex:0 0 auto;font-weight:800;font-size:13.5px;padding:2px 8px;border-radius:6px;white-space:nowrap}
+.po-why.red{background:#fdf0f0}.po-why.red .k{background:#c62828;color:#fff}
+.po-why.amber{background:#fff7ea}.po-why.amber .k{background:#e08a00;color:#fff}
+.po-why.blue{background:#eef4fb}.po-why.blue .k{background:#2f5d8a;color:#fff}
+.po-why.gray{background:#f5f3f0}.po-why.gray .k{background:#7a6a5a;color:#fff}
+.po-listh{font-weight:800;font-size:16px;margin:12px 0 6px;color:#3d2410}
+.po-tb{width:100%;border-collapse:collapse;font-size:15.5px}
+.po-tb th{background:#f3ece3;color:#4a3a2a;font-size:13.5px;padding:7px 6px;text-align:right;white-space:nowrap;border-bottom:2px solid #7a4a1e}.po-tb th.l{text-align:left}
+.po-tb td{padding:8px 6px;border-bottom:1px solid #eee3d6;vertical-align:top;text-align:right;white-space:nowrap}
+.po-tb td.nm{text-align:left;white-space:normal}.po-tb td.q{font-weight:800;font-size:19px;color:#3d2410}
+.po-tb tr.off td{color:#9a8f84}.po-tb tr.off td.q{font-size:15px}
+.po-r{font-size:12.5px;color:#7a6a5a;font-weight:500}
+.po-lv{display:inline-block;font-size:12.5px;font-weight:800;padding:2px 7px;border-radius:6px;white-space:nowrap}
+.po-lv.red{background:#c62828;color:#fff}.po-lv.amber{background:#e08a00;color:#fff}.po-lv.blue{background:#e3edf8;color:#244a70}.po-lv.green{background:#e8f5e9;color:#2e6b31}
+.modal.po-bigm{max-width:1400px!important;width:98vw}.modal.po-bigm .po-wrap{font-size:19px}.modal.po-bigm .po-tb{font-size:19px}.modal.po-bigm .po-tb td.q{font-size:24px}
+.modal.po-bigm .po-why{font-size:19px}.modal.po-bigm .po-name{font-size:26px}.modal.po-bigm .po-r{font-size:15px}.modal.po-bigm .po-tb th{font-size:16px}`;
+  document.head.appendChild(st);
+}
 function poFromAlert(s) {
-  const rows = (PO.alert && PO.alert.rb.rows) || [];
-  const lines = s.items.filter(i => Number(i.packs) > 0).map(i => {
-    const r = rows.find(x => x.sup === s.name && x.nm === i.nm) || {}, c = r.code;
-    if (c && RB_RAW0[c]) { const P = rbPat(c); return { raw: c, name: P.name, buy: P.buy, bname: P.bname, n: Number(i.packs), u: P.u, g: P.g, price: P.price }; }
-    return { raw: c || '', name: i.nm, buy: '', bname: r.item || i.nm, n: Number(i.packs), u: i.unit, g: r.packG || 0, price: null };
+  const plan = (s.plan || poPlan(PO.alert.rb, s.name)).filter(p => p.rec > 0);
+  const lines = plan.map(p => {
+    const c = p.code;
+    if (c && RB_RAW0[c]) { const P = rbPat(c); return { raw: c, name: P.name, buy: P.buy, bname: P.bname, n: p.rec, u: P.u, g: P.g, price: P.price }; }
+    return { raw: c || '', name: p.nm, buy: '', bname: p.item, n: p.rec, u: p.unit, g: p.packG, price: null };
   });
   poDocOpen(s.name, lines, { from: 'alert', due: s.deliv || '', room: poRoom(s.rule), back: true });
 }
+
 /* ── 발주서 그림 ── */
 let PO_LOGO = null;
 function poLogo() { if (PO_LOGO) return PO_LOGO; PO_LOGO = new Promise(res => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = () => res(null); im.src = 'https://lee1812-oss.github.io/wonryo/brand_logo.png'; setTimeout(() => res(null), 5000); }); return PO_LOGO; }
@@ -7995,7 +8065,7 @@ async function poDocOpen(sup, lines, opt) {
       <div id="poGuide"></div>
       <div class="po-btns" style="margin-top:14px;border-top:1px solid #eadfd2;padding-top:14px"><button class="btn primary" data-podo="mark">✓ 보낸 것으로 기록</button>${st.from === 'send' ? '<button class="btn" data-podo="other">글·메일·문자로 보내기</button>' : ''}<button class="btn" onclick="closeModal()">닫기</button></div>
       <div class="po-sub" style="margin-top:6px">기록하면 입고 희망일까지 「발주 중」으로 계산돼, 같은 원료를 두 번 주문하지 않게 돼요.</div></div></div></div>`);
-  $('#modalBody').classList.add('wide');
+  $('#modalBody').classList.add('wide'); $('#modalBody').classList.remove('po-bigm');
   const re = () => { const a = $('#poDue'), b = $('#poNote'); if (a) st.due = a.value; if (b) st.note = b.value.trim(); poRender(); };
   ['#poDue', '#poNote'].forEach(s => { const el = $(s); if (el) el.addEventListener('change', re); });
   $$('[data-poq]').forEach(el => el.addEventListener('change', () => { const i = Number(el.dataset.poq); st.lines[i].n = Math.max(0, Math.round(Number(el.value) || 0)); el.value = st.lines[i].n; poRender(); }));
@@ -8012,6 +8082,7 @@ async function poCopyImg(b) { try { await navigator.clipboard.write([new Clipboa
 function poText(st) { try { return rbMsg(st.sup, st.lines.filter(l => Number(l.n) > 0), st.due, st.note); } catch (e) { return ''; } }
 function poRoomTxt(st) { return st.room ? `「${esc(st.room)}」` : `${esc(st.sup)} 대화방`; }
 async function poDo(kind) {
+  if (kind === 'big') { PO.big = !PO.big; $('#modalBody').classList.toggle('po-bigm', PO.big); return; }
   const st = PO.doc; if (!st) return;
   if (kind === 'back') return poAlertOpen();
   if (kind === 'other') { closeModal(); return _poOpenSend0(st.sup); }
@@ -8051,6 +8122,7 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-podo]'); if (b) { e.preventDefault(); poDo(b.dataset.podo); return; }
   const c = e.target.closest('[data-poopen]'); if (c) { e.preventDefault(); poAlertOpen(); }
 });
+var _poCM = closeModal; closeModal = function () { _poCM.apply(this, arguments); try { $('#modalBody').classList.remove('po-bigm'); } catch (e) {} };
 /* ③ 발주 보내기 → 발주서 화면 */
 var _poOpenSend0 = rbOpenSend;
 rbOpenSend = function (sup) {
