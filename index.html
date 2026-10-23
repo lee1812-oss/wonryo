@@ -1449,8 +1449,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '260';
-const APP_BUILT = '2026-10-23 17:51';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '261';
+const APP_BUILT = '2026-10-23 18:26';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -6114,6 +6114,96 @@ function saleLoadOrder(o) {
   if (memo.length) X.draft.memo = [X.draft.memo, memo.join(', ')].filter(Boolean).join(' / ');
   saleUi.rtab = 'slip'; saleUi.step = 's'; saleSave(); S.ui.prodTab = 'psale'; save(); renderAll(); toast(miss.length ? `${o.name} 발주를 불러왔습니다 — 이카운트 코드가 없는 제품 ${miss.length}개(${miss.map(l => l[1]).slice(0, 2).join(', ')})는 메모에 적어 두었으니 품목을 직접 담아 주세요` : `${o.name} 발주를 주문서로 불러왔습니다 — 단가 확인 후 보내세요`);
 }
+/* v261: 카톡 대화 파일(카톡방 「대화 내보내기」 txt)로 주문 링크 채우기 — 앱 안에서만 분석(서버·AI 안 씀).
+   거래처(방 이름·보낸 사람 이름) → 주문 메시지(우리 쪽 메시지 뺌) → 품목 맞추기(saleKParse, 카톡 붙여넣기와 같은 규칙) →
+   자주 시킨 순서로 품목 체크 · 거래처가 부르는 이름을 「표시」로 · 주문 들어오는 요일·시각 안내. 저장은 기존 「링크 만들기」 그대로 */
+const SALE_KX_OURS = /서재우|황정기|김영복|이혜영|박수범|박태일|김명우|이정현|서로도우|빵을그리다/;
+function saleKxRead(file) { return file.arrayBuffer().then(buf => { let t = new TextDecoder('utf-8').decode(buf); if ((t.match(/\uFFFD/g) || []).length > 20) { try { t = new TextDecoder('euc-kr').decode(buf); } catch (e) {} } return t.replace(/^\uFEFF/, ''); }); }
+function saleKxMsgs(text) {   /* 모바일(안드로이드·아이폰) 「2026년 3월 9일 오후 8:35, 이름 : 글」 · PC 「--- 2026년 3월 9일 월요일 ---」+「[이름] [오후 8:35] 글」 */
+  const L = String(text || '').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n'), out = []; let room = '', curD = '', cur = null;
+  const h24 = (ap, h) => (+h % 12) + (ap === '오후' ? 12 : 0), ymd = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  for (let i = 0; i < L.length; i++) { const l = L[i]; let m;
+    if (i < 3 && !room && (m = l.match(/^\s*(.+?)\s*(?:님과)?\s*카카오톡 대화\s*$/))) { room = m[1].trim(); continue; }
+    if (/^\s*저장한 날짜\s*:/.test(l)) continue;
+    if ((m = l.match(/^\s*(\d{4})\s*[.년]\s*(\d{1,2})\s*[.월]\s*(\d{1,2})\s*[.일]?\s*(오전|오후)\s*(\d{1,2}):(\d{2}),\s*(.+?)\s:\s?(.*)$/))) { cur = { d: ymd(m[1], m[2], m[3]), h: h24(m[4], m[5]), who: m[7].trim(), t: m[8] }; out.push(cur); continue; }
+    if ((m = l.match(/^\s*-+\s*(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일\s*\S*요일\s*-+\s*$/))) { curD = ymd(m[1], m[2], m[3]); cur = null; continue; }
+    if (curD && (m = l.match(/^\[([^\]]{1,60})\]\s*\[(오전|오후)\s*(\d{1,2}):(\d{2})\]\s?(.*)$/))) { cur = { d: curD, h: h24(m[2], m[3]), who: m[1].trim(), t: m[5] }; out.push(cur); continue; }
+    if (/^\s*\d{4}\s*[.년]\s*\d{1,2}\s*[.월]\s*\d{1,2}\s*[.일]?\s*((오전|오후)\s*\d{1,2}:\d{2})?\s*$/.test(l) || /^\s*\d{4}년\s*\d{1,2}월\s*\d{1,2}일\s*\S+요일\s*$/.test(l)) { cur = null; continue; }   /* 모바일 날짜 머리 줄 */
+    if (/^\s*\d{4}\s*[.년]\s*\d{1,2}\s*[.월]\s*\d{1,2}\s*[.일]?\s*(오전|오후)\s*\d{1,2}:\d{2},/.test(l)) { cur = null; continue; }   /* 초대·나감 같은 알림 줄 */
+    if (cur) cur.t += '\n' + l;
+  }
+  return { room, msgs: out };
+}
+function saleKxAnalyze(text, fname) {
+  const P = saleKxMsgs(text), msgs = P.msgs; if (!msgs.length) return { err: '카톡 대화를 찾지 못했습니다 — 카톡방 ≡ → 「대화 내보내기」로 저장한 txt 파일인지 확인해 주세요' };
+  const room = P.room || String(fname || '').replace(/\.(txt|csv)$/i, ''), W = {};
+  msgs.forEach(m => { const w = W[m.who] = W[m.who] || { n: 0, ok: 0 }; w.n++; if (/주문\s*(을\s*)?(확인|접수)\s*(하였|했|되었|됐)|거래\s*명세(서|표)\s*(를\s*)?(보내|올려|첨부|발송)/.test(m.t)) w.ok++; });
+  const ours = Object.keys(W).filter(w => SALE_KX_OURS.test(w) || W[w].ok >= 2), theirs = Object.keys(W).filter(w => !ours.includes(w));
+  const g = saleKParse([room].concat(theirs).join('\n'), '', today(), false);
+  return { room, msgs, ours, theirs, cust: g.cust || '', custWhy: g.custWhy ? '카톡방·보낸 사람 이름' : '', from: msgs[0].d, to: msgs[msgs.length - 1].d };
+}
+function saleKxItems(A, cust) {   /* 거래처 쪽 메시지에서 주문 줄 모으기 */
+  const R = { cust, orders: [], items: {}, miss: {}, wd: [0, 0, 0, 0, 0, 0, 0], hr: {}, dmen: [0, 0, 0, 0, 0, 0, 0], n: 0 };
+  A.msgs.forEach(m => { if (A.ours.includes(m.who)) return; R.n++;
+    const t = String(m.t || '').replace(/\b[0-9a-f]{32,}\.(png|jpe?g|gif|mp4)\b/gi, ' ').replace(/<사진 읽지 않음>|메시지가 삭제되었습니다\.?|사진( \d+장)?|이모티콘/g, ' ');
+    if (!/\d|한|두|세|네|다섯|여섯|열/.test(t)) return;
+    let dm; const dre = /(월|화|수|목|금|토)요일[^\n]{0,10}(배송|입고|도착|받)/g; while ((dm = dre.exec(t))) R.dmen['일월화수목금토'.indexOf(dm[1])]++;
+    let P; try { P = saleKParse(t, cust, m.d, true); } catch (e) { return; }
+    const got = P.lines.filter(l => l.code && l.q > 0);
+    P.lines.filter(l => !l.code && l.q > 0 && (l.key || '').length >= 2).forEach(l => { const k = l.src.slice(0, 30); R.miss[k] = (R.miss[k] || 0) + 1; });
+    if (!got.length) return;
+    R.orders.push({ d: m.d, h: m.h, who: m.who, lines: got.map(l => [l.code, l.q]) });
+    const wd = new Date(m.d + 'T00:00:00').getDay(); R.wd[wd]++; R.hr[wd + ':' + m.h] = (R.hr[wd + ':' + m.h] || 0) + 1;
+    const seen = new Set(); got.forEach(l => { const it = R.items[l.code] = R.items[l.code] || { n: 0, q: 0, last: '', ex: {}, base: 0, sure: false }; if (!seen.has(l.code)) { it.n++; seen.add(l.code); }
+      if (m.d >= it.last) { it.last = m.d; it.q = l.q; } const ex = saleKxExpr(l.src);
+      if (ex) it.ex[ex] = (it.ex[ex] || 0) + 1; it.base = Math.max(it.base, ((l.cands || [])[0] || {}).base || 0); it.sure = it.sure || !!l.sure; });
+  });
+  Object.keys(R.items).forEach(cd => { const it = R.items[cd]; if (SALE_KX_SVC.test(saleItemName(cd)) || (!it.sure && it.base < 0.6 && it.n < 3)) { const e = Object.keys(it.ex)[0]; if (e) R.miss[e] = (R.miss[e] || 0) + it.n; delete R.items[cd]; } });   /* 물류비·수수료, 한두 번만 나온 어설픈 맞춤은 뺌 */
+  return R;
+}
+const SALE_KX_SVC = /수수료|운반비|물류비|택배비|배송비|운임|할인/;
+function saleKxExpr(src) {   /* 주문 줄에서 거래처가 부른 품목 이름만 (수량·군말 빼고) */
+  let e = String(src || '').replace(new RegExp(`\\s*(\\d+|한|하나|두|둘|세|셋|네|넷|다섯|여섯|일곱|여덟|아홉|열)\\s*(${SALE_KUNIT})?(\\s*\\([^)]*\\))?\\s*(씩|정도|만|더|추가|부탁\\S*|주세요|요|변경\\S*)?\\s*$`, 'i'), '');
+  e = e.replace(/[ㄱ-ㅎㅏ-ㅣ\-—–~:=>.!?,\s]+$/g, '').replace(/^[-•·*\s\d.)]+/, '').replace(/\s*(수량|개수)\s*$/, '');
+  for (let i = 0; i < 3; i++) e = e.replace(/^(혹시|저희(가|는|도)?|그리고|오늘(은)?|이번(주)?(에|는)?|주문(에|은)?|추가(로)?(발주)?|발주|넵|네|넹|안녕하세요|대표님|차장님)[!.,\s]*/, '');
+  return e.trim();
+}
+const saleKxOrder = K => Object.keys(K).sort((a, b) => K[b].n - K[a].n || (K[b].last > K[a].last ? 1 : K[b].last < K[a].last ? -1 : 0));
+const saleKxUnsure = k => !!k && !k.sure && k.base < 0.75;
+function saleKxApply(st, cust) {   /* 편집창 상태(st)에 카톡 분석을 채움: 품목 순서·체크, 표시(거래처가 부르는 이름), 판매 이력이 없으면 배송 요일 */
+  const A = st.kxA; if (!A || !cust) { st.kx = null; return; }
+  const R = saleKxItems(A, cust), dfl = saleOrdDefaults(cust), K = R.items, inK = saleKxOrder(K);
+  st.kx = Object.assign(R, { room: A.room, from: A.from, to: A.to, why: A.cust === cust ? A.custWhy : '직접 고름' });
+  st.codes = inK.concat([...dfl.pre].filter(cd => !K[cd])).slice(0, 40);
+  inK.forEach(cd => { const ex = Object.entries(K[cd].ex).sort((a, b) => b[1] - a[1])[0]; if (!ex || ex[1] < 2) return; const e = ex[0].replace(/\s+/g, ' ').trim(), cur = st.ext[cd] || ['', ''];   /* 두 번 이상 같은 이름으로 부른 것만 표시로 */
+    if (!cur[0] && e.length >= 2 && e.length <= 12 && !/\d/.test(e) && (e.match(/\s/g) || []).length <= 1 && saleDice(saleKNorm(e), saleKNorm(saleItemName(cd))) < 0.6) st.ext[cd] = [e, cur[1] || '']; });
+  if (!Object.keys((saleIndex().C[cust] || {}).dset || {}).length) { const mx = Math.max(...R.dmen); if (mx > 0) { st.dmode = 'fixed'; st.fdays = R.dmen.map((n, i) => [n, i]).filter(([n]) => n >= Math.max(1, mx * 0.3)).map(x => x[1]); } }
+}
+function saleKxSel(st) { if (st.kxA && st.sel.size === 1) saleKxApply(st, [...st.sel][0]); else st.kx = null; }
+function saleKxList(dfl, st) {   /* 편집창 품목 목록: 카톡에서 찾은 품목(자주 시킨 순) → 나머지 판매 이력 */
+  const one = st.sel.size === 1 ? [...st.sel][0] : ''; if (!st.kx || st.kx.cust !== one) return dfl.items;
+  const K = st.kx.items, hm = new Map(dfl.items);
+  return saleKxOrder(K).map(cd => [cd, Object.assign({ n: 0, n90: 0, last: '', price: null }, hm.get(cd) || {}, { kx: K[cd] })]).concat(dfl.items.filter(([cd]) => !K[cd]));
+}
+function saleKxTag(y) { const k = y && y.kx; if (!k) return ''; const u = saleKxUnsure(k); return `<i class="tg ok"${u ? ' style="background:#fde68a;color:#7c2d12"' : ''}>카톡 ${k.n}회${u ? ' · 맞는지 확인' : ''}</i> `; }
+function saleKxQ(st, cust, cd) { const k = st.kx && st.kx.cust === cust && st.kx.items[cd]; return k ? k.q : null; }
+function saleKxLast(st, cust, codes) { if (!st.kx || st.kx.cust !== cust || !st.kx.orders.length) return []; const o = st.kx.orders[st.kx.orders.length - 1]; return o.lines.filter(([cd]) => codes.includes(cd)).map(([cd, q]) => [cd, q]); }
+function saleKxHtml(k) {
+  const W = '일월화수목금토', ords = k.orders.length, has = (saleUi.ordForms || []).some(f => f.cust === k.cust);
+  const top = Object.entries(k.hr).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([wh, n]) => { const [w, h] = wh.split(':'); return `<b>${W[+w]}요일 ${h}시대</b> ${n}건`; }).join(' · ');
+  const uns = saleKxOrder(k.items).filter(cd => saleKxUnsure(k.items[cd])), miss = Object.entries(k.miss).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const exOf = cd => (Object.entries(k.items[cd].ex).sort((a, b) => b[1] - a[1])[0] || [''])[0];
+  return `<div class="so-g so-kx" style="background:#f3f7ff;border:1px solid #c7d7f5;border-radius:10px;padding:10px 12px;margin:8px 0">
+    <b>💬 카톡 대화 분석</b> <span class="muted">「${esc(k.room)}」 · ${esc(saleMD(k.from))} ~ ${esc(saleMD(k.to))} · 거래처 쪽 메시지 ${k.n}건 중 주문 ${ords}건</span>
+    <div style="margin-top:4px">거래처: <b>${esc(saleCustName(k.cust))}</b> <span class="muted">(${esc(k.why || '직접 고름')}) — 다르면 위 목록에서 바꿔 고르세요</span></div>
+    ${has ? '<div style="color:#b91c1c;margin-top:4px">⚠ 이 거래처는 이미 주문 링크가 있습니다. 새로 만들면 링크가 하나 더 생깁니다 — 고치려면 취소하고 목록의 「고치기」를 쓰세요.</div>' : ''}
+    ${ords ? `<div style="margin-top:4px">주문이 들어온 때: ${top} <span class="muted">→ 아래 「주문 마감」을 여기에 맞춰 고르세요</span></div>
+    <div style="margin-top:4px">카톡에서 찾은 품목 <b>${Object.keys(k.items).length}개</b>를 자주 시킨 순서로 맨 앞에 체크했습니다. 거래처가 부르는 이름은 「품목 표시」에 넣었습니다.</div>`
+      : '<div style="color:#b45309;margin-top:4px">주문으로 보이는 메시지를 찾지 못했습니다 — 판매 이력으로 품목을 채웠습니다.</div>'}
+    ${uns.length ? `<div style="margin-top:6px;color:#92400e"><b>노란 품목 ${uns.length}개는 이름이 비슷해서 고른 것</b>입니다. 맞는지 꼭 확인하고, 아니면 체크를 빼세요:</div><ul style="margin:4px 0 0 18px;padding:0">${uns.slice(0, 10).map(cd => `<li>「${esc(exOf(cd))}」 → ${esc(saleItemName(cd))}</li>`).join('')}</ul>` : ''}
+    ${miss.length ? `<div class="muted" style="margin-top:6px;font-size:12.5px">못 찾은 표현 (필요하면 아래 목록에서 직접 체크): ${miss.map(([s, n]) => `「${esc(s)}」${n > 1 ? ' ' + n + '회' : ''}`).join(' · ')}</div>` : ''}
+  </div>`;
+}
 function saleOrdDefaults(c) {   /* 거래처의 배송 요일(판매현황에서 15% 이상), 품목(자주 산 순), 지난 주문 수량 */
   const ix = saleIndex(), cu = ix.C[c] || { dset: {}, items: {}, last: '' }, wd = [0, 0, 0, 0, 0, 0, 0]; const ds = Object.keys(cu.dset); ds.forEach(d => wd[new Date(d + 'T00:00:00').getDay()]++);
   let days = wd.map((n, i) => [n, i]).filter(([n]) => ds.length && n / ds.length >= 0.15).map(x => x[1]); if (!days.length) days = [3, 5];
@@ -6126,7 +6216,7 @@ function saleOrdEditor(form) {   /* form: 기존 링크(수정, 한 곳) 또는 
   const X = saleS(), ix = saleIndex(), has = new Set((saleUi.ordForms || []).map(f => f.cust));
   const custs = Object.keys(X.cust).map(c => ({ c, n: X.cust[c][0], x: (ix.C[c] || {}).n90 || 0, all: (ix.C[c] || {}).n || 0, last: (ix.C[c] || {}).last || '' })).filter(o => o.all > 0).sort((a, b) => b.x - a.x || b.all - a.all);
   const box = $('#soM'); const close = () => { box.hidden = true; box.innerHTML = ''; };
-  const st = { sel: new Set(form ? [form.cust] : []), q: '', dmode: 'auto', fdays: form ? form.days.slice() : [3, 5], lead: form ? form.lead : 1, cut: form ? form.cut : 15, price: form ? !!form.price : true, note: form ? form.note || '' : '', codes: null, onlyNew: true, ext: Object.assign({}, (form && form.ext) || {}) };
+  const st = { sel: new Set(form ? [form.cust] : []), q: '', dmode: 'auto', fdays: form ? form.days.slice() : [3, 5], lead: form ? form.lead : 1, cut: form ? form.cut : 15, price: form ? !!form.price : true, note: form ? form.note || '' : '', codes: null, onlyNew: true, ext: Object.assign({}, (form && form.ext) || {}), kx: null, kxA: null };
   const wdTxt = ds => ds.map(i => '일월화수목금토'[i]).join('·');
   const keepSettings = () => { const g = id => $('#' + id); if (g('soLead')) st.lead = +g('soLead').value; if (g('soCut')) st.cut = +g('soCut').value; if (g('soPrice')) st.price = g('soPrice').checked; if (g('soNote')) st.note = g('soNote').value;
     if ($$('#soM [data-sowd]').length) st.fdays = $$('#soM [data-sowd]').filter(c => c.checked).map(c => +c.dataset.sowd); if ($$('#soM [data-soit]').length) st.codes = $$('#soM [data-soit]').filter(c => c.checked).map(c => c.dataset.soit);
@@ -6143,8 +6233,8 @@ function saleOrdEditor(form) {   /* form: 기존 링크(수정, 한 곳) 또는 
         <div class="sk-row"><label>주문 마감 배송 <select id="soLead">${[0, 1, 2, 3, 4, 5, 6, 7].map(n => `<option value="${n}"${st.lead === n ? ' selected' : ''}>${n ? n + '일 전' : '당일'}</option>`).join('')}</select></label><label><select id="soCut">${Array.from({ length: 24 }, (_, h) => `<option value="${h}"${st.cut === h ? ' selected' : ''}>${h}시</option>`).join('')}</select> 까지</label>
           <span class="muted" style="font-size:12px">단가·금액은 거래처 주문서에 항상 보입니다</span></div>
         <div class="sk-row"><label style="flex:1 1 100%">안내 문구 <input id="soNote" style="flex:1 1 auto;max-width:none" value="${esc(st.note)}" placeholder="예: 수·금 배송 / 배송 전날 15시 마감"></label></div></div>
-        ${one ? `<div class="so-g"><b>주문서 품목</b> <span class="muted">이 거래처가 산 품목 (최근 180일 품목은 미리 체크) · 최대 40개</span> <button type="button" class="lnk" id="soAll">모두</button> <button type="button" class="lnk" id="soNone">없음</button>
-          <div class="so-items">${dfl.items.map(([cd, y]) => `<label><input type="checkbox" data-soit="${esc(cd)}"${st.codes.includes(cd) ? ' checked' : ''}><span>${esc(saleItemName(cd))}</span><em>${y.price != null ? saleWon(y.price) + '원 · ' : ''}${y.n}회 · 최근 ${esc(saleMD(y.last))}</em></label>`).join('') || '<div class="muted">판매 이력이 없습니다</div>'}</div></div>
+        ${one && st.kx && st.kx.cust === one ? saleKxHtml(st.kx) : ''}${one ? `<div class="so-g"><b>주문서 품목</b> <span class="muted">이 거래처가 산 품목 (최근 180일 품목은 미리 체크) · 최대 40개</span> <button type="button" class="lnk" id="soAll">모두</button> <button type="button" class="lnk" id="soNone">없음</button>
+          <div class="so-items">${saleKxList(dfl, st).map(([cd, y]) => `<label><input type="checkbox" data-soit="${esc(cd)}"${st.codes.includes(cd) ? ' checked' : ''}><span>${esc(saleItemName(cd))}</span><em>${saleKxTag(y)}${y.price != null ? saleWon(y.price) + '원 · ' : ''}${y.n ? y.n + '회 · 최근 ' + esc(saleMD(y.last)) : '판매 이력 없음'}</em></label>`).join('') || '<div class="muted">판매 이력이 없습니다</div>'}</div></div>
           <details class="so-g so-ext"${Object.values(st.ext).some(v => v[0] || v[1]) ? ' open' : ''}><summary><b>품목 표시·고르기</b> <span class="muted">선택 — 표시: 「계란 미포함」「6개입」처럼 품목 옆에 보임 · 고르기: 「밤|단호박|흑임자」처럼 <b>|</b>로 나누면 거래처가 주문할 때 하나를 꼭 고름</span></summary>
             <div class="so-extl">${st.codes.map(cd => `<div class="so-ex"><span>${esc(saleItemName(cd))}</span><input data-sotag="${esc(cd)}" value="${esc((st.ext[cd] || [])[0] || '')}" placeholder="표시" maxlength="20"><input data-soopt="${esc(cd)}" value="${esc((st.ext[cd] || [])[1] || '')}" placeholder="고르기 (예: 밤|단호박)" maxlength="80"></div>`).join('') || '<div class="muted">위에서 품목을 먼저 고르세요</div>'}</div></details>`
           : `<div class="so-g muted" style="font-size:12.5px">품목은 거래처마다 <b>최근 180일에 산 품목</b>(수수료 등 제외, 최대 30개)으로 자동으로 넣습니다. 만든 뒤 「고치기」로 거래처별로 바꿀 수 있습니다.</div>`}` : '<div class="muted" style="padding:10px 0">거래처를 하나 이상 고르세요. 여러 곳을 고르면 한 번에 링크를 만듭니다.</div>');
@@ -6158,7 +6248,7 @@ function saleOrdEditor(form) {   /* form: 기존 링크(수정, 한 곳) 또는 
   const redrawSet = () => { const el = $('#soSet'); if (!el) return; el.innerHTML = setHtml(); bindSet(); const n = $('#soM .so-n'); if (n) n.textContent = `${st.sel.size}곳 선택`; const b = $('#soSave'); if (b) { b.disabled = !st.sel.size; b.textContent = form ? '저장' : st.sel.size > 1 ? `${st.sel.size}곳 링크 만들기` : '링크 만들기'; } };
   const draw = () => {
     box.innerHTML = `<div class="sw-mb so-ed" role="dialog" aria-modal="true"><h3>${form ? '주문 링크 고치기' : '주문 링크 만들기'}</h3>
-      ${form ? `<div style="font-weight:800;margin:4px 0 8px">${esc(saleCustName(form.cust))}</div>` : `<div class="so-g" style="border-top:0;margin-top:0;padding-top:0"><div class="sk-row" style="margin:0 0 6px"><input class="sw-q" id="soQ" placeholder="거래처 이름 검색" value="${esc(st.q)}" style="flex:1 1 220px;max-width:none"><label><input type="checkbox" id="soOnlyNew"${st.onlyNew ? ' checked' : ''}> 링크 없는 곳만</label><button type="button" class="lnk" id="soSelAll">보이는 곳 모두</button><button type="button" class="lnk" id="soSelNone">선택 해제</button><b class="so-n">${st.sel.size}곳 선택</b></div>
+      ${form ? `<div style="font-weight:800;margin:4px 0 8px">${esc(saleCustName(form.cust))}</div>` : `<div class="so-g" style="border-top:0;margin-top:0;padding-top:0"><div class="sk-row" style="margin:0 0 8px;align-items:center"><button type="button" class="btn" id="soKx">💬 카톡 대화 파일로 채우기</button><input type="file" id="soKxF" accept=".txt,.csv,text/plain" hidden><span class="muted" style="font-size:12.5px;flex:1 1 260px">카톡방 ≡ → 「대화 내보내기」로 저장한 파일을 올리면 거래처·품목·거래처가 부르는 이름을 자동으로 채웁니다 (이 PC 안에서만 읽음)</span></div><div class="sk-row" style="margin:0 0 6px"><input class="sw-q" id="soQ" placeholder="거래처 이름 검색" value="${esc(st.q)}" style="flex:1 1 220px;max-width:none"><label><input type="checkbox" id="soOnlyNew"${st.onlyNew ? ' checked' : ''}> 링크 없는 곳만</label><button type="button" class="lnk" id="soSelAll">보이는 곳 모두</button><button type="button" class="lnk" id="soSelNone">선택 해제</button><b class="so-n">${st.sel.size}곳 선택</b></div>
         <div class="so-cus" id="soCus">${listHtml()}</div></div>`}
       <div id="soSet">${setHtml()}</div>
       <div class="sw-ma"><span class="muted" id="soProg" style="margin-right:auto;font-size:12.5px"></span><button type="button" class="btn" id="soX">취소</button><button type="button" class="btn primary" id="soSave"${st.sel.size ? '' : ' disabled'}>${form ? '저장' : st.sel.size > 1 ? `${st.sel.size}곳 링크 만들기` : '링크 만들기'}</button></div></div>`;
@@ -6166,7 +6256,12 @@ function saleOrdEditor(form) {   /* form: 기존 링크(수정, 한 곳) 또는 
     $('#soX').onclick = close; box.onclick = e => { if (e.target === box) close(); };
     const q = $('#soQ'); if (q) q.oninput = () => { st.q = q.value; $('#soCus').innerHTML = listHtml(); };
     if ($('#soOnlyNew')) $('#soOnlyNew').onchange = e => { st.onlyNew = e.target.checked; $('#soCus').innerHTML = listHtml(); };
-    if ($('#soCus')) $('#soCus').onchange = e => { const c = e.target.closest('[data-socu]'); if (!c) return; keepSettings(); const k = c.dataset.socu; if (c.checked) st.sel.add(k); else st.sel.delete(k); c.closest('.so-cu').classList.toggle('on', c.checked); st.codes = null; redrawSet(); };   /* 목록은 그대로(스크롤 유지), 설정만 다시 */
+    if ($('#soKx')) { $('#soKx').onclick = () => $('#soKxF').click(); $('#soKxF').onchange = async e => { const fl = e.target.files && e.target.files[0]; e.target.value = ''; if (!fl) return; const pr = $('#soProg'); if (pr) pr.textContent = '카톡 대화 읽는 중… (몇 초 걸려요)'; await new Promise(r => setTimeout(r, 40));   /* v261 */
+      try { keepSettings(); const A = saleKxAnalyze(await saleKxRead(fl), fl.name); if (A.err) { if (pr) pr.textContent = ''; return toast(A.err); } st.kxA = A;
+        if (A.cust && X.cust[A.cust]) { st.sel = new Set([A.cust]); st.onlyNew = false; st.q = saleCustName(A.cust); st.codes = null; st.dmode = 'auto'; saleKxApply(st, A.cust); draw(); toast(`카톡 대화로 ${saleCustName(A.cust)} 주문서를 채웠습니다 — 품목·마감을 확인하고 「링크 만들기」를 누르세요`); }
+        else { st.kx = null; draw(); toast('카톡방 이름으로 거래처를 찾지 못했습니다 — 목록에서 거래처를 하나 고르면 카톡 내용으로 채웁니다'); }
+      } catch (er) { if (pr) pr.textContent = ''; toast('카톡 대화를 읽지 못했습니다: ' + er.message); } }; }
+    if ($('#soCus')) $('#soCus').onchange = e => { const c = e.target.closest('[data-socu]'); if (!c) return; keepSettings(); const k = c.dataset.socu; if (c.checked) st.sel.add(k); else st.sel.delete(k); c.closest('.so-cu').classList.toggle('on', c.checked); st.codes = null; saleKxSel(st); redrawSet(); };   /* 목록은 그대로(스크롤 유지), 설정만 다시 · v261 카톡 분석이 있으면 다시 채움 */
     if ($('#soSelAll')) $('#soSelAll').onclick = () => { keepSettings(); $$('#soCus [data-socu]').forEach(c => { st.sel.add(c.dataset.socu); c.checked = true; c.closest('.so-cu').classList.add('on'); }); st.codes = null; redrawSet(); };
     if ($('#soSelNone')) $('#soSelNone').onclick = () => { st.sel.clear(); $$('#soCus [data-socu]').forEach(c => { c.checked = false; c.closest('.so-cu').classList.remove('on'); }); st.codes = null; redrawSet(); };
     bindSet();
@@ -6182,7 +6277,7 @@ function saleOrdEditor(form) {   /* form: 기존 링크(수정, 한 곳) 또는 
           const days = sel.length > 1 && !form && st.dmode === 'auto' ? d.days : st.fdays;
           const lastD = codes.reduce((m, cd) => { const y = cu.items[cd]; return y && y.last > m ? y.last : m; }, '');
           const t = form ? form.t : saleOrdTok();
-          const f = { cust, name: saleCustName(cust), items: codes.map(cd => { const y = cu.items[cd] || {}; return [cd, saleItemName(cd), y.price != null ? y.price : null, y.lastQty || null, y.pDate || '', ((sel.length === 1 || form) && st.ext[cd] && st.ext[cd][0]) || '', ((sel.length === 1 || form) && st.ext[cd] && st.ext[cd][1]) || '']; }), days, cut: st.cut, lead: st.lead, price: st.price, last: codes.filter(cd => cu.items[cd] && cu.items[cd].last === lastD).map(cd => [cd, cu.items[cd].lastQty || 0]), note: st.note.trim(), on: form ? form.on !== false : true };
+          const f = { cust, name: saleCustName(cust), items: codes.map(cd => { const y = cu.items[cd] || {}; return [cd, saleItemName(cd), y.price != null ? y.price : null, y.lastQty || saleKxQ(st, cust, cd) || null, y.pDate || '', ((sel.length === 1 || form) && st.ext[cd] && st.ext[cd][0]) || '', ((sel.length === 1 || form) && st.ext[cd] && st.ext[cd][1]) || '']; }), days, cut: st.cut, lead: st.lead, price: st.price, last: lastD ? codes.filter(cd => cu.items[cd] && cu.items[cd].last === lastD).map(cd => [cd, cu.items[cd].lastQty || 0]) : saleKxLast(st, cust, codes), note: st.note.trim(), on: form ? form.on !== false : true };
           const r = await prodRelayCall({ action: 'putOrderForm', t, form: f }); if (!r || !r.ok) throw new Error((r && r.error) || '중계가 거절했습니다');
           X.ordCodes = X.ordCodes || {}; X.ordCodes[t] = codes; ok++; saleSnapSoon([t]);
         } catch (e) { fails.push(`${saleCustName(cust)}: ${/알 수 없는 요청/.test(e.message) ? '중계를 새 버전(3.4)으로 배포해야 합니다' : e.message}`); } }
