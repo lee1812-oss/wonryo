@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2F6B45">
+<title>빵을그리다 금요일 실사</title>
+<link rel="manifest" href="silsa.webmanifest">
+<link rel="apple-touch-icon" href="silsa_apple.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="금요일 실사">
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F4F1EA;font-family:'Noto Sans KR','Malgun Gothic',sans-serif;color:#3d342a}
+.ld{text-align:center;padding:24px;font-size:19px;line-height:1.7;word-break:keep-all}
+.ld b{display:block;font-size:26px;margin-bottom:6px}
+.ld button{margin-top:16px;min-height:54px;padding:8px 24px;font-size:18px;font-weight:700;border-radius:14px;border:0;background:#2F6B45;color:#fff}
+</style>
+</head>
+<body>
+<div class="ld" id="ld"><b>📋 금요일 실사</b>불러오는 중입니다…</div>
+<script>
+/* 빵을그리다 금요일 실사 앱 (2026-10-23)
+   - 통합 재고관리(index.html)를 그대로 불러와 「금요일 원료 실사」 화면만 보이게 한다 (휴대폰·태블릿·PC 웹).
+   - 자료·로그인·공유는 통합 재고관리와 같아서, 입력하면 PC 실물재고·비교 화면에 바로 같은 값이 보인다.
+   - index.html이 바뀌면 이 앱도 자동으로 최신이 된다. */
+window.SILSA_APP = true;
+(function () {
+  function fail() {
+    document.getElementById('ld').innerHTML = '<b>📋 금요일 실사</b>인터넷 연결을 확인한 뒤 다시 열어 주세요.<br><button onclick="location.reload()">다시 열기</button>';
+  }
+  function get() {
+    return fetch('index.html', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.text(); })
+      .catch(function () { return caches.match('./index.html').then(function (r) { if (!r) throw 0; return r.text(); }); });
+  }
+  Promise.all([get(), fetch('silsa_patch.js', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.text(); })
+      .catch(function () { return caches.match('./silsa_patch.js').then(function (r) { if (!r) throw 0; return r.text(); }); })])
+    .then(function (a) {
+      var t = a[0], patch = a[1];
+      var s = t.indexOf('<script type="text/plain" id="app-code">'); var e = s < 0 ? -1 : t.indexOf('</' + 'script>', s);
+      if (s < 0 || e < 0) throw 0;
+      t = t.slice(0, e) + '\n' + patch + '\n' + t.slice(e);
+      t = t.replace('href="manifest.webmanifest"', 'href="silsa.webmanifest"')
+           .replace(/<title>[^<]*<\/title>/, '<title>빵을그리다 금요일 실사</title>')
+           .replace(/(apple-mobile-web-app-title" content=")[^"]*/, '$1금요일 실사')
+           .replace(/<head>/i, '<head><script>window.SILSA_APP=true<\/script><link rel="apple-touch-icon" href="silsa_apple.png">');
+      document.open(); document.write(t); document.close();
+    }).catch(fail);
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
+})();
+</script>
+</body>
+</html>

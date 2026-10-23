@@ -1,0 +1,32 @@
+{
+  "name": "빵을그리다 금요일 실사",
+  "short_name": "금요일 실사",
+  "description": "금요일 원료 실사 입력 전용 (휴대폰·태블릿·PC 웹). 입력한 값은 통합 재고관리와 연동",
+  "start_url": "./silsa.html",
+  "scope": "./silsa.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F4F1EA",
+  "theme_color": "#2F6B45",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "silsa_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "silsa_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "silsa_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
