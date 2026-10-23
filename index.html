@@ -1449,8 +1449,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '256';
-const APP_BUILT = '2026-10-23 09:59';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '257';
+const APP_BUILT = '2026-10-23 14:28';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -8163,6 +8163,71 @@ async function poAuto() {
 setTimeout(poAuto, 6000); (function poHashWait(n) { if (!/^#po-alert/.test(location.hash) || n > 60) return; facKey().then(k => { if (k) poAuto(); else setTimeout(() => poHashWait(n + 1), 3000); }).catch(() => setTimeout(() => poHashWait(n + 1), 3000)); })(0); setInterval(poAuto, 5 * 60e3);
 } catch (e) { console.warn('v247 발주 알림·발주서', e); }
 
+
+
+/* ═══════════════════════════════════════════════════════════════
+   v257 · 2026-10-23 Aside — 「🏭 공장 현황」 안 「📅 생산 계획 · 생지 200 발주」 (사용자 요청: 거래명세표 → 재고 → 생산 계획 → 생지 200 발주 연동)
+   · 자료 = factory.enc.json 의 plan (Aside dashboard/plan_build.js, 07:50·17:50 「공장 운영 자료 갱신」 루틴의 dashPublish 안에서 자동 계산). 업무 대시보드 「생산 계획」 카드와 같은 숫자.
+   · 보기만 함 — 이카운트·공유 저장소에 아무것도 쓰지 않음. 「카톡 복사」는 글자 복사만(보내기는 사람이 직접).
+   · 되돌리기: 이 블록을 통째로 빼면 v256 과 같음.
+   ═══════════════════════════════════════════════════════════════ */
+(function () { const s = document.createElement('style'); s.textContent =
+  '.fxpl{font-size:16.5px;line-height:1.6}.fxpl .fx-t{font-size:16px}.fxpl .fx-t td,.fxpl .fx-t th{padding:8px 8px}' +
+  '.fxpl .pl-big{font-size:18px;font-weight:800;margin:2px 0 6px}.fxpl .pl-st{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0}' +
+  '.fxpl .pl-st div{border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px;background:#fff}.fxpl .pl-st b{display:block;font-size:22px;font-weight:800}.fxpl .pl-st span{font-size:14px;color:#6b7280;font-weight:700}' +
+  '.fxpl .pl-st .r b{color:#dc2626}.fxpl .pl-st .a b{color:#b45309}.fxpl .pl-st .g b{color:#15803d}' +
+  '.fxpl .pl-msg{white-space:pre-wrap;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;margin:8px 0;font-size:16px}' +
+  '.fxpl .pl-btn{min-height:54px;font-size:17px;font-weight:800;padding:0 22px;border-radius:12px;border:0;background:#1d4ed8;color:#fff;cursor:pointer}' +
+  '.fxpl .pd{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:4px;vertical-align:middle}.fxpl .pd.red{background:#dc2626}.fxpl .pd.amber{background:#f59e0b}.fxpl .pd.green{background:#16a34a}' +
+  '.fxpl .wk small{display:block;color:#6b7280;font-size:13.5px;line-height:1.35}.fxpl .wk td{min-width:110px;vertical-align:top}.fxpl tr.td td{background:#fef9c3}.fxpl .pl-red{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:10px;padding:8px 12px;margin:8px 0;font-weight:700}';
+  document.head.appendChild(s); })();
+const fxPN = v => v == null ? '—' : (Math.round(v * 10) / 10).toLocaleString();
+const fxPB = v => v == null ? '—' : Math.round(v).toLocaleString();
+function fxPlanBody(p) {
+  const g = p.dough || {}, old = p.stockDate < p.today; let h = '<div class="fxpl">';
+  h += '<div class="fx-note">이카운트에 미리 넣은 출고 예정(거래명세표)과 김 대리 실물로 앞으로 4주 동안 무엇을 얼마나 만들지 계산했어요. 생산 제안 = 주말에 목표선까지 채우는 양. 실제로 만들 양은 생산실에서 정해요.' + (old ? ' <b>오늘 실물 입력 전 — ' + esc(fxMd(p.stockDate)) + ' 숫자 기준</b>' : '') + '</div>';
+  h += '<div class="pl-big">오늘 ' + esc(p.todayTxt || '') + '</div>' + (p.nextTxt ? '<div style="font-weight:700">다음 생산일 ' + esc(p.nextTxt) + '</div>' : '');
+  if ((p.forced || []).length) h += '<div class="muted" style="font-size:14px">「출고 맞춤」 = 확정 출고를 내려면 그날까지 더 만들어야 하는 양: ' + p.forced.map(f => esc(f.md) + ' ' + esc(f.nm) + ' ' + fxPN(f.q) + '박스').join(' · ') + '</div>';
+  // 출고 점검
+  h += '<h4 class="fx-h4">출고 점검 (앞으로 14일 확정 출고)</h4>' + ((p.warn || []).length ? fxTbl(['출고일', '품목', '거래처', '출고', '모자람'], p.warn.map(w => '<tr><td>' + esc(w.md) + '</td><td>' + esc(w.nm) + '</td><td>' + esc(w.c) + '</td><td class="num">' + fxPN(w.box) + '박스</td><td class="num minus"><b>' + fxPN(w.short) + '박스</b></td></tr>')) + '<div class="muted" style="font-size:14px">생산 계획을 다 넣어도 이 출고 전에 모자라요. 출고일 조정이나 추가 생산을 함께 정해요.</div>' : '<div style="color:#15803d;font-weight:800">계획대로 만들면 앞으로 14일 확정 출고를 모두 낼 수 있어요.</div>');
+  // 생지 200
+  h += '<h4 class="fx-h4">생지 200 발주 제안 · ' + esc(g.item || '') + '</h4>';
+  if (g.phys == null) h += '<div class="empty">김 대리 생지 실물 입력이 없어요.</div>'; else {
+    h += '<div class="pl-st"><div><b>' + fxPB(g.phys) + '봉</b><span>지금 실물 (' + esc(g.physAt || '') + ')</span></div><div class="' + (g.preStock < 0 ? 'r' : g.preStock < g.min ? 'a' : 'g') + '"><b>' + fxPB(g.preStock) + '봉</b><span>' + esc(g.nextInMd) + ' 입고 직전 예상</span></div>' +
+      (g.extra ? '<div class="r"><b>' + fxPB(g.extra) + '봉</b><span>' + esc(g.extraDayMd || '화요일') + ' 추가 입고 필요</span></div>' : '') + '<div class="' + (g.lv === 'red' ? 'r' : 'a') + '"><b>' + fxPB(g.order) + '봉</b><span>' + esc(g.nextInMd) + ' 입고 발주 제안</span></div></div>';
+    h += '<div class="muted" style="font-size:14px">입고 전까지 나갈 생지: 확정 출고 ' + fxPB(g.outA) + '봉 + 아직 전표 없는 판매 예상 ' + fxPB(g.sdA) + '봉 + 생산에 쓸 생지 ' + fxPB(g.useA) + '봉 · 입고 뒤 1주: 생산 ' + fxPB(g.useB) + '봉 + 판매 예상 ' + fxPB(g.sdB) + '봉 + 최소 ' + fxPB(g.min) + '봉</div>';
+    if (g.extraNote) h += '<div class="pl-red">' + esc(g.extraNote) + '</div>';
+    h += '<div class="pl-msg">' + esc(g.msg || '') + '</div><button class="pl-btn" id="fxPlCopy">카톡 복사</button> <span class="muted" id="fxPlCopied" style="font-size:14px">복사한 뒤 카톡에 붙여 보내 주세요. 자동으로 보내지 않아요.</span>'; }
+  // 요일별
+  const dl = (p.daily || []).filter(d => d.w <= 1);
+  h += '<h4 class="fx-h4">요일별 생산 제안 (이번 주 남은 날 · 다음 주)</h4>' + fxTbl(['날짜', '요일 패턴', '만들 것', '생지'], dl.map(d => '<tr class="' + (d.d === p.today ? 'td' : '') + '"><td><b>' + esc(d.md) + '</b></td><td>' + esc(d.label || '') + '</td><td>' + (d.items.length ? d.items.map(x => esc(x.nm) + ' <b>' + fxPN(x.q) + '</b>박스' + (x.tag ? ' <small class="muted">(' + esc(x.tag) + ')</small>' : '')).join('<br>') : '<span class="muted">없음</span>') + '</td><td class="num">' + (d.dough ? fxPB(d.dough) + '봉' : '') + '</td></tr>'));
+  // 4주 품목별
+  h += '<h4 class="fx-h4">4주 품목별 계획 (박스 · 점 색은 만들지 않을 때 남는 양 기준: 빨강 최소선 아래 · 주황 목표선 아래 · 초록 충분)</h4>' +
+    fxTbl(['품목'].concat(p.weeks.map((w, i) => esc(w.label) + (i === 0 ? ' (이번 주)' : ''))), p.items.map(it => '<tr><td><b>' + esc(it.nm) + '</b><small class="muted" style="display:block">최소 ' + fxPN(it.mn) + ' · 목표 ' + fxPN(it.tg) + ' · 주 ' + fxPN(it.weekly) + '</small></td>' + it.w.map(w => '<td><span class="pd ' + w.lv + '"></span>생산 <b>' + fxPN(w.prod) + '</b><small>시작 ' + fxPN(w.start) + ' · 판매 ' + fxPN(w.sale) + (w.big ? ' · 큰 주문 ' + fxPN(w.big) : '') + '</small><small>주말 ' + fxPN(w.end) + (w.later ? ' · ' + fxPN(w.later) + ' 다음 주로' : '') + '</small>' + (w.bigNote ? '<small style="color:#1d4ed8">' + esc(w.bigNote) + '</small>' : '') + '</td>').join('') + '</tr>').concat(['<tr><td><b>합계</b></td>' + p.weeks.map((w, i) => '<td class="num"><b>' + fxPN(p.items.reduce((t, x) => t + (x.w[i] ? x.w[i].prod : 0), 0)) + '</b></td>').join('') + '</tr>']), 'wk');
+  // 큰 주문
+  if ((p.big || []).length) h += '<h4 class="fx-h4">큰 주문 (출고 3일 전이 속한 주에 미리 만들어요)</h4>' + fxTbl(['출고일', '품목', '거래처', '수량', '구분', '준비 주'], p.big.map(b => '<tr><td>' + esc(b.md) + '</td><td>' + esc(b.nm) + '</td><td>' + esc(b.c) + '</td><td class="num">' + fxPN(b.box) + '박스</td><td>' + (b.st === '확정' ? '<span class="pill ok">전표 있음</span>' : '<span class="pill warn">예상</span>') + '</td><td>' + esc(b.prepLabel) + '</td></tr>')) + '<div class="muted" style="font-size:14px">예상 큰 주문은 같은 거래처 전표가 출고일 앞뒤 4일 안에 들어오면 자동으로 빠져요.</div>';
+  h += '<div class="muted" style="font-size:13.5px;margin-top:8px">' + esc(p.rule || '') + ' · 계산 ' + esc(p.built || '') + '</div></div>';
+  return h;
+}
+{
+  const _rfPlan0 = renderFactory;
+  renderFactory = function (box) {
+    _rfPlan0.apply(this, arguments);
+    try {
+      const b = box || $('#homeBox'); const p = FAC && FAC.plan; if (!b || !fxF() || !p || !p.sum || b.querySelector('[data-fxs="plan"]')) return;
+      const g = p.dough || {};
+      const html = fxSec('plan', '📅 생산 계획 · 생지 200 발주', '이번 주 남은 생산 ' + fxPN(p.sum.w0) + '박스 · 다음 주 ' + fxPN(p.sum.w1) + '박스 · 최소선 아래 ' + p.sum.red + '품목 · 생지 ' + (g.order == null ? '—' : fxPB(g.order) + '봉 (' + (g.nextInMd || '') + ')') + (g.extra ? ' + 화 ' + fxPB(g.extra) + '봉' : ''), fxPlanBody(p), true);
+      const sec = b.querySelector('details.fx-sec[data-fxs="need"]');
+      if (sec) sec.insertAdjacentHTML('beforebegin', html); else b.insertAdjacentHTML('beforeend', html);
+      const cb = b.querySelector('#fxPlCopy');
+      if (cb) cb.onclick = async () => { const t = g.msg || ''; let ok = false;
+        try { ok = await Promise.race([navigator.clipboard.writeText(t).then(() => true), new Promise(r => setTimeout(() => r(false), 1500))]); } catch (e) { ok = false; }
+        if (!ok) { try { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); ok = document.execCommand('copy'); a.remove(); } catch (e) { ok = false; } }
+        cb.textContent = ok ? '복사했어요' : '복사 안 됨 — 글자를 길게 눌러 복사'; const m = b.querySelector('#fxPlCopied'); if (m && ok) m.textContent = '카톡 대화창에 붙여 넣고 확인한 뒤 보내 주세요.'; };
+      const d = b.querySelector('details.fx-sec[data-fxs="plan"]'); if (d) d.addEventListener('toggle', () => { FXU.open.plan = d.open; });
+    } catch (e) { }
+  };
+}
 
 function renderAll() {
   renderTabs(); renderHeader(); renderNotice(); if (typeof renderSyncPill === 'function') renderSyncPill(); if (typeof renderChanges === 'function') setTimeout(renderChanges, 0);
