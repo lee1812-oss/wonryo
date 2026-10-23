@@ -1449,8 +1449,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '258';
-const APP_BUILT = '2026-10-23 14:28';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '259';
+const APP_BUILT = '2026-10-23 14:54';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -9196,6 +9196,32 @@ h2{font-size:15px;color:#4a2c17;margin:10px 0 4px;page-break-before:always}</sty
   const wvHash = () => { if (location.hash === '#wver') setTimeout(() => { wvView = 'cards'; wvOpen(); }, 300); if (location.hash === '#silsa') setTimeout(window.silsaOpen, 300); }; window.addEventListener('hashchange', wvHash); setTimeout(wvHash, 1200);
 })(); } catch (e) { console.warn('wver patch', e); }
 
+
+/* ═════ v259: PC 「생산일지」 = 생산실 앱(태블릿·휴대폰)과 같은 화면 (2026-10-23, 사용자 「태블릿에서 만든 생산일지와 웹이 같은 모양으로 연동」) ═════
+   - 생산일지 메뉴 · 생산 입력 탭 · 홈의 생산일지 · 📱 현장 입력 버튼을 누르면 같은 탭에서 생산실 앱(field.html)으로 넘어간다.
+     생산실 앱은 이 index.html + field_patch.js 그대로라 자료·로그인·동기화가 같다. PC(가로 1100px 이상+마우스)는 왼쪽 단계 목록 배치.
+   - 생산실 앱 위쪽 「🏠 통합재고관리」를 누르면 원래 보던 화면으로 돌아온다(field_patch.js 끝 블록과 짝).
+   - 한 탭에서 번갈아 쓰므로 두 화면이 같은 기록을 동시에 덮어쓰지 않는다(iframe으로 겹쳐 띄우지 않은 이유).
+   - 생산실 태블릿의 「켜면 바로 현장 입력」·#field도 같은 생산실 앱으로 연다(돌아가기 버튼 없음).
+   - 이 블록을 지우면 예전 「생산 입력」 화면·현장 입력 창으로 돌아간다. 예전 화면은 생산 입력 안내 상자의 「예전 입력 화면」으로도 볼 수 있다. */
+try { (function () { if (window.FIELD_APP) return;
+  const go = back => { try { save(true); } catch (e) {}
+    try { if (back) sessionStorage.setItem('fld_from_pc', JSON.stringify({ menu: S.ui.menu, prodTab: S.ui.prodTab, at: Date.now() })); else sessionStorage.removeItem('fld_from_pc'); } catch (e) {}
+    try { document.body.insertAdjacentHTML('beforeend', '<div style="position:fixed;inset:0;z-index:99999;background:rgba(15,25,50,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800">🍞 생산실 화면 여는 중…</div>'); } catch (e) {}
+    location.href = 'field.html'; };
+  window.fieldGo = go;
+  fieldOpen = function () { go(false); };
+  window.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-fldopen], [data-menu="prod"], [data-tab="pnew"], [data-tab="@prod"], [data-pcfield]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation(); go(true); }, true);
+  const _rpn = renderProdNew;
+  renderProdNew = function () { if (window._prodOld) return _rpn.apply(this, arguments); const box = $('#prodNew'); if (!box) return;
+    box.innerHTML = '<div style="max-width:720px;margin:24px auto;padding:28px 24px;border-radius:16px;background:#fff;border:1px solid #E2DCCF;text-align:center">'
+      + '<div style="font-size:24px;font-weight:800;color:#1d2b4f;margin-bottom:6px">🍞 생산일지는 생산실 화면에서</div>'
+      + '<div style="font-size:17px;color:#4a4238;margin-bottom:18px;word-break:keep-all">태블릿·휴대폰과 같은 화면, 같은 기록입니다.</div>'
+      + '<button type="button" class="btn primary" data-pcfield="1" style="min-height:58px;padding:10px 32px;font-size:20px;font-weight:800">생산실 화면 열기</button>'
+      + '<div style="margin-top:16px"><button type="button" class="btn sm" id="pOldView">예전 입력 화면</button></div></div>';
+    const o = $('#pOldView'); if (o) o.onclick = () => { window._prodOld = true; renderProdNew(); }; };
+  try { if (S.ui.menu === 'prod' && S.ui.prodTab === 'pnew') renderProdNew(); } catch (e) {}
+})(); } catch (e) { console.warn('pc field v259', e); }
 </script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════

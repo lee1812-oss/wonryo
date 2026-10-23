@@ -1545,3 +1545,19 @@
   document.addEventListener('click', () => setTimeout(() => { try { paint(); } catch (e) {} }, 80));
   try { paint(); } catch (e) {}
 })();
+
+
+/* ══ PC 통합재고관리에서 넘어왔을 때 위쪽 「🏠 통합재고관리」 돌아가기 (2026-10-23, index.html v259 블록과 짝) ══
+   - index.html이 sessionStorage 'fld_from_pc'에 원래 보던 메뉴를 적고 넘어온 경우에만 보인다(태블릿 홈 화면 앱에는 안 보임).
+   - 누르면 저장 → 원래 메뉴로 index.html에 돌아간다. 이 블록을 지우면 버튼만 사라진다. */
+(function () { if (!window.FIELD_APP) return;
+  let from = null; try { from = JSON.parse(sessionStorage.getItem('fld_from_pc') || 'null'); } catch (e) {}
+  if (!from) return;
+  const st = document.createElement('style'); st.textContent = '#fld .fld-top .fb.fpcb{display:inline-flex!important;align-items:center;background:#fff!important;color:#1d2b4f!important;border:2px solid #2F6BFF!important;font-weight:800;white-space:nowrap}'; document.head.appendChild(st);
+  const _head = fldHead; fldHead = function () { const h = _head.apply(this, arguments); return h.indexOf('data-fpcb') >= 0 ? h : h.replace('<button class="fb" data-f="close"', '<button type="button" class="fb fpcb" data-fpcb="1" title="통합재고관리로 돌아가기">🏠 통합재고관리</button><button class="fb" data-f="close"'); };
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-fpcb]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation();
+    try { let m = from.menu || 'home'; const t = from.prodTab; if (m === 'prod' && (!t || t === 'pnew')) m = 'home'; S.ui.menu = m; if (t && m !== 'home') S.ui.prodTab = t; } catch (x) {}
+    try { save(true); } catch (x) {} try { sessionStorage.removeItem('fld_from_pc'); } catch (x) {}
+    location.href = 'index.html'; }, true);
+  try { fieldRender(); } catch (e) {}
+})();
