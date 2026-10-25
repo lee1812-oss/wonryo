@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '281';
-const APP_BUILT = '2026-10-25 23:59';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '282';
+const APP_BUILT = '2026-10-26 05:51';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -9957,7 +9957,7 @@ try { (function () {
 })(); } catch (e) { console.warn('cmp dates v277', e); }
 
 
-/* ══ v279~v280 (2026-10-26 Aside) 원료수불부 재구성 (v281: 원장 표 폭 맞춤 · v280: 같은 날 메모 없는 재고조정 여러 줄=창고 정리는 한 줄로 합침, 원장 표 가로 넘침 수정) — 사용자 요청(10/25 밤): 「원료수불부 전체를 전수조사해서 대기업 수준으로, 매끄럽고 직관적이고 현실성 있게.
+/* ══ v279~v280 (2026-10-26 Aside) 원료수불부 재구성 (v282: 일자별 수불 「오늘」 버튼·달력(오늘까지)·전체 날짜 목록 · v281: 원장 표 폭 맞춤 · v280: 같은 날 메모 없는 재고조정 여러 줄=창고 정리는 한 줄로 합침, 원장 표 가로 넘침 수정) — 사용자 요청(10/25 밤): 「원료수불부 전체를 전수조사해서 대기업 수준으로, 매끄럽고 직관적이고 현실성 있게.
    HACCP·시청 점검에 맞는 원료수불부 형태, 이카운트 생산일지와 통합재고관리가 매끄럽게 연동」
    - 메뉴를 일하는 순서로 묶음: 매일(현황·수불대장) → 금요일 실사(실사 입력·실사 차이·재고 조정) → 생산·구매(생산 연동·원료 발주·소비기한) → 관리(로트 추적·기준 정보) → 예전 화면.
    - 새 화면 5개: 현황(rhome) · 수불대장(rledg) · 생산 연동(rprod) · 로트 추적(rtrace) · 기준 정보(rmast). 예전 화면 함수는 하나도 지우거나 바꾸지 않음(감싸기만).
@@ -10123,7 +10123,7 @@ try { (function () {
 .rl .hd h2{margin:0;font-size:25px;font-weight:800;letter-spacing:-.3px}.rl .hd .sub{color:var(--mu);font-size:15px;margin-top:3px}
 .rl .acts{display:flex;gap:8px;flex-wrap:wrap}
 .rl .b{min-height:46px;padding:8px 16px;border-radius:10px;border:1px solid #cfc4b8;background:#fff;color:var(--tx);font:inherit;font-size:16px;font-weight:600;cursor:pointer;white-space:nowrap}
-.rl .b:hover{background:var(--kb)}.rl .b.p{background:var(--k);border-color:var(--k);color:#fff}.rl .b.p:hover{background:#633b1b}.rl .b.sm{min-height:36px;padding:4px 12px;font-size:14.5px}
+.rl .b:hover{background:var(--kb)}.rl .b:disabled{opacity:.4;cursor:default;background:#fff}.rl .b.p{background:var(--k);border-color:var(--k);color:#fff}.rl .b.p:hover{background:#633b1b}.rl .b.sm{min-height:36px;padding:4px 12px;font-size:14.5px}
 .rl .card{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:16px 18px;margin-bottom:14px}
 .rl .card>h3{margin:0 0 4px;font-size:19.5px;font-weight:800}.rl .card>.cs{color:var(--mu);font-size:14.5px;margin:0 0 12px}
 .rl .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:10px;margin-bottom:14px}
@@ -10310,11 +10310,11 @@ ${b === today() && Math.abs(cb - I.now) >= 1 ? `<div class="warn" style="margin-
 </div></div></div></div>`;
   }
   function rlDayView() {
-    const L = RL.data.L; const T = today(); const d = RL.day || T; const codes = rlCodes();
+    const L = RL.data.L; const T = today(); if (!RL.day || RL.day > T || RL.day < L.from) RL.day = T; const d = RL.day; const codes = rlCodes();
     const rows = codes.map(c => { const I = rlItem(c); const s = rlSum(I, d, d); return { c, nm: I.nm, ob: rlBalAt(I, addD(d, -1)), s, cb: rlBalAt(I, d), mv: I.mv.filter(m => m.d === d) }; });
     const act = rows.filter(r => r.mv.length);
-    const days = []; for (let x = T; x >= L.from && days.length < 60; x = addD(x, -1)) days.push(x);
-    return `<div class="ctl"><button class="b sm" data-rlday="${addD(d, -1)}">‹ 전날</button><select data-rldaysel="1">${days.map(x => `<option value="${x}" ${x === d ? 'selected' : ''}>${mdw(x)}</option>`).join('')}</select><button class="b sm" data-rlday="${addD(d, 1)}" ${d >= T ? 'disabled' : ''}>다음날 ›</button><span class="mu">움직인 원료 ${act.length}종 / 전체 ${rows.length}종</span></div>
+    const days = []; for (let x = T; x >= L.from; x = addD(x, -1)) days.push(x);
+    return `<div class="ctl"><button class="b sm" data-rlday="${addD(d, -1)}">‹ 전날</button><select data-rldaysel="1">${days.map(x => `<option value="${x}" ${x === d ? 'selected' : ''}>${mdw(x)}${x === T ? ' · 오늘' : ''}</option>`).join('')}</select><button class="b sm" data-rlday="${addD(d, 1)}" ${d >= T ? 'disabled' : ''}>다음날 ›</button><button class="b sm${d === T ? ' p' : ''}" data-rlday="${T}">오늘 ${mdw(T)}</button><input type="date" data-rldaypick="1" value="${d}" min="${L.from}" max="${T}" title="달력에서 날짜 고르기 (오늘까지)"><span class="mu">움직인 원료 ${act.length}종 / 전체 ${rows.length}종</span></div>
 <div class="card"><h3>${mdw(d)} 원료 수불</h3><p class="cs">그날 움직인 원료를 위에, 움직이지 않은 원료는 아래 회색으로 보여요.</p>
 <div class="tw"><table class="t"><thead><tr><th>원료</th><th class="r">전일 재고</th><th class="r">입고</th><th class="r">사용</th><th class="r">조정</th><th class="r">재고</th><th>내용</th></tr></thead><tbody>
 ${rows.sort((x, y) => (y.mv.length ? 1 : 0) - (x.mv.length ? 1 : 0)).map(r => `<tr class="click${r.mv.length ? '' : ' open'}" data-rlit="${esc(r.c)}"><td><b>${esc(r.nm)}</b></td><td class="r">${g0(r.ob)}</td><td class="r tin">${r.s.in ? g0(r.s.in) : ''}</td><td class="r tuse">${r.s.use ? g0(r.s.use) : ''}</td><td class="r tadj">${r.s.adj ? gs(r.s.adj) : ''}</td><td class="r"><b>${g0(r.cb)}</b></td><td><small>${r.mv.map(m => m.t === 'in' ? `입고 ${esc(m.v || '')}${m.k === 'exp' ? ' (' + ymdE(m.ed) + ')' : ''}` : m.t === 'use' ? esc(nmS(m.pn)) + ' ' + fmt(m.pq) + '개' : m.t === 'adj' ? '조정' : '기타').join(' · ')}</small></td></tr>`).join('')}
@@ -10486,11 +10486,12 @@ ${codes.map(c => { const I = rlItem(c); const m = (S.master && S.master.items &&
     q('[data-rlgo]').forEach(b => b.onclick = e => { e.stopPropagation(); const it = b.dataset.it; if (it) { RL.it = it; RL.tr.raw = it; } if (b.dataset.rlgo === 'rledg') RL.mode = 'item'; rlGo(b.dataset.rlgo); });
     q('[data-rlit]').forEach(b => b.onclick = () => { RL.it = b.dataset.rlit; RL.mode = 'item'; if (t === 'rledg') { rlRender('rledg'); window.scrollTo(0, 0); } else rlGo('rledg'); });
     q('[data-rlpick]').forEach(b => b.onclick = () => { RL.it = b.dataset.rlpick; rlRender('rledg'); });
-    q('[data-rlmode]').forEach(b => b.onclick = () => { RL.mode = b.dataset.rlmode; rlRender('rledg'); });
+    q('[data-rlmode]').forEach(b => b.onclick = () => { RL.mode = b.dataset.rlmode; if (RL.mode === 'day') RL.day = today(); rlRender('rledg'); });
     q('[data-rlper]').forEach(b => b.onclick = () => { RL.per = b.dataset.rlper; rlRender('rledg'); });
     q('[data-rlmon]').forEach(s => s.onchange = () => { if (s.value) { RL.per = 'mon'; RL.mon = s.value; } rlRender('rledg'); });
     q('[data-rlday]').forEach(b => b.onclick = () => { RL.day = b.dataset.rlday; rlRender('rledg'); });
     q('[data-rldaysel]').forEach(s => s.onchange = () => { RL.day = s.value; rlRender('rledg'); });
+    q('[data-rldaypick]').forEach(s => s.onchange = () => { if (s.value) { RL.day = s.value > today() ? today() : s.value; rlRender('rledg'); } });
     q('[data-rlq]').forEach(i => { i.oninput = () => { RL.q = i.value.trim(); const p = i.selectionStart; rlRender('rledg').then(() => { const n = document.querySelector('#rl_rledg [data-rlq]'); if (n) { n.focus(); try { n.setSelectionRange(p, p); } catch (e) { } } }); }; });
     q('[data-rlopen]').forEach(b => b.onclick = () => { const k = b.dataset.rlopen; RL.open[k] = !RL.open[k]; rlRender(t); });
     q('[data-rltr]').forEach(s => s.onchange = () => { const k = s.dataset.rltr; RL.tr[k] = s.value; if (k === 'raw') RL.tr.lot = ''; rlRender('rtrace'); });
