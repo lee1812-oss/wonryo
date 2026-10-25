@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '269';
-const APP_BUILT = '2026-10-25 20:15';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '270';
+const APP_BUILT = '2026-10-25 20:23';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -9286,7 +9286,40 @@ try { (function () {
   function ssDefDate() { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() - 5 + 7) % 7)); return ssDstr(d); }
   let ssDate = (() => { try { const o = JSON.parse(localStorage.getItem('ss_date_v262') || 'null'); if (o && o.on === today() && ssDobj(o.d)) return o.d; } catch (e) {} return ssDefDate(); })();
   function ssCW() { return ssDate || curWeek(); }
-  function ssSetDate(v) { if (!ssDobj(v)) return; ssDate = v; try { localStorage.setItem('ss_date_v262', JSON.stringify({ d: v, on: today() })); } catch (e) {} try { physFor(v); S.ui.week = v; save(); } catch (e) {} wvRender(); try { const ov = document.getElementById('wvOv'); if (ov) ov.scrollTop = 0; } catch (e) {} const o = ssDobj(v); toast('실사 날짜: ' + (o.getMonth() + 1) + '월 ' + o.getDate() + '일 (' + SS_WD[o.getDay()] + ')'); }
+  function ssSetDate(v) { if (!ssDobj(v)) return; ssDate = v; try { localStorage.setItem('ss_date_v262', JSON.stringify({ d: v, on: today() })); } catch (e) {} try { physFor(v); S.ui.week = v; save(); } catch (e) {} wvRender(); try { setTimeout(sfRun, 50); } catch (e) {} try { const ov = document.getElementById('wvOv'); if (ov) ov.scrollTop = 0; } catch (e) {} const o = ssDobj(v); toast('실사 날짜: ' + (o.getMonth() + 1) + '월 ' + o.getDate() + '일 (' + SS_WD[o.getDay()] + ')'); }
+  /* v270: 사용자 2026-10-25 「통합재고관리를 실행하면 최신값이 반영되도록」 — 지난 날짜 전산재고 자동 맞추기.
+     원인: 날짜별 전산재고(S.snapshots)는 기기마다 따로 저장되고, 그 날짜에 앱을 안 연 기기는 더 예전 날짜 자료를 대신 씀
+     (10/23 금요일 실사 냉동전란: 그날 자료 없는 노트북 20,420g ↔ 이카운트 65,788g).
+     고침: 앱을 열 때·화면으로 돌아올 때·실사 날짜/주차를 바꿀 때, 오늘 이전 날짜인데 이 기기에 그 날짜 자료가 없으면
+     깃허브 연동 이력(ecAllFetch = 그날 23:59까지 마지막 data.json)으로 그 날짜 전산재고를 만들어 넣음.
+     이미 그 날짜에 받은 자료·엑셀로 올린 자료는 건드리지 않음(실사 뒤 재고조정이 섞이지 않게). 실패하면 10분 뒤 다시 시도. */
+  const SF_TRY = {};
+  function sfNeed(date) { return !!date && /^\d{4}-\d{2}-\d{2}$/.test(date) && date < today() && !S.snapshots[date]; }
+  async function sfFix(date) {
+    const r = await ecAllFetch(date); const d = r.data; if (!d || !Array.isArray(d.items)) return false;
+    if (S.snapshots[date]) return false;
+    const qty = {}; d.items.forEach(x => { if (x.code) qty[x.code] = x.qty; });
+    const known = new Map(); itemsFor(date).forEach(i => known.set(i.code, Object.assign({}, i)));
+    try { Object.values(masterStore().items).forEach(m => { if (!known.has(m.code)) known.set(m.code, { code: m.code, name: m.name || '', vendor: m.vendor || '', spec: m.spec, tare: m.tare, qty: null, expiry: '' }); }); } catch (e) {}
+    const items = []; known.forEach((it, code) => { delete it.snapWeek; delete it.virtual; delete it.phys; if (code in qty) it.qty = qty[code]; items.push(it); });
+    if (!items.length) return false;
+    S.snapshots[date] = { date, company: d.company || S.settings.company, source: 'ecount-oapi ' + (d.updatedAt || '') + ' (깃허브 이력)', importedAt: new Date().toISOString(), histFix: d.sha || r.src, items };
+    const ph = S.physical[date]; if (ph) Object.keys(ph).forEach(c => { if (ph[c] && ph[c].est) delete ph[c]; });
+    return true;
+  }
+  let sfBusy = false;
+  async function sfRun() {
+    if (sfBusy) return; sfBusy = true; const done = [];
+    try {
+      let cw = ''; try { cw = curWeek(); } catch (e) {}
+      const ds = [...new Set([ssCW(), ssDefDate(), cw, S.ui && S.ui.week].filter(Boolean))];
+      for (const d of ds) { if (!sfNeed(d)) continue; if (SF_TRY[d] && Date.now() - SF_TRY[d] < 10 * 60000) continue; SF_TRY[d] = Date.now(); try { if (await sfFix(d)) done.push(d); } catch (e) { console.warn('v270 전산재고 이력', d, e); } }
+    } finally { sfBusy = false; }
+    if (done.length) { save(true); try { renderAll(); } catch (e) {} try { wvRender(); } catch (e) {} try { toast(done.map(d => d.slice(5).replace('-', '/')).join(', ') + ' 전산재고를 이카운트 연동 이력으로 맞췄습니다'); } catch (e) {} }
+  }
+  window.__sfRun = sfRun;
+  setTimeout(sfRun, 2500); setInterval(() => { if (document.visibilityState === 'visible') sfRun(); }, 15000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(sfRun, 1500); });
   function ssShift(n) { const o = ssDobj(ssCW()) || new Date(); o.setDate(o.getDate() + n); ssSetDate(ssDstr(o)); }
   function ssDateHtml() { const v = ssCW(); const o = ssDobj(v); const fri = o && o.getDay() === 5; const L = itemsFor(v); const base = L.length ? L[0].snapWeek : '';
     const dt = o ? `<small>${o.getFullYear()}년</small>${o.getMonth() + 1}월 ${o.getDate()}일 (${SS_WD[o.getDay()]})` : esc(v || '—');
