@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '278';
-const APP_BUILT = '2026-10-25 23:22';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '279';
+const APP_BUILT = '2026-10-25 23:52';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -9955,6 +9955,552 @@ try { (function () {
   }
   try { if (S.ui && S.ui.tab === 'cmp') renderCmp(); } catch (e) {}
 })(); } catch (e) { console.warn('cmp dates v277', e); }
+
+
+/* ══ v279 (2026-10-26 Aside) 원료수불부 재구성 — 사용자 요청(10/25 밤): 「원료수불부 전체를 전수조사해서 대기업 수준으로, 매끄럽고 직관적이고 현실성 있게.
+   HACCP·시청 점검에 맞는 원료수불부 형태, 이카운트 생산일지와 통합재고관리가 매끄럽게 연동」
+   - 메뉴를 일하는 순서로 묶음: 매일(현황·수불대장) → 금요일 실사(실사 입력·실사 차이·재고 조정) → 생산·구매(생산 연동·원료 발주·소비기한) → 관리(로트 추적·기준 정보) → 예전 화면.
+   - 새 화면 5개: 현황(rhome) · 수불대장(rledg) · 생산 연동(rprod) · 로트 추적(rtrace) · 기준 정보(rmast). 예전 화면 함수는 하나도 지우거나 바꾸지 않음(감싸기만).
+   - 자료: 공장 자료(factory.enc.json) rawledger = Aside dashboard/rawledger_build.js (이카운트 06:30 전표: 구매·생산입고/소모·재고조정 → 원료별 날짜별 원장, 07:50·17:50 갱신)
+     + 지금 이카운트 재고(5분 연동) + 금요일 실사 재고조정(S.ssAdjReq/S.ssAdjDone) + 실사 확정값(S.ssSaved).
+   - 이 블록을 통째로 빼면 v278과 같음. 공유 저장소·이카운트에는 아무것도 쓰지 않음(보기·인쇄·엑셀만). ══ */
+try { (function () {
+  if (window.FIELD_APP || window.SILSA_APP) return;
+  const RL = window.__RL = window.__RL || { mode: 'item', it: '', per: 'm0', day: '', mon: '', q: '', sort: 'risk', tr: { raw: '', lot: '', doc: '' }, open: {}, data: null, err: '', at: 0 };
+  const NEW = ['rhome', 'rledg', 'rprod', 'rtrace', 'rmast'];
+  const ic = p => `<svg viewBox="0 0 24 24">${p}</svg>`;
+  const tabIco = id => { const t = TABS.find(x => x[0] === id); return t ? t[2] : ''; };
+  const ICO_RL = {
+    rhome: ic('<path d="M3 13h4v8H3zM10 8h4v13h-4zM17 3h4v18h-4z"/>'),
+    rledg: ic('<path d="M5 3h11l3 3v15H5z"/><path d="M8 9h8M8 13h8M8 17h5"/>'),
+    rprod: ic('<path d="M3 20h18M5 20V10l4 3V9l4 3V8l4 3v9"/><path d="M17 5h3v6"/>'),
+    rtrace: ic('<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7.5 8l3.3 7.6M16.5 8l-3.3 7.6"/>'),
+    rmast: ic('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 9v11"/>')
+  };
+  const RAW_MENU = [
+    ['rhome', '현황', ICO_RL.rhome], ['rledg', '수불대장', ICO_RL.rledg],
+    ['phys', '실사 입력', tabIco('phys')], ['cmp', '실사 차이', tabIco('cmp')], ['adj', '재고 조정', tabIco('adj')],
+    ['rprod', '생산 연동', ICO_RL.rprod], ['rbuy', '원료 발주', tabIco('rbuy')], ['fifo', '소비기한', tabIco('fifo')],
+    ['rtrace', '로트 추적', ICO_RL.rtrace], ['rmast', '기준 정보', ICO_RL.rmast],
+    ['stock', '전산재고', tabIco('stock')], ['weekly', '주간재고', tabIco('weekly')], ['trend', '추이', tabIco('trend')], ['dash', '옛 대시보드', tabIco('dash')]
+  ];
+  const GROUPS = [['매일', ['rhome', 'rledg']], ['금요일 실사', ['phys', 'cmp', 'adj']], ['생산 · 구매', ['rprod', 'rbuy', 'fifo']], ['관리 · 점검', ['rtrace', 'rmast']], ['예전 화면', ['stock', 'weekly', 'trend', 'dash']]];
+  const BOTTOM = ['rhome', 'rledg', 'phys', 'cmp', 'rprod', 'rbuy'];
+
+  /* ── 메뉴 ── */
+  const _menuItems = menuItems;
+  menuItems = function (m) { if (m === 'raw') return RAW_MENU; return _menuItems(m); };
+  try { if (S.ui && !S.ui.rl279) { S.ui.rl279 = 1; if (!S.ui.tab || S.ui.tab === 'dash') S.ui.tab = 'rhome'; save(); } } catch (e) { }
+
+  const _renderTabs = renderTabs;
+  renderTabs = function () {
+    const r = _renderTabs.apply(this, arguments);
+    try { rlSide(); } catch (e) { console.warn('rl side', e); }
+    return r;
+  };
+  function rlGo(k) { S.ui.menu = 'raw'; S.ui.tab = k; save(); renderAll(); window.scrollTo(0, 0); }
+  window.rlGo = rlGo;
+  function rlSide() {
+    if (S.ui.menu !== 'raw') return;
+    const nav = document.getElementById('sideNav'); if (!nav || nav.querySelector('.rl-side')) return;
+    const grid = nav.querySelector('.subgrid'); if (!grid) return;
+    const cur = S.ui.tab; const by = Object.fromEntries(RAW_MENU.map(x => [x[0], x]));
+    const btn = id => { const x = by[id]; return `<button data-rltab="${id}" class="${cur === id ? 'on' : ''}" title="${x[1]}">${x[2]}<span>${x[1]}</span></button>`; };
+    const html = GROUPS.map(([g, ids], gi) => `<div class="rl-sg${gi === GROUPS.length - 1 ? ' old' : ''}">${g}</div><div class="subgrid rl-sub">${ids.map(btn).join('')}</div>`).join('');
+    const wrap = document.createElement('div'); wrap.className = 'rl-side'; wrap.innerHTML = html;
+    grid.replaceWith(wrap);
+    wrap.querySelectorAll('[data-rltab]').forEach(b => b.onclick = () => rlGo(b.dataset.rltab));
+    const bt = document.getElementById('tabsBottom');
+    if (bt) { bt.innerHTML = BOTTOM.map(btn).join(''); bt.querySelectorAll('[data-rltab]').forEach(b => b.onclick = () => rlGo(b.dataset.rltab)); }
+    const gl = nav.querySelector('.grp'); if (gl) gl.textContent = '원료수불부';
+  }
+
+  /* ── 화면 자리(section) ── */
+  function rlSections() {
+    const ref = document.querySelector('section.view[data-view="fifo"]') || document.querySelector('section.view[data-view="rbuy"]'); if (!ref) return;
+    NEW.forEach(id => { if (document.querySelector(`section.view[data-view="${id}"]`)) return; const s = document.createElement('section'); s.className = 'view'; s.dataset.view = id; s.innerHTML = `<div class="rl" id="rl_${id}"></div>`; ref.parentNode.insertBefore(s, ref); });
+  }
+  rlSections();
+
+  /* ── renderAll: 새 화면일 때는 원래 renderAll과 같은 순서로 그리고 마지막만 새 화면 ── */
+  const _renderAll = renderAll;
+  renderAll = function () {
+    if (!NEW.includes(S.ui.tab)) { const r = _renderAll.apply(this, arguments); try { rlStepper(); } catch (e) { } return r; }
+    renderTabs(); renderHeader(); renderNotice(); if (typeof renderSyncPill === 'function') renderSyncPill(); if (typeof renderChanges === 'function') setTimeout(renderChanges, 0);
+    if (S.ui.menu === 'home') renderHome();
+    if (isProdM(S.ui.menu)) renderProd();
+    if (S.ui.menu === 'sys') { if (S.ui.sysTab === 'set' || S.ui.sysTab === 'setraw') renderSet(); if (S.ui.sysTab === 'pset') { try { finEnsure(); } catch (e) { } renderProdSet(); } renderModeBox(); }
+    if (S.ui.menu === 'raw') rlRender(S.ui.tab);
+  };
+
+  /* ── 공통 도우미 ── */
+  const WD = '일월화수목금토';
+  const pd = d => new Date(d + 'T00:00:00');
+  const addD = (d, n) => { const t = pd(d); t.setDate(t.getDate() + n); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
+  const md = d => d ? (+d.slice(5, 7)) + '/' + (+d.slice(8, 10)) : '';
+  const mdw = d => d ? md(d) + '(' + WD[pd(d).getDay()] + ')' : '';
+  const dd = (a, b) => Math.round((pd(a) - pd(b)) / 864e5);
+  const g0 = v => v == null || isNaN(v) ? '—' : Math.round(v).toLocaleString('ko-KR');
+  const gs = v => v == null || isNaN(v) ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(Math.round(v)).toLocaleString('ko-KR');
+  const kg = v => { if (v == null || isNaN(v)) return '—'; const a = Math.abs(v); return a >= 1000 ? (Math.round(v / 100) / 10).toLocaleString('ko-KR') + 'kg' : Math.round(v).toLocaleString('ko-KR') + 'g'; };
+  const nmS = n => String(n || '').replace(/_gg\d+/, '').replace(/\s*\[.*?\]\s*/g, ' ').trim();
+  const ymdE = d => d ? d.slice(2).replace(/-/g, '.') : '';
+  const live = c => { try { return rbStock(c); } catch (e) { return null; } };
+  const price = c => { try { const m = S.master && S.master.items && S.master.items[c]; return m && Number(m.price) > 0 ? Number(m.price) : 0; } catch (e) { return 0; } };
+  const won = v => v == null || isNaN(v) ? '—' : Math.round(v).toLocaleString('ko-KR') + '원';
+  function lastFri(d) { let x = d; while (pd(x).getDay() !== 5) x = addD(x, -1); return x; }
+  function nextFri(d) { let x = addD(d, 1); while (pd(x).getDay() !== 5) x = addD(x, 1); return x; }
+
+  async function rlLoad(force) {
+    try {
+      const F = await facLoad(force); const f = F && (F.factory || F) || {};
+      RL.data = { L: (F && F.rawledger) || f.rawledger || null, B: (F && F.rawbuy) || f.rawbuy || null, F };
+      RL.err = RL.data.L ? '' : (typeof FAC_ERR !== 'undefined' && FAC_ERR) || '원료수불부 원장 자료가 아직 없어요. 매일 아침 07:50 · 저녁 17:50에 이카운트 전표로 다시 만들어요.';
+    } catch (e) { RL.err = String((e && e.message) || e); }
+    RL.at = Date.now(); return RL.data;
+  }
+
+  /* 실사 재고조정(자가사용) — 앱이 아는 조정 */
+  function rlAdjEvents() {
+    const out = [];
+    try {
+      const R = S.ssAdjReq || {}, D = S.ssAdjDone || {};
+      Object.keys(R).sort().forEach(d => { const q = R[d]; if (!q || q.x === 0 || !Array.isArray(q.rows)) return; const dn = D[d]; out.push({ d, rows: q.rows, who: q.who, done: !!(dn && dn.slip), slip: dn && dn.slip || '', ts: dn && dn.ts || q.ts }); });
+    } catch (e) { }
+    return out;
+  }
+
+  /* 원료 하나의 원장: 이동 목록 + 매 줄 재고 (앱이 아는 실사 조정·오늘 변동을 합침) */
+  const ORD = { open: 0, in: 1, use: 2, adj: 3, etc: 4, live: 5 };
+  function rlItem(c) {
+    const L = RL.data && RL.data.L; if (!L || !L.items[c]) return null;
+    const it = L.items[c]; const mv = [];
+    it.ins.forEach(x => mv.push({ d: x[0], t: 'in', g: x[1], n: x[2], w: x[3], pc: x[4], v: x[5], k: x[6], ed: x[7], m: x[8], pr: x[9] }));
+    it.uses.forEach(x => Math.abs(x[1]) >= 0.05 && mv.push({ d: x[0], t: 'use', g: x[1], p: x[2], pn: x[3], pq: x[4], no: x[5] }));
+    it.adjs.forEach(x => mv.push({ d: x[0], t: 'adj', g: x[1], no: x[2], m: x[3] || ('재고조정 · 전표 ' + x[2]) }));
+    it.etcs.forEach(x => mv.push({ d: x[0], t: 'etc', g: x[1], m: '기타 변동(자가사용 등)' }));
+    const pend = [];
+    rlAdjEvents().forEach(ev => {
+      const r = ev.rows.find(x => x.c === c); if (!r || !Number(r.a)) return; const g = -Number(r.a);
+      const e = mv.find(m => m.t === 'etc' && m.d >= ev.d && Math.abs(m.g - g) < 2);
+      const memo = `${md(ev.d)} 금요일 실사 재고조정${ev.slip ? ' · 자가사용 ' + ev.slip : ''}`;
+      if (e) { e.t = 'adj'; e.d = ev.d; e.m = memo; e.ss = 1; }
+      else if (ev.done && !mv.some(m => m.t === 'adj' && m.d === ev.d && Math.abs(m.g - g) < 2)) pend.push({ d: ev.d, t: 'adj', g, m: memo, ss: 1, pend: 1 });
+    });
+    const lv = live(c); let rest = lv == null ? 0 : lv - it.stock;
+    const ps = pend.reduce((a, x) => a + x.g, 0);
+    if (pend.length && Math.abs(rest - ps) < Math.max(2, Math.abs(ps) * 0.001)) { pend.forEach(x => mv.push(x)); rest -= ps; }
+    if (Math.abs(rest) >= 1) mv.push({ d: today(), t: 'live', g: rest, m: `${L.asOf ? L.asOf.slice(11, 16) : '아침'} 이후 이카운트 변동 — 다음 원장 갱신 때 입고·사용으로 나뉘어요` });
+    mv.sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : ORD[a.t] - ORD[b.t]);
+    let bal = it.open; mv.forEach(m => { bal += m.t === 'use' ? -m.g : m.g; m.bal = Math.round(bal * 10) / 10; });
+    return { c, nm: nmS(it.nm), open: it.open, from: L.from, mv, now: lv == null ? it.stock : lv, it };
+  }
+  function rlBalAt(I, d) { let b = I.open; for (const m of I.mv) { if (m.d > d) break; b = m.bal; } return b; }
+  function rlSum(I, a, b) { const o = { in: 0, use: 0, adj: 0, n: 0 }; I.mv.forEach(m => { if (m.d < a || m.d > b) return; if (m.t === 'in') { o.in += m.g; o.n++; } else if (m.t === 'use') o.use += m.g; else o.adj += m.g; }); return o; }
+  function rlCodes() { const L = RL.data && RL.data.L; if (!L) return []; return Object.keys(L.items).sort((a, b) => nmS(L.items[a].nm).localeCompare(nmS(L.items[b].nm), 'ko')); }
+  function rlAvgUse(I, days) { const to = today(), fr = addD(to, -days); let u = 0; I.mv.forEach(m => { if (m.t === 'use' && m.d > fr && m.d <= to) u += m.g; }); return u / days; }
+
+  /* 마지막 실사 (금요일 실사 확정값 → 정확도) */
+  function rlLastCount() {
+    const evs = rlAdjEvents(); const ss = S.ssSaved || {};
+    const ds = Object.keys(ss).filter(d => Object.keys(ss[d] || {}).length).sort();
+    const d = ds[ds.length - 1]; if (!d) return null;
+    const rows = Object.entries(ss[d]).map(([c, v]) => ({ c, q: Number(v.q), e: Number(v.e), s: v.s })).filter(r => !isNaN(r.q) && !isNaN(r.e));
+    const tol = r => Math.max(50, Math.abs(r.e) * 0.02);
+    const ok = rows.filter(r => Math.abs(r.q - r.e) <= tol(r));
+    const ev = evs.find(x => x.d === d);
+    const val = rows.reduce((a, r) => a + Math.abs(r.q - r.e) * price(r.c), 0);
+    return { d, n: rows.length, ok: ok.length, pct: rows.length ? Math.round(ok.length / rows.length * 100) : null, rows, ev, val, tol };
+  }
+
+  /* ── 공통 CSS ── */
+  function rlCss() {
+    if (document.getElementById('rlCss')) return; const st = document.createElement('style'); st.id = 'rlCss';
+    st.textContent = `
+.rl{--k:#7A4A23;--k2:#A0673A;--kb:#F7F1EA;--ln:#E4DDD5;--tx:#1F1A16;--mu:#6B625A;--red:#C62828;--org:#D9822B;--grn:#2E7D32;--blu:#24527A;font-size:17px;line-height:1.55;color:var(--tx);word-break:keep-all;overflow-wrap:break-word}
+.rl *{box-sizing:border-box}.rl .nw{white-space:nowrap}.rl .mu{color:var(--mu)}.rl .r{text-align:right}.rl .c{text-align:center}
+.rl .hd{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:2px 0 14px}
+.rl .hd h2{margin:0;font-size:25px;font-weight:800;letter-spacing:-.3px}.rl .hd .sub{color:var(--mu);font-size:15px;margin-top:3px}
+.rl .acts{display:flex;gap:8px;flex-wrap:wrap}
+.rl .b{min-height:46px;padding:8px 16px;border-radius:10px;border:1px solid #cfc4b8;background:#fff;color:var(--tx);font:inherit;font-size:16px;font-weight:600;cursor:pointer;white-space:nowrap}
+.rl .b:hover{background:var(--kb)}.rl .b.p{background:var(--k);border-color:var(--k);color:#fff}.rl .b.p:hover{background:#633b1b}.rl .b.sm{min-height:36px;padding:4px 12px;font-size:14.5px}
+.rl .card{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:16px 18px;margin-bottom:14px}
+.rl .card>h3{margin:0 0 4px;font-size:19.5px;font-weight:800}.rl .card>.cs{color:var(--mu);font-size:14.5px;margin:0 0 12px}
+.rl .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:10px;margin-bottom:14px}
+.rl .kpi{background:#fff;border:1px solid var(--ln);border-top:5px solid #9e9e9e;border-radius:12px;padding:12px 14px;cursor:pointer;text-align:left;font:inherit;color:inherit;min-height:118px;display:flex;flex-direction:column;gap:2px}
+.rl .kpi:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}.rl .kpi .t{font-size:14.5px;color:var(--mu);font-weight:700}.rl .kpi .v{font-size:31px;font-weight:800;line-height:1.15;letter-spacing:-.5px}.rl .kpi .v small{font-size:16px;font-weight:700;margin-left:2px}.rl .kpi .s{font-size:13.5px;color:var(--mu);line-height:1.4}
+.rl .kpi.red{border-top-color:var(--red)}.rl .kpi.red .v{color:var(--red)}.rl .kpi.org{border-top-color:var(--org)}.rl .kpi.org .v{color:#B4610F}.rl .kpi.grn{border-top-color:var(--grn)}.rl .kpi.grn .v{color:var(--grn)}.rl .kpi.blu{border-top-color:var(--blu)}.rl .kpi.blu .v{color:var(--blu)}.rl .kpi.k{border-top-color:var(--k)}.rl .kpi.k .v{color:var(--k)}
+.rl table.t{width:100%;border-collapse:collapse;font-size:15.5px}.rl .t th{background:#F6F3EF;color:#4f463e;font-weight:700;font-size:14px;padding:9px 8px;border-bottom:1px solid var(--ln);text-align:left;white-space:nowrap;position:sticky;top:0;z-index:1}
+.rl .t td{padding:9px 8px;border-bottom:1px solid #EFEAE4;vertical-align:middle}.rl .t td.r,.rl .t th.r{text-align:right;font-variant-numeric:tabular-nums}.rl .t tr.click{cursor:pointer}.rl .t tr.click:hover td{background:#FBF7F2}
+.rl .t tr.sum td{background:#F6F3EF;font-weight:800;border-top:2px solid #d8cfc5}.rl .t tr.open td{background:#FAFAF8;color:var(--mu)}.rl .t tr.pend td{background:#FFF8EC}.rl .t tr.dsep td{border-top:2px solid #e2d8cd}
+.rl .tw{overflow:auto;max-height:70vh;border:1px solid var(--ln);border-radius:10px}
+.rl .chip{display:inline-block;border-radius:999px;padding:2px 10px;font-size:13.5px;font-weight:700;white-space:nowrap;background:#EEE;color:#555}
+.rl .chip.red{background:#FDE7E7;color:var(--red)}.rl .chip.org{background:#FFF0DD;color:#A65A0B}.rl .chip.grn{background:#E6F4E7;color:var(--grn)}.rl .chip.blu{background:#E7F0F8;color:var(--blu)}.rl .chip.k{background:var(--kb);color:var(--k)}
+.rl .tin{color:var(--blu);font-weight:700}.rl .tuse{color:#8B3A1A;font-weight:700}.rl .tadj{color:#7B4BA0;font-weight:700}
+.rl .seg{display:inline-flex;border:1px solid #cfc4b8;border-radius:10px;overflow:hidden;flex-wrap:wrap}.rl .seg button{border:0;background:#fff;padding:9px 16px;font:inherit;font-size:15.5px;font-weight:700;color:#4f463e;cursor:pointer;min-height:44px}.rl .seg button+button{border-left:1px solid #e2d8cd}.rl .seg button.on{background:var(--k);color:#fff}
+.rl .bar{height:10px;background:#EEE;border-radius:6px;overflow:hidden;min-width:80px}.rl .bar i{display:block;height:100%;background:var(--grn)}.rl .bar i.org{background:var(--org)}.rl .bar i.red{background:var(--red)}
+.rl .note{background:#F7F7F5;border:1px solid #E6E3DE;border-radius:10px;padding:10px 14px;font-size:14.5px;color:#4f463e}.rl .note b{color:var(--tx)}
+.rl .warn{background:#FFF4E5;border:1px solid #F5D3A6;color:#7A4300;border-radius:10px;padding:10px 14px;font-size:15px;margin-bottom:12px}
+.rl .bad{background:#FDECEC;border:1px solid #F3C2C2;color:#8E1B1B;border-radius:10px;padding:10px 14px;font-size:15px;margin-bottom:12px}
+.rl .flow{display:flex;gap:6px;align-items:stretch;flex-wrap:wrap;margin-bottom:14px}.rl .flow .st{flex:1;min-width:150px;background:#fff;border:1px solid var(--ln);border-radius:12px;padding:10px 12px;font-size:14.5px}.rl .flow .st b{display:block;font-size:16px}.rl .flow .ar{display:flex;align-items:center;color:#bba892;font-size:18px}
+.rl .flow .st.on{border:2px solid var(--k);background:var(--kb)}
+.rl .wk{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}.rl .wk div{background:#fff;border:1px solid var(--ln);border-radius:12px;padding:9px 11px;font-size:14px;color:#4f463e;min-height:84px}.rl .wk div b{display:block;font-size:15.5px;color:var(--tx);margin-bottom:2px}.rl .wk div.on{border:2px solid var(--k);background:var(--kb)}
+.rl .two{display:grid;grid-template-columns:260px 1fr;gap:14px}.rl .ilist{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:8px;max-height:78vh;overflow:auto}
+.rl .ilist input{width:100%;min-height:44px;border:1px solid #cfc4b8;border-radius:10px;padding:6px 12px;font:inherit;font-size:16px;margin-bottom:6px}
+.rl .ilist button{display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:9px;font:inherit;font-size:15.5px;cursor:pointer;color:var(--tx)}.rl .ilist button:hover{background:#F6F1EB}.rl .ilist button.on{background:var(--k);color:#fff}.rl .ilist button small{opacity:.75;font-size:13px;white-space:nowrap}
+.rl .bal{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid var(--ln);border-radius:12px;overflow:hidden;margin-bottom:12px}.rl .bal div{padding:10px 12px;border-right:1px solid var(--ln);background:#fff}.rl .bal div:last-child{border-right:0;background:var(--kb)}.rl .bal span{display:block;font-size:13.5px;color:var(--mu);font-weight:700}.rl .bal b{font-size:22px;font-variant-numeric:tabular-nums}
+.rl .ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.rl select,.rl input[type=month],.rl input[type=date]{min-height:44px;border:1px solid #cfc4b8;border-radius:10px;padding:4px 10px;font:inherit;font-size:16px;background:#fff}
+.rl .todo{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #EFEAE4}.rl .todo:last-child{border-bottom:0}.rl .todo .chip{margin-top:2px}.rl .todo div{flex:1}.rl .todo small{display:block;color:var(--mu);font-size:14px}
+.rl .law{font-size:13.5px;color:var(--mu);margin-top:8px}
+.rl-stp{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;font-size:15px;word-break:keep-all}.rl-stp button{flex:1;min-width:140px;min-height:50px;border:1px solid #E4DDD5;background:#fff;border-radius:12px;padding:6px 10px;font:inherit;font-size:15px;font-weight:700;color:#4f463e;cursor:pointer;text-align:left}.rl-stp button i{font-style:normal;display:inline-flex;width:24px;height:24px;border-radius:50%;background:#D9CDC2;color:#fff;align-items:center;justify-content:center;margin-right:6px;font-size:13px}.rl-stp button.on{border:2px solid #7A4A23;background:#F7F1EA;color:#1F1A16}.rl-stp button.on i{background:#7A4A23}.rl-stp .tl{flex-basis:100%;font-size:13.5px;color:#6B625A;font-weight:700}
+.rl-side .rl-sg{font-size:11.5px;font-weight:800;color:#8a7c70;margin:8px 4px 3px;letter-spacing:.2px}.rl-side .rl-sg.old{opacity:.75}body.navmini .rl-side .rl-sg{font-size:10px;text-align:center;margin:6px 0 2px}
+@media (max-width:900px){.rl .two{grid-template-columns:1fr}.rl .ilist{max-height:none;display:flex;gap:6px;overflow-x:auto;padding:6px}.rl .ilist input{display:none}.rl .ilist button{flex:none;width:auto}.rl .wk{grid-template-columns:repeat(2,1fr)}.rl .bal{grid-template-columns:repeat(2,1fr)}.rl .kpi .v{font-size:26px}}
+`;
+    document.head.appendChild(st);
+  }
+
+  /* ── 금요일 실사 3단계 띠 (실사 입력 · 실사 차이 · 재고 조정 위) ── */
+  function rlStepper() {
+    if (S.ui.menu !== 'raw') return;
+    const t = S.ui.tab; if (!['phys', 'cmp', 'adj'].includes(t)) return; rlCss();
+    const sec = document.querySelector(`section.view[data-view="${t}"]`); if (!sec) return;
+    let el = sec.querySelector(':scope > .rl-stp'); if (!el) { el = document.createElement('div'); el.className = 'rl-stp'; sec.prepend(el); }
+    const lc = (() => { try { return rlLastCount(); } catch (e) { return null; } })();
+    const st = [['phys', '실사 입력', '금요일 실사 · 미개봉·개봉 무게'], ['cmp', '실사 차이', '전산과 비교 · 원인 확인'], ['adj', '재고 조정', '이카운트 반영 · 전표']];
+    el.innerHTML = `<div class="tl">금요일 원료 실사 순서 — 지금 ${st.findIndex(x => x[0] === t) + 1}단계${lc ? ` · 지난 실사 ${mdw(lc.d)} ${lc.n}품목${lc.ev && lc.ev.done ? ' · 이카운트 반영 ' + esc(lc.ev.slip) : ''}` : ''}</div>`
+      + st.map((x, i) => `<button data-rlstp="${x[0]}" class="${x[0] === t ? 'on' : ''}"><i>${i + 1}</i>${x[1]}<br><small style="font-weight:500;color:#6B625A">${x[2]}</small></button>`).join('')
+      + `<button data-rlstp="rledg"><i>4</i>수불대장 확인<br><small style="font-weight:500;color:#6B625A">조정이 원장에 들어갔는지</small></button>`;
+    el.querySelectorAll('[data-rlstp]').forEach(b => b.onclick = () => rlGo(b.dataset.rlstp));
+  }
+
+  /* ── 그리기 ── */
+  async function rlRender(t) {
+    rlCss(); const box = document.getElementById('rl_' + t); if (!box) return;
+    if (!RL.data || Date.now() - RL.at > 5 * 60e3) { if (!RL.data) box.innerHTML = '<div class="rl"><div class="card mu">원료수불부 자료를 불러오는 중…</div></div>'; await rlLoad(); }
+    if (S.ui.tab !== t) return;
+    try {
+      const fn = { rhome: rlHome, rledg: rlLedg, rprod: rlProd, rtrace: rlTrace, rmast: rlMast }[t];
+      box.innerHTML = fn(); rlBind(box, t);
+    } catch (e) { console.error(e); box.innerHTML = `<div class="rl"><div class="bad">화면을 그리다 문제가 생겼어요: ${esc(String(e && e.message || e))}</div></div>`; }
+  }
+  window.rlRender = rlRender;
+  function rlNoData() { return `<div class="rl"><div class="hd"><div><h2>원료수불부</h2></div></div><div class="warn">${esc(RL.err || '자료 없음')}</div><button class="b" data-rlact="reload">다시 불러오기</button></div>`; }
+  function rlSrcLine() {
+    const L = RL.data.L; let at = ''; try { at = rbStockAt(); } catch (e) { }
+    return `이카운트 전표로 자동 작성 · 원장 기준 ${esc(L.asOf || '')} · 지금 재고 ${at ? esc(String(at).slice(11, 16)) : '—'} 연동`;
+  }
+
+  /* 1) 현황 */
+  function rlRows() {
+    const L = RL.data.L; const B = RL.data.B; const lots = B && B.lots && B.lots.items || {};
+    const lc = rlLastCount();
+    return rlCodes().map(c => {
+      const I = rlItem(c); const now = I.now; const avg = rlAvgUse(I, 28); const days = avg > 0 ? now / avg : null;
+      let ss = 0; try { ss = rbSS(c); } catch (e) { }
+      const lastIn = I.mv.filter(m => m.t === 'in' && m.g > 0).pop();
+      let first = null; try { if (lots[c]) first = fifoCalc(c, lots[c]).first; } catch (e) { }
+      const fd = first && first.k === 'exp' ? dd(first.ed, today()) : null;
+      const cr = lc && lc.rows.find(r => r.c === c);
+      const lastUse = I.mv.filter(m => m.t === 'use').pop();
+      const idle = !lastUse || dd(today(), lastUse.d) > 45;
+      let lv = 'grn', why = '여유';
+      if (now < -0.9) { lv = 'red'; why = '마이너스 재고'; }
+      else if (fd != null && fd < 0) { lv = 'red'; why = '소비기한 지남'; }
+      else if (days != null && days < 7) { lv = 'red'; why = `${Math.max(0, Math.floor(days))}일분 남음`; }
+      else if (fd != null && fd <= 30) { lv = 'org'; why = `소비기한 D-${fd}`; }
+      else if (ss > 0 && now < ss) { lv = 'org'; why = '안전재고 아래'; }
+      else if (days != null && days < 14) { lv = 'org'; why = `${Math.floor(days)}일분`; }
+      else if (idle && now > 0) { lv = 'gray'; why = '45일 넘게 사용 없음'; }
+      return { c, nm: I.nm, I, now, avg, days, ss, lastIn, first, fd, cr, lv, why, idle };
+    });
+  }
+  function rlTodos(rows) {
+    const L = RL.data.L; const td = [];
+    rows.filter(r => r.now < -0.9).forEach(r => td.push(['red', `${r.nm} 전산 재고가 마이너스(${g0(r.now)}g)`, '입고(구매) 입력이 빠졌거나 배합 소모가 실제보다 커요 → 구매 전표·실사 확인', 'rledg', r.c]));
+    rows.filter(r => r.fd != null && r.fd < 0).forEach(r => td.push(['red', `${r.nm} 소비기한 지난 입고분이 재고에 남아 있음(${ymdE(r.first.ed)})`, '식품위생법상 소비기한 지난 원료는 사용 금지 → 실물 확인 후 폐기·「폐기용」 표시', 'fifo', r.c]));
+    rows.filter(r => r.days != null && r.days < 7 && r.now >= 0).forEach(r => td.push(['org', `${r.nm} ${Math.floor(r.days)}일분 남음 (하루 평균 ${kg(r.avg)})`, '원료 발주 화면에서 주문량 확인', 'rbuy', r.c]));
+    rows.forEach(r => { const e = r.I.mv.filter(m => m.t === 'etc'); if (e.length) td.push(['org', `${r.nm} 원장에 설명 안 되는 변동 ${e.length}건 (${e.map(m => md(m.d) + ' ' + gs(m.g) + 'g').join(', ')})`, '자가사용·불량처리 전표인지 이카운트에서 확인', 'rledg', r.c]); });
+    const miss = rlProdCheck().filter(x => x.lv === 'red');
+    if (miss.length) td.push(['red', `원료 소모가 빠진 생산 전표 ${miss.length}건 (${miss.slice(0, 3).map(x => md(x.d) + ' ' + nmS(x.pn)).join(', ')}${miss.length > 3 ? ' 외' : ''})`, '이카운트 생산입고에 소모(BOM)가 안 붙었어요 → 원료 재고가 실제보다 많게 남음', 'rprod', '']);
+    rows.filter(r => r.idle && r.now > 1000 && !r.days).slice(0, 6).forEach(r => td.push(['gray', `${r.nm} ${kg(r.now)} 보유 · 45일 넘게 사용 없음`, '정체 재고 — 소비기한·사용 계획 확인(장기 보관 품질)', 'fifo', r.c]));
+    const lc = rlLastCount(); if (lc && lc.ev && !lc.ev.done) td.push(['org', `${mdw(lc.d)} 실사 재고조정이 아직 이카운트에 안 들어감`, '재고 조정 화면에서 「⚡ 이카운트에 넣어 주세요」 상태 확인', 'adj', '']);
+    return td;
+  }
+  function rlHome() {
+    if (!RL.data || !RL.data.L) return rlNoData();
+    const L = RL.data.L; const rows = rlRows(); const lc = rlLastCount(); const td = rlTodos(rows);
+    const T = today(), m0 = T.slice(0, 7) + '-01';
+    let mi = 0, mu = 0; rows.forEach(r => { const s = rlSum(r.I, m0, T); mi += s.in; mu += s.use; });
+    const risk = rows.filter(r => r.lv === 'red').length, warn = rows.filter(r => r.lv === 'org').length;
+    const exp = rows.filter(r => r.fd != null && r.fd <= 30).length;
+    const nf = pd(T).getDay() === 5 ? T : nextFri(T);
+    const dow = pd(T).getDay();
+    const wk = [['월', '발주 확인', '원료 발주 화면 · 이번 주 생산량 넣고 부족 원료 주문'], ['화·수·목', '입고 · 생산', '입고 = 이카운트 구매(적요에 소비기한), 생산 = 생산실 앱'], ['매일 퇴근 전', '수불대장 확인', '빨강·주황 줄만 보면 끝'], ['금', '원료 실사', '실사 입력 → 실사 차이 → 재고 조정'], ['월말', '수불부 인쇄·결재', '월간 수불부 인쇄 → 작성·검토·승인 서명']];
+    const wkOn = dow === 1 ? 0 : dow === 5 ? 3 : (dow >= 2 && dow <= 4) ? 1 : -1;
+    const sorted = rows.slice().sort((a, b) => ({ red: 0, org: 1, gray: 3, grn: 2 }[a.lv] - { red: 0, org: 1, gray: 3, grn: 2 }[b.lv]) || ((a.days ?? 1e9) - (b.days ?? 1e9)));
+    const accLv = lc && lc.pct != null ? (lc.pct >= 90 ? 'grn' : lc.pct >= 75 ? 'org' : 'red') : '';
+    return `<div class="rl">
+<div class="hd"><div><h2>원료수불부 현황</h2><div class="sub">${rlSrcLine()}</div></div>
+<div class="acts"><button class="b" data-rlgo="rledg">📒 수불대장</button><button class="b" data-rlact="printMonth">🖨 이번 달 수불부 인쇄</button><button class="b p" data-rlgo="phys">📋 금요일 실사</button></div></div>
+<div class="kpis">
+ <button class="kpi ${accLv || 'blu'}" data-rlgo="cmp"><span class="t">재고 정확도 (지난 실사)</span><span class="v">${lc && lc.pct != null ? lc.pct + '<small>%</small>' : '—'}</span><span class="s">${lc ? `${mdw(lc.d)} ${lc.n}품목 중 ${lc.ok}품목이 ±2% 안 · 차이 금액 약 ${won(lc.val)}` : '금요일 실사 확정값이 아직 없어요'}</span></button>
+ <button class="kpi ${risk ? 'red' : 'grn'}" data-rlact="filt" data-v="red"><span class="t">바로 조치</span><span class="v">${risk}<small>품목</small></span><span class="s">마이너스 재고 · 소비기한 지남 · 7일분 미만</span></button>
+ <button class="kpi ${warn ? 'org' : 'grn'}" data-rlact="filt" data-v="org"><span class="t">주의</span><span class="v">${warn}<small>품목</small></span><span class="s">안전재고 아래 · 14일분 미만 · 소비기한 30일 안</span></button>
+ <button class="kpi ${exp ? 'org' : 'grn'}" data-rlgo="fifo"><span class="t">소비기한 30일 안</span><span class="v">${exp}<small>품목</small></span><span class="s">먼저 쓸 입고분 기준 (이카운트 구매 적요)</span></button>
+ <button class="kpi k" data-rlgo="rledg"><span class="t">이번 달 입고 / 사용</span><span class="v" style="font-size:21px">${kg(mi)} <small>/</small> ${kg(mu)}</span><span class="s">${md(m0)}~${md(T)} · 원료 ${rows.length}종 합계</span></button>
+ <button class="kpi blu" data-rlgo="phys"><span class="t">다음 원료 실사</span><span class="v">${dd(nf, T) === 0 ? '오늘' : 'D-' + dd(nf, T)}</span><span class="s">${mdw(nf)}${lc && lc.ev ? ` · 지난 조정 ${lc.ev.done ? '이카운트 반영 ' + esc(lc.ev.slip) : '반영 대기'}` : ''}</span></button>
+</div>
+<div class="wk">${wk.map((w, i) => `<div class="${i === wkOn ? 'on' : ''}"><b>${w[0]} · ${w[1]}</b>${w[2]}</div>`).join('')}</div>
+<div class="card"><h3>확인할 일 ${td.length ? `<span class="chip ${td.some(x => x[0] === 'red') ? 'red' : 'org'}">${td.length}</span>` : '<span class="chip grn">없음</span>'}</h3><p class="cs">이카운트 전표·실사·소비기한을 자동으로 맞춰 본 결과예요. 누르면 해당 화면으로 갑니다.</p>
+${td.length ? td.map(x => `<div class="todo"><span class="chip ${x[0] === 'gray' ? '' : x[0]}">${x[0] === 'red' ? '조치' : x[0] === 'org' ? '확인' : '참고'}</span><div><b>${esc(x[1])}</b><small>${esc(x[2])}</small></div><button class="b sm" data-rlgo="${x[3]}" data-it="${esc(x[4])}">열기</button></div>`).join('') : '<div class="mu">빨강·주황으로 볼 일이 없어요.</div>'}</div>
+<div class="card"><h3>원료별 상태</h3><p class="cs">지금 재고는 이카운트 실시간(5분) 값, 하루 평균 사용은 최근 4주 이카운트 생산 소모로 계산했어요. 줄을 누르면 그 원료의 수불대장이 열려요.${RL.filt ? ` <button class="b sm" data-rlact="filt" data-v="">전체 보기</button>` : ''}</p>
+<div class="tw"><table class="t"><thead><tr><th>상태</th><th>원료</th><th class="r">지금 재고</th><th class="r">하루 평균 사용</th><th>남은 기간</th><th class="r">안전재고</th><th>최근 입고</th><th>먼저 쓸 소비기한</th><th class="r">지난 실사 차이</th></tr></thead><tbody>
+${sorted.filter(r => !RL.filt || r.lv === RL.filt).map(r => { const bw = r.days == null ? 0 : Math.min(100, r.days / 30 * 100); const bc = r.days == null ? '' : r.days < 7 ? 'red' : r.days < 14 ? 'org' : '';
+      return `<tr class="click" data-rlit="${esc(r.c)}"><td><span class="chip ${r.lv === 'gray' ? '' : r.lv}">${esc(r.why)}</span></td><td><b>${esc(r.nm)}</b></td><td class="r nw">${g0(r.now)}g</td><td class="r nw">${r.avg > 0 ? kg(r.avg) : '—'}</td>
+<td style="min-width:130px">${r.days == null ? '<span class="mu">사용 없음</span>' : `<div class="bar"><i class="${bc}" style="width:${bw}%"></i></div><small class="mu nw">${r.days >= 365 ? '1년 이상' : Math.floor(r.days) + '일분'}</small>`}</td>
+<td class="r nw">${r.ss ? kg(r.ss) : '—'}</td><td class="nw">${r.lastIn ? `${mdw(r.lastIn.d)} <small class="mu">${kg(r.lastIn.g)}</small>` : '<span class="mu">—</span>'}</td>
+<td class="nw">${r.first ? (r.first.k === 'exp' ? `${ymdE(r.first.ed)} <small class="${r.fd < 0 ? 'tuse' : 'mu'}">${r.fd < 0 ? (-r.fd) + '일 지남' : 'D-' + r.fd}</small>` : r.first.k === 'mfg' ? `<small class="mu">제조 ${ymdE(r.first.ed)}</small>` : '<small class="mu">미기재</small>') : '<span class="mu">—</span>'}</td>
+<td class="r nw">${r.cr ? (Math.abs(r.cr.q - r.cr.e) <= lc.tol(r.cr) ? '<span class="chip grn">일치</span>' : `<span class="${r.cr.q - r.cr.e < 0 ? 'tuse' : 'tin'}">${gs(r.cr.q - r.cr.e)}g</span>`) : '<span class="mu">—</span>'}</td></tr>`; }).join('')}
+</tbody></table></div></div>
+<p class="law">근거: 식품위생법 시행규칙 별표17 1.가 — 원료의 입고·출고·사용에 대한 원료출납 관계 서류를 작성하고 최종 기재일부터 3년간 보관. 같은 별표 1.다 — 소비기한이 지난 원재료는 제조·가공에 사용 금지.</p>
+</div>`;
+  }
+
+  /* 2) 수불대장 */
+  function rlPer() {
+    const T = today(); const p = RL.per;
+    if (p === 'm1') { const a = addD(T.slice(0, 7) + '-01', -1); return [a.slice(0, 7) + '-01', a, '지난 달']; }
+    if (p === 'd30') return [addD(T, -29), T, '최근 30일'];
+    if (p === 'all') return [RL.data.L.from, T, '전체'];
+    if (p === 'mon' && RL.mon) { const a = RL.mon + '-01'; const b = addD(addD(a, 32).slice(0, 7) + '-01', -1); return [a, b < T ? b : T, RL.mon.replace('-', '년 ') + '월']; }
+    return [T.slice(0, 7) + '-01', T, '이번 달'];
+  }
+  function rlMvDesc(m) {
+    if (m.t === 'in') return `<b class="tin">입고</b> ${esc(m.v || '')} <small class="mu">${esc(nmS(m.pc))} ${m.n ? fmt(m.n) + '개' : ''}${m.w > 1 ? ' × ' + fmt(m.w) + 'g' : ''}</small>${m.k === 'exp' ? ` · 소비기한 <b class="nw">${ymdE(m.ed)}</b>` : m.k === 'mfg' ? ` · 제조 ${ymdE(m.ed)}` : m.g < 0 ? ' · 반품' : ' · <span class="chip org">소비기한 미기재</span>'}`;
+    if (m.t === 'use') return `<b class="tuse">사용</b> ${esc(nmS(m.pn))} <small class="mu nw">${fmt(m.pq)}개 생산 · 생산입고 ${esc(String(m.no || ''))}</small>`;
+    if (m.t === 'adj') return `<b class="tadj">조정</b> ${esc(m.m || '재고조정')}${m.pend ? ' <span class="chip org">오늘 반영 · 내일 아침 원장 확정</span>' : ''}`;
+    if (m.t === 'etc') return `<b class="tadj">기타</b> <span class="chip org">확인 필요</span> ${esc(m.m)}`;
+    return `<b class="mu">오늘</b> <small>${esc(m.m)}</small>`;
+  }
+  function rlLedg() {
+    if (!RL.data || !RL.data.L) return rlNoData();
+    const L = RL.data.L; const codes = rlCodes(); if (!RL.it || !L.items[RL.it]) RL.it = codes.find(c => L.items[c].uses.length) || codes[0];
+    const [a, b, lab] = rlPer(); const mode = RL.mode;
+    const segP = [['m0', '이번 달'], ['m1', '지난 달'], ['d30', '최근 30일'], ['all', '전체']].map(([k, n]) => `<button data-rlper="${k}" class="${RL.per === k ? 'on' : ''}">${n}</button>`).join('');
+    const months = []; for (let d = L.from.slice(0, 7) + '-01'; d <= today(); d = addD(addD(d, 32).slice(0, 7) + '-01', 0)) months.push(d.slice(0, 7));
+    const head = `<div class="hd"><div><h2>원료수불부 <small style="font-size:16px;color:#6B625A;font-weight:600">원료출납 관계 서류</small></h2><div class="sub">${rlSrcLine()} · 재고 = 전일 재고 + 입고 − 사용 ± 조정</div></div>
+<div class="acts"><button class="b" data-rlact="csv">⬇ 엑셀(CSV)</button><button class="b p" data-rlact="print">🖨 인쇄 (결재란 포함)</button></div></div>
+<div class="ctl"><div class="seg">${[['item', '원료별 원장'], ['day', '일자별 수불'], ['month', '월간 집계 (제출용)']].map(([k, n]) => `<button data-rlmode="${k}" class="${mode === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+${mode !== 'day' ? `<div class="seg">${segP}</div><select data-rlmon="1"><option value="">월 고르기</option>${months.map(m => `<option value="${m}" ${RL.per === 'mon' && RL.mon === m ? 'selected' : ''}>${m.replace('-', '년 ')}월</option>`).join('')}</select>` : ''}</div>`;
+    if (mode === 'day') return `<div class="rl">${head}${rlDayView()}</div>`;
+    if (mode === 'month') return `<div class="rl">${head}${rlMonthView(a, b, lab)}</div>`;
+    const I = rlItem(RL.it); const s = rlSum(I, a, b); const ob = rlBalAt(I, addD(a, -1)), cb = rlBalAt(I, b);
+    const rows = I.mv.filter(m => m.d >= a && m.d <= b);
+    const P = (() => { try { return rbPat(RL.it); } catch (e) { return null; } })();
+    const list = `<div class="ilist"><input placeholder="원료 찾기" data-rlq="1" value="${esc(RL.q)}">${codes.filter(c => !RL.q || nmS(L.items[c].nm).includes(RL.q)).map(c => { const J = rlItem(c); return `<button data-rlpick="${esc(c)}" class="${c === RL.it ? 'on' : ''}"><span>${esc(J.nm)}</span><small>${kg(J.now)}</small></button>`; }).join('')}</div>`;
+    let lastD = '';
+    const body = rows.map(m => { const sep = m.d !== lastD; lastD = m.d; return `<tr class="${m.pend || m.t === 'live' ? 'pend' : ''}${sep ? ' dsep' : ''}"><td class="nw">${sep ? mdw(m.d) : ''}</td><td>${rlMvDesc(m)}</td><td class="r nw">${m.t === 'in' ? g0(m.g) : ''}</td><td class="r nw">${m.t === 'use' ? g0(m.g) : ''}</td><td class="r nw">${m.t !== 'in' && m.t !== 'use' ? gs(m.g) : ''}</td><td class="r nw"><b>${g0(m.bal)}</b></td></tr>`; }).join('');
+    return `<div class="rl">${head}<div class="two">${list}<div>
+<div class="card" style="padding-bottom:10px"><h3>${esc(I.nm)} <small class="mu" style="font-size:14px;font-weight:600">${esc(RL.it)} · 단위 g${P && P.g > 1 ? ` · 매입 1${esc(P.u || '개')} = ${fmt(P.g)}g` : ''}</small></h3><p class="cs">${lab} ${md(a)} ~ ${md(b)}</p>
+<div class="bal"><div><span>전기 이월</span><b>${g0(ob)}</b></div><div><span>입고</span><b class="tin">${g0(s.in)}</b></div><div><span>사용</span><b class="tuse">${g0(s.use)}</b></div><div><span>조정·기타</span><b class="tadj">${gs(s.adj)}</b></div><div><span>${b === today() ? '지금 재고' : '기말 재고'}</span><b>${g0(cb)}</b></div></div>
+<div class="tw"><table class="t"><thead><tr><th>일자</th><th>내용 (거래처·소비기한 / 생산 제품 / 조정 사유)</th><th class="r">입고 g</th><th class="r">사용 g</th><th class="r">조정 g</th><th class="r">재고 g</th></tr></thead><tbody>
+<tr class="open"><td class="nw">${mdw(a)}</td><td>전기 이월 (${md(addD(a, -1))} 마감 재고)</td><td></td><td></td><td></td><td class="r"><b>${g0(ob)}</b></td></tr>${body || '<tr><td colspan="6" class="mu">이 기간에 입출고가 없어요.</td></tr>'}
+<tr class="sum"><td>합계</td><td>${s.n}번 입고 · 사용 ${rows.filter(m => m.t === 'use').length}건</td><td class="r">${g0(s.in)}</td><td class="r">${g0(s.use)}</td><td class="r">${gs(s.adj)}</td><td class="r">${g0(cb)}</td></tr></tbody></table></div>
+${b === today() && Math.abs(cb - I.now) >= 1 ? `<div class="warn" style="margin-top:10px">원장 마지막 재고 ${g0(cb)}g와 지금 이카운트 재고 ${g0(I.now)}g가 달라요 → 다음 원장 갱신(07:50·17:50) 뒤 다시 보세요.</div>` : ''}
+</div></div></div></div>`;
+  }
+  function rlDayView() {
+    const L = RL.data.L; const T = today(); const d = RL.day || T; const codes = rlCodes();
+    const rows = codes.map(c => { const I = rlItem(c); const s = rlSum(I, d, d); return { c, nm: I.nm, ob: rlBalAt(I, addD(d, -1)), s, cb: rlBalAt(I, d), mv: I.mv.filter(m => m.d === d) }; });
+    const act = rows.filter(r => r.mv.length);
+    const days = []; for (let x = T; x >= L.from && days.length < 60; x = addD(x, -1)) days.push(x);
+    return `<div class="ctl"><button class="b sm" data-rlday="${addD(d, -1)}">‹ 전날</button><select data-rldaysel="1">${days.map(x => `<option value="${x}" ${x === d ? 'selected' : ''}>${mdw(x)}</option>`).join('')}</select><button class="b sm" data-rlday="${addD(d, 1)}" ${d >= T ? 'disabled' : ''}>다음날 ›</button><span class="mu">움직인 원료 ${act.length}종 / 전체 ${rows.length}종</span></div>
+<div class="card"><h3>${mdw(d)} 원료 수불</h3><p class="cs">그날 움직인 원료를 위에, 움직이지 않은 원료는 아래 회색으로 보여요.</p>
+<div class="tw"><table class="t"><thead><tr><th>원료</th><th class="r">전일 재고</th><th class="r">입고</th><th class="r">사용</th><th class="r">조정</th><th class="r">재고</th><th>내용</th></tr></thead><tbody>
+${rows.sort((x, y) => (y.mv.length ? 1 : 0) - (x.mv.length ? 1 : 0)).map(r => `<tr class="click${r.mv.length ? '' : ' open'}" data-rlit="${esc(r.c)}"><td><b>${esc(r.nm)}</b></td><td class="r">${g0(r.ob)}</td><td class="r tin">${r.s.in ? g0(r.s.in) : ''}</td><td class="r tuse">${r.s.use ? g0(r.s.use) : ''}</td><td class="r tadj">${r.s.adj ? gs(r.s.adj) : ''}</td><td class="r"><b>${g0(r.cb)}</b></td><td><small>${r.mv.map(m => m.t === 'in' ? `입고 ${esc(m.v || '')}${m.k === 'exp' ? ' (' + ymdE(m.ed) + ')' : ''}` : m.t === 'use' ? esc(nmS(m.pn)) + ' ' + fmt(m.pq) + '개' : m.t === 'adj' ? '조정' : '기타').join(' · ')}</small></td></tr>`).join('')}
+</tbody></table></div></div>`;
+  }
+  function rlMonthRows(a, b) { return rlCodes().map(c => { const I = rlItem(c); const s = rlSum(I, a, b); const ins = I.mv.filter(m => m.t === 'in' && m.d >= a && m.d <= b && m.g > 0); const lastEd = ins.filter(m => m.k === 'exp').map(m => m.ed).sort().pop(); const sups = [...new Set(ins.map(m => m.v).filter(Boolean))]; return { c, nm: I.nm, ob: rlBalAt(I, addD(a, -1)), s, cb: rlBalAt(I, b), n: ins.length, lastEd, sups, noExp: ins.filter(m => m.k === 'none').length }; }); }
+  function rlMonthView(a, b, lab) {
+    const rows = rlMonthRows(a, b); const lc = rlLastCount();
+    return `<div class="card"><h3>${lab} 원료수불부 집계 (${md(a)} ~ ${md(b)})</h3><p class="cs">시청·HACCP 점검 때 보여 주는 월간 표예요. 「인쇄」를 누르면 결재란(작성·검토·승인)이 붙은 A4 가로 양식으로 나와요.</p>
+<div class="tw"><table class="t"><thead><tr><th>No</th><th>원료명</th><th class="r">전월 이월</th><th class="r">입고</th><th class="r">사용</th><th class="r">조정·기타</th><th class="r">월말 재고</th><th class="c">입고 횟수</th><th>거래처</th><th>최근 소비기한</th></tr></thead><tbody>
+${rows.map((r, i) => `<tr class="click${r.s.in || r.s.use || r.s.adj ? '' : ' open'}" data-rlit="${esc(r.c)}"><td>${i + 1}</td><td><b>${esc(r.nm)}</b></td><td class="r">${g0(r.ob)}</td><td class="r tin">${r.s.in ? g0(r.s.in) : '-'}</td><td class="r tuse">${r.s.use ? g0(r.s.use) : '-'}</td><td class="r tadj">${r.s.adj ? gs(r.s.adj) : '-'}</td><td class="r"><b>${g0(r.cb)}</b></td><td class="c">${r.n || '-'}${r.noExp ? ` <span class="chip org" title="소비기한 미기재 입고">${r.noExp}</span>` : ''}</td><td><small>${esc(r.sups.join(', '))}</small></td><td class="nw">${r.lastEd ? ymdE(r.lastEd) : '-'}</td></tr>`).join('')}
+<tr class="sum"><td></td><td>합계 (g)</td><td class="r">${g0(rows.reduce((t, r) => t + r.ob, 0))}</td><td class="r">${g0(rows.reduce((t, r) => t + r.s.in, 0))}</td><td class="r">${g0(rows.reduce((t, r) => t + r.s.use, 0))}</td><td class="r">${gs(rows.reduce((t, r) => t + r.s.adj, 0))}</td><td class="r">${g0(rows.reduce((t, r) => t + r.cb, 0))}</td><td class="c">${rows.reduce((t, r) => t + r.n, 0)}</td><td></td><td></td></tr></tbody></table></div>
+${lc ? `<p class="law">이 기간 실사: ${mdw(lc.d)} ${lc.n}품목 (±2% 안 ${lc.ok}품목)${lc.ev && lc.ev.done ? ' · 이카운트 재고조정 ' + esc(lc.ev.slip) : ''}</p>` : ''}</div>`;
+  }
+
+  /* 인쇄 · 엑셀 */
+  function rlPrintDoc(title, sub, tableHtml, landscape) {
+    const w = window.open('', '_blank'); if (!w) { toast('팝업이 막혀 인쇄 창을 열 수 없어요'); return; }
+    const L = RL.data.L;
+    w.document.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${esc(title)}</title><style>
+@page{size:A4 ${landscape ? 'landscape' : 'portrait'};margin:9mm 8mm}body{font-family:'Pretendard','Malgun Gothic',sans-serif;color:#1F1A16;margin:0;word-break:keep-all;overflow-wrap:break-word;line-break:strict}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:3px solid #7A4A23;padding-bottom:6px;margin-bottom:8px}.top h1{margin:0;font-size:22px;letter-spacing:-.3px;text-wrap:balance}.top .s{font-size:12px;color:#555;margin-top:3px}
+.sign{border-collapse:collapse}.sign td{border:1px solid #555;width:68px;text-align:center;font-size:11.5px;padding:2px}.sign tr:last-child td{height:44px}.sign .lb{width:22px;writing-mode:vertical-rl;background:#F7F1EA;font-weight:700}
+table.t{width:100%;border-collapse:collapse;font-size:11.5px}.t th{background:#F3ECE4;border:1px solid #9b8b7c;padding:4px 3px;font-weight:700;white-space:nowrap}.t td{border:1px solid #b9ab9d;padding:3px 4px;vertical-align:middle}.t td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.t td.c{text-align:center}.t tr.sum td{background:#F3ECE4;font-weight:800}.t tr.open td{color:#666;background:#FAFAF8}
+.nw{white-space:nowrap}.foot{margin-top:6px;font-size:10.5px;color:#555;display:flex;justify-content:space-between;gap:10px}.chk{margin-top:6px;font-size:11.5px;border:1px solid #b9ab9d;padding:5px 8px}.chk b{color:#7A4A23}
+small{color:#666}.tin{color:#24527A}.tuse{color:#8B3A1A}.tadj{color:#7B4BA0}
+</style></head><body>
+<div class="top"><div><h1>${esc(title)}</h1><div class="s">빵을그리다(주) · ${esc(sub)} · 단위 g · 문서번호 DB-RM-01</div></div>
+<table class="sign"><tr><td class="lb" rowspan="2">결재</td><td>작성</td><td>검토</td><td>승인</td></tr><tr><td></td><td></td><td></td></tr></table></div>
+${tableHtml}
+<div class="chk">□ 소비기한이 지난 원료가 없음을 확인함 &nbsp; □ 입고 시 육안검사(포장·온도·표시) 확인함 &nbsp; □ 실사 차이는 재고조정 전표로 처리함 &nbsp; <b>확인자:</b> ____________</div>
+<div class="foot"><span>근거: 식품위생법 시행규칙 별표17 1.가 원료출납 관계 서류 (최종 기재일부터 3년 보관) · 자료: 이카운트 ERP 전표(구매·생산입고/소모·재고조정·자가사용) 자동 집계</span><span class="nw">출력 ${new Date().toLocaleString('ko-KR')} · 원장 ${esc(L.asOf || '')}</span></div>
+<script>setTimeout(function(){window.print()},400)<\/script></body></html>`);
+    w.document.close();
+  }
+  function rlPrint(monthOnly) {
+    if (!RL.data || !RL.data.L) return;
+    const [a, b, lab] = monthOnly ? [today().slice(0, 7) + '-01', today(), '이번 달'] : rlPer();
+    if (monthOnly || RL.mode === 'month') {
+      const rows = rlMonthRows(a, b);
+      const t = `<table class="t"><thead><tr><th>No</th><th>원료명</th><th>코드</th><th>전월 이월</th><th>입고</th><th>사용</th><th>조정·기타</th><th>월말 재고</th><th>입고 횟수</th><th>거래처</th><th>최근 소비기한</th><th>비고</th></tr></thead><tbody>${rows.map((r, i) => `<tr${r.s.in || r.s.use || r.s.adj ? '' : ' class="open"'}><td class="c">${i + 1}</td><td>${esc(r.nm)}</td><td class="nw"><small>${esc(r.c)}</small></td><td class="r">${g0(r.ob)}</td><td class="r">${r.s.in ? g0(r.s.in) : '-'}</td><td class="r">${r.s.use ? g0(r.s.use) : '-'}</td><td class="r">${r.s.adj ? gs(r.s.adj) : '-'}</td><td class="r"><b>${g0(r.cb)}</b></td><td class="c">${r.n || '-'}</td><td><small>${esc(r.sups.join(', '))}</small></td><td class="c nw">${r.lastEd ? ymdE(r.lastEd) : '-'}</td><td>${r.noExp ? '<small>소비기한 미기재 ' + r.noExp + '</small>' : ''}</td></tr>`).join('')}</tbody></table>`;
+      rlPrintDoc('원료수불부 (월간 집계)', `${lab} ${a} ~ ${b}`, t, true); return;
+    }
+    if (RL.mode === 'day') {
+      const d = RL.day || today(); const rows = rlCodes().map(c => { const I = rlItem(c); return { nm: I.nm, ob: rlBalAt(I, addD(d, -1)), s: rlSum(I, d, d), cb: rlBalAt(I, d), mv: I.mv.filter(m => m.d === d) }; });
+      const t = `<table class="t"><thead><tr><th>원료명</th><th>전일 재고</th><th>입고</th><th>사용</th><th>조정</th><th>재고</th><th>내용</th></tr></thead><tbody>${rows.map(r => `<tr${r.mv.length ? '' : ' class="open"'}><td>${esc(r.nm)}</td><td class="r">${g0(r.ob)}</td><td class="r">${r.s.in ? g0(r.s.in) : ''}</td><td class="r">${r.s.use ? g0(r.s.use) : ''}</td><td class="r">${r.s.adj ? gs(r.s.adj) : ''}</td><td class="r"><b>${g0(r.cb)}</b></td><td><small>${r.mv.map(m => m.t === 'in' ? '입고 ' + esc(m.v || '') + (m.k === 'exp' ? ' (' + ymdE(m.ed) + ')' : '') : m.t === 'use' ? esc(nmS(m.pn)) + ' ' + fmt(m.pq) + '개' : '조정').join(' · ')}</small></td></tr>`).join('')}</tbody></table>`;
+      rlPrintDoc('원료수불부 (일자별)', mdw(d), t, false); return;
+    }
+    const I = rlItem(RL.it); const rows = I.mv.filter(m => m.d >= a && m.d <= b); const s = rlSum(I, a, b);
+    const t = `<table class="t"><thead><tr><th>일자</th><th>구분</th><th>내용 (거래처 · 소비기한 / 생산 제품 / 조정 사유)</th><th>입고</th><th>사용</th><th>조정</th><th>재고</th><th>확인</th></tr></thead><tbody>
+<tr class="open"><td class="nw">${a}</td><td>이월</td><td>전기 이월</td><td></td><td></td><td></td><td class="r"><b>${g0(rlBalAt(I, addD(a, -1)))}</b></td><td></td></tr>
+${rows.map(m => `<tr><td class="nw">${m.d.slice(5)}</td><td class="c nw">${{ in: '입고', use: '사용', adj: '조정', etc: '기타', live: '당일' }[m.t]}</td><td>${m.t === 'in' ? esc(m.v || '') + ' · ' + esc(nmS(m.pc)) + (m.n ? ' ' + fmt(m.n) + '개' : '') + (m.k === 'exp' ? ' · 소비기한 ' + ymdE(m.ed) : m.k === 'mfg' ? ' · 제조 ' + ymdE(m.ed) : '') : m.t === 'use' ? esc(nmS(m.pn)) + ' ' + fmt(m.pq) + '개 생산' : esc(m.m || '')}</td><td class="r">${m.t === 'in' ? g0(m.g) : ''}</td><td class="r">${m.t === 'use' ? g0(m.g) : ''}</td><td class="r">${m.t !== 'in' && m.t !== 'use' ? gs(m.g) : ''}</td><td class="r"><b>${g0(m.bal)}</b></td><td></td></tr>`).join('')}
+<tr class="sum"><td colspan="3">합계</td><td class="r">${g0(s.in)}</td><td class="r">${g0(s.use)}</td><td class="r">${gs(s.adj)}</td><td class="r">${g0(rlBalAt(I, b))}</td><td></td></tr></tbody></table>`;
+    rlPrintDoc(`원료수불부 — ${I.nm}`, `${RL.it} · ${lab} ${a} ~ ${b}`, t, false);
+  }
+  function rlCsv() {
+    const [a, b, lab] = rlPer(); const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; const L = [];
+    if (RL.mode === 'month') { L.push(['No', '원료명', '코드', '전월이월(g)', '입고(g)', '사용(g)', '조정기타(g)', '월말재고(g)', '입고횟수', '거래처', '최근소비기한'].map(q).join(',')); rlMonthRows(a, b).forEach((r, i) => L.push([i + 1, r.nm, r.c, Math.round(r.ob), Math.round(r.s.in), Math.round(r.s.use), Math.round(r.s.adj), Math.round(r.cb), r.n, r.sups.join('/'), r.lastEd || ''].map(q).join(','))); }
+    else { L.push(['원료명', '코드', '일자', '구분', '거래처/제품/사유', '소비기한', '입고(g)', '사용(g)', '조정(g)', '재고(g)'].map(q).join(',')); const cs = RL.mode === 'item' ? [RL.it] : rlCodes(); cs.forEach(c => { const I = rlItem(c); I.mv.filter(m => m.d >= a && m.d <= b).forEach(m => L.push([I.nm, c, m.d, { in: '입고', use: '사용', adj: '조정', etc: '기타', live: '당일' }[m.t], m.t === 'in' ? m.v : m.t === 'use' ? nmS(m.pn) + ' ' + m.pq + '개' : m.m, m.t === 'in' ? m.ed : '', m.t === 'in' ? m.g : '', m.t === 'use' ? m.g : '', m.t !== 'in' && m.t !== 'use' ? m.g : '', m.bal].map(q).join(','))); }); }
+    const blob = new Blob(['\ufeff' + L.join('\r\n')], { type: 'text/csv;charset=utf-8' }); const u = URL.createObjectURL(blob); const x = document.createElement('a'); x.href = u;
+    x.download = `원료수불부_${RL.mode === 'month' ? '월간' : RL.mode === 'item' ? nmS((rlItem(RL.it) || {}).nm) : '전체'}_${a.replace(/-/g, '')}_${b.replace(/-/g, '')}.csv`; document.body.appendChild(x); x.click(); setTimeout(() => { URL.revokeObjectURL(u); x.remove(); }, 500);
+  }
+
+  /* 3) 생산 연동 */
+  function rlBomStd() { const L = RL.data.L; const o = {}; Object.entries(L.bom || {}).forEach(([p, b]) => o[p] = b); return o; }
+  function rlProdCheck() {
+    const L = RL.data && RL.data.L; if (!L) return [];
+    const bom = rlBomStd(); const withRaw = new Set((L.prod || []).map(p => p[0] + '|' + p[1] + '|' + p[2]));
+    const out = [];
+    // 원료 소모가 하나도 없는 생산입고 (그 제품이 평소에는 원료를 쓰는 경우)
+    const pk = n => String(n || '').replace(/\s*\[(BOX|EA|g|kg|박스|봉)\]\s*$/i, '').trim(); const byName = {}; Object.entries(bom).forEach(([p, b]) => byName[pk(b.nm)] = p);
+    (L.prodAll || []).forEach(r => { const [d, no, nm, q] = r; if (/비상품|폐기/.test(nm)) return; const p = byName[pk(nm)]; if (!p || !(q > 0)) return; if (!withRaw.has(d + '|' + no + '|' + p)) out.push({ lv: 'red', d, no, pn: nm, q, why: '원료 소모 없음' }); });
+    // 낱개당 소모가 평소(중앙값)와 15% 넘게 다른 전표
+    const cut60 = addD(today(), -60); (L.prod || []).forEach(([d, no, p, pn, q, raw]) => { const b = bom[p]; if (!b || !(q > 0) || d < cut60) return; let worst = null; Object.entries(b.per).forEach(([c, std]) => { if (!(std > 0)) return; const v = (raw[c] || 0) / q; const r = v / std - 1; if (Math.abs(r) > 0.2 && (!worst || Math.abs(r) > Math.abs(worst.r))) worst = { c, r, v, std }; }); if (worst) out.push({ lv: 'org', d, no, pn, q, why: `${nmS(RL.data.L.items[worst.c] ? RL.data.L.items[worst.c].nm : worst.c)} 낱개당 ${fmt(Math.round(worst.v * 10) / 10)}g (평소 ${fmt(worst.std)}g, ${worst.r > 0 ? '+' : ''}${Math.round(worst.r * 100)}%)` }); });
+    return out.sort((x, y) => x.d < y.d ? 1 : -1);
+  }
+  function rlCountPeriods() {
+    // 실사 시점 = 원장 조정 전표 날짜(실사 메모) + 앱 금요일 실사 조정 날짜
+    const L = RL.data.L; const pts = {};
+    Object.entries(L.items).forEach(([c, it]) => it.adjs.forEach(([d, g, no, m]) => { if (/실사/.test(m || '')) { (pts[d] = pts[d] || {})[c] = (pts[d][c] || 0) + g; } }));
+    rlAdjEvents().forEach(ev => { ev.rows.forEach(r => { if (Number(r.a)) (pts[ev.d] = pts[ev.d] || {})[r.c] = -Number(r.a); }); });
+    return Object.keys(pts).sort().map(d => ({ d, adj: pts[d] }));
+  }
+  function rlYield() {
+    const P = rlCountPeriods(); if (P.length < 2) return null;
+    const b = P[P.length - 1], a = P[P.length - 2];
+    const rows = Object.keys(b.adj).map(c => { const I = rlItem(c); if (!I) return null; let use = 0; I.mv.forEach(m => { if (m.t === 'use' && m.d > a.d && m.d <= b.d) use += m.g; }); const diff = b.adj[c]; const real = use - diff; const rate = use > 0 ? -diff / use : null; const prev = a.adj[c]; return { c, nm: I.nm, use, diff, real, rate, prev }; }).filter(Boolean).filter(r => r.use > 0).sort((x, y) => Math.abs(y.rate || 0) - Math.abs(x.rate || 0));
+    return { a: a.d, b: b.d, rows };
+  }
+  function rlProd() {
+    if (!RL.data || !RL.data.L) return rlNoData();
+    const L = RL.data.L; const bom = rlBomStd(); const chk = rlProdCheck(); const Y = rlYield();
+    const byDate = {}; (L.prod || []).forEach(p => { (byDate[p[0]] = byDate[p[0]] || []).push(p); });
+    const dates = Object.keys(byDate).sort().reverse().slice(0, 14);
+    const prodCodes = Object.keys(bom).sort((x, y) => bom[y].n - bom[x].n);
+    const rawCols = [...new Set(prodCodes.flatMap(p => Object.keys(bom[p].per)))].sort((x, y) => prodCodes.reduce((t, p) => t + (bom[p].per[y] || 0), 0) - prodCodes.reduce((t, p) => t + (bom[p].per[x] || 0), 0));
+    const nmR = c => nmS(L.items[c] ? L.items[c].nm : c);
+    return `<div class="rl"><div class="hd"><div><h2>생산 연동</h2><div class="sub">생산실 앱 생산일지 → 이카운트 생산입고 → 원료 소모 → 원료수불부 「사용」 칸 → 금요일 실사로 검증</div></div><div class="acts"><button class="b" data-rlmenu="prod">🏭 생산일지 열기</button></div></div>
+<div class="flow">${[['① 생산일지', '생산실 앱에서 품목·수량 저장'], ['② 이카운트 생산입고', '사무실 PC 전송기가 자동 전표'], ['③ 원료 소모', '배합(BOM)대로 원료 g 차감'], ['④ 원료수불부', '「사용」 칸에 제품·수량과 함께 기록'], ['⑤ 금요일 실사', '실제 사용량과 배합 차이 확인']].map((x, i) => `${i ? '<div class="ar">›</div>' : ''}<div class="st"><b>${x[0]}</b>${x[1]}</div>`).join('')}</div>
+<div class="card"><h3>생산 전표 점검 ${chk.length ? `<span class="chip ${chk.some(x => x.lv === 'red') ? 'red' : 'org'}">${chk.length}</span>` : '<span class="chip grn">이상 없음</span>'}</h3><p class="cs">빨강 = 원료를 쓰는 제품인데 이카운트 생산입고에 원료 소모가 없음(원료 재고가 실제보다 많게 남아요). 주황 = 낱개당 원료 소모가 평소(중앙값)와 20% 넘게 다름(최근 60일).</p>
+${chk.length ? `<div class="tw" style="max-height:300px"><table class="t"><thead><tr><th>상태</th><th>생산일</th><th>제품</th><th class="r">수량</th><th>내용</th></tr></thead><tbody>${chk.slice(0, 40).map(x => `<tr><td><span class="chip ${x.lv}">${x.lv === 'red' ? '소모 없음' : '평소와 다름'}</span></td><td class="nw">${mdw(x.d)} <small class="mu">${esc(String(x.no))}</small></td><td>${esc(nmS(x.pn))}</td><td class="r">${fmt(x.q)}</td><td><small>${esc(x.why)}</small></td></tr>`).join('')}</tbody></table></div>` : ''}</div>
+<div class="card"><h3>실사로 본 실제 사용량 ${Y ? `<small class="mu" style="font-size:14px">${mdw(Y.a)} 실사 → ${mdw(Y.b)} 실사</small>` : ''}</h3><p class="cs">두 실사 사이 이카운트 「사용」(배합 기준)과 실사 차이를 맞춰, 실제로 쓴 양을 계산했어요. 같은 방향 차이가 두 번 넘게 이어지면 배합값(BOM)이나 포장 환산을 고칠 차례예요.</p>
+${Y && Y.rows.length ? `<div class="tw"><table class="t"><thead><tr><th>원료</th><th class="r">장부 사용(배합)</th><th class="r">실사 차이</th><th class="r">실제 사용</th><th class="r">차이율</th><th>판단</th></tr></thead><tbody>${Y.rows.map(r => { const lv = r.rate == null ? '' : Math.abs(r.rate) <= 0.03 ? 'grn' : Math.abs(r.rate) <= 0.1 ? 'org' : 'red'; const same = r.prev != null && Math.sign(r.prev) === Math.sign(r.diff) && r.diff !== 0;
+      return `<tr class="click" data-rlit="${esc(r.c)}"><td><b>${esc(r.nm)}</b></td><td class="r">${g0(r.use)}</td><td class="r ${r.diff < 0 ? 'tuse' : 'tin'}">${gs(r.diff)}</td><td class="r"><b>${g0(r.real)}</b></td><td class="r"><span class="chip ${lv}">${r.rate == null ? '—' : (r.rate > 0 ? '+' : '') + Math.round(r.rate * 1000) / 10 + '%'}</span></td><td><small>${lv === 'grn' ? '배합과 거의 같음' : r.diff < 0 ? '실제로 더 많이 씀 (배합값보다 많이 넣거나 버림)' : '실제로 덜 씀 (배합값이 크거나 입고 누락)'}${same ? ' · <b>지난 실사와 같은 방향</b>' : ''}</small></td></tr>`; }).join('')}</tbody></table></div>` : '<div class="mu">실사 조정이 두 번 이상 쌓이면 보여요.</div>'}
+<p class="law">계산: 실제 사용 = 장부 사용 − 실사 차이(실물 − 전산). 실사 시각과 그날 생산 순서에 따라 하루치 정도 오차가 있을 수 있어요.</p></div>
+<div class="card"><h3>최근 생산과 원료 사용</h3><p class="cs">이카운트 생산입고에 붙은 원료 소모예요. 날짜를 누르면 제품별로 펼쳐져요.</p>
+${dates.map(d => { const ps = byDate[d]; const tot = {}; ps.forEach(p => Object.entries(p[5]).forEach(([c, g]) => tot[c] = (tot[c] || 0) + g)); const top = Object.entries(tot).sort((x, y) => y[1] - x[1]); const op = RL.open['p' + d];
+      return `<div class="todo" style="cursor:pointer" data-rlopen="p${d}"><span class="chip k">${mdw(d)}</span><div><b>${ps.map(p => esc(nmS(p[3])) + ' ' + fmt(p[4])).join(' · ')}</b><small>원료 ${top.length}종 · ${top.slice(0, 4).map(([c, g]) => esc(nmR(c)) + ' ' + kg(g)).join(', ')}${top.length > 4 ? ' 외' : ''}</small>
+${op ? `<table class="t" style="margin-top:8px"><thead><tr><th>제품</th><th class="r">수량</th>${top.map(([c]) => `<th class="r">${esc(nmR(c))}</th>`).join('')}</tr></thead><tbody>${ps.map(p => `<tr><td>${esc(nmS(p[3]))} <small class="mu">${esc(String(p[1]))}</small></td><td class="r">${fmt(p[4])}</td>${top.map(([c]) => `<td class="r">${p[5][c] ? g0(p[5][c]) : ''}</td>`).join('')}</tr>`).join('')}</tbody></table>` : ''}</div><span class="mu">${op ? '▲' : '▼'}</span></div>`; }).join('') || '<div class="mu">생산 기록이 없어요.</div>'}</div>
+<div class="card"><h3>배합 기준표 (낱개 1개당 원료 g)</h3><p class="cs">이카운트 생산입고/소모 실제 전표의 중앙값이에요(원장 기간 ${md(L.from)}~). 원료 발주 계산(⚙ 기준 정보)과 다르면 발주량도 달라지니 함께 확인하세요.</p>
+<div class="tw"><table class="t"><thead><tr><th>제품</th><th class="r">전표</th>${rawCols.map(c => `<th class="r">${esc(nmR(c))}</th>`).join('')}</tr></thead><tbody>${prodCodes.map(p => `<tr><td><b>${esc(nmS(bom[p].nm))}</b></td><td class="r">${bom[p].n}</td>${rawCols.map(c => `<td class="r">${bom[p].per[c] ? fmt(bom[p].per[c]) : ''}</td>`).join('')}</tr>`).join('')}</tbody></table></div></div>
+</div>`;
+  }
+
+  /* 4) 로트 추적 (선입선출 가정) */
+  function rlFifoSim(c) {
+    const I = rlItem(c); if (!I) return null;
+    const lots = [{ id: 'open', d: I.from, g: Math.max(0, I.open), left: Math.max(0, I.open), v: '', ed: '', k: 'open', nm: '기초 재고 (원장 시작 전)' }];
+    const used = [];
+    const mvs = []; const adjDay = {}; I.mv.forEach(m => { if (m.t === 'adj' || m.t === 'etc') { const k = m.d; if (adjDay[k]) { adjDay[k].g += m.g; return; } adjDay[k] = Object.assign({}, m); mvs.push(adjDay[k]); } else mvs.push(m); });
+    mvs.forEach((m, i) => {
+      if ((m.t === 'adj' || m.t === 'etc') && m.g > 0) { const tl = lots.slice().reverse().find(l => l.k !== 'open') || lots[0]; tl.left += m.g; tl.g += m.g; return; }
+      if (m.t === 'in' && m.g > 0) lots.push({ id: 'L' + i, d: m.d, g: m.g, left: m.g, v: m.v, ed: m.ed, k: m.k, nm: `${mdw(m.d)} 입고 ${m.v || ''}` });
+      else if (m.t === 'use' || ((m.t === 'adj' || m.t === 'etc' || m.t === 'live' || m.t === 'in') && m.g < 0)) {
+        let need = Math.abs(m.g); for (const l of lots) { if (need <= 0) break; if (l.left <= 0) continue; const take = Math.min(l.left, need); l.left -= take; need -= take; used.push({ lot: l.id, d: m.d, t: m.t, g: take, pn: m.pn, pq: m.pq, no: m.no, p: m.p }); }
+      } else if (m.g > 0) lots.push({ id: 'A' + i, d: m.d, g: m.g, left: m.g, v: '', ed: '', k: 'adj', nm: `${mdw(m.d)} 조정 증가` });
+    });
+    return { I, lots, used };
+  }
+  function rlTrace() {
+    if (!RL.data || !RL.data.L) return rlNoData();
+    const L = RL.data.L; const codes = rlCodes(); const T = RL.tr; if (!T.raw || !L.items[T.raw]) T.raw = codes.find(c => L.items[c].ins.length && L.items[c].uses.length) || codes[0];
+    const Sm = rlFifoSim(T.raw); const lots = Sm.lots.filter(l => l.g > 0).slice().reverse();
+    if (!T.lot || !Sm.lots.some(l => l.id === T.lot)) T.lot = (lots.find(l => l.k !== 'open' && Sm.used.some(u => u.lot === l.id && u.t === 'use')) || lots.find(l => Sm.used.some(u => u.lot === l.id)) || lots[0] || {}).id;
+    const lot = Sm.lots.find(l => l.id === T.lot); const us = Sm.used.filter(u => u.lot === T.lot);
+    const prods = {}; us.forEach(u => { if (u.t !== 'use') return; const k = u.d + '|' + u.no + '|' + u.p; const o = prods[k] || (prods[k] = { d: u.d, no: u.no, pn: u.pn, pq: u.pq, g: 0 }); o.g += u.g; });
+    const pl = Object.values(prods).sort((a, b) => a.d < b.d ? -1 : 1);
+    // 거꾸로: 생산 전표 → 원료 입고분
+    const docs = (L.prod || []).filter(p => Object.values(p[5]).some(g => Math.abs(g) >= 0.05)).slice().reverse().slice(0, 80); if (!T.doc && docs[0]) T.doc = docs[0][0] + '|' + docs[0][1] + '|' + docs[0][2];
+    const doc = docs.find(p => p[0] + '|' + p[1] + '|' + p[2] === T.doc);
+    let back = []; if (doc) back = Object.keys(doc[5]).filter(c => Math.abs(doc[5][c]) >= 0.05).map(c => { const s = rlFifoSim(c); if (!s) return null; const u = s.used.filter(x => x.t === 'use' && x.d === doc[0] && String(x.no) === String(doc[1]) && x.p === doc[2]); return { c, nm: s.I.nm, g: doc[5][c], lots: u.map(x => ({ l: s.lots.find(l => l.id === x.lot), g: x.g })) }; }).filter(Boolean);
+    return `<div class="rl"><div class="hd"><div><h2>로트 추적 <small style="font-size:16px;color:#6B625A;font-weight:600">회수(리콜) 대비</small></h2><div class="sub">원료 입고분이 어느 제품에 들어갔는지, 제품이 어느 입고분으로 만들어졌는지 찾아요. 먼저 들어온 것을 먼저 썼다고 보고 계산한 추정이에요.</div></div></div>
+<div class="card"><h3>① 원료 입고분 → 만든 제품</h3><div class="ctl"><select data-rltr="raw">${codes.map(c => `<option value="${esc(c)}" ${c === T.raw ? 'selected' : ''}>${esc(nmS(L.items[c].nm))}</option>`).join('')}</select>
+<select data-rltr="lot">${lots.map(l => `<option value="${l.id}" ${l.id === T.lot ? 'selected' : ''}>${esc(l.nm)} · ${kg(l.g)}${l.k === 'exp' ? ' · 소비기한 ' + ymdE(l.ed) : ''}${l.left > 0.5 ? ' · 남음 ' + kg(l.left) : ' · 다 씀'}</option>`).join('')}</select></div>
+${lot ? `<div class="bal" style="grid-template-columns:repeat(4,1fr)"><div><span>입고</span><b style="font-size:18px">${lot.k === 'open' ? '기초 재고' : mdw(lot.d)}</b></div><div><span>거래처 · 소비기한</span><b style="font-size:16px">${esc(lot.v || '—')} ${lot.k === 'exp' ? '· ' + ymdE(lot.ed) : ''}</b></div><div><span>입고량</span><b>${kg(lot.g)}</b></div><div><span>지금 남은 양(추정)</span><b>${kg(lot.left)}</b></div></div>` : ''}
+${pl.length ? `<div class="tw" style="max-height:340px"><table class="t"><thead><tr><th>생산일</th><th>제품</th><th class="r">생산 수량</th><th class="r">이 입고분 사용</th><th>전표</th></tr></thead><tbody>${pl.map(p => `<tr><td class="nw">${mdw(p.d)}</td><td><b>${esc(nmS(p.pn))}</b></td><td class="r">${fmt(p.pq)}</td><td class="r">${g0(p.g)}g</td><td><small class="mu">생산입고 ${esc(String(p.no))}</small></td></tr>`).join('')}</tbody></table></div>
+<div class="note" style="margin-top:10px"><b>회수 범위(추정):</b> ${mdw(pl[0].d)} ~ ${mdw(pl[pl.length - 1].d)} 생산 ${[...new Set(pl.map(p => nmS(p.pn)))].join(', ')} — 출고처는 완제품·생지 「판매 목록」에서 같은 기간으로 찾으세요.</div>` : '<div class="mu">이 입고분은 아직 생산에 쓰이지 않았어요.</div>'}</div>
+<div class="card"><h3>② 제품 생산 전표 → 쓴 원료 입고분</h3><div class="ctl"><select data-rltr="doc" style="max-width:100%">${docs.map(p => { const k = p[0] + '|' + p[1] + '|' + p[2]; return `<option value="${esc(k)}" ${k === T.doc ? 'selected' : ''}>${mdw(p[0])} ${esc(nmS(p[3]))} ${fmt(p[4])}개 (생산입고 ${esc(String(p[1]))})</option>`; }).join('')}</select></div>
+${back.length ? `<div class="tw"><table class="t"><thead><tr><th>원료</th><th class="r">사용 g</th><th>쓴 입고분 (추정)</th></tr></thead><tbody>${back.map(r => `<tr><td><b>${esc(r.nm)}</b></td><td class="r">${g0(r.g)}</td><td>${r.lots.map(x => x.l ? `${esc(x.l.nm)}${x.l.k === 'exp' ? ' · 소비기한 ' + ymdE(x.l.ed) : ''} <small class="mu">${kg(x.g)}</small>` : '').join('<br>') || '<span class="mu">—</span>'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="mu">원료 소모가 붙은 생산 전표를 고르세요.</div>'}
+<p class="law">정확하게 하려면: 생산실 앱에서 배합할 때 「쓴 원료 소비기한」을 고르게 하면 추정이 아니라 기록이 됩니다(다음 단계 제안).</p></div></div>`;
+  }
+
+  /* 5) 기준 정보 */
+  function rlMast() {
+    if (!RL.data || !RL.data.L) return rlNoData();
+    const L = RL.data.L; const bom = rlBomStd(); const codes = rlCodes();
+    const usedBy = c => [...new Set(Object.values(bom).filter(b => b.per[c]).map(b => nmS(b.nm).replace(/^D[Bb]\./, '').replace(/_기본배합/, '').replace(/\s*\d+EA.*/i, '').replace(/\(육쪽마늘빵\)/, '(육쪽)')))];
+    return `<div class="rl"><div class="hd"><div><h2>원료 기준 정보</h2><div class="sub">원료 한 줄에 매입·보관·실사·발주·배합 기준을 모았어요. 고치는 곳은 오른쪽 버튼으로 이어져요.</div></div><div class="acts"><button class="b" data-rlsys="setraw">⚙ 원료 품목 설정</button><button class="b" data-rlgo="rbuy">🛒 발주 기준 정보</button></div></div>
+<div class="card"><div class="tw"><table class="t"><thead><tr><th>원료 (이카운트 코드)</th><th>거래처</th><th>매입 단위</th><th class="r">빈 용기 g</th><th class="r">안전재고</th><th class="r">g당 단가</th><th class="r">최근 4주 사용</th><th>쓰는 제품</th><th>메모</th></tr></thead><tbody>
+${codes.map(c => { const I = rlItem(c); const m = (S.master && S.master.items && S.master.items[c]) || {}; let P = null, ss = 0; try { P = rbPat(c); ss = rbSS(c); } catch (e) { } const u = rlAvgUse(I, 28) * 28; const ub = usedBy(c);
+      return `<tr class="click" data-rlit="${esc(c)}"><td><b>${esc(I.nm)}</b><br><small class="mu">${esc(c)}</small></td><td><small>${esc(m.vendor || (P && P.sup) || '')}</small></td><td class="nw"><small>${P && P.bname && P.g > 1 ? esc(P.bname || '') + '<br>1' + esc(P.u || '개') + ' = ' + fmt(P.g) + 'g' : m.spec ? '규격 ' + fmt(m.spec) + 'g' : '—'}</small></td><td class="r">${m.tare ? fmt(m.tare) : '—'}</td><td class="r nw">${ss ? kg(ss) : '—'}</td><td class="r">${m.price ? fmt(m.price) + '원' : '—'}</td><td class="r nw">${u > 0 ? kg(u) : '<span class="mu">없음</span>'}</td><td><small>${esc(ub.join(', ')) || '<span class="mu">—</span>'}</small></td><td><small class="mu">${esc(m.note || '')}</small></td></tr>`; }).join('')}
+</tbody></table></div></div>
+<div class="note">빈 용기 g은 금요일 실사에서 「용기째 잰 무게 − 빈 용기」로 실중량을 낼 때 쓰여요(개봉 원료는 비닐째 플라스틱 통에 이중 보관). 통 무게가 바뀌면 「⚖ 용기·포장 검증」에서 고쳐 주세요.</div></div>`;
+  }
+
+  /* ── 버튼 연결 ── */
+  function rlBind(box, t) {
+    const q = s => box.querySelectorAll(s);
+    q('[data-rlgo]').forEach(b => b.onclick = e => { e.stopPropagation(); const it = b.dataset.it; if (it) { RL.it = it; RL.tr.raw = it; } if (b.dataset.rlgo === 'rledg') RL.mode = 'item'; rlGo(b.dataset.rlgo); });
+    q('[data-rlit]').forEach(b => b.onclick = () => { RL.it = b.dataset.rlit; RL.mode = 'item'; if (t === 'rledg') { rlRender('rledg'); window.scrollTo(0, 0); } else rlGo('rledg'); });
+    q('[data-rlpick]').forEach(b => b.onclick = () => { RL.it = b.dataset.rlpick; rlRender('rledg'); });
+    q('[data-rlmode]').forEach(b => b.onclick = () => { RL.mode = b.dataset.rlmode; rlRender('rledg'); });
+    q('[data-rlper]').forEach(b => b.onclick = () => { RL.per = b.dataset.rlper; rlRender('rledg'); });
+    q('[data-rlmon]').forEach(s => s.onchange = () => { if (s.value) { RL.per = 'mon'; RL.mon = s.value; } rlRender('rledg'); });
+    q('[data-rlday]').forEach(b => b.onclick = () => { RL.day = b.dataset.rlday; rlRender('rledg'); });
+    q('[data-rldaysel]').forEach(s => s.onchange = () => { RL.day = s.value; rlRender('rledg'); });
+    q('[data-rlq]').forEach(i => { i.oninput = () => { RL.q = i.value.trim(); const p = i.selectionStart; rlRender('rledg').then(() => { const n = document.querySelector('#rl_rledg [data-rlq]'); if (n) { n.focus(); try { n.setSelectionRange(p, p); } catch (e) { } } }); }; });
+    q('[data-rlopen]').forEach(b => b.onclick = () => { const k = b.dataset.rlopen; RL.open[k] = !RL.open[k]; rlRender(t); });
+    q('[data-rltr]').forEach(s => s.onchange = () => { const k = s.dataset.rltr; RL.tr[k] = s.value; if (k === 'raw') RL.tr.lot = ''; rlRender('rtrace'); });
+    q('[data-rlmenu]').forEach(b => b.onclick = () => { S.ui.menu = b.dataset.rlmenu; S.ui.prodTab = 'pnew'; save(); renderAll(); });
+    q('[data-rlsys]').forEach(b => b.onclick = () => { S.ui.menu = 'sys'; S.ui.sysTab = b.dataset.rlsys; save(); renderAll(); });
+    q('[data-rlact]').forEach(b => b.onclick = () => { const a = b.dataset.rlact; if (a === 'reload') { RL.data = null; rlRender(t); } else if (a === 'print') rlPrint(false); else if (a === 'printMonth') rlPrint(true); else if (a === 'csv') rlCsv(); else if (a === 'filt') { RL.filt = b.dataset.v || ''; rlRender('rhome'); } });
+  }
+  window.__rlTest = { rlItem, rlRows, rlTodos, rlLastCount, rlYield, rlProdCheck, rlFifoSim, rlLoad };
+  try { if (S.ui && S.ui.menu === 'raw') renderAll(); } catch (e) { }
+})(); } catch (e) { console.warn('rawledger v279', e); }
 
 </script>
 <script>
