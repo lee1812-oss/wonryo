@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '280';
-const APP_BUILT = '2026-10-25 23:57';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '281';
+const APP_BUILT = '2026-10-25 23:59';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -9957,7 +9957,7 @@ try { (function () {
 })(); } catch (e) { console.warn('cmp dates v277', e); }
 
 
-/* ══ v279~v280 (2026-10-26 Aside) 원료수불부 재구성 (v280: 같은 날 메모 없는 재고조정 여러 줄=창고 정리는 한 줄로 합침, 원장 표 가로 넘침 수정) — 사용자 요청(10/25 밤): 「원료수불부 전체를 전수조사해서 대기업 수준으로, 매끄럽고 직관적이고 현실성 있게.
+/* ══ v279~v280 (2026-10-26 Aside) 원료수불부 재구성 (v281: 원장 표 폭 맞춤 · v280: 같은 날 메모 없는 재고조정 여러 줄=창고 정리는 한 줄로 합침, 원장 표 가로 넘침 수정) — 사용자 요청(10/25 밤): 「원료수불부 전체를 전수조사해서 대기업 수준으로, 매끄럽고 직관적이고 현실성 있게.
    HACCP·시청 점검에 맞는 원료수불부 형태, 이카운트 생산일지와 통합재고관리가 매끄럽게 연동」
    - 메뉴를 일하는 순서로 묶음: 매일(현황·수불대장) → 금요일 실사(실사 입력·실사 차이·재고 조정) → 생산·구매(생산 연동·원료 발주·소비기한) → 관리(로트 추적·기준 정보) → 예전 화면.
    - 새 화면 5개: 현황(rhome) · 수불대장(rledg) · 생산 연동(rprod) · 로트 추적(rtrace) · 기준 정보(rmast). 예전 화면 함수는 하나도 지우거나 바꾸지 않음(감싸기만).
@@ -10131,7 +10131,7 @@ try { (function () {
 .rl .kpi:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}.rl .kpi .t{font-size:14.5px;color:var(--mu);font-weight:700}.rl .kpi .v{font-size:31px;font-weight:800;line-height:1.15;letter-spacing:-.5px}.rl .kpi .v small{font-size:16px;font-weight:700;margin-left:2px}.rl .kpi .s{font-size:13.5px;color:var(--mu);line-height:1.4}
 .rl .kpi.red{border-top-color:var(--red)}.rl .kpi.red .v{color:var(--red)}.rl .kpi.org{border-top-color:var(--org)}.rl .kpi.org .v{color:#B4610F}.rl .kpi.grn{border-top-color:var(--grn)}.rl .kpi.grn .v{color:var(--grn)}.rl .kpi.blu{border-top-color:var(--blu)}.rl .kpi.blu .v{color:var(--blu)}.rl .kpi.k{border-top-color:var(--k)}.rl .kpi.k .v{color:var(--k)}
 .rl table.t{width:100%;border-collapse:collapse;font-size:15.5px}.rl .t th{background:#F6F3EF;color:#4f463e;font-weight:700;font-size:14px;padding:9px 8px;border-bottom:1px solid var(--ln);text-align:left;white-space:nowrap;position:sticky;top:0;z-index:1}
-.rl .t td{padding:9px 8px;border-bottom:1px solid #EFEAE4;vertical-align:middle}.rl .t td.r,.rl .t th.r{text-align:right;font-variant-numeric:tabular-nums}.rl .t tr.click{cursor:pointer}.rl .t tr.click:hover td{background:#FBF7F2}
+.rl .t td{padding:8px 7px;border-bottom:1px solid #EFEAE4;vertical-align:middle}.rl .t td.r,.rl .t th.r{text-align:right;font-variant-numeric:tabular-nums}.rl .t tr.click{cursor:pointer}.rl .t tr.click:hover td{background:#FBF7F2}
 .rl .t tr.sum td{background:#F6F3EF;font-weight:800;border-top:2px solid #d8cfc5}.rl .t tr.open td{background:#FAFAF8;color:var(--mu)}.rl .t tr.pend td{background:#FFF8EC}.rl .t tr.dsep td{border-top:2px solid #e2d8cd}
 .rl .tw{overflow:auto;max-height:70vh;border:1px solid var(--ln);border-radius:10px}
 .rl .chip{display:inline-block;border-radius:999px;padding:2px 10px;font-size:13.5px;font-weight:700;white-space:nowrap;background:#EEE;color:#555}
@@ -10145,7 +10145,7 @@ try { (function () {
 .rl .flow{display:flex;gap:6px;align-items:stretch;flex-wrap:wrap;margin-bottom:14px}.rl .flow .st{flex:1;min-width:150px;background:#fff;border:1px solid var(--ln);border-radius:12px;padding:10px 12px;font-size:14.5px}.rl .flow .st b{display:block;font-size:16px}.rl .flow .ar{display:flex;align-items:center;color:#bba892;font-size:18px}
 .rl .flow .st.on{border:2px solid var(--k);background:var(--kb)}
 .rl .wk{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}.rl .wk div{background:#fff;border:1px solid var(--ln);border-radius:12px;padding:9px 11px;font-size:14px;color:#4f463e;min-height:84px}.rl .wk div b{display:block;font-size:15.5px;color:var(--tx);margin-bottom:2px}.rl .wk div.on{border:2px solid var(--k);background:var(--kb)}
-.rl .two{display:grid;grid-template-columns:240px minmax(0,1fr);gap:14px}.rl .two>*{min-width:0}.rl .ilist{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:8px;max-height:78vh;overflow:auto}
+.rl .two{display:grid;grid-template-columns:210px minmax(0,1fr);gap:14px}.rl .two>*{min-width:0}.rl .ilist{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:8px;max-height:78vh;overflow:auto}
 .rl .ilist input{width:100%;min-height:44px;border:1px solid #cfc4b8;border-radius:10px;padding:6px 12px;font:inherit;font-size:16px;margin-bottom:6px}
 .rl .ilist button{display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:9px;font:inherit;font-size:15.5px;cursor:pointer;color:var(--tx)}.rl .ilist button:hover{background:#F6F1EB}.rl .ilist button.on{background:var(--k);color:#fff}.rl .ilist button small{opacity:.75;font-size:13px;white-space:nowrap}
 .rl .bal{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid var(--ln);border-radius:12px;overflow:hidden;margin-bottom:12px}.rl .bal div{padding:10px 12px;border-right:1px solid var(--ln);background:#fff}.rl .bal div:last-child{border-right:0;background:var(--kb)}.rl .bal span{display:block;font-size:13.5px;color:var(--mu);font-weight:700}.rl .bal b{font-size:22px;font-variant-numeric:tabular-nums}
@@ -10277,8 +10277,8 @@ ${sorted.filter(r => !RL.filt || r.lv === RL.filt).map(r => { const bw = r.days 
   }
   function rlMvDesc(m) {
     if (m.t === 'in') return `<b class="tin">입고</b> ${esc(m.v || '')} <small class="mu">${esc(nmS(m.pc))} ${m.n ? fmt(m.n) + '개' : ''}${m.w > 1 ? ' × ' + fmt(m.w) + 'g' : ''}</small>${m.k === 'exp' ? ` · 소비기한 <b class="nw">${ymdE(m.ed)}</b>` : m.k === 'mfg' ? ` · 제조 ${ymdE(m.ed)}` : m.g < 0 ? ' · 반품' : ' · <span class="chip org">소비기한 미기재</span>'}`;
-    if (m.t === 'use') return `<b class="tuse">사용</b> ${esc(nmS(m.pn))} <small class="mu nw">${fmt(m.pq)}개 생산 · 생산입고 ${esc(String(m.no || ''))}</small>`;
-    if (m.t === 'adj') return `<b class="tadj">조정</b> ${esc(m.m || '재고조정')}${m.pend ? ' <span class="chip org">오늘 반영 · 내일 아침 원장 확정</span>' : ''}`;
+    if (m.t === 'use') return `<b class="tuse">사용</b> ${esc(nmS(m.pn))} <small class="mu">${fmt(m.pq)}개 생산 · 생산입고 ${esc(String(m.no || ''))}</small>`;
+    if (m.t === 'adj') return `<b class="tadj">조정</b> ${esc(m.m || '재고조정')}${m.pend ? ' <span class="chip org" title="이카운트에는 들어갔고, 내일 아침 원장 갱신 때 확정돼요">오늘 반영</span>' : ''}`;
     if (m.t === 'etc') return `<b class="tadj">기타</b> <span class="chip org">확인 필요</span> ${esc(m.m)}`;
     return `<b class="mu">오늘</b> <small>${esc(m.m)}</small>`;
   }
