@@ -1230,7 +1230,8 @@ header.top .brand .hver .rv-ok{color:#9BE3B8;font-weight:700}header.top .brand .
     </div>
   </section>
 
-  <!-- ═══ v237 원료 발주 ═══ --> <section class="view" data-view="rbuy"><style>
+  <!-- ═══ v264 원료 선입선출 ═══ --> <section class="view" data-view="fifo"><div class="card"><div id="fifoBody"></div></div></section>
+<!-- ═══ v237 원료 발주 ═══ --> <section class="view" data-view="rbuy"><style>
 #rbuyBody .rb-t{width:100%;border-collapse:collapse}#rbuyBody .rb-t th,#rbuyBody .rb-t td{border-bottom:1px solid var(--line,#e5ddd5);padding:7px 6px;text-align:right;vertical-align:middle;font-size:14px}#rbuyBody .rb-t th{font-size:12.5px;color:#666;font-weight:600;white-space:nowrap}#rbuyBody .rb-t .l{text-align:left}
 #rbuyBody .rb-s{font-size:12px;line-height:1.35}#rbuyBody .rb-in{font-size:16px;padding:6px 8px;border:1px solid #cdbfb2;border-radius:8px;width:92px;text-align:right}#rbuyBody .rb-in.sm{width:74px}#rbuyBody .rb-in.xs{width:56px}#rbuyBody .rb-in.w{width:120px;text-align:left}#rbuyBody .rb-in.w2{width:190px;text-align:left}
 #rbuyBody tr.rb-bad td{background:#fde4e4}#rbuyBody tr.rb-warn td{background:#fff6dc}#rbuyBody .rb-warnt{color:#a86a00}
@@ -1449,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '263';
-const APP_BUILT = '2026-10-25 19:38';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '264';
+const APP_BUILT = '2026-10-25 19:51';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -1462,7 +1463,7 @@ const TABS = [
   ['cmp','비교분석','<svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>'],
   ['trend','추이','<svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 5-7 4 4"/><path d="M3 21h18"/></svg>'],
   ['rbuy','원료 발주','<svg viewBox="0 0 24 24"><path d="M3 4h2l2.4 11h11.2L21 7H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/><path d="M12 8v4M10 10h4"/></svg>'],
-  ['adj','재고조정','<svg viewBox="0 0 24 24"><path d="M12 3v18M4 7h16M6 7l-3 7a3.5 3.5 0 0 0 7 0L7 7M18 7l-3 7a3.5 3.5 0 0 0 7 0l-3-7"/></svg>'],
+  ['fifo','선입선출','<svg viewBox="0 0 24 24"><path d="M4 6h11M4 12h8M4 18h5"/><path d="M18 4v16"/><path d="M15 17l3 3 3-3"/></svg>'], ['adj','재고조정','<svg viewBox="0 0 24 24"><path d="M12 3v18M4 7h16M6 7l-3 7a3.5 3.5 0 0 0 7 0L7 7M18 7l-3 7a3.5 3.5 0 0 0 7 0l-3-7"/></svg>'],
   ['set','설정','<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'],
 ];
 
@@ -8330,8 +8331,90 @@ function renderAll() {
   if (isProdM(S.ui.menu)) renderProd();
   if (S.ui.menu === 'sys') { if (S.ui.sysTab === 'set' || S.ui.sysTab === 'setraw') renderSet(); if (S.ui.sysTab === 'pset') { try { finEnsure(); } catch (e) {} renderProdSet(); } renderModeBox(); }
   const t = S.ui.tab;
-  if (t === 'dash') renderDash(); else if (t === 'stock') renderStock(); else if (t === 'phys') renderPhys(); else if (t === 'weekly') renderWeekly(); else if (t === 'cmp') renderCmp(); else if (t === 'trend') renderTrend(); else if (t === 'adj') renderAdj(); else if (t === 'rbuy') renderRbuy(); else renderSet();
+  if (t === 'dash') renderDash(); else if (t === 'stock') renderStock(); else if (t === 'phys') renderPhys(); else if (t === 'weekly') renderWeekly(); else if (t === 'cmp') renderCmp(); else if (t === 'trend') renderTrend(); else if (t === 'adj') renderAdj(); else if (t === 'rbuy') renderRbuy(); else if (t === 'fifo') renderFifo(); else renderSet();
 }
+/* ══ v264 (2026-10-25 Aside) 원료 선입선출 — 사용자 요청: 「원부재료 매입 때 이카운트에 넣는 소비기한(구매 적요)을 기준으로 선입선출 재고 관리」
+   - 자료: 공장 자료(factory.enc.json) rawbuy.lots = 이카운트 구매현황 2025/10~ 누적(적요의 YY.MM.DD = 소비기한, 「제조」가 붙으면 제조일). 아침 07:50·저녁 17:50 갱신. 만드는 곳: Aside dashboard/rawbuy_build.js rawLots
+   - 계산: 지금 이카운트 재고(g, 5분마다 동기화)를 「가장 최근에 산 것부터 남아 있다」고 보고 매입분에 나눔(먼저 산 것을 먼저 썼다고 가정) → 남은 매입분 중 소비기한 빠른 것을 「먼저 쓸 것」으로 표시.
+   - 경고: 소비기한 지남·30일 안(빨강), 90일 안(주황), 나중에 들어온 것이 소비기한이 더 빠름(주황), 같은 소비기한이 3번 넘게 이어서 적힘·소비기한 미기재·재고가 매입 기록보다 많음(확인 필요). ══ */
+var FIFO = { filt: 'stock', open: {} };
+function fifoDays(d) { if (!d) return null; return Math.round((new Date(d + 'T00:00:00') - new Date(today() + 'T00:00:00')) / 864e5); }
+function fifoYmd(d) { return d ? d.slice(2).replace(/-/g, '.') : ''; }
+function fifoMd(d) { if (!d) return ''; const md = (+d.slice(5, 7)) + '/' + (+d.slice(8, 10)); return d.slice(0, 4) === today().slice(0, 4) ? md : d.slice(2, 4) + '/' + md; }
+function fifoLv(lot) { if (!lot || lot.k !== 'exp') return 'gray'; const n = fifoDays(lot.ed); return n < 0 ? 'past' : n <= 30 ? 'red' : n <= 90 ? 'amber' : 'green'; }
+function fifoDLabel(lot) { if (!lot) return ''; if (lot.k === 'mfg') return '제조일 ' + fifoYmd(lot.ed); if (lot.k !== 'exp') return '소비기한 미기재'; const n = fifoDays(lot.ed); return '소비기한 ' + fifoYmd(lot.ed) + ' · ' + (n < 0 ? (-n) + '일 지남' : n === 0 ? '오늘까지' : 'D-' + n); }
+function fifoQ(g, it) { const w = Number(it.w) || 0; if (!(w > 0)) return fmt(Math.round(g)) + 'g'; const q = g / w; return (q >= 10 ? fmt(Math.round(q)) : fmt(Math.round(q * 10) / 10)) + (it.u || '개'); }
+function fifoCalc(code, it) {
+  const stock = rbStock(code); const lots = (it.lots || []).slice().sort((a, b) => a.pd < b.pd ? 1 : a.pd > b.pd ? -1 : 0);
+  const rem = []; let left = Math.max(0, Number(stock) || 0);
+  for (const l of lots) { if (left <= 0) break; const g = (Number(l.n) || 0) * (Number(l.w) || Number(it.w) || 0); if (!(g > 0)) continue; const take = Math.min(g, left); left -= take; rem.push(Object.assign({}, l, { g: take, full: g, part: take < g - 0.5 })); }
+  const key = l => l.k === 'exp' ? '0' + l.ed : l.k === 'mfg' ? '1' + l.ed : '2' + l.pd;
+  const order = rem.slice().sort((a, b) => key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : (a.pd < b.pd ? -1 : 1));
+  const warn = [];
+  const ex = rem.filter(l => l.k === 'exp');
+  outer: for (let i = 0; i < ex.length; i++) for (let j = i + 1; j < ex.length; j++) { const nw = ex[i], od = ex[j]; if (nw.pd > od.pd && nw.ed < od.ed) { warn.push(['amber', '나중에 들어온 ' + fifoMd(nw.pd) + ' 입고분(' + fifoYmd(nw.ed) + ')이 ' + fifoMd(od.pd) + ' 입고분(' + fifoYmd(od.ed) + ')보다 소비기한이 빨라요 → ' + fifoMd(nw.pd) + ' 입고분을 먼저 쓰세요']); break outer; } }
+  const near = lots.slice(0, rem.length + 2); let run = 1, best = null; for (let i = 1; i < near.length; i++) { if (near[i].k === 'exp' && near[i].ed === near[i - 1].ed) { run++; if (run >= 3 && (!best || run > best.n)) best = { n: run, ed: near[i].ed, from: near[i].pd, to: near[i - run + 1].pd }; } else run = 1; }
+  if (best) warn.push(['orange', fifoMd(best.from) + '~' + fifoMd(best.to) + ' 매입 ' + best.n + '번 모두 소비기한이 ' + fifoYmd(best.ed) + '로 같아요 → 거래명세서·제품 표시 값이 맞는지 확인해 주세요']);
+  const ne = rem.filter(l => l.k === 'none'); if (ne.length) warn.push(['orange', '구매 적요에 소비기한이 없는 입고분이 남아 있어요: ' + ne.map(l => fifoMd(l.pd)).join(', ') + ' → 이카운트 구매 적요에 소비기한을 넣어 주세요']);
+  if (left > 0.5) warn.push(['orange', '이카운트 재고가 1년 매입 기록보다 ' + fifoQ(left, it) + ' 많아요 → 재고조정·실사 값 확인 필요 (오래된 원료일 수 있어요)']);
+  if (rem.length && rem.every(l => l.k === 'mfg')) warn.push(['blue', '제조일만 적혀 있어요 (설탕처럼 소비기한 표시가 없는 원료) → 제조일이 빠른 것부터 사용']);
+  return { stock, rem, order, first: order[0] || null, left, warn };
+}
+function fifoCss() {
+  if (document.getElementById('fifoCss')) return; const st = document.createElement('style'); st.id = 'fifoCss';
+  st.textContent = '#fifoBody{font-size:17px;line-height:1.55;word-break:keep-all;overflow-wrap:break-word;color:#222}'
+    + '#fifoBody .ff-hd h2{margin:0 0 4px;font-size:22px}#fifoBody .ff-sub{color:#555;font-size:15px}'
+    + '#fifoBody .ff-sum{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}'
+    + '#fifoBody .ff-chip{border:1px solid #ddd;border-radius:12px;padding:10px 16px;background:#fff;min-width:120px;min-height:54px;cursor:pointer;font-size:15px;color:#333;text-align:left}'
+    + '#fifoBody .ff-chip b{display:block;font-size:26px;line-height:1.2}#fifoBody .ff-chip.on{outline:3px solid #7a4a1e}'
+    + '#fifoBody .ff-chip.red b{color:#c62828}#fifoBody .ff-chip.amber b{color:#e08a00}#fifoBody .ff-chip.green b{color:#2e7d32}#fifoBody .ff-chip.gray b{color:#9a4400}'
+    + '#fifoBody .ff-card{border:1px solid #ddd;border-left:8px solid #9e9e9e;border-radius:12px;padding:14px 16px;margin-bottom:12px;background:#fff}'
+    + '#fifoBody .ff-card.past,#fifoBody .ff-card.red{border-left-color:#c62828;background:#fff8f8}#fifoBody .ff-card.amber{border-left-color:#e08a00}#fifoBody .ff-card.green{border-left-color:#2e7d32}'
+    + '#fifoBody .ff-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}#fifoBody .ff-nm{font-size:20px;font-weight:800}#fifoBody .ff-stock{color:#444;font-size:16px;white-space:nowrap}'
+    + '#fifoBody .ff-first{margin-top:8px;font-size:18px}#fifoBody .ff-first .lab{display:inline-block;background:#7a4a1e;color:#fff;border-radius:8px;padding:2px 10px;font-size:15px;margin-right:8px;font-weight:700}'
+    + '#fifoBody .ff-d{font-weight:800;white-space:nowrap}#fifoBody .ff-d.past,#fifoBody .ff-d.red{color:#c62828}#fifoBody .ff-d.amber{color:#e08a00}#fifoBody .ff-d.green{color:#2e7d32}#fifoBody .ff-d.gray{color:#666}'
+    + '#fifoBody .ff-w{margin-top:6px;padding:7px 10px;border-radius:8px;font-size:15px}#fifoBody .ff-w.amber{background:#fff4e0;color:#8a5200}#fifoBody .ff-w.orange{background:#fff1e6;color:#9a4400}#fifoBody .ff-w.blue{background:#eef4fb;color:#24527a}'
+    + '#fifoBody .ff-tog{margin-top:8px;background:#fff;border:1px solid #ccc;border-radius:8px;padding:8px 14px;font-size:15px;cursor:pointer;min-height:44px}'
+    + '#fifoBody table.ff-t{width:100%;border-collapse:collapse;margin-top:8px;font-size:15.5px}#fifoBody .ff-t th,#fifoBody .ff-t td{border-bottom:1px solid #eee;padding:7px 6px;text-align:left;white-space:nowrap}'
+    + '#fifoBody .ff-t th{color:#666;font-weight:600;font-size:14px}#fifoBody .ff-t td.r{text-align:right}#fifoBody .ff-t tr.one td{background:#fbf6ef;font-weight:700}'
+    + '#fifoBody .ff-how{border:1px solid #e0e0e0;background:#fafafa;border-radius:12px;padding:12px 16px;margin-top:14px;font-size:15.5px;color:#444}#fifoBody .ff-how b{color:#222}#fifoBody .ff-zero{color:#777;font-size:15px;margin-top:10px}';
+  document.head.appendChild(st);
+}
+async function renderFifo() {
+  const box = $('#fifoBody'); if (!box) return; fifoCss();
+  if (!box.dataset.ready) box.innerHTML = '<div class="muted">소비기한 자료를 불러오는 중…</div>';
+  let F; try { F = await facLoad(); } catch (e) { box.innerHTML = '<div class="ff-w orange">' + esc(String((e && e.message) || e)) + '</div>'; return; }
+  const rb = F && (F.rawbuy || (F.factory && F.factory.rawbuy)); const L = rb && rb.lots;
+  if (!L || !L.items) { box.innerHTML = '<div class="ff-w orange">공장 자료에 원료 소비기한(매입) 자료가 아직 없어요. 아침 07:50 · 저녁 17:50 갱신 뒤에 보여요.</div>'; return; }
+  box.dataset.ready = '1';
+  const rows = Object.entries(L.items).map(([code, it]) => Object.assign({ code, it }, fifoCalc(code, it)));
+  const tiny = r => !(r.stock > 0.5) || !r.rem.length || (Number(r.it.w) > 0 && r.stock < Number(r.it.w) * 0.05); const live = rows.filter(r => !tiny(r)), zero = rows.filter(tiny);
+  live.forEach(r => { r.lv = fifoLv(r.first); r.chk = r.warn.some(w => w[0] === 'orange' || w[0] === 'amber'); });
+  const rk = { past: 0, red: 1, amber: 2, green: 3, gray: 4 };
+  const ek = r => r.first && r.first.k === 'exp' ? r.first.ed : '9';
+  live.sort((a, b) => (rk[a.lv] - rk[b.lv]) || (ek(a) < ek(b) ? -1 : ek(a) > ek(b) ? 1 : 0));
+  const cnt = { red: live.filter(r => r.lv === 'past' || r.lv === 'red').length, amber: live.filter(r => r.lv === 'amber').length, green: live.filter(r => r.lv === 'green').length, chk: live.filter(r => r.chk).length };
+  const f = FIFO.filt; const show = live.filter(r => f === 'red' ? (r.lv === 'past' || r.lv === 'red') : f === 'amber' ? r.lv === 'amber' : f === 'green' ? r.lv === 'green' : f === 'chk' ? r.chk : true);
+  const chip = (k, cls, n, t) => '<button class="ff-chip ' + cls + (f === k ? ' on' : '') + '" data-fffilt="' + k + '"><b>' + n + '</b>' + t + '</button>';
+  const card = r => {
+    const it = r.it, fst = r.first, op = !!FIFO.open[r.code];
+    const tbl = '<table class="ff-t"><tr><th>쓰는 순서</th><th>소비기한</th><th>입고일</th><th class="r">남은 양(추정)</th><th>거래처</th></tr>' + r.order.map((l, i) => '<tr class="' + (i ? '' : 'one') + '"><td>' + (i ? (i + 1) + '번째' : '① 먼저') + '</td><td><span class="ff-d ' + fifoLv(l) + '">' + esc(l.k === 'exp' ? fifoYmd(l.ed) : l.k === 'mfg' ? '제조 ' + fifoYmd(l.ed) : '미기재') + '</span></td><td>' + fifoMd(l.pd) + '</td><td class="r">' + fifoQ(l.g, it) + (l.part ? ' <span class="muted">/ ' + fifoQ(l.full, it) + '</span>' : '') + '</td><td>' + esc(String(l.c || '').replace(/^\(주\)|주식회사\s*/g, '')) + '</td></tr>').join('') + '</table>';
+    return '<div class="ff-card ' + r.lv + '"><div class="ff-top"><span class="ff-nm">' + esc(it.nm) + '</span><span class="ff-stock">지금 ' + fifoQ(r.stock, it) + ' <span class="muted">(' + fmt(Math.round(r.stock)) + 'g)</span></span></div>'
+      + '<div class="ff-first"><span class="lab">먼저 쓸 것</span><span class="ff-d ' + r.lv + '">' + esc(fifoDLabel(fst)) + '</span> · ' + fifoMd(fst.pd) + ' 입고분 약 ' + fifoQ(fst.g, it) + '</div>'
+      + r.warn.map(w => '<div class="ff-w ' + w[0] + '">' + esc(w[1]) + '</div>').join('')
+      + '<button class="ff-tog" data-fftog="' + esc(r.code) + '">' + (op ? '▲ 남은 입고분 접기' : '▼ 남은 입고분 ' + r.order.length + '개 보기') + '</button>' + (op ? '<div style="overflow-x:auto">' + tbl + '</div>' : '') + '</div>';
+  };
+  const at = rbStockAt();
+  box.innerHTML = '<div class="ff-hd"><h2>원료 선입선출 · 먼저 쓸 원료</h2><div class="ff-sub">이카운트 구매 때 적요에 넣은 소비기한 기준 · 재고 ' + esc(at ? String(at).slice(5, 16).replace('T', ' ') : '—') + ' · 매입 자료 ' + esc(String(L.built || '').slice(5)) + '</div></div>'
+    + '<div class="ff-sum">' + chip('red', 'red', cnt.red, '지남·30일 안') + chip('amber', 'amber', cnt.amber, '90일 안') + chip('green', 'green', cnt.green, '여유') + chip('chk', 'gray', cnt.chk, '확인 필요') + chip('stock', '', live.length, '재고 있는 원료 전체') + '</div>'
+    + (show.length ? show.map(card).join('') : '<div class="muted">해당하는 원료가 없어요.</div>')
+    + (zero.length ? '<div class="ff-zero">재고 없음·거의 없음: ' + esc(zero.map(r => r.it.nm).join(', ')) + '</div>' : '')
+    + (L.noExp && L.noExp.some(x => x.k === 'none') ? '<div class="ff-w orange" style="margin-top:12px">최근 60일 입고 중 구매 적요에 소비기한이 없는 것: ' + esc(L.noExp.filter(x => x.k === 'none').map(x => x.nm + ' ' + fifoMd(x.pd)).join(', ')) + '</div>' : '')
+    + '<div class="ff-how"><b>어떻게 계산하나요?</b><br>① 원료를 살 때 이카운트 구매 적요에 넣은 날짜(예: 27.02.08)를 소비기한으로 읽어요. 「제조」가 붙으면 제조일이에요.<br>② 지금 이카운트 재고는 <b>가장 최근에 산 것부터 남아 있다</b>고 보고 입고분별로 나눠요(먼저 산 것을 먼저 썼다는 선입선출 가정).<br>③ 남은 입고분 중 <b>소비기한이 빠른 것</b>을 「먼저 쓸 것」으로 보여 줘요. 창고에서는 소비기한 빠른 것을 앞·위에, 새로 들어온 것을 뒤·아래에 두세요.<br><span class="muted">' + esc(L.src || '') + ' · 실제 창고 배치와 다를 수 있으니 금요일 실사 때 소비기한도 함께 봐 주세요.</span></div>';
+  box.querySelectorAll('[data-fffilt]').forEach(b => b.onclick = () => { FIFO.filt = b.dataset.fffilt; renderFifo(); });
+  box.querySelectorAll('[data-fftog]').forEach(b => b.onclick = () => { const c = b.dataset.fftog; FIFO.open[c] = !FIFO.open[c]; renderFifo(); });
+}
+
 function measureHead() { document.documentElement.style.setProperty('--head-h', document.querySelector('header.top').offsetHeight + 'px'); }
 window.addEventListener('resize', measureHead);
 if (!S.ui.week) S.ui.week = latestWeek();
