@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '282';
-const APP_BUILT = '2026-10-26 05:51';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '283';
+const APP_BUILT = '2026-10-26 06:31';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -9957,7 +9957,7 @@ try { (function () {
 })(); } catch (e) { console.warn('cmp dates v277', e); }
 
 
-/* ══ v279~v280 (2026-10-26 Aside) 원료수불부 재구성 (v282: 일자별 수불 「오늘」 버튼·달력(오늘까지)·전체 날짜 목록 · v281: 원장 표 폭 맞춤 · v280: 같은 날 메모 없는 재고조정 여러 줄=창고 정리는 한 줄로 합침, 원장 표 가로 넘침 수정) — 사용자 요청(10/25 밤): 「원료수불부 전체를 전수조사해서 대기업 수준으로, 매끄럽고 직관적이고 현실성 있게.
+/* ══ v279~v280 (2026-10-26 Aside) 원료수불부 재구성 (v283: 카테고리별 색(사이드 묶음·제목 칩·화면 띠) · v282: 일자별 수불 「오늘」 버튼·달력(오늘까지)·전체 날짜 목록 · v281: 원장 표 폭 맞춤 · v280: 같은 날 메모 없는 재고조정 여러 줄=창고 정리는 한 줄로 합침, 원장 표 가로 넘침 수정) — 사용자 요청(10/25 밤): 「원료수불부 전체를 전수조사해서 대기업 수준으로, 매끄럽고 직관적이고 현실성 있게.
    HACCP·시청 점검에 맞는 원료수불부 형태, 이카운트 생산일지와 통합재고관리가 매끄럽게 연동」
    - 메뉴를 일하는 순서로 묶음: 매일(현황·수불대장) → 금요일 실사(실사 입력·실사 차이·재고 조정) → 생산·구매(생산 연동·원료 발주·소비기한) → 관리(로트 추적·기준 정보) → 예전 화면.
    - 새 화면 5개: 현황(rhome) · 수불대장(rledg) · 생산 연동(rprod) · 로트 추적(rtrace) · 기준 정보(rmast). 예전 화면 함수는 하나도 지우거나 바꾸지 않음(감싸기만).
@@ -9986,6 +9986,11 @@ try { (function () {
   ];
   const GROUPS = [['매일', ['rhome', 'rledg']], ['금요일 실사', ['phys', 'cmp', 'adj']], ['생산 · 구매', ['rprod', 'rbuy', 'fifo']], ['관리 · 점검', ['rtrace', 'rmast']], ['예전 화면', ['stock', 'weekly', 'trend', 'dash']]];
   const BOTTOM = ['rhome', 'rledg', 'phys', 'cmp', 'rprod', 'rbuy'];
+  /* v283: 카테고리 색 — 매일 파랑 · 금요일 실사 보라 · 생산·구매 주황 · 관리·점검 청록 · 예전 화면 회색 */
+  const CATS = [['매일', '#1F5FA8', '#E8F0FA', '📅'], ['금요일 실사', '#6B47B8', '#F0EBFA', '📋'], ['생산 · 구매', '#C2620E', '#FDF0E3', '🏭'], ['관리 · 점검', '#0F7C7A', '#E2F4F3', '🔎'], ['예전 화면', '#757575', '#F1F1F1', '🗂']];
+  const catOf = id => { const i = GROUPS.findIndex(g => g[1].includes(id)); return i < 0 ? null : { i, nm: CATS[i][0], c: CATS[i][1], cb: CATS[i][2], e: CATS[i][3] }; };
+  const catVar = k => k ? `--c:${k.c};--cb:${k.cb}` : '';
+  window.rlCatOf = catOf;
 
   /* ── 메뉴 ── */
   const _menuItems = menuItems;
@@ -10005,8 +10010,8 @@ try { (function () {
     const nav = document.getElementById('sideNav'); if (!nav || nav.querySelector('.rl-side')) return;
     const grid = nav.querySelector('.subgrid'); if (!grid) return;
     const cur = S.ui.tab; const by = Object.fromEntries(RAW_MENU.map(x => [x[0], x]));
-    const btn = id => { const x = by[id]; return `<button data-rltab="${id}" class="${cur === id ? 'on' : ''}" title="${x[1]}">${x[2]}<span>${x[1]}</span></button>`; };
-    const html = GROUPS.map(([g, ids], gi) => `<div class="rl-sg${gi === GROUPS.length - 1 ? ' old' : ''}">${g}</div><div class="subgrid rl-sub">${ids.map(btn).join('')}</div>`).join('');
+    const btn = id => { const x = by[id]; return `<button data-rltab="${id}" class="rl-cb${cur === id ? ' on' : ''}" style="${catVar(catOf(id))}" title="${catOf(id) ? catOf(id).nm + ' · ' : ''}${x[1]}">${x[2]}<span>${x[1]}</span></button>`; };
+    const html = GROUPS.map(([g, ids], gi) => `<div class="rl-grp${gi === GROUPS.length - 1 ? ' old' : ''}" style="--c:${CATS[gi][1]};--cb:${CATS[gi][2]}"><div class="rl-sg"><i></i>${g}</div><div class="subgrid rl-sub">${ids.map(btn).join('')}</div></div>`).join('');
     const wrap = document.createElement('div'); wrap.className = 'rl-side'; wrap.innerHTML = html;
     grid.replaceWith(wrap);
     wrap.querySelectorAll('[data-rltab]').forEach(b => b.onclick = () => rlGo(b.dataset.rltab));
@@ -10025,7 +10030,7 @@ try { (function () {
   /* ── renderAll: 새 화면일 때는 원래 renderAll과 같은 순서로 그리고 마지막만 새 화면 ── */
   const _renderAll = renderAll;
   renderAll = function () {
-    if (!NEW.includes(S.ui.tab)) { const r = _renderAll.apply(this, arguments); try { rlStepper(); } catch (e) { } return r; }
+    if (!NEW.includes(S.ui.tab)) { const r = _renderAll.apply(this, arguments); try { rlStepper(); rlCatBar(); } catch (e) { } return r; }
     renderTabs(); renderHeader(); renderNotice(); if (typeof renderSyncPill === 'function') renderSyncPill(); if (typeof renderChanges === 'function') setTimeout(renderChanges, 0);
     if (S.ui.menu === 'home') renderHome();
     if (isProdM(S.ui.menu)) renderProd();
@@ -10153,7 +10158,15 @@ try { (function () {
 .rl .todo{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #EFEAE4}.rl .todo:last-child{border-bottom:0}.rl .todo .chip{margin-top:2px}.rl .todo div{flex:1}.rl .todo small{display:block;color:var(--mu);font-size:14px}
 .rl .law{font-size:13.5px;color:var(--mu);margin-top:8px}
 .rl-stp{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;font-size:15px;word-break:keep-all}.rl-stp button{flex:1;min-width:140px;min-height:50px;border:1px solid #E4DDD5;background:#fff;border-radius:12px;padding:6px 10px;font:inherit;font-size:15px;font-weight:700;color:#4f463e;cursor:pointer;text-align:left}.rl-stp button i{font-style:normal;display:inline-flex;width:24px;height:24px;border-radius:50%;background:#D9CDC2;color:#fff;align-items:center;justify-content:center;margin-right:6px;font-size:13px}.rl-stp button.on{border:2px solid #7A4A23;background:#F7F1EA;color:#1F1A16}.rl-stp button.on i{background:#7A4A23}.rl-stp .tl{flex-basis:100%;font-size:13.5px;color:#6B625A;font-weight:700}
-.rl-side .rl-sg{font-size:11.5px;font-weight:800;color:#8a7c70;margin:8px 4px 3px;letter-spacing:.2px}.rl-side .rl-sg.old{opacity:.75}body.navmini .rl-side .rl-sg{font-size:10px;text-align:center;margin:6px 0 2px}
+.rl-side .rl-grp{background:var(--cb);border-radius:10px;padding:3px 3px 4px;margin:6px 0;border-left:4px solid var(--c)}.rl-side .rl-grp.old{opacity:.8}
+.rl-side .rl-sg{font-size:12.5px;font-weight:800;color:var(--c);margin:3px 5px 3px;letter-spacing:-.1px;display:flex;align-items:center;gap:5px;white-space:nowrap}.rl-side .rl-sg i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+body.navmini .rl-side .rl-sg{font-size:10.5px;justify-content:center;margin:3px 0 2px}body.navmini .rl-side .rl-sg i{display:none}
+aside.side .rl-side button.rl-cb svg,#tabsBottom button.rl-cb svg{stroke:var(--c)}aside.side .rl-side button.rl-cb:not(.on):hover{background:#fff}
+aside.side .rl-side button.rl-cb.on,#tabsBottom button.rl-cb.on{background:var(--c)!important;color:#fff!important}aside.side .rl-side button.rl-cb.on svg,#tabsBottom button.rl-cb.on svg{stroke:#fff}
+.rl .hd{border-left:6px solid var(--c,#7A4A23);padding-left:12px}.rl .hd h2 .rl-cat,.rl-stp .rl-cat{display:inline-block;vertical-align:middle;font-size:13.5px;font-weight:800;color:var(--c);background:var(--cb);border:1px solid var(--c);border-radius:999px;padding:1px 10px;margin-right:8px;letter-spacing:0}
+.rl .kpi{border-top-color:var(--c,#9e9e9e)}.rl .seg button.on,.rl .b.p,.rl .ilist button.on{background:var(--c,#7A4A23);border-color:var(--c,#7A4A23)}.rl .b.p:hover{filter:brightness(.9);background:var(--c,#7A4A23)}.rl .card>h3{color:var(--tx)}.rl .card{border-top:3px solid var(--cb,#E4DDD5)}
+.rl-stp{--c:#6B47B8;--cb:#F0EBFA}.rl-stp button.on{border-color:var(--c)!important;background:var(--cb)!important}.rl-stp button.on i{background:var(--c)!important}
+.rl-catbar{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:7px 12px;border-radius:10px;background:var(--cb);border-left:6px solid var(--c);font-size:14.5px;font-weight:700;color:#3a3330}.rl-catbar b{color:var(--c)}
 @media (max-width:900px){.rl .two{grid-template-columns:1fr}.rl .ilist{max-height:none;display:flex;gap:6px;overflow-x:auto;padding:6px}.rl .ilist input{display:none}.rl .ilist button{flex:none;width:auto}.rl .wk{grid-template-columns:repeat(2,1fr)}.rl .bal{grid-template-columns:repeat(2,1fr)}.rl .kpi .v{font-size:26px}}
 `;
     document.head.appendChild(st);
@@ -10167,10 +10180,19 @@ try { (function () {
     let el = sec.querySelector(':scope > .rl-stp'); if (!el) { el = document.createElement('div'); el.className = 'rl-stp'; sec.prepend(el); }
     const lc = (() => { try { return rlLastCount(); } catch (e) { return null; } })();
     const st = [['phys', '실사 입력', '금요일 실사 · 미개봉·개봉 무게'], ['cmp', '실사 차이', '전산과 비교 · 원인 확인'], ['adj', '재고 조정', '이카운트 반영 · 전표']];
-    el.innerHTML = `<div class="tl">금요일 원료 실사 순서 — 지금 ${st.findIndex(x => x[0] === t) + 1}단계${lc ? ` · 지난 실사 ${mdw(lc.d)} ${lc.n}품목${lc.ev && lc.ev.done ? ' · 이카운트 반영 ' + esc(lc.ev.slip) : ''}` : ''}</div>`
+    el.innerHTML = `<div class="tl"><span class="rl-cat">📋 금요일 실사</span>원료 실사 순서 — 지금 ${st.findIndex(x => x[0] === t) + 1}단계${lc ? ` · 지난 실사 ${mdw(lc.d)} ${lc.n}품목${lc.ev && lc.ev.done ? ' · 이카운트 반영 ' + esc(lc.ev.slip) : ''}` : ''}</div>`
       + st.map((x, i) => `<button data-rlstp="${x[0]}" class="${x[0] === t ? 'on' : ''}"><i>${i + 1}</i>${x[1]}<br><small style="font-weight:500;color:#6B625A">${x[2]}</small></button>`).join('')
       + `<button data-rlstp="rledg"><i>4</i>수불대장 확인<br><small style="font-weight:500;color:#6B625A">조정이 원장에 들어갔는지</small></button>`;
     el.querySelectorAll('[data-rlstp]').forEach(b => b.onclick = () => rlGo(b.dataset.rlstp));
+  }
+
+  /* v283: 예전 화면(원료 발주·소비기한·전산재고·주간재고·추이·옛 대시보드) 위에 카테고리 띠 */
+  function rlCatBar() {
+    if (S.ui.menu !== 'raw') return; const t = S.ui.tab; if (['phys', 'cmp', 'adj'].includes(t) || NEW.includes(t)) return; rlCss();
+    const k = catOf(t); const sec = document.querySelector(`section.view[data-view="${t}"]`); if (!k || !sec) return;
+    let el = sec.querySelector(':scope > .rl-catbar'); if (!el) { el = document.createElement('div'); el.className = 'rl-catbar'; sec.prepend(el); }
+    const nm = (RAW_MENU.find(x => x[0] === t) || [])[1] || ''; el.style.cssText = catVar(k);
+    el.innerHTML = `<b>${k.e} ${k.nm}</b><span>›</span><span>${esc(nm)}</span>`;
   }
 
   /* ── 그리기 ── */
@@ -10181,6 +10203,7 @@ try { (function () {
     try {
       const fn = { rhome: rlHome, rledg: rlLedg, rprod: rlProd, rtrace: rlTrace, rmast: rlMast }[t];
       box.innerHTML = fn(); rlBind(box, t);
+      const k = catOf(t), root = box.firstElementChild; if (k && root) { root.style.cssText += ';' + catVar(k); const h = root.querySelector('.hd h2'); if (h && !h.querySelector('.rl-cat')) h.insertAdjacentHTML('afterbegin', `<span class="rl-cat">${k.e} ${k.nm}</span>`); }
     } catch (e) { console.error(e); box.innerHTML = `<div class="rl"><div class="bad">화면을 그리다 문제가 생겼어요: ${esc(String(e && e.message || e))}</div></div>`; }
   }
   window.rlRender = rlRender;
