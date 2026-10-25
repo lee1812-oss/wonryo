@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '276';
-const APP_BUILT = '2026-10-25 22:42';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '277';
+const APP_BUILT = '2026-10-25 23:10';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -9724,6 +9724,238 @@ try { (function () { if (window.FIELD_APP) return;
     const o = $('#pOldView'); if (o) o.onclick = () => { window._prodOld = true; renderProdNew(); }; };
   try { if (S.ui.menu === 'prod' && S.ui.prodTab === 'pnew') renderProdNew(); } catch (e) {}
 })(); } catch (e) { console.warn('pc field v259', e); }
+/* ══ v277 (2026-10-25 Aside) 비교분석: 전산재고 날짜와 실물재고 날짜를 각각 골라 비교 ══
+   사용자 2026-10-25 「통합재고관리 전산재고와 실물재고를 각각 날짜를 지정해서 비교 분석할 수 있도록」.
+   - 전산 날짜: 아무 날짜(2026-09-09 ~ 오늘). 이 기기에 그 날짜 자료가 없으면 깃허브 연동 이력(ecAllFetch, 그날 23:59 마지막 값)을 읽음.
+     읽은 값은 화면 계산에만 쓰고 S.snapshots에는 넣지 않음(다른 화면에 영향 없음).
+   - 실물 날짜: 실물을 입력한 날짜 목록에서 고름.
+   - 두 날짜가 다르면 「실사일 전산」「그 사이 전산 변동」 열을 함께 보여 줘서, 차이가 실사 오차인지 입출고 때문인지 구분.
+   - 두 날짜가 같으면 예전 비교분석과 같은 계산. */
+try { (function () {
+  const CX = { ec: '', ph: '', base: null, hist: {}, busy: {}, err: {} };
+  const WD = ['일', '월', '화', '수', '목', '금', '토'];
+  const MIN_EC = '2026-09-09';
+  const okD = d => /^\d{4}-\d{2}-\d{2}$/.test(d || '');
+  const dObj = d => okD(d) ? new Date(d + 'T00:00:00') : null;
+  const dStr = o => o.getFullYear() + '-' + String(o.getMonth() + 1).padStart(2, '0') + '-' + String(o.getDate()).padStart(2, '0');
+  const dAdd = (d, n) => { const o = dObj(d); if (!o) return d; o.setDate(o.getDate() + n); return dStr(o); };
+  const dBig = d => { const o = dObj(d); return o ? `<small>${o.getFullYear()}년</small>${o.getMonth() + 1}월 ${o.getDate()}일 (${WD[o.getDay()]})` : '—'; };
+  const dShort = d => { const o = dObj(d); return o ? `${o.getMonth() + 1}/${o.getDate()}(${WD[o.getDay()]})` : (d || '—'); };
+  const r1 = n => Math.round(n * 10) / 10;
+
+  function physDates() {
+    const out = [];
+    const SV = S.ssSaved || {};
+    [...new Set([...Object.keys(S.physical || {}), ...Object.keys(SV)])].filter(okD).sort().reverse().forEach(d => {
+      const ph = S.physical[d] || {}, sv = SV[d] || {}; const cs = new Set();
+      Object.keys(ph).forEach(c => { const p = ph[c]; if (p && !p.est && !p.carry && hasPhysVal(p) && !hidden(c)) cs.add(c); });
+      Object.keys(sv).forEach(c => { if (sv[c] && sv[c].q != null && sv[c].x !== 0 && !hidden(c)) cs.add(c); });
+      if (cs.size) out.push({ d, n: cs.size });
+    });
+    return out;
+  }
+  function ensure() {
+    const cw = curWeek();
+    if (CX.base !== cw || !okD(CX.ph) || !okD(CX.ec)) {
+      CX.base = cw; const pd = physDates();
+      CX.ph = pd.some(x => x.d === cw) ? cw : (pd[0] ? pd[0].d : cw);
+      CX.ec = CX.ph && CX.ph <= today() ? CX.ph : (cw || today());
+    }
+  }
+  /* 전산재고: { items, src, kind: 'snap'|'hist'|'near'|'wait', at } */
+  function ecFor(date) {
+    if (S.snapshots[date]) return { items: itemsFor(date), src: `이 기기에 저장된 ${dShort(date)} 이카운트 자료`, kind: 'snap' };
+    const base = itemsFor(date); const near = base.length ? base[0].snapWeek : '';
+    const h = CX.hist[date];
+    if (h) {
+      const items = base.map(it => (it.code in h.qty) ? Object.assign({}, it, { qty: h.qty[it.code], virtual: false, snapWeek: date }) : it);
+      const at = h.at ? new Date(h.at) : null;
+      return { items, src: `이카운트 연동 이력 · ${at ? (at.getMonth() + 1) + '/' + at.getDate() + ' ' + String(at.getHours()).padStart(2, '0') + ':' + String(at.getMinutes()).padStart(2, '0') : dShort(date)} 마지막 값`, kind: 'hist' };
+    }
+    if (date < today() && date >= MIN_EC) {
+      if (!CX.busy[date] && !CX.err[date]) {
+        CX.busy[date] = true;
+        ecAllFetch(date).then(r => {
+          const q = {}; ((r.data && r.data.items) || []).forEach(x => { if (x.code) q[x.code] = x.qty; });
+          CX.hist[date] = { qty: q, at: (r.data && (r.data.commitAt || r.data.updatedAt)) || '' };
+        }).catch(e => { CX.err[date] = String(e && e.message || e); setTimeout(() => { delete CX.err[date]; }, 10 * 60000); })
+          .finally(() => { delete CX.busy[date]; try { if (S.ui.tab === 'cmp') renderCmp(); } catch (e) {} });
+      }
+      if (CX.err[date]) return { items: base, src: `${dShort(date)} 이력을 못 읽어 ${near ? dShort(near) : '가장 가까운'} 자료로 대신 계산 (${CX.err[date]})`, kind: 'near' };
+      return { items: base, src: `${dShort(date)} 이카운트 이력을 불러오는 중… (잠시 ${near ? dShort(near) : '이전'} 자료로 표시)`, kind: 'wait' };
+    }
+    return { items: base, src: near ? `${dShort(near)} 이카운트 자료 기준 (가장 최근)` : '전산 자료 없음', kind: near === date ? 'snap' : 'near' };
+  }
+  function rowsX(ecD, phD) {
+    const E = ecFor(ecD), same = ecD === phD;
+    const P = same ? E : ecFor(phD);
+    const pMap = new Map(P.items.map(i => [i.code, i]));
+    const ph = S.physical[phD] || {};
+    const seen = new Set(); const list = [];
+    E.items.forEach(it => { if (!seen.has(it.code)) { seen.add(it.code); list.push(it); } });
+    const sv = (S.ssSaved || {})[phD] || {};
+    P.items.forEach(it => { if (!seen.has(it.code) && (ph[it.code] || sv[it.code])) { seen.add(it.code); list.push(Object.assign({}, it, { qty: null })); } });
+    const rows = list.filter(it => !hidden(it.code)).map(it => {
+      const pit = pMap.get(it.code) || it; const p = ph[it.code];
+      let pq = physQty(pit, p), fromSv = false;
+      if (pq == null && sv[it.code] && sv[it.code].q != null && sv[it.code].x !== 0) { pq = Number(sv[it.code].q); fromSv = true; }
+      const eq = it.qty == null ? null : Number(it.qty);
+      const eqP = pit.qty == null ? null : Number(pit.qty);
+      const diff = pq == null || eq == null ? (pq != null && eq == null ? pq : null) : r1(pq - eq);
+      const dDay = same ? diff : (pq == null || eqP == null ? null : r1(pq - eqP));
+      const move = same || eq == null || eqP == null ? null : r1(eq - eqP);
+      const price = priceOf(it.code, it.name); const mm = masterOf(it.code, it.name) || {};
+      return Object.assign({}, it, { phys: pq, ecount: eq, ecAtPh: same ? eq : eqP, diffDay: dDay, move, diff, est: isEst(p), carry: !isEst(p) && (p || {}).carry || null, adj: diff != null && needAdj(diff, eq), fromSv, note: (p || {}).note || '', price, amt: diff == null || price == null ? null : Math.round(diff * price), spec: it.spec || mm.spec || 0, tare: it.tare || mm.tare || 0 });
+    });
+    return { rows, E, P, same };
+  }
+  window.__cmpX = { state: CX, rows: () => { ensure(); return rowsX(CX.ec, CX.ph); } };
+
+  /* 스타일 */
+  try { const st = document.createElement('style'); st.textContent = `
+    .cmpd{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch;margin:4px 0 12px}
+    .cmpd-box{border-radius:14px;padding:12px 14px;border:2px solid;display:flex;flex-direction:column;gap:8px;min-width:0}
+    .cmpd-box.ec{background:#EEF3FB;border-color:#9DB4DB}.cmpd-box.ph{background:#EDF7EF;border-color:#94C9A0}
+    .cmpd-box .lb{font-size:17px;font-weight:800;color:#1d2b4f}.cmpd-box.ph .lb{color:#1f5130}
+    .cmpd-box .lb small{font-weight:500;color:#5b6475;font-size:14px;margin-left:4px}
+    .cmpd-pick{position:relative;display:block;background:#fff;border-radius:10px;border:1px solid #cfd6e2;padding:8px 12px;min-height:58px;cursor:pointer}
+    .cmpd-pick .dt{display:block;font-size:26px;font-weight:800;color:#111;line-height:1.2;white-space:nowrap}
+    .cmpd-pick .dt small{font-size:14px;font-weight:600;color:#666;margin-right:6px}
+    .cmpd-pick .ch{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:14px;color:#2b5fb4;font-weight:700}
+    .cmpd-box.ph .cmpd-pick .ch{color:#237a3b}
+    .cmpd-pick input,.cmpd-pick select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:17px}
+    .cmpd-q{display:flex;flex-wrap:wrap;gap:6px}
+    .cmpd-q button{min-height:44px;padding:6px 12px;border-radius:9px;border:1px solid #c5ccd8;background:#fff;font-size:15px;font-weight:700;color:#333;cursor:pointer}
+    .cmpd-q button.on{background:#1d2b4f;color:#fff;border-color:#1d2b4f}.cmpd-box.ph .cmpd-q button.on{background:#237a3b;border-color:#237a3b}
+    .cmpd-q button:disabled{opacity:.4;cursor:default}
+    .cmpd-src{font-size:14px;color:#4a5160;word-break:keep-all}.cmpd-src.w{color:#b25e00;font-weight:700}
+    .cmpd-vs{display:flex;align-items:center;justify-content:center;font-weight:800;color:#777;font-size:15px;writing-mode:horizontal-tb}
+    .cmpd-note{border-radius:10px;padding:10px 14px;font-size:16px;line-height:1.5;word-break:keep-all;margin-bottom:10px}
+    .cmpd-note.diff{background:#FFF4E5;border:1px solid #F3C27A;color:#6b3d00}.cmpd-note.same{background:#F2F4F7;border:1px solid #dde1e7;color:#444}
+    .cmpd-note b{white-space:nowrap}
+    .cmpd-print{display:none}
+    @media (max-width:760px){.cmpd{grid-template-columns:1fr}.cmpd-vs{padding:0}.cmpd-pick .dt{font-size:22px}}
+    @media print{.cmpd,.cmpd-note.noprint{display:none!important}}
+  `; document.head.appendChild(st); } catch (e) {}
+
+  function barHtml(R) {
+    const pd = physDates(); const td = today();
+    const has = pd.some(x => x.d === CX.ph);
+    const opts = (has ? '' : `<option value="${esc(CX.ph)}" selected>${esc(dShort(CX.ph))} · 입력 없음</option>`) + pd.map(x => `<option value="${x.d}"${x.d === CX.ph ? ' selected' : ''}>${esc(dShort(x.d))} · ${x.n}품목 입력</option>`).join('');
+    const i = pd.findIndex(x => x.d === CX.ph);
+    const prev = i >= 0 ? pd[i + 1] : pd.find(x => x.d < CX.ph); const next = i > 0 ? pd[i - 1] : (i < 0 ? [...pd].reverse().find(x => x.d > CX.ph) : null);
+    const nPh = (pd.find(x => x.d === CX.ph) || {}).n || 0;
+    const qb = (k, label, on, dis) => `<button type="button" data-cmpq="${k}" class="${on ? 'on' : ''}"${dis ? ' disabled' : ''}>${label}</button>`;
+    const ecNext = dAdd(CX.ph, 1);
+    const ecW = R.E.kind === 'wait' || R.E.kind === 'near';
+    return `<div class="cmpd noprint">
+      <div class="cmpd-box ec"><div class="lb">💻 전산재고 날짜 <small>이카운트</small></div>
+        <label class="cmpd-pick" title="눌러서 전산재고 날짜 고르기"><span class="dt">${dBig(CX.ec)}</span><span class="ch">날짜 바꾸기</span><input type="date" data-cmpd="ec" min="${MIN_EC}" max="${td}" value="${esc(CX.ec)}" aria-label="전산재고 날짜"></label>
+        <div class="cmpd-q">${qb('ec:ph', '실물 날짜와 같게', CX.ec === CX.ph)}${qb('ec:next', '실물 다음날', CX.ec === ecNext, ecNext > td)}${qb('ec:-1', '‹ 하루 전', false, dAdd(CX.ec, -1) < MIN_EC)}${qb('ec:+1', '하루 후 ›', false, dAdd(CX.ec, 1) > td)}${qb('ec:today', '오늘(최신)', CX.ec === td)}</div>
+        <div class="cmpd-src${ecW ? ' w' : ''}">${esc(R.E.src)}</div></div>
+      <div class="cmpd-vs">비교</div>
+      <div class="cmpd-box ph"><div class="lb">📦 실물재고 날짜 <small>실사 입력한 날</small></div>
+        <label class="cmpd-pick" title="눌러서 실물재고 날짜 고르기"><span class="dt">${dBig(CX.ph)}</span><span class="ch">날짜 바꾸기</span><select data-cmpd="ph" aria-label="실물재고 날짜">${opts}</select></label>
+        <div class="cmpd-q">${qb('ph:prev', '‹ 이전 실사', false, !prev)}${qb('ph:next', '다음 실사 ›', false, !next)}${qb('ph:last', '가장 최근 실사', pd[0] && CX.ph === pd[0].d, !pd[0])}</div>
+        <div class="cmpd-src">${nPh ? `이 날짜에 실물 ${nPh}품목 입력됨 · 실사 날짜는 ${pd.length}번 있음` : '이 날짜에는 실물 입력이 없습니다. 위에서 실사한 날짜를 골라 주세요.'}</div></div>
+    </div>
+    ${R.same ? `<div class="cmpd-note same noprint">두 날짜가 같습니다: <b>${esc(dShort(CX.ec))}</b> 전산재고와 실물재고를 비교합니다.</div>`
+      : `<div class="cmpd-note diff">전산 <b>${esc(dShort(CX.ec))}</b> ↔ 실물 <b>${esc(dShort(CX.ph))}</b>, 날짜가 다릅니다. 두 날짜 사이에 이카운트에 들어간 입고·사용량이 「차이」에 섞여 있어요. <b>「실사일 차이」</b>(실물 − 실물 날짜의 전산)가 실제 실사 오차이고, <b>「그 사이 전산 변동」</b>은 두 날짜 사이 전산이 바뀐 양입니다.${R.P.kind === 'wait' || R.P.kind === 'near' ? ` <span style="color:#b25e00">(실물 날짜의 전산: ${esc(R.P.src)})</span>` : ''}</div>`}`;
+  }
+
+  function bind() {
+    const box = $('#cmpDates'); if (!box || box._b) return; box._b = true;
+    box.addEventListener('change', e => {
+      const t = e.target; if (!t.dataset || !t.dataset.cmpd) return; const v = t.value; if (!okD(v)) return;
+      if (t.dataset.cmpd === 'ec') { if (v > today()) return toast('오늘 이후 날짜는 고를 수 없습니다'); if (v < MIN_EC) return toast('이카운트 연동은 2026-09-09부터 있습니다'); CX.ec = v; } else CX.ph = v;
+      renderCmp();
+    });
+    box.addEventListener('click', e => {
+      const b = e.target.closest && e.target.closest('[data-cmpq]'); if (!b || b.disabled) return;
+      const [w, k] = b.dataset.cmpq.split(':'); const td = today();
+      if (w === 'ec') {
+        if (k === 'ph') CX.ec = CX.ph > td ? td : CX.ph; else if (k === 'next') CX.ec = dAdd(CX.ph, 1); else if (k === 'today') CX.ec = td; else CX.ec = dAdd(CX.ec, Number(k));
+        if (CX.ec > td) CX.ec = td; if (CX.ec < MIN_EC) CX.ec = MIN_EC;
+      } else {
+        const pd = physDates(); const i = pd.findIndex(x => x.d === CX.ph);
+        if (k === 'last' && pd[0]) CX.ph = pd[0].d;
+        else if (k === 'prev') { const x = i >= 0 ? pd[i + 1] : pd.find(x => x.d < CX.ph); if (x) CX.ph = x.d; }
+        else if (k === 'next') { const x = i > 0 ? pd[i - 1] : (i < 0 ? [...pd].reverse().find(x => x.d > CX.ph) : null); if (x) CX.ph = x.d; }
+      }
+      renderCmp();
+    });
+  }
+
+  renderCmp = function () {
+    ensure();
+    const R = rowsX(CX.ec, CX.ph); const rows = R.rows; const same = R.same;
+    let box = $('#cmpDates');
+    if (!box) { const st = $('#cmpStats'); if (st) { box = document.createElement('div'); box.id = 'cmpDates'; st.parentNode.insertBefore(box, st); } }
+    if (box) { box.innerHTML = barHtml(R); bind(); }
+    try { $('#btnCmpXlsx').onclick = exportCmp; $('#btnCmpReport').onclick = () => copyText(same ? reportText(CX.ph) : reportX()); } catch (e) {}
+    $('#cmpTitle').textContent = same ? `비교분석 · ${CX.ph}` : `비교분석 · 전산 ${CX.ec} ↔ 실물 ${CX.ph}`;
+    $('#prTitle').textContent = `${S.settings.company || ''} 원료 전산·실물 재고 비교분석`;
+    $('#prMeta').textContent = (same ? `기준일 ${CX.ph}` : `전산재고 ${CX.ec} · 실물재고 ${CX.ph}`) + ` · 출력 ${today()}${S.settings.reporter ? ' · 보고자 ' + S.settings.reporter : ''}`;
+    $('#cmpMemo').textContent = S.memos[CX.ph] ? '비고: ' + S.memos[CX.ph] : '';
+    if (!rows.length) { $('#cmpStats').innerHTML = ''; $('#cmpTable').innerHTML = '<div class="empty">비교할 데이터가 없습니다.</div>'; return; }
+    const entered = rows.filter(r => r.phys != null), diffs = rows.filter(r => r.diff != null && r.diff !== 0), adj = rows.filter(r => r.adj);
+    const te = rows.reduce((a, r) => a + (r.ecount || 0), 0), tp = entered.reduce((a, r) => a + (r.phys || 0), 0), tee = entered.reduce((a, r) => a + (r.ecount || 0), 0);
+    const short = rows.filter(r => r.diff < 0).reduce((a, r) => a + r.diff, 0), over = rows.filter(r => r.diff > 0).reduce((a, r) => a + r.diff, 0);
+    const adjAmt = adj.reduce((a, r) => a + (r.amt || 0), 0), adjNoPrice = adj.filter(r => r.price == null).length;
+    const moved = same ? [] : rows.filter(r => r.move != null && r.move !== 0);
+    const dayDiff = same ? [] : entered.filter(r => r.diffDay != null && r.diffDay !== 0);
+    $('#cmpStats').innerHTML = `<div class="stat"><b>${entered.length}<span style="font-size:13px;font-weight:500">/${rows.length}</span></b><span>실물 입력 품목</span></div><div class="stat"><b class="${adj.length ? 'minus' : 'plus'}">${adj.length}</b><span>조정대상 (차이 ${diffs.length}건)</span></div><div class="stat"><b class="minus">${fmt(r1(short))}</b><span>부족 합계 g</span></div><div class="stat"><b class="plus">${fmtS(r1(over))}</b><span>초과 합계 g</span></div><div class="stat"><b class="${cls(adjAmt)}">${adj.length ? fmtWS(adjAmt) : '—'}</b><span>조정 금액${adjNoPrice ? ` · 단가없음 ${adjNoPrice}` : ''}</span></div>${same ? '' : `<div class="stat"><b class="${dayDiff.length ? 'minus' : 'plus'}">${dayDiff.length}</b><span>실사일 차이 품목</span></div><div class="stat"><b>${moved.length}</b><span>그 사이 전산 변동 품목</span></div>`}`;
+    let list = rows.filter(r => ui.cmpFilter === 'all' || (ui.cmpFilter === 'diff' ? r.diff != null && r.diff !== 0 : r.adj));
+    list = sortItems([...list]);
+    const maxAbs = Math.max(1, ...rows.map(r => Math.abs(r.diff || 0)));
+    const eL = dShort(CX.ec), pL = dShort(CX.ph);
+    const body = list.map(r => {
+      const pct = r.diff != null && r.ecount ? (r.diff / Math.abs(r.ecount) * 100) : null;
+      const w = r.diff ? Math.max(4, Math.round(Math.abs(r.diff) / maxAbs * 60)) : 0;
+      const st = r.phys == null ? '<span class="pill gray">미입력</span>' : r.diff === 0 ? '<span class="pill ok">일치</span>' : r.adj ? `<span class="pill ${cls(r.diff)}">${r.diff < 0 ? '부족·조정' : '초과·조정'}</span>` : '<span class="pill warn">오차내</span>';
+      const stc = (r.fromSv ? ' <span class="pill gray" title="금요일 실사에서 재고조정·확인을 누른 실중량">실사 확정값</span>' : '') + (r.carry ? ` <span class="pill gray" title="${esc(r.carry)} 확인값 유지">이전값 ${esc(r.carry.slice(5))}</span>` : '');
+      const ex = same ? '' : `<td class="num mh">${fmt(r.ecAtPh)}</td><td class="num mh ${cls(r.diffDay)}">${r.diffDay == null ? '—' : fmtS(r.diffDay)}</td><td class="num mh ${cls(r.move)}">${r.move == null ? '—' : r.move === 0 ? '0' : fmtS(r.move)}</td>`;
+      return `<tr><td class="sticky">${esc(shortName(r.name))}<div class="muted mh code">${esc(r.code)}</div></td><td class="num">${fmt(r.ecount)}</td><td class="num"><b>${fmt(r.phys)}</b></td><td class="num ${cls(r.diff)}"><b>${r.diff == null ? '—' : fmtS(r.diff)}</b>${w ? ` <span class="diffbar" style="width:${w}px;background:${r.diff < 0 ? 'var(--minus)' : 'var(--plus)'}"></span>` : ''}</td><td class="num mh ${cls(r.diff)}">${pct == null ? '—' : fmtS(Math.round(pct * 10) / 10) + '%'}</td><td>${st}${stc}</td>${ex}<td class="num mh ${r.adj ? cls(r.diff) : 'zero'}">${r.adj ? fmtS(r.diff) : ''}</td><td class="num ${r.diff ? cls(r.amt) : 'zero'}">${r.diff ? (r.amt == null ? '<span class="muted">단가없음</span>' : fmtWS(r.amt)) : ''}</td><td class="mh small"><span class="dday ${expBucket(ddays(expiryOf(r.code, CX.ph)))}">${expiryOf(r.code, CX.ph) || ''}</span></td><td class="small mh">${esc(r.note)}</td></tr>`;
+    }).join('');
+    const exH = same ? '' : `<th class="num mh">실사일 전산<br><small>${esc(pL)}</small></th><th class="num mh">실사일 차이<br><small>실물−실사일 전산</small></th><th class="num mh">그 사이<br>전산 변동</th>`;
+    const nCol = same ? 10 : 13;
+    const tDay = same ? 0 : r1(entered.reduce((a, r) => a + (r.diffDay || 0), 0)), tMove = same ? 0 : r1(rows.reduce((a, r) => a + (r.move || 0), 0)), tEP = same ? 0 : rows.reduce((a, r) => a + (r.ecAtPh || 0), 0);
+    const exF = same ? '' : `<td class="num mh">${fmt(r1(tEP))}</td><td class="num mh ${cls(tDay)}">${fmtS(tDay)}</td><td class="num mh ${cls(tMove)}">${fmtS(tMove)}</td>`;
+    $('#cmpTable').innerHTML = `<table class="t"><thead><tr><th class="sticky">품목</th><th class="num">전산(g)${same ? '' : `<br><small>${esc(eL)}</small>`}</th><th class="num">실물(g)${same ? '' : `<br><small>${esc(pL)}</small>`}</th><th class="num">차이(g)${same ? '' : '<br><small>실물−전산</small>'}</th><th class="num mh">차이율</th><th>상태</th>${exH}<th class="num mh">조정수량</th><th class="num">금액</th><th class="mh">소비기한</th><th class="mh">메모</th></tr></thead><tbody>${body || `<tr><td colspan="${nCol}" class="empty">해당 품목 없음</td></tr>`}</tbody><tfoot><tr><td class="sticky">합계 ${list.length}품목</td><td class="num">${fmt(r1(te))}</td><td class="num">${fmt(r1(tp))}</td><td class="num ${cls(tp - tee)}">${fmtS(r1(tp - tee))}</td><td class="mh"></td><td></td>${exF}<td class="mh"></td><td class="num ${cls(adjAmt)}">${adj.length ? fmtWS(adjAmt) : ''}</td><td class="mh"></td><td class="mh"></td></tr></tfoot></table>`;
+  };
+
+  const _exp = exportCmp;
+  exportCmp = function () {
+    ensure(); const R = rowsX(CX.ec, CX.ph);
+    if (R.same && CX.ph === curWeek()) return _exp.apply(this, arguments);
+    const rows = sortItems(R.rows); const same = R.same;
+    const head = ['품목코드', '품목명', '매입처', '규격(g)', `전산재고(g) ${CX.ec}`, `실물재고(g) ${CX.ph}`, '차이(g) 실물−전산', '차이율(%)', '상태'];
+    if (!same) head.push(`실사일 전산(g) ${CX.ph}`, '실사일 차이(g)', '그 사이 전산 변동(g)');
+    head.push('조정수량(g)', 'g단가(원)', '차이금액(원)', '소비기한', '메모');
+    const aoa = [[`${S.settings.company} 원료 전산·실물 비교분석 · 전산 ${CX.ec} / 실물 ${CX.ph}`], [`전산 자료: ${R.E.src}`], head];
+    rows.forEach(r => { const a = [r.code, r.name, r.vendor, r.spec, r.ecount, r.phys, r.diff, r.diff != null && r.ecount ? Math.round(r.diff / Math.abs(r.ecount) * 1000) / 10 : null, r.phys == null ? '미입력' : r.diff === 0 ? '일치' : r.adj ? '조정' : '오차내'];
+      if (!same) a.push(r.ecAtPh, r.diffDay, r.move); a.push(r.adj ? r.diff : null, r.price, r.amt, expiryOf(r.code, CX.ph), r.note); aoa.push(a); });
+    const adj = rows.filter(r => r.adj);
+    const adjA = [['품목코드', '품목명', `전산재고(g) ${CX.ec}`, `실물재고(g) ${CX.ph}`, '조정수량(g)', 'g단가(원)', '조정금액(원)', '메모'], ...adj.map(r => [r.code, r.name, r.ecount, r.phys, r.diff, r.price, r.amt, r.note]), ['합계', '', '', '', r1(adj.reduce((a, r) => a + r.diff, 0)), '', adj.reduce((a, r) => a + (r.amt || 0), 0), '']];
+    const wd = same ? [12, 28, 14, 10, 12, 12, 12, 10, 8, 12, 9, 12, 12, 20] : [12, 28, 14, 10, 14, 14, 12, 10, 8, 14, 12, 14, 12, 9, 12, 12, 20];
+    aoaXlsx([['비교분석', aoa, wd], ['재고조정', adjA, [12, 28, 14, 14, 12, 9, 12, 20]]], `${fileStem()}_비교분석_전산${ymd(CX.ec)}_실물${ymd(CX.ph)}.xlsx`);
+  };
+
+  function reportX() {
+    const R = rowsX(CX.ec, CX.ph); const rows = R.rows;
+    const entered = rows.filter(r => r.phys != null && !r.est); const adj = rows.filter(r => r.adj);
+    const dd = entered.filter(r => r.diffDay != null && r.diffDay !== 0);
+    const L = [];
+    L.push(`[${S.settings.company || APP_NAME}] 원료 전산·실물 비교 (전산 ${CX.ec} / 실물 ${CX.ph})`);
+    if (S.settings.reporter) L.push(`보고자: ${S.settings.reporter}`);
+    L.push(`실물 입력 ${entered.length}/${rows.length}품목 · 전산(${dShort(CX.ec)}) 기준 조정대상 ${adj.length}건 · 실사일 기준 차이 ${dd.length}건`);
+    L.push(`※ 두 날짜 사이 이카운트 입고·사용량이 차이에 섞여 있음. 실사 오차는 「실사일 차이」로 확인.`);
+    if (adj.length) { L.push(''); L.push(`■ 전산 ${dShort(CX.ec)} 기준 차이`); adj.forEach(r => L.push(`- ${shortName(r.name)}: 전산 ${fmt(r.ecount)} → 실물 ${fmt(r.phys)} (${fmtS(r.diff)}) · 실사일 차이 ${r.diffDay == null ? '—' : fmtS(r.diffDay)} · 그 사이 변동 ${r.move == null ? '—' : fmtS(r.move)}`)); }
+    return L.join('\n');
+  }
+  try { if (S.ui && S.ui.tab === 'cmp') renderCmp(); } catch (e) {}
+})(); } catch (e) { console.warn('cmp dates v277', e); }
+
 </script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════
