@@ -33,6 +33,10 @@
 - 전산 날짜 자료가 이 기기에 없으면 ecAllFetch(깃허브 data.json 이력)로 읽어 화면 계산에만 씀(S.snapshots에 넣지 않음). 실물은 S.physical, 없으면 금요일 실사 확정값 S.ssSaved[날짜][코드].q(「실사 확정값」 표시).
 - 날짜가 다르면 「실사일 전산」「실사일 차이(실물−실사일 전산)」「그 사이 전산 변동」 열 추가. 엑셀(파일명 _전산YYYYMMDD_실물YYYYMMDD)·보고문도 두 날짜 기준. 상태는 window.__cmpX.
 
+## 기기 번호 중복 → 실물 입력이 다른 PC로 안 넘어가던 문제 (v278, 2026-10-25)
+- 원인: 실사 PC와 다른 PC가 같은 기기 번호(PC-62mg)를 썼음. sharePull은 「내 기기가 보낸 행」이라 보고 실물(phys)·메모 행을 건너뜀 → S.physical이 비고, 금요일 실사 확정값(sssv, 기기 검사 없음)만 넘어옴.
+- 고침: ① sharePull에서 실물·메모 행은 기기 번호로 건너뛰지 않고 ts로만 판단(같은 기기 행은 기록 로그에만 안 씀). ② shareCfg 기기 번호를 localStorage 'wr_devid_v278'에 따로 보관해 S를 옮겨도 브라우저마다 다른 번호(처음 열 때 모든 기기가 새 번호로 한 번 바뀜). ③ 한 번만(localStorage 'wr_resync_v278') sh.since를 2026-10-22로 돌려 다시 받기.
+
 ## 배포할 때마다
 - `index.html`의 `APP_VER`(+1)과 `APP_BUILT`(한국 시각 `YYYY-MM-DD HH:MM`)를 함께 바꿈 — 머리글 전화번호 아래에 「v버전 · 시각 업데이트」로 보임.
 - `sw.js`의 `CACHE` 이름 숫자도 +1.

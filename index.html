@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '277';
-const APP_BUILT = '2026-10-25 23:10';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '278';
+const APP_BUILT = '2026-10-25 23:22';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -4163,7 +4163,7 @@ const OLD_SHARE_URLS = ['https://script.google.com/macros/s/AKfycbxM0LELDMSjzNn3
 if (S.settings.shareUrl == null || (S.settings.shareUrl === '' && !S.settings.shareUrlCleared)) S.settings.shareUrl = DEFAULT_SHARE_URL;
 /* 기기에 옛 주소가 저장돼 있으면 새 주소로 자동 전환 (직원이 설정을 손으로 고치지 않아도 되게) */
 if (OLD_SHARE_URLS.includes((S.settings.shareUrl || '').trim())) S.settings.shareUrl = DEFAULT_SHARE_URL;
-function shareCfg() { if (!S.share || !Array.isArray(S.share.outbox)) S.share = { outbox: [], since: '', device: '', lastPull: '', lastPush: '', err: '' }; if (!S.share.device) S.share.device = (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? '휴대폰' : 'PC') + '-' + Math.random().toString(36).slice(2, 6); return S.share; }
+function shareCfg() { if (!S.share || !Array.isArray(S.share.outbox)) S.share = { outbox: [], since: '', device: '', lastPull: '', lastPush: '', err: '' }; if (!window.__wrDevId) { let own = ''; try { own = localStorage.getItem('wr_devid_v278') || ''; } catch (e) {} if (!own) { own = (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? '휴대폰' : 'PC') + '-' + Math.random().toString(36).slice(2, 6); try { localStorage.setItem('wr_devid_v278', own); } catch (e) {} } window.__wrDevId = own; } if (S.share.device !== window.__wrDevId) S.share.device = window.__wrDevId; return S.share; } /* v278: 기기 번호를 저장 자료(S)와 따로 이 브라우저에 보관 — 자료를 다른 PC로 옮겨도 두 PC가 같은 번호를 쓰지 않게 (2026-10-25 실사 PC와 다른 PC가 PC-62mg 하나를 같이 써서 실물 입력이 서로 안 넘어감) */
 const shareOn = () => /^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test((S.settings.shareUrl || '').trim());
 const shareKey = r => r.week + '|' + r.code + '|' + r.kind;
 function shareMark(week, code, ts) {
@@ -4227,7 +4227,7 @@ async function sharePull(full, quiet) {
       if (row.kind === 'pday') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.device !== shareCfg().device && ccpPdayAdd(row)) ccpCh = true; return; }   /* v099: CCP 일지 */   /* v080: 다른 기기에서 보낸 생산 기록 */
       if (row.kind === 'pcfg') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; if (row.code === 'prod' && prodCfgApply(row)) pcfgCh = true; return; }   /* v068: 생산일지 설정 */
       if (row.kind === 'notice' || row.kind === 'noticeack') { if (row.ts && row.ts > (sh.since || '')) sh.since = row.ts; const r = nbApply(row); if (r) nbCh++; if (r === 2) nbNew.push(row); return; }
-      if (!row.week || !row.ts) return; if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.week))) { const d = new Date(row.week); if (!isNaN(d)) row.week = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); } if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.expiry || ''))) row.expiry = String(row.expiry).slice(0, 10); if (row.ts > (sh.since || '')) sh.since = row.ts; if (row.device && row.device === sh.device) return; applied.push(row);
+      if (!row.week || !row.ts) return; if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.week))) { const d = new Date(row.week); if (!isNaN(d)) row.week = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); } if (/^\d{4}-\d{2}-\d{2}T/.test(String(row.expiry || ''))) row.expiry = String(row.expiry).slice(0, 10); if (row.ts > (sh.since || '')) sh.since = row.ts; const own278 = !!(row.device && row.device === sh.device); if (!own278) applied.push(row); /* v278: 같은 기기 번호를 쓰는 다른 PC가 있어도 실물·메모가 빠지지 않게 — 기기 번호로 건너뛰지 않고 시각(ts)으로만 판단 */
       if (row.kind === 'memo') { const cur = (S.memoTs || {})[row.week] || ''; if (row.ts > cur) { S.memos[row.week] = row.note || ''; (S.memoTs = S.memoTs || {})[row.week] = row.ts; changed++; } return; }
       if (!row.code) return; const ph = physFor(row.week); const p = ph[row.code]; const lts = physReal(p) || (p && !p.est && !p.carry && sharePending(row.week, row.code)) ? (p.ts || '') : '';
       if (lts >= row.ts) return;
@@ -10421,4 +10421,8 @@ try { (function () {
     decryptWith(r.key, blob).then(function (txt) { applyStored(r); finish(txt); }).catch(function () { clearSession(); showLogin(); });
   });
 })();
-</script></body></html>
+</script><script>/* v278: 한 번만 — 최근 공유 자료(10/22 이후)를 다시 받아 빠졌던 실물 입력을 채움 */
+(function(){ try { if (localStorage.getItem('wr_resync_v278')) return; } catch (e) { return; }
+ setTimeout(async function(){ try { if (!shareOn()) return; for (let i = 0; i < 30 && shareBusy; i++) await new Promise(r => setTimeout(r, 1000)); const sh = shareCfg(); const lp0 = sh.lastPull || ''; if (!sh.since || sh.since > '2026-10-22T00:00:00.000Z') sh.since = '2026-10-22T00:15:00.000Z'; save(true); await sharePull(false, true); if ((shareCfg().lastPull || '') === lp0) return; try { localStorage.setItem('wr_resync_v278', new Date().toISOString()); } catch (e) {} try { renderAll(); } catch (e) {} } catch (e) {} }, 5000); })();
+</script>
+</body></html>
