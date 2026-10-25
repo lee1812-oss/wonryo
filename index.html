@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '265';
-const APP_BUILT = '2026-10-25 19:52';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '266';
+const APP_BUILT = '2026-10-25 19:58';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -9297,7 +9297,7 @@ try { (function () {
   let ssTEd = null;
   function ssSpecHtml(it) { const r = WV_MAP[it.code]; const pw = packWOf(it); const sps = specsOf(it.code); const sp0 = Number(it.spec) || 0; const src = packWSet(it.code) ? '앱에서 정한 값' : ecWOf(it.code, sp0) ? '이카운트 제품중량' : '규격';
     const L = r ? r.pk.map(p => { const s = spN(p.s); const w = Number(p.w) > 0 ? Number(p.w) : null; const bad = !w || (s && Math.abs(w - s) / s > 0.2); return `<div class="pk">${r.pk.length > 1 ? '<em>' + esc(p.n) + '</em>' : ''}<span>제품규격 <b>${s ? fmt(s) + 'g' : /\d/.test(String(p.s || '')) ? esc(p.s) : '—'}</b></span><span>제품중량 <b class="${bad ? 'o' : w !== s ? 'd' : ''}">${w ? fmt(w) + 'g' : '없음'}</b></span>${bad ? '<i class="wn">⚠ ' + (w ? '규격과 크게 다름' : '제품중량 없음') + ' · 확인</i>' : ''}</div>`; }) : [`<div class="pk"><span>제품규격 <b>${sp0 ? fmt(sp0) + 'g' : '—'}</b></span><span>제품중량 <b>이카운트 값 없음</b></span></div>`];
-    const bn0 = !sps ? boxNOf(it.code) : 0; const calc = sps ? '미개봉 계산: ' + sps.map(x => esc(x.n) + ' <b>' + fmt(x.w) + 'g</b>').join(' · ') + ' (앱에서 정한 값)' : `미개봉 1개 = <b>${fmt(pw)}g</b>로 계산 <small>(${src})</small>${bn0 > 1 && pw > 0 ? ' · 미개봉 1박스 = ' + bn0 + '개 = <b>' + fmt(bn0 * pw) + 'g</b>' : ''}`;
+    const bn0 = !sps ? boxNOf(it.code) : 0; const calc = sps ? '미개봉 계산: ' + sps.map(x => esc(x.n) + ' <b>' + fmt(x.w) + 'g</b>').join(' · ') + ' (앱에서 정한 값)' : `미개봉 ${BOXU[it.code] && bn0 > 1 ? '1박스' : '1개'} = <b>${fmt(pw)}g</b>로 계산 <small>(${src})</small>${bn0 > 1 && pw > 0 ? (BOXU[it.code] ? ' · 1박스 안 낱개 ' + bn0 + '개 → 낱개 1개 = <b>' + fmt(Math.round(pw / bn0 * 10) / 10) + 'g</b>' : ' · 미개봉 1박스 = ' + bn0 + '개 = <b>' + fmt(bn0 * pw) + 'g</b>') : ''}${SS_UNOTE[it.code] ? '<br>' + SS_UNOTE[it.code] : ''}`;
     const w1 = r && r.pk.length === 1 ? Number(r.pk[0].w) || 0 : 0; const cw2 = !sps && (!(pw > 0) ? '1개 무게가 없어 미개봉 개수를 계산할 수 없어요' : r && r.pk.length > 1 ? '제품이 여러 개예요. 미개봉 개수는 모두 1개 = ' + fmt(pw) + 'g로 계산돼요' : w1 > 0 && Math.abs(pw - w1) >= 1 ? '계산 무게가 제품중량(' + fmt(w1) + 'g)과 달라요' : '');
     return `<div class="ss-spec">${L.join('')}<div class="cl">${calc}${cw2 ? ' <i class="wn">⚠ ' + cw2 + '</i>' : ''}</div></div>`; }
   function ssTareVals(it) { const A = wvS().app[it.code]; const ec = nOr(it.tareEc != null ? it.tareEc : it.tare); const has = !!(A && !A.off && nOr(A.t) != null && nOr(A.t) > 0); const s = has ? (nOr(A.s) != null ? nOr(A.s) : nOr(A.t)) : ec; const pp = has ? (nOr(A.p) || 0) : 0; return { A, ec, has, s, p: pp, tot: nOr(it.tare) || 0 }; }
@@ -9321,8 +9321,13 @@ try { (function () {
   /* v265: 1박스 개수 기본값 = 이카운트 구매 기록(2025-10~2026-10) 분석 — 매번 같은 배수로만 산 원료만 넣음.
      생크림 14건 모두 12의 배수, 마요네즈 14건 모두 4의 배수, 다진마늘 14건 모두 10의 배수, 우유 6건 모두 12의 배수.
      재고 1개가 이미 1박스(크림치즈·마가린·냉동전란·버터 등)이거나 낱개로 사는 원료는 0(박스로 안 셈). 사람이 고치면 그 값이 우선 */
-  const BOXN0 = { 'CH.123_0': 12, 'CH.000_0': 4, 'CH.05_0': 10, 'CH.B01_0': 12 };
-  function boxNInfo(code) { const m = S.itemMeta[code]; if (m && m.boxNTs) { const n = Number(m.boxN) || 0; return { n: n > 1 ? n : 0, set: true }; } const d = BOXN0[code] || 0; return { n: d, set: d > 1, ec: d > 1 }; }
+  /* v266: 냉동전란은 재고 1개 = 1박스(10,000g)이고 박스 안에 1kg 레토르트 팩 10개 → 「재고 단위가 박스」인 원료(BOXU).
+     박스 칸 = 박스 수, 낱개 칸 = 박스 밖 팩 수, 저장 개수(p.packs) = 박스 + 팩 ÷ 10 (예전 기록의 박스 수와 그대로 맞음).
+     사용자 2026-10-25: 「냉동전란은 미개봉 밀폐 레토르트 용기를 포함해서 1050g, 레토르트 용기만 나중에 알려줄게」 */
+  const BOXN0 = { 'CH.123_0': 12, 'CH.000_0': 4, 'CH.05_0': 10, 'CH.B01_0': 12, 'SC02_0': 10 };
+  const BOXU = { 'SC02_0': 1 }; const SS_UNOTE = { 'SC02_0': '미개봉 1팩 = 레토르트 용기 포함 <b>1,050g</b> (용기 무게 확인 대기)' };
+  function bxTot(code, bx, ea) { const I = boxNInfo(code); const n = I.n; bx = nOr(bx); ea = nOr(ea); if (bx == null && ea == null) return null; if (I.u && n > 1) return Math.round(((bx || 0) + (ea || 0) / n) * 10000) / 10000; return Math.round(((n > 1 ? (bx || 0) * n : 0) + (ea || 0)) * 100) / 100; }
+  function boxNInfo(code) { const m = S.itemMeta[code]; if (m && m.boxNTs) { const n = Number(m.boxN) || 0; return { n: n > 1 ? n : 0, set: true, u: !!BOXU[code] }; } const d = BOXN0[code] || 0; return { n: d, set: d > 1, ec: d > 1, u: !!BOXU[code] }; }
   function boxNOf(code) { return boxNInfo(code).n; }
   function setBoxN(code, n, ts, remote) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); ts = ts || new Date().toISOString(); if (remote && (m.boxNTs || '') >= ts) return false; n = Number(n) > 1 ? Math.round(Number(n)) : 0; m.boxN = n; m.boxNTs = ts;
     if (!remote) { save(); try { if (shareOn()) { const it = itemsFor(curWeek()).find(i => i.code === code) || {}; nbQueue({ ts, week: '', code, name: shortName(it.name || code), kind: 'boxn', note: String(n) }); } } catch (e) {} }
@@ -9332,11 +9337,12 @@ try { (function () {
     try { const _rt = shareRowText; shareRowText = function (row) { if (row && row.kind === 'boxn') return (row.name || row.code) + ' · 1박스 개수 ' + (Number(row.note) > 1 ? row.note + '개' : '박스로 안 셈'); return _rt(row); }; } catch (e) {} }
   function ssBxView(code, p) { const n = boxNOf(code); const tot = p && p.mode !== 'direct' && !pkDecode(p.packs) ? nOr(p.packs) : null; if (tot == null) return { bx: '', ea: '' };
     const bx = nOr(p.bx), ea = nOr(p.ea);
-    if ((bx != null || ea != null) && !(bx && !(n > 1)) && Math.abs((n > 1 ? (bx || 0) * n : 0) + (ea || 0) - tot) < 0.001) return { bx: bx == null ? '' : bx, ea: ea == null ? '' : ea };
+    if ((bx != null || ea != null) && !(bx && !(n > 1)) && Math.abs(bxTot(code, bx, ea) - tot) < 0.001) return { bx: bx == null ? '' : bx, ea: ea == null ? '' : ea };
+    if (n > 1 && BOXU[code]) { const b = Math.floor(tot + 1e-9); return { bx: b || '', ea: Math.round((tot - b) * n * 100) / 100 }; }
     if (n > 1) { const b = Math.floor(tot / n); return { bx: b || '', ea: Math.round((tot - b * n) * 100) / 100 }; }
     return { bx: '', ea: tot }; }
   function ssBxPk(code, p, f, v) { const cur = ssBxView(code, p); p.bx = cur.bx; p.ea = cur.ea; p[f] = v === '' || v == null ? '' : Number(v); const n = boxNOf(code); if (!(n > 1)) p.bx = ''; const bx = nOr(p.bx), ea = nOr(p.ea);
-    p.packs = bx == null && ea == null ? '' : Math.round(((bx || 0) * (n > 1 ? n : 0) + (ea || 0)) * 100) / 100; }
+    const t0 = bxTot(code, bx, ea); p.packs = t0 == null ? '' : t0; }
   function ssPackCells(it, p, sp, packIn, dir) {
     if (sp) return `<div class="ss-f ss-pk2"><span>미개봉 (규격별 개수)</span>${packIn}</div>`;
     const I = boxNInfo(it.code); const v = dir ? { bx: '', ea: '' } : ssBxView(it.code, p);
@@ -9348,7 +9354,7 @@ try { (function () {
     const n = Number(t); if (!Number.isFinite(n) || n < 0 || n > 1000) { toast('숫자로 적어 주세요'); return; }
     const cw = ssCW(); const ph = cw ? physFor(cw) : null; const p = ph && ph[code]; const old = p ? ssBxView(code, p) : null; const oldN = I.n;
     setBoxN(code, n); const nn = boxNOf(code);
-    if (p && old && nOr(old.bx)) { const tot = nOr(old.bx) * (oldN > 1 ? oldN : 0) + (nOr(old.ea) || 0); if (nn > 1) { p.bx = nOr(old.bx); p.ea = nOr(old.ea) == null ? '' : nOr(old.ea); p.packs = p.bx * nn + (nOr(p.ea) || 0); } else { p.bx = ''; p.ea = tot; p.packs = tot; } p.ts = new Date().toISOString(); p.by = who(); save(); try { shareMark(cw, code, p.ts); } catch (e) {} }
+    if (p && old && nOr(old.bx)) { const tot = nOr(p.packs); if (nn > 1) { p.bx = nOr(old.bx); p.ea = nOr(old.ea) == null ? '' : nOr(old.ea); p.packs = bxTot(code, p.bx, p.ea); } else { p.bx = ''; p.ea = tot; p.packs = tot; } p.ts = new Date().toISOString(); p.by = who(); save(); try { shareMark(cw, code, p.ts); } catch (e) {} }
     wvRender(); toast(nn > 1 ? shortName(it.name || code) + ': 1박스 = ' + nn + '개로 정했습니다' : shortName(it.name || code) + ': 박스로 세지 않습니다'); }
   function ssPrintPk(it, p, dir, pkT) { if (specsOf(it.code)) return `<td class="n w" colspan="2">${esc(pkT)}</td>`; const n = boxNOf(it.code); const v = dir ? { bx: '', ea: '' } : ssBxView(it.code, p);
     return `<td class="n w">${n > 1 ? (v.bx !== '' ? fmt(v.bx) : '') + ' <small style="color:#8a6a52;font-weight:400">×' + n + '</small>' : '<span style="color:#bbb">—</span>'}</td><td class="n w">${v.ea !== '' ? fmt(v.ea) : ''}</td>`; }
