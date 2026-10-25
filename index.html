@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '264';
-const APP_BUILT = '2026-10-25 19:51';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '265';
+const APP_BUILT = '2026-10-25 19:52';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -9318,8 +9318,11 @@ try { (function () {
      1박스 개수(입수)는 S.itemMeta[code].boxN (사람이 정한 값, 0 = 박스로 안 셈), 기기 간 공유는 kind 'boxn' → plog 로 감싸 보냄.
      정하지 않은 품목 중 발주 기준(주문 단위)으로 추정한 3종만 기본값(「확인 필요」 표시).
      저장되는 미개봉 개수 p.packs 는 예전처럼 「낱개 총개수」 = 박스 × 1박스 개수 + 낱개 → 실물재고·PC 비교·공유와 그대로 호환. 적은 원본은 p.bx·p.ea */
-  const BOXN0 = { 'CH.123_0': 12, 'CH.000_0': 4, 'CH.05_0': 10 };
-  function boxNInfo(code) { const m = S.itemMeta[code]; if (m && m.boxNTs) { const n = Number(m.boxN) || 0; return { n: n > 1 ? n : 0, set: true }; } const d = BOXN0[code] || 0; return { n: d, set: false }; }
+  /* v265: 1박스 개수 기본값 = 이카운트 구매 기록(2025-10~2026-10) 분석 — 매번 같은 배수로만 산 원료만 넣음.
+     생크림 14건 모두 12의 배수, 마요네즈 14건 모두 4의 배수, 다진마늘 14건 모두 10의 배수, 우유 6건 모두 12의 배수.
+     재고 1개가 이미 1박스(크림치즈·마가린·냉동전란·버터 등)이거나 낱개로 사는 원료는 0(박스로 안 셈). 사람이 고치면 그 값이 우선 */
+  const BOXN0 = { 'CH.123_0': 12, 'CH.000_0': 4, 'CH.05_0': 10, 'CH.B01_0': 12 };
+  function boxNInfo(code) { const m = S.itemMeta[code]; if (m && m.boxNTs) { const n = Number(m.boxN) || 0; return { n: n > 1 ? n : 0, set: true }; } const d = BOXN0[code] || 0; return { n: d, set: d > 1, ec: d > 1 }; }
   function boxNOf(code) { return boxNInfo(code).n; }
   function setBoxN(code, n, ts, remote) { const m = S.itemMeta[code] || (S.itemMeta[code] = {}); ts = ts || new Date().toISOString(); if (remote && (m.boxNTs || '') >= ts) return false; n = Number(n) > 1 ? Math.round(Number(n)) : 0; m.boxN = n; m.boxNTs = ts;
     if (!remote) { save(); try { if (shareOn()) { const it = itemsFor(curWeek()).find(i => i.code === code) || {}; nbQueue({ ts, week: '', code, name: shortName(it.name || code), kind: 'boxn', note: String(n) }); } } catch (e) {} }
@@ -9337,7 +9340,7 @@ try { (function () {
   function ssPackCells(it, p, sp, packIn, dir) {
     if (sp) return `<div class="ss-f ss-pk2"><span>미개봉 (규격별 개수)</span>${packIn}</div>`;
     const I = boxNInfo(it.code); const v = dir ? { bx: '', ea: '' } : ssBxView(it.code, p);
-    const box = I.n > 1 ? `<div class="ss-f ss-bx"><span class="hb">미개봉 박스<button type="button" class="ss-bn ${I.set ? '' : 'gs'}" data-ssbox="1" title="1박스에 몇 개 들어 있는지 고치기">1박스 ${I.n}개${I.set ? '' : '?'}</button></span><input inputmode="numeric" type="number" data-s="bx" value="${v.bx}" placeholder="박스"></div>`
+    const box = I.n > 1 ? `<div class="ss-f ss-bx"><span class="hb">미개봉 박스<button type="button" class="ss-bn ${I.set ? '' : 'gs'}" data-ssbox="1" title="${I.ec ? '이카운트 구매 기록으로 정한 값 · ' : ''}1박스에 몇 개 들어 있는지 고치기">1박스 ${I.n}개${I.set ? '' : '?'}</button></span><input inputmode="numeric" type="number" data-s="bx" value="${v.bx}" placeholder="박스"></div>`
       : `<div class="ss-f ss-bx none"><span>미개봉 박스</span><button type="button" class="ss-bn add" data-ssbox="1">📦 박스로 세기<small>1박스에 몇 개인지 정하기</small></button></div>`;
     return box + `<div class="ss-f ss-ea"><span>미개봉 낱개</span><input inputmode="numeric" type="number" data-s="ea" value="${v.ea}" placeholder="개"></div>`; }
   function ssBoxEdit(code) { const it = ssItems().find(i => i.code === code) || {}; const I = boxNInfo(code);
