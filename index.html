@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '279';
-const APP_BUILT = '2026-10-25 23:52';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '280';
+const APP_BUILT = '2026-10-25 23:57';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -9957,7 +9957,7 @@ try { (function () {
 })(); } catch (e) { console.warn('cmp dates v277', e); }
 
 
-/* ══ v279 (2026-10-26 Aside) 원료수불부 재구성 — 사용자 요청(10/25 밤): 「원료수불부 전체를 전수조사해서 대기업 수준으로, 매끄럽고 직관적이고 현실성 있게.
+/* ══ v279~v280 (2026-10-26 Aside) 원료수불부 재구성 (v280: 같은 날 메모 없는 재고조정 여러 줄=창고 정리는 한 줄로 합침, 원장 표 가로 넘침 수정) — 사용자 요청(10/25 밤): 「원료수불부 전체를 전수조사해서 대기업 수준으로, 매끄럽고 직관적이고 현실성 있게.
    HACCP·시청 점검에 맞는 원료수불부 형태, 이카운트 생산일지와 통합재고관리가 매끄럽게 연동」
    - 메뉴를 일하는 순서로 묶음: 매일(현황·수불대장) → 금요일 실사(실사 입력·실사 차이·재고 조정) → 생산·구매(생산 연동·원료 발주·소비기한) → 관리(로트 추적·기준 정보) → 예전 화면.
    - 새 화면 5개: 현황(rhome) · 수불대장(rledg) · 생산 연동(rprod) · 로트 추적(rtrace) · 기준 정보(rmast). 예전 화면 함수는 하나도 지우거나 바꾸지 않음(감싸기만).
@@ -10077,7 +10077,7 @@ try { (function () {
     const it = L.items[c]; const mv = [];
     it.ins.forEach(x => mv.push({ d: x[0], t: 'in', g: x[1], n: x[2], w: x[3], pc: x[4], v: x[5], k: x[6], ed: x[7], m: x[8], pr: x[9] }));
     it.uses.forEach(x => Math.abs(x[1]) >= 0.05 && mv.push({ d: x[0], t: 'use', g: x[1], p: x[2], pn: x[3], pq: x[4], no: x[5] }));
-    it.adjs.forEach(x => mv.push({ d: x[0], t: 'adj', g: x[1], no: x[2], m: x[3] || ('재고조정 · 전표 ' + x[2]) }));
+    { const grp = {}; it.adjs.forEach(x => { if (x[3]) { mv.push({ d: x[0], t: 'adj', g: x[1], no: x[2], m: x[3] }); return; } const k = x[0]; const o = grp[k] || (grp[k] = { d: x[0], t: 'adj', g: 0, nos: [], n: 0 }); o.g += x[1]; o.n++; if (!o.nos.includes(x[2])) o.nos.push(x[2]); }); Object.values(grp).forEach(o => { o.g = Math.round(o.g * 10) / 10; o.m = '재고조정 · 전표 ' + o.nos.join('·') + (o.n > 1 ? ' (' + o.n + '줄 합산, 창고 간 정리 포함)' : ''); if (Math.abs(o.g) >= 0.05 || o.n === 1) mv.push(o); }); }
     it.etcs.forEach(x => mv.push({ d: x[0], t: 'etc', g: x[1], m: '기타 변동(자가사용 등)' }));
     const pend = [];
     rlAdjEvents().forEach(ev => {
@@ -10145,7 +10145,7 @@ try { (function () {
 .rl .flow{display:flex;gap:6px;align-items:stretch;flex-wrap:wrap;margin-bottom:14px}.rl .flow .st{flex:1;min-width:150px;background:#fff;border:1px solid var(--ln);border-radius:12px;padding:10px 12px;font-size:14.5px}.rl .flow .st b{display:block;font-size:16px}.rl .flow .ar{display:flex;align-items:center;color:#bba892;font-size:18px}
 .rl .flow .st.on{border:2px solid var(--k);background:var(--kb)}
 .rl .wk{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}.rl .wk div{background:#fff;border:1px solid var(--ln);border-radius:12px;padding:9px 11px;font-size:14px;color:#4f463e;min-height:84px}.rl .wk div b{display:block;font-size:15.5px;color:var(--tx);margin-bottom:2px}.rl .wk div.on{border:2px solid var(--k);background:var(--kb)}
-.rl .two{display:grid;grid-template-columns:260px 1fr;gap:14px}.rl .ilist{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:8px;max-height:78vh;overflow:auto}
+.rl .two{display:grid;grid-template-columns:240px minmax(0,1fr);gap:14px}.rl .two>*{min-width:0}.rl .ilist{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:8px;max-height:78vh;overflow:auto}
 .rl .ilist input{width:100%;min-height:44px;border:1px solid #cfc4b8;border-radius:10px;padding:6px 12px;font:inherit;font-size:16px;margin-bottom:6px}
 .rl .ilist button{display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:9px;font:inherit;font-size:15.5px;cursor:pointer;color:var(--tx)}.rl .ilist button:hover{background:#F6F1EB}.rl .ilist button.on{background:var(--k);color:#fff}.rl .ilist button small{opacity:.75;font-size:13px;white-space:nowrap}
 .rl .bal{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid var(--ln);border-radius:12px;overflow:hidden;margin-bottom:12px}.rl .bal div{padding:10px 12px;border-right:1px solid var(--ln);background:#fff}.rl .bal div:last-child{border-right:0;background:var(--kb)}.rl .bal span{display:block;font-size:13.5px;color:var(--mu);font-weight:700}.rl .bal b{font-size:22px;font-variant-numeric:tabular-nums}
