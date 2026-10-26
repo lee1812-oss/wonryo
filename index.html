@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '288';
-const APP_BUILT = '2026-10-26 18:24';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '289';
+const APP_BUILT = '2026-10-26 18:30';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -6997,7 +6997,7 @@ function renderRbuy() {
       <div class="rb-s ${can ? 'muted' : 'rb-warnt'}">${can ? '보낼 곳: ' + [S1.email && '메일', S1.phone && '문자'].filter(Boolean).join('·') : '연락처가 없어 직접 보내기만 됩니다 (아래 ⚙ 기준 정보)'}</div>
       <button class="btn primary rb-big" style="width:100%;margin-top:8px" data-rbact="send" data-s="${esc(s)}">📤 ${esc(s)}에 발주 보내기</button></div>`; }).join('') : '<div class="rb-allok">✓ 지금 보낼 발주가 없어요</div>';
     body = `<div class="rb-head"><h2>③ 발주 보내기</h2></div><div class="rb-sups">${supCards}</div>
-    ${openPo.length ? `<h3 class="rb-h3">📦 발주 중 (물건 오면 「입고 완료」)</h3><div class="rb-pol">${openPo.slice().reverse().slice(0, 20).map(p => { const late = p.due && p.due < today(); return `<div class="rb-po${late ? ' late' : ''}"><div><b>${esc(p.sup)}</b> · ${(p.lines || []).map(l => (l.rq ? '➕' : '') + esc(l.name) + ' ' + l.n + esc(l.u)).join(', ')}<small>${late ? '입고 희망일 지남 — 왔으면 입고 완료를 눌러 주세요' : '입고 희망일 ' + rbMd(p.due)}</small></div><div class="row" style="gap:4px"><button class="btn sm" data-rbact="recv" data-id="${esc(p.id)}">입고 완료</button><button class="btn sm" data-rbact="cancel" data-id="${esc(p.id)}">취소</button></div></div>`; }).join('')}</div>` : ''}
+    ${openPo.length ? `<h3 class="rb-h3">📦 발주 중 (물건 오면 「입고 완료」)</h3><div class="rb-pol">${openPo.slice().reverse().slice(0, 20).map(p => { const late = p.due && p.due < today(); return `<div class="rb-po${late ? ' late' : ''}"><div><b>${esc(p.sup)}</b> · ${(p.lines || []).map(l => (l.rq ? '➕' : '') + esc(l.name) + ' ' + l.n + esc(l.u)).join(', ')}<small>${late ? '입고 희망일 지남 — 왔으면 입고 완료를 눌러 주세요' : '입고 희망일 ' + rbMd(p.due)}</small></div><div class="row" style="gap:4px"><button class="btn sm" data-posent="${esc(p.id)}">📄 발주서</button><button class="btn sm" data-rbact="recv" data-id="${esc(p.id)}">입고 완료</button><button class="btn sm" data-rbact="cancel" data-id="${esc(p.id)}">취소</button></div></div>`; }).join('')}</div>` : ''}
     ${nav(2, 0, '')}`;
   }
   const supNames = [...new Set(rbRaws().map(c => rbPat(c).sup).filter(Boolean).concat(Object.keys(R.sup)))];
@@ -8033,8 +8033,11 @@ function poDoneCard(s) {
     <div class="po-listh">발주 확정 리스트 · ${lines.length}품목 <span class="po-r">(보낸 발주서 수량 · 「입고 후」 = 지금 재고 + 발주 수량)</span></div>
     <div class="tablewrap"><table class="po-tb"><tr><th class="l">원료</th><th>지금 재고</th><th>발주 수량</th><th>입고 후</th><th>예상 금액</th></tr>${rows}</table></div>
     ${sa ? `<div class="po-tot2">발주 금액 <b>약 ${poWon(sa + va)}</b> <span class="po-r">(공급가 ${poWon(sa)} + 부가세 ${poWon(va)} · 최근 매입 단가 기준)</span></div>` : ''}
+    <div class="po-btns" style="margin-top:10px">${s.open.map(p => `<button class="btn primary" data-posent="${esc(p.id)}">📄 ${s.open.length > 1 ? rbMd(poLD(p.at)) + ' ' : ''}보낸 발주서 보기 · 다시 보내기</button>`).join('')}</div>
     ${more.length ? `<div class="po-guide warn">발주 수량을 넣고도 다음 발주(약 ${PO_WEEKS}주 뒤)까지 모자랄 수 있는 원료: ${more.map(p => esc(p.nm) + ' ' + p.rec + esc(p.unit)).join(', ')}</div>` : `<div class="po-guide ok">이 발주가 들어오면 다음 발주(약 ${PO_WEEKS}주 뒤)까지 충분해요. 물건이 오면 원료 발주 탭에서 「입고 완료」를 눌러 주세요.</div>`}</div>`;
 }
+/* v289: 보낸 발주도 발주서(이미지·카톡·저장)로 다시 열기 */
+function poSentDoc(id, back) { const p = (rbS().po || []).find(x => x.id === id); if (!p) return toast('발주 기록을 찾지 못했어요'); return poDocOpen(p.sup, (p.lines || []).map(l => Object.assign({}, l)), { due: p.due || today(), from: 'sent', back, sentPo: p }); }
 async function poAlertOpen() {
   poCss(); poCss2();
   let F; try { F = await facLoad(); } catch (e) { return toast(String((e && e.message) || e)); }
@@ -8177,7 +8180,7 @@ async function poDraw(st) {
   try { await document.fonts.ready; } catch (e) {}
   const logo = await poLogo(), on = (() => { try { return featureOn('po'); } catch (e) { return true; } })();
   const nw = new Date();
-  const d = { sup: st.sup, lines: st.lines.filter(l => Number(l.n) > 0), due: st.due, note: st.note, no: st.no, date: today(), who: on ? '서재우 차장' : ((S.settings && S.settings.reporter) || ''), tel: on ? '010-9054-1061' : '', mail: 'drawbread@naver.com', at: today().replace(/-/g, '.') + ' ' + String(nw.getHours()).padStart(2, '0') + ':' + String(nw.getMinutes()).padStart(2, '0') };
+  const d = { sup: st.sup, lines: st.lines.filter(l => Number(l.n) > 0), due: st.due, note: st.note, no: st.no, date: st.sentPo ? (poLD(st.sentPo.at) || today()) : today(), who: on ? '서재우 차장' : ((S.settings && S.settings.reporter) || ''), tel: on ? '010-9054-1061' : '', mail: 'drawbread@naver.com', at: today().replace(/-/g, '.') + ' ' + String(nw.getHours()).padStart(2, '0') + ':' + String(nw.getMinutes()).padStart(2, '0') };
   const m = document.createElement('canvas'); m.width = 10; m.height = 10; const H = Math.ceil(poPaint(m.getContext('2d'), d, logo));
   const SC = 2, cv = document.createElement('canvas'); cv.width = 900 * SC; cv.height = H * SC;
   const ctx = cv.getContext('2d'); ctx.scale(SC, SC); poPaint(ctx, d, logo); return cv;
@@ -8187,7 +8190,7 @@ async function poDocOpen(sup, lines, opt) {
   opt = opt || {}; poCss();
   const S1 = rbSup(sup); let room = opt.room || '';
   if (!room) { try { const s = ((((FAC || {}).rawbuy || ((FAC || {}).factory || {}).rawbuy) || {}).sups || []).find(x => x.name === sup); if (s) room = poRoom(s.rule); } catch (e) {} }
-  const st = PO.doc = { sup, lines: lines.map(l => Object.assign({}, l)), due: opt.due || rbAddD(S1.lead || 2), note: opt.note || '', from: opt.from || 'send', no: poNo(sup), room, cv: null, blob: null };
+  const st = PO.doc = { sup, lines: lines.map(l => Object.assign({}, l)), due: opt.due || rbAddD(S1.lead || 2), note: opt.note || '', from: opt.from || 'send', no: opt.sentPo && /^PO-/.test(opt.sentPo.no || '') ? opt.sentPo.no : poNo(sup), sentPo: opt.sentPo || null, room, cv: null, blob: null };
   const qrows = st.lines.map((l, i) => `<div class="po-q"><span>${esc(l.bname || l.name)}</span><input type="number" min="0" step="1" inputmode="numeric" data-poq="${i}" value="${l.n}"><span>${esc(l.u)}</span></div>`).join('');
   modal(`<div class="po-wrap"><div class="po-hd"><div><h2>📄 ${esc(sup)} 발주서</h2><div class="po-sub">거래처가 받는 그대로예요 · 카톡으로 이미지 한 장이 갑니다</div></div>${opt.back ? '<button class="btn" data-podo="back" style="min-height:46px">← 알림으로</button>' : ''}</div>
     <div class="po-grid"><div class="po-prev"><img id="poImg" alt="발주서 미리보기"></div>
@@ -8196,8 +8199,8 @@ async function poDocOpen(sup, lines, opt) {
       <div class="po-btns" style="margin-top:14px"><button class="btn po-kk" data-podo="kakao" style="min-height:58px;font-size:18px">💬 카카오톡으로 보내기</button></div>
       <div class="po-btns" style="margin-top:8px"><button class="btn" data-podo="copy">🖼 이미지 복사</button><button class="btn" data-podo="save">⬇ 이미지 저장</button><button class="btn" data-podo="text">📝 글로 복사</button></div>
       <div id="poGuide"></div>
-      <div class="po-btns" style="margin-top:14px;border-top:1px solid #eadfd2;padding-top:14px"><button class="btn primary" data-podo="mark">✓ 보낸 것으로 기록</button>${st.from === 'send' ? '<button class="btn" data-podo="other">글·메일·문자로 보내기</button>' : ''}<button class="btn" onclick="closeModal()">닫기</button></div>
-      <div class="po-sub" style="margin-top:6px">기록하면 입고 희망일까지 「발주 중」으로 계산돼, 같은 원료를 두 번 주문하지 않게 돼요.</div></div></div></div>`);
+      <div class="po-btns" style="margin-top:14px;border-top:1px solid #eadfd2;padding-top:14px">${st.sentPo ? `<span class="po-badge done" style="align-self:center">✓ ${rbMd(poLD(st.sentPo.at))} 보낸 발주 · 기록됨</span>` : '<button class="btn primary" data-podo="mark">✓ 보낸 것으로 기록</button>'}${st.from === 'send' && !st.sentPo ? '<button class="btn" data-podo="other">글·메일·문자로 보내기</button>' : ''}<button class="btn" onclick="closeModal()">닫기</button></div>
+      <div class="po-sub" style="margin-top:6px">${st.sentPo ? '이미 보낸 발주서예요. 다시 보내기·이미지 저장·인쇄용으로 열었어요(수량을 고쳐도 기록은 바뀌지 않아요).' : '기록하면 입고 희망일까지 「발주 중」으로 계산돼, 같은 원료를 두 번 주문하지 않게 돼요.'}</div></div></div></div>`);
   $('#modalBody').classList.add('wide'); $('#modalBody').classList.remove('po-bigm');
   const re = () => { const a = $('#poDue'), b = $('#poNote'); if (a) st.due = a.value; if (b) st.note = b.value.trim(); poRender(); };
   ['#poDue', '#poNote'].forEach(s => { const el = $(s); if (el) el.addEventListener('change', re); });
@@ -8210,7 +8213,7 @@ async function poRender() {
   try { st.cv = await poDraw(st); st.blob = null; const img = $('#poImg'); if (img) img.src = st.cv.toDataURL('image/png'); } catch (e) { poGuide('warn', '발주서 그림을 만들지 못했어요: ' + esc((e && e.message) || e)); }
 }
 function poBlob() { const st = PO.doc; if (st.blob) return Promise.resolve(st.blob); return new Promise(res => st.cv.toBlob(b => { st.blob = b; res(b); }, 'image/png')); }
-function poFile(st) { return today().replace(/-/g, '') + '_발주서_' + st.sup.replace(/[\\/:*?"<>|()\s]/g, '') + '.png'; }
+function poFile(st) { return (st.sentPo ? (poLD(st.sentPo.at) || today()) : today()).replace(/-/g, '') + '_발주서_' + st.sup.replace(/[\\/:*?"<>|()\s]/g, '') + '.png'; }
 function poGuide(kind, html) { const g = $('#poGuide'); if (g) g.innerHTML = `<div class="po-guide ${kind}">${html}</div>`; }
 async function poCopyImg(b) { try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': b })]); return true; } catch (e) { return false; } }
 function poText(st) { try { return rbMsg(st.sup, st.lines.filter(l => Number(l.n) > 0), st.due, st.note); } catch (e) { return ''; } }
@@ -8220,7 +8223,7 @@ async function poDo(kind) {
   const st = PO.doc; if (!st) return;
   if (kind === 'back') return poAlertOpen();
   if (kind === 'other') { closeModal(); return _poOpenSend0(st.sup); }
-  if (kind === 'mark') return poRecord();
+  if (kind === 'mark') { if (st.sentPo) return toast('이미 보낸 것으로 기록된 발주예요'); return poRecord(); }
   if (!st.lines.some(l => Number(l.n) > 0)) return toast('주문 수량이 모두 0이에요');
   if (kind === 'text') { const t = poText(st); try { await navigator.clipboard.writeText(t); poGuide('ok', '발주서 글을 복사했어요. 카톡 대화방에 붙여넣으세요.'); } catch (e) { poGuide('warn', '복사하지 못했어요.'); } return; }
   if (!st.cv) await poRender();
@@ -8252,6 +8255,7 @@ function poRecord() {
   try { logAdd({ ts: now, user: po.by, device: (S.share || {}).device || '', text: `원료 발주 ${st.sup} ${lines.map(l => l.name + ' ' + l.n + l.u).join(', ')} (카톡 발주서 이미지 ${st.no})` }); } catch (e) {}
 }
 document.addEventListener('click', e => {
+  const ps = e.target.closest('[data-posent]'); if (ps) { e.preventDefault(); poSentDoc(ps.dataset.posent, !!ps.closest('.po-card')); return; }
   const a = e.target.closest('[data-poal]'); if (a) { e.preventDefault(); const s = PO.alert && PO.alert.list[Number(a.dataset.poal)]; if (s) poFromAlert(s); return; }
   const b = e.target.closest('[data-podo]'); if (b) { e.preventDefault(); poDo(b.dataset.podo); return; }
   const c = e.target.closest('[data-poopen]'); if (c) { e.preventDefault(); poAlertOpen(); }
@@ -10721,7 +10725,7 @@ try { (function () {
   const PH = window.__poHook;
   if (PH) { const _pdo = PH.d;
   PH.d = async function (sup, lines, opt) {
-    const ls = (lines || []).map(l => Object.assign({}, l)), w = rqWait(sup);
+    const ls = (lines || []).map(l => Object.assign({}, l)), w = opt && opt.sentPo ? [] : rqWait(sup);
     w.forEach(q => { const ex = q.raw && ls.find(l => l.raw && l.raw === q.raw); if (ex) { ex.n = (Number(ex.n) || 0) + (Number(q.n) || 0); ex.rq = (ex.rq || []).concat(q.id); ex.rqn = (ex.rqn || 0) + (Number(q.n) || 0); } else ls.push(rqLine(q)); });
     const r = await _pdo.call(this, sup, ls, opt);
     try {
