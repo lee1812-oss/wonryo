@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '285';
-const APP_BUILT = '2026-10-26 08:45';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '286';
+const APP_BUILT = '2026-10-26 17:10';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -9146,14 +9146,15 @@ try { (function () {
   function wvState(r) { const rec = wvRec(r.c); let n = 0, bad = 0, need = 1 + r.pk.length; if (nOr(rec.t) != null) { n++; if (!tareOk(r.t, nOr(rec.t))) bad++; } r.pk.forEach(p => { const v = wvNet(rec, p.c); if (v != null) { n++; if (!pkOk(p.w, v)) bad++; } }); return { n, bad, need, done: n > 0 }; }
   /* ── 공유: plog 로 감싸 보냄 (예전 앱의 prodSlogAdd 는 d·l 이 없어 무시) ── */
   function wvSend(code) {
-    try { if (!shareOn()) return; const sh = shareCfg(); const W = wvS(); const row = { ts: new Date().toISOString(), week: '', code, name: (WV_MAP[code] || {}).n || code, kind: 'wver', note: JSON.stringify({ r: W.rec[code] || null, a: W.app[code] || null, k: (W.kp || {})[code] || null }) };
+    try { if (!shareOn()) return; const sh = shareCfg(); const W = wvS(); const row = { ts: new Date().toISOString(), week: '', code, name: (WV_MAP[code] || {}).n || code, kind: 'wver', note: JSON.stringify({ r: W.rec[code] || null, a: W.app[code] || null, k: (W.kp || {})[code] || null, v: (W.ev || {})[code] || null }) };
       sh.outbox = sh.outbox.filter(r => shareKey(r) !== shareKey(row)); sh.outbox.push(row); save(); clearTimeout(wvSend.t); wvSend.t = setTimeout(() => { try { sharePush(); } catch (e) {} }, 900); } catch (e) {}
   }
   function wvApplyRemote(code, note) {
-    let o = null; try { o = JSON.parse(note || '{}'); } catch (e) { return; } if (!o || (!WV_MAP[code] && !o.a && !o.k)) return; const W = wvS(); let ch = false;
+    let o = null; try { o = JSON.parse(note || '{}'); } catch (e) { return; } if (!o || (!WV_MAP[code] && !o.a && !o.k && !o.v)) return; const W = wvS(); let ch = false;
     if (o.r && o.r.ts && (!W.rec[code] || (W.rec[code].ts || '') < o.r.ts)) { W.rec[code] = o.r; ch = true; }
     if (o.a && o.a.ts && (!W.app[code] || (W.app[code].ts || '') < o.a.ts)) { W.app[code] = o.a; ch = true; }
     if (o.k && o.k.ts) { W.kp = W.kp || {}; if (!W.kp[code] || (W.kp[code].ts || '') < o.k.ts) { W.kp[code] = o.k; ch = true; } }
+    if (o.v && o.v.ts) { W.ev = W.ev || {}; if (!W.ev[code] || (W.ev[code].ts || '') < o.v.ts) { W.ev[code] = o.v; ch = true; } }
     if (ch) { save(); if (document.getElementById('wvOv') && !wvEditing()) setTimeout(wvRender, 0); }
   }
   const _sw = shareWire; shareWire = function (r) { if (r && r.kind === 'wver') return Object.assign({}, r, { kind: 'plog', code: 'wver~' + r.code, note: JSON.stringify({ x: 'wver', n: r.note || '' }) }); return _sw(r); };
@@ -9623,7 +9624,8 @@ ${L.length ? ssListHtml(L) : (ssZCnt && !ssZero ? '<div class="wv-guide">재고�
   function wvTop() {
     let n = 0, bad = 0, app = 0; WV_REF.forEach(r => { const st = wvState(r); if (st.done) n++; if (st.bad) bad++; if ((wvS().app[r.c] || {}).ts && !(wvS().app[r.c] || {}).off) app++; });
     const seg = [['all', '전체'], ['A', '먼저 12'], ['todo', '미측정'], ['bad', '차이']].map(([k, t]) => `<button data-wvf="${k}" class="${wvF === k ? 'on' : ''}">${t}</button>`).join('');
-    const tabs = `<div class="wv-seg wv-tabs"><button data-wvt="silsa" class="${wvView === 'silsa' ? 'on' : ''}">📋 금요일 실사</button><button data-wvt="cards" class="${wvView !== 'silsa' ? 'on' : ''}">⚖ 용기·포장 검증</button></div>`;
+    const tabs = `<div class="wv-seg wv-tabs"><button data-wvt="silsa" class="${wvView === 'silsa' ? 'on' : ''}">📋 금요일 실사</button><button data-wvt="cards" class="${wvView === 'cards' || wvView === 'list' ? 'on' : ''}">⚖ 용기·포장 검증</button><button data-wvt="evi" class="${wvView === 'evi' ? 'on' : ''}">📷 용기 증빙</button></div>`;
+    if (wvView === 'evi') return evTop(tabs);
     if (wvView === 'silsa') return `<div class="wv-top"><div class="wv-h"><h2>📋 금요일 원료 실사</h2><button class="wv-btn sm" data-wv="ssblank">🖨 빈 양식</button><button class="wv-btn sm" data-wv="close">닫기</button></div>${ssDateHtml()}<div class="wv-sub">실사자 ${esc(who() || '(이름 없음)')} · 입력하면 바로 저장되고 PC·다른 기기와 공유됩니다</div>${tabs}${ssBar()}</div>`;
     return `<div class="wv-top"><div class="wv-h"><h2>⚖ 용기·포장 무게 검증</h2><button class="wv-btn sm" data-wv="print">🖨 인쇄</button><button class="wv-btn sm" data-wv="list">${wvView === 'list' ? '← 입력 화면' : '📋 이카운트 수정 목록'}</button><button class="wv-btn sm" data-wv="close">닫기</button></div>${tabs}
 <div class="wv-sub">이카운트 기준 ${WV_AT} · 원료 ${WV_REF.length}개 · 입력하면 바로 저장되고 다른 기기와 공유됩니다</div>
@@ -9652,14 +9654,15 @@ ${L.length ? `<table class="wv-t"><tr><th>원료</th><th>고칠 항목</th><th>�
     const ov = document.getElementById('wvOv'); if (!ov) return; const y = ov.scrollTop;
     let list = WV_REF; if (wvF === 'A') list = list.filter(r => r.g === 'A'); if (wvF === 'todo') list = list.filter(r => !wvState(r).done); if (wvF === 'bad') list = list.filter(r => wvState(r).bad);
     let body = '';
-    if (wvView === 'silsa') body = ssHtml();
+    if (wvView === 'evi') body = evHtml();
+    else if (wvView === 'silsa') body = ssHtml();
     else if (wvView === 'list') body = wvListHtml();
     else { body = `<div class="wv-guide"><b>재는 법</b> · ① <b>빈 용기</b>: 개봉분을 담는 빈 통·봉지를 저울에 올려 적기 ② <b>1개 무게</b>: 새 제품을 포장째 올려 적고, 빈 포장 무게를 알면 옆 칸에 적기(내용물 = 포장째 − 빈 포장) ③ 다 재면 「앱에 반영」을 누르면 실물재고 계산에 바로 쓰입니다.</div>`;
       const A = list.filter(r => r.g === 'A'), B = list.filter(r => r.g !== 'A');
       if (A.length) body += `<div class="wv-sec">A. 10/16 실사에서 장부와 달랐던 원료 · 먼저 재기</div>` + A.map(wvCard).join('');
       if (B.length) body += `<div class="wv-sec">B. 나머지 원료</div>` + B.map(wvCard).join('');
       if (!list.length) body += '<div class="wv-guide">해당하는 원료가 없습니다.</div>'; }
-    ov.innerHTML = wvTop() + `<div class="wv-body">${body}</div>`; ov.scrollTop = y; if (wvView === 'silsa') { try { ssFilter(); } catch (e) {} }
+    ov.innerHTML = wvTop() + `<div class="wv-body">${body}</div>`; ov.scrollTop = y; if (wvView === 'silsa') { try { ssFilter(); } catch (e) {} } if (wvView === 'evi') { try { evAfter(ov); } catch (e) {} }
   }
   function wvSet(code, f, pc, val) {
     const W = wvS(); const rec = Object.assign({ t: null, p: {}, m: '' }, W.rec[code] || {}); rec.p = Object.assign({}, rec.p || {});
@@ -9684,7 +9687,7 @@ h2{font-size:15px;color:#4a2c17;margin:10px 0 4px;page-break-before:always}</sty
   function wvOpen() {
     wvCss(); let ov = document.getElementById('wvOv'); if (!ov) { ov = document.createElement('div'); ov.id = 'wvOv'; document.body.appendChild(ov);
       ov.addEventListener('click', e => { if (wvView === 'silsa') { const nb = e.target.closest('[data-ssd]'); if (nb) { ssShift(Number(nb.dataset.ssd)); return; } const di = e.target.closest('input[data-ssdate]'); if (di) { try { if (di.showPicker) di.showPicker(); } catch (er) {} return; } } if (wvView === 'silsa' && ssClick(e)) return; const tq = e.target.closest('[data-sst]'); if (tq) { const rw = tq.closest('.ss-row'); const code = rw && rw.dataset.c; const a = tq.dataset.sst; if (!code) return; if (a === 'edit') { ssTEd = ssTEd === code ? null : code; wvRender(); setTimeout(() => { const x = document.querySelector('#wvOv .ss-tedit input[data-st="s"]'); if (x) x.focus(); }, 50); return; } if (a === 'cancel') { ssTEd = null; wvRender(); return; } if (a === 'reset') { if (!confirm('이 원료의 용기 무게를 이카운트 값으로 되돌릴까요?')) return; ssTareReset(code); ssTEd = null; wvRender(); return; } if (a === 'save') { const ed = rw.querySelector('.ss-tedit'); if (ed && ssTareSave(code, ed.querySelector('[data-st="s"]').value, ed.querySelector('[data-st="p"]').value)) { ssTEd = null; wvRender(); } return; } return; } const tb = e.target.closest('[data-wvt]'); if (tb) { wvView = tb.dataset.wvt; ov.scrollTop = 0; wvRender(); return; } const bxb = e.target.closest('[data-ssbox]'); if (bxb) { const rw = bxb.closest('[data-c]'); if (rw) ssBoxEdit(rw.dataset.c); return; } const sb = e.target.closest('[data-ss]'); if (sb) { const rw = sb.closest('[data-c]'); if (rw) { ssSet(rw.dataset.c, 'same'); try { const p0 = ssP(rw.dataset.c); if (p0 && p0.mode === 'direct') ssSave(rw.dataset.c); } catch (er) {} wvRender(); } return; } const fb = e.target.closest('[data-wvf]'); if (fb) { wvF = fb.dataset.wvf; wvRender(); return; } const b = e.target.closest('[data-wv]'); if (!b) return; const a = b.dataset.wv; const card = b.closest('[data-c]'); const code = card && card.dataset.c;
-        if (a === 'close') { ov.remove(); document.body.style.overflow = ''; try { if (location.hash === '#wver' || location.hash === '#silsa') history.replaceState(null, '', location.pathname + location.search); } catch (e2) {} try { renderAll(); } catch (e2) {} return; }
+        if (a === 'close') { ov.remove(); document.body.style.overflow = ''; try { if (location.hash === '#wver' || location.hash === '#silsa' || location.hash === '#evi') history.replaceState(null, '', location.pathname + location.search); } catch (e2) {} try { renderAll(); } catch (e2) {} return; }
         if (a === 'list') { wvView = wvView === 'list' ? 'cards' : 'list'; ov.scrollTop = 0; wvRender(); return; }
         if (a === 'print') { wvPrint(); return; }
         if (a === 'ssprint') { ssPrint(false); return; }
@@ -9707,7 +9710,94 @@ h2{font-size:15px;color:#4a2c17;margin:10px 0 4px;page-break-before:always}</sty
   window.silsaOpen = () => { wvView = 'silsa'; wvOpen(); };
   function ssBtn() { const p = document.getElementById('btnWver'); if (p && !document.getElementById('btnSilsa')) p.insertAdjacentHTML('beforebegin', '<button class="btn sm brand" id="btnSilsa" title="금요일 원료 실사 (종이 원료수불부 양식과 같은 순서)">📋<span class="mh"> 금요일 실사</span></button>'); const b = document.getElementById('btnSilsa'); if (b && !b.dataset.on) { b.dataset.on = 1; b.addEventListener('click', window.silsaOpen); } }
   ssBtn(); setTimeout(ssBtn, 1600); const _rp2 = renderPhys; renderPhys = function () { const r = _rp2.apply(this, arguments); try { ssBtn(); } catch (e) {} return r; };
-  const wvHash = () => { if (location.hash === '#wver') setTimeout(() => { wvView = 'cards'; wvOpen(); }, 300); if (location.hash === '#silsa') setTimeout(window.silsaOpen, 300); }; window.addEventListener('hashchange', wvHash); setTimeout(wvHash, 1200);
+
+  /* ═════ v286: 📷 용기 무게 증빙 (2026-10-26, 사용자 「재고수불 맞추는 품목마다 제품 사진·빈용기 사진·제품중량·용기 중량을 기록해 증빙자료로 쓸 것」) ═════
+     원료(금요일 실사 품목)마다 사진 3칸: 제품(새 것) / 빈 포장(제품용기) / 보관 통(보관용기) + 무게.
+     사진은 사내 대화와 같은 비공개 드라이브 저장소(tcPrep·tcUpImg·tcImgLoad)에 올리고 id만 S.wver.ev[code] 에 저장 → wvSend note 의 v 로 기기 간 공유.
+     빈 포장·보관 통 무게를 적으면 금요일 실사 「빼는 무게」(S.wver.app s·p·t, ssTareSave)에 바로 반영. 제품 포장째 무게(g)는 증빙으로 보관(내용물 = 포장째 − 빈 포장). 주소 #evi 로 바로 열림 */
+  const EV_SLOTS = [['prod', '제품 (새 것)', '새 제품을 포장째 저울에 올리고 숫자가 보이게'], ['pack', '빈 포장 (제품용기)', '다 쓴 원래 포장·캔·통·봉지'], ['tub', '보관 통 (보관용기)', '개봉분을 담는 플라스틱 통 + 비닐']];
+  let evF = 'all'; const evBusy = {}; let evTarget = null;
+  function evS() { const W = wvS(); W.ev = W.ev || {}; return W.ev; }
+  function evRec(code) { const o = evS()[code]; return o ? Object.assign({ ph: {} }, o, { ph: o.ph || {} }) : { ph: {} }; }
+  function evPut(code, fn) { const E = evS(); const o = JSON.parse(JSON.stringify(E[code] || { ph: {} })); o.ph = o.ph || {}; fn(o); o.ts = new Date().toISOString(); o.who = who(); E[code] = o; save(); wvSend(code); }
+  function evItems() { let a = []; try { a = ssItemsAll().slice(); } catch (e) {} const gA = c => (WV_MAP[c] || {}).g === 'A' ? 0 : 1; const iA = c => { const k = WV_REF.findIndex(r => r.c === c); return k < 0 ? 999 : k; };
+    return a.sort((x, y) => gA(x.code) - gA(y.code) || iA(x.code) - iA(y.code) || String(x.name).localeCompare(String(y.name), 'ko')); }
+  function evTare(it) { const ap = wvS().app[it.code]; const on = !!(ap && ap.ts && !ap.off && nOr(ap.t) > 0); const ec = it.tareEc != null ? nOr(it.tareEc) : nOr(it.tare);
+    return { on, s: on ? (ap.s != null ? nOr(ap.s) : nOr(ap.t)) : ec, p: on ? (nOr(ap.p) || 0) : 0, ec }; }
+  function evVals(it) { const ev = evRec(it.code); const tr = evTare(it); const pk = tr.p > 0 ? tr.p : nOr(ev.w_pack); return { ev, tr, prod: nOr(ev.g), pack: pk, tub: tr.s }; }
+  function evState(it) { const { ev, prod } = evVals(it); const ph = ev.ph || {}; const need = [!!ph.prod, prod != null, !!ph.pack, nOr(ev.w_pack) > 0]; const n = need.filter(Boolean).length; return { n, done: n === 4, any: n > 0 || !!ph.tub }; }
+  function evNm(it) { try { return shortName(it.name); } catch (e) { return String(it.name || '').replace(/_gg\d+$/, ''); } }
+  function evTop(tabs) { const L = evItems(); const done = L.filter(i => evState(i).done).length, part = L.filter(i => { const s = evState(i); return s.any && !s.done; }).length; let ph = 0; L.forEach(i => { ph += Object.keys(evRec(i.code).ph || {}).length; });
+    const seg = [['all', '전체'], ['todo', '아직'], ['done', '완료']].map(([k, t]) => '<button data-evf="' + k + '" class="' + (evF === k ? 'on' : '') + '">' + t + '</button>').join('');
+    return '<div class="wv-top"><div class="wv-h"><h2>📷 용기 무게 증빙</h2><button class="wv-btn sm" data-evp="1">🖨 증빙 인쇄</button><button class="wv-btn sm" data-wv="close">닫기</button></div>' + tabs +
+      '<div class="wv-sub">원료마다 <b>제품 사진·빈 포장 사진·제품 무게·빈 포장 무게</b>를 남겨 실사 계산의 근거로 씁니다 · 사진은 회사 비공개 저장소에만 저장</div>' +
+      '<div class="wv-nums"><div class="wv-num ok"><b>' + done + '/' + L.length + '</b><span>증빙 완료</span></div><div class="wv-num ' + (part ? 'bad' : '') + '"><b>' + part + '</b><span>찍는 중</span></div><div class="wv-num"><b>' + ph + '</b><span>올린 사진</span></div></div><div class="wv-seg">' + seg + '</div></div>'; }
+  function evSlot(it, k, lab, hint, V) { const ph = (V.ev.ph || {})[k]; const busy = evBusy[it.code + '|' + k]; const v = V[k];
+    let tag = ''; if (k === 'tub') tag = !V.tr.on ? '<i class="ev-tag ec">이카운트 값</i>' : nOr(V.ev.w_tub) === v ? '<i class="ev-tag me">실측</i>' : '<i class="ev-tag ap">앱 값</i>'; else if (k === 'pack' && v != null && v > 0) tag = nOr(V.ev.w_pack) === v ? '<i class="ev-tag me">실측</i>' : '<i class="ev-tag ap">앱 값</i>'; else if (k === 'prod' && v != null) tag = '<i class="ev-tag me">실측</i>';
+    return '<div class="ev-slot' + (ph ? ' has' : '') + (k === 'tub' ? ' opt' : '') + '"><div class="ev-ph" data-evph="' + k + '">' + (busy ? '<span class="ev-busy">올리는 중…</span>' : ph ? '<img data-evthumb="' + esc(ph.t) + '" data-evfull="' + esc(ph.i) + '" alt="' + esc(lab) + '">' : '<span class="ev-cam">📷<br>사진 찍기</span>') + '</div>' +
+      '<div class="ev-lab">' + lab + (k === 'tub' ? ' <em>있으면</em>' : '') + '<small>' + hint + '</small></div>' +
+      '<div class="ev-w"><input type="number" inputmode="decimal" data-evw="' + k + '" value="' + (v == null || (k === 'pack' && !(v > 0)) ? '' : v) + '" placeholder="' + (k === 'prod' ? '포장째' : '무게') + '"><span>g</span>' + tag + '</div>' +
+      (ph ? '<div class="ev-when">' + esc(ph.who || '') + ' ' + esc(String(ph.ts || '').slice(5, 16).replace('T', ' ')) + '</div>' : '') + '</div>'; }
+  function evCard(it) { const V = evVals(it); const st = evState(it); const sp = (() => { try { return packWOf(it); } catch (e) { return Number(it.spec) || null; } })(); const r = WV_MAP[it.code];
+    const chip = st.done ? '<span class="wv-chip ok">증빙 완료</span>' : st.any ? '<span class="wv-chip bad">' + st.n + '/4</span>' : '<span class="wv-chip">아직</span>';
+    const net = V.prod != null && V.pack > 0 ? Math.round((V.prod - V.pack) * 10) / 10 : null;
+    const netT = net == null ? '<span class="muted">제품 무게와 빈 포장 무게를 적으면 내용물 무게가 계산됩니다</span>' : '내용물 <b>' + fmt(net) + 'g</b> = 포장째 ' + fmt(V.prod) + ' − 빈 포장 ' + fmt(V.pack) + (sp ? ' · 규격 ' + fmt(sp) + 'g ' + (Math.abs(net - sp) <= Math.max(5, sp * 0.003) ? '<b class="g">일치</b>' : '<b class="o">차이 ' + (net - sp > 0 ? '+' : '') + fmt(Math.round((net - sp) * 10) / 10) + 'g</b>') : '');
+    const tare = Math.round(((V.tub || 0) + (V.pack > 0 ? V.pack : 0)) * 10) / 10;
+    return '<div class="wv-card ev-card ' + (st.done ? 'ok' : '') + '" data-evc="' + esc(it.code) + '"><div class="wv-name"><b>' + esc(evNm(it)) + '</b><small>' + esc((r && r.v) || '') + (r && r.g === 'A' ? ' · 매주 맞추는 원료' : '') + '</small>' + chip + '</div>' +
+      '<div class="ev-grid">' + EV_SLOTS.map(([k, l, h]) => evSlot(it, k, l, h, V)).join('') + '</div>' +
+      '<div class="ev-sum"><div>' + netT + '</div><div>실사 때 빼는 무게 <b>' + fmt(tare) + 'g</b> = 보관 통 ' + fmt(V.tub || 0) + ' + 빈 포장 ' + fmt(V.pack > 0 ? V.pack : 0) + '</div></div>' +
+      '<input class="wv-memo" data-evm="1" placeholder="메모 (예: 포장이 바뀜, 통 2개 사용)" value="' + esc(V.ev.m || '') + '"></div>'; }
+  function evHtml() { let L = evItems(); if (evF === 'todo') L = L.filter(i => !evState(i).done); if (evF === 'done') L = L.filter(i => evState(i).done);
+    const A = L.filter(i => (WV_MAP[i.code] || {}).g === 'A'), B = L.filter(i => (WV_MAP[i.code] || {}).g !== 'A');
+    let h = '<div class="wv-guide"><b>찍는 법</b> · ① <b>저울 영점(0)</b>을 확인하고 올리기 ② 사진에 <b>제품 이름(라벨)과 저울 숫자</b>가 함께 보이게 ③ 칸을 누르면 카메라가 열립니다 ④ 사진 아래에 무게를 적으면 바로 저장·공유되고, 빈 포장·보관 통 무게는 금요일 실사 계산에 바로 쓰입니다</div>';
+    if (A.length) h += '<div class="wv-sec">A. 매주 재고를 맞추는 원료 · 먼저</div>' + A.map(evCard).join('');
+    if (B.length) h += '<div class="wv-sec">B. 나머지 원료</div>' + B.map(evCard).join('');
+    if (!L.length) h += '<div class="wv-guide">해당하는 원료가 없습니다.</div>';
+    return h; }
+  function evFind(code) { return evItems().find(i => i.code === code) || null; }
+  function evSetW(code, k, val) { const it = evFind(code); if (!it) return; const n = nOr(val);
+    if (k === 'prod') { evPut(code, o => { o.g = n; o.gts = new Date().toISOString(); }); return; }
+    const tr = evTare(it); const s = k === 'tub' ? n : tr.s; const p = k === 'pack' ? n : tr.p;
+    if (((s || 0) + (p || 0)) > 0) ssTareSave(code, s || 0, p || 0); else toast('무게를 적어 주세요');
+    evPut(code, o => { o['w_' + k] = n; }); }
+  async function evUpload(code, k, file) { let key = ''; try { key = tcKey(); } catch (e) {} if (!key) { toast('로그인한 뒤에 사진을 올릴 수 있어요'); return; }
+    evBusy[code + '|' + k] = 1; wvRender();
+    try { const a = await tcPrep(file); const r = await tcUpImg(a, 'ev_' + String(code).replace(/\W/g, '') + '_' + k, Date.now().toString(36)); evPut(code, o => { o.ph[k] = { i: r.i, t: r.t, w: r.w, h: r.h, ts: new Date().toISOString(), who: who() }; }); toast('사진을 저장했습니다'); }
+    catch (e) { toast('⚠ ' + ((e && e.message) || '사진을 올리지 못했어요')); }
+    finally { delete evBusy[code + '|' + k]; wvRender(); } }
+  function evPick(code, k) { evTarget = { code, k }; let f = document.getElementById('evFile'); if (!f) { f = document.createElement('input'); f.type = 'file'; f.accept = 'image/*'; f.id = 'evFile'; f.style.display = 'none'; document.body.appendChild(f);
+      f.addEventListener('change', () => { const x = f.files && f.files[0]; const t = evTarget; f.value = ''; if (x && t) evUpload(t.code, t.k, x); }); } f.click(); }
+  function evLb(code, k) { const ph = (evRec(code).ph || {})[k]; if (!ph) return; let lb = document.getElementById('evLb'); if (lb) lb.remove(); lb = document.createElement('div'); lb.id = 'evLb';
+    lb.style.cssText = 'position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;gap:10px';
+    lb.innerHTML = '<img style="max-width:100%;max-height:78vh;object-fit:contain;border-radius:8px;background:#222" alt=""><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button class="wv-btn brand" data-evlb="re">📷 다시 찍기</button><button class="wv-btn" data-evlb="del">사진 빼기</button><button class="wv-btn" data-evlb="x">닫기</button></div>';
+    document.body.appendChild(lb); const im = lb.querySelector('img'); tcImgLoad(ph.t).then(u => { if (!im.src) im.src = u; }).catch(() => {}); tcImgLoad(ph.i).then(u => { im.src = u; }).catch(() => {});
+    lb.addEventListener('click', e => { const b = e.target.closest('[data-evlb]'); if (e.target === lb || (b && b.dataset.evlb === 'x')) { lb.remove(); return; } if (!b) return;
+      if (b.dataset.evlb === 're') { lb.remove(); evPick(code, k); return; }
+      if (b.dataset.evlb === 'del') { if (!confirm('이 사진을 증빙에서 뺄까요?')) return; evPut(code, o => { delete o.ph[k]; }); lb.remove(); wvRender(); } }); }
+  function evAfter(ov) { ov.querySelectorAll('img[data-evthumb]:not([src])').forEach(img => { tcImgLoad(img.dataset.evthumb).then(u => { img.src = u; }).catch(() => { img.alt = '사진을 못 불러옴'; }); });
+    if (ov.dataset.ev) return; ov.dataset.ev = '1';
+    ov.addEventListener('click', e => { if (wvView !== 'evi') return; const f = e.target.closest('[data-evf]'); if (f) { evF = f.dataset.evf; wvRender(); return; } if (e.target.closest('[data-evp]')) { evPrint(); return; }
+      const p = e.target.closest('[data-evph]'); if (p) { const c = p.closest('[data-evc]'); if (!c) return; const k = p.dataset.evph; if (evBusy[c.dataset.evc + '|' + k]) return; if ((evRec(c.dataset.evc).ph || {})[k]) evLb(c.dataset.evc, k); else evPick(c.dataset.evc, k); } });
+    ov.addEventListener('change', e => { if (wvView !== 'evi') return; const c = e.target.closest('[data-evc]'); if (!c) return; const w = e.target.closest('input[data-evw]'); if (w) { evSetW(c.dataset.evc, w.dataset.evw, w.value); setTimeout(wvRender, 0); return; } if (e.target.closest('input[data-evm]')) evPut(c.dataset.evc, o => { o.m = String(e.target.value || '').slice(0, 200); }); }); }
+  async function evPrint() { const L = evItems(); const has = L.filter(i => evState(i).any); toast('증빙 사진을 모으는 중…');
+    const url = {}; for (const it of has) { const ph = evRec(it.code).ph || {}; for (const k in ph) { try { url[ph[k].t] = await tcImgLoad(ph[k].t); } catch (e) {} } }
+    const rows = L.map((it, n) => { const V = evVals(it); const st = evState(it); const ph = V.ev.ph || {}; const ok = x => x ? '<b class="g">○</b>' : '<b class="o">—</b>';
+      return '<tr><td class="c">' + (n + 1) + '</td><td><b>' + esc(evNm(it)) + '</b></td><td class="c">' + ok(ph.prod) + '</td><td class="n">' + (V.prod != null ? fmt(V.prod) + 'g' : '') + '</td><td class="c">' + ok(ph.pack) + '</td><td class="n">' + (V.pack > 0 ? fmt(V.pack) + 'g' : '') + '</td><td class="c">' + ok(ph.tub) + '</td><td class="n">' + (V.tub != null ? fmt(V.tub) + 'g' + (V.tr.on ? '' : '<small> (이카운트)</small>') : '') + '</td><td class="c">' + (st.done ? '<b class="g">완료</b>' : st.any ? '<b class="o">' + st.n + '/4</b>' : '') + '</td></tr>'; }).join('');
+    const blocks = has.map(it => { const V = evVals(it); const ph = V.ev.ph || {}; const net = V.prod != null && V.pack > 0 ? Math.round((V.prod - V.pack) * 10) / 10 : null;
+      return '<div class="blk"><div class="bh"><b>' + esc(evNm(it)) + '</b><span>' + esc(it.code) + ' · 기록 ' + esc(V.ev.who || '') + ' ' + esc(String(V.ev.ts || '').slice(0, 16).replace('T', ' ')) + '</span></div><div class="ph3">' +
+        EV_SLOTS.map(([k, l]) => { const p = ph[k]; const v = V[k]; return '<div class="pc"><div class="im">' + (p && url[p.t] ? '<img src="' + url[p.t] + '">' : '<span>사진 없음</span>') + '</div><div class="cap"><b>' + l + '</b> ' + (v != null && !(k === 'pack' && !(v > 0)) ? fmt(v) + 'g' : '—') + (p ? '<small>' + esc(p.who || '') + ' ' + esc(String(p.ts || '').slice(5, 16).replace('T', ' ')) + '</small>' : '') + '</div></div>'; }).join('') +
+        '</div><div class="ft">' + (net != null ? '내용물 ' + fmt(net) + 'g (포장째 ' + fmt(V.prod) + ' − 빈 포장 ' + fmt(V.pack) + ') · ' : '') + '실사 때 빼는 무게 ' + fmt((V.tub || 0) + (V.pack > 0 ? V.pack : 0)) + 'g' + (V.ev.m ? ' · 메모: ' + esc(V.ev.m) : '') + '</div></div>'; }).join('');
+    const html = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>원료 용기 무게 증빙</title><style>@page{size:A4;margin:8mm}body{font-family:"Pretendard","Malgun Gothic",sans-serif;color:#2b1d14;margin:0;font-size:12.5px;word-break:keep-all}h1{font-size:20px;margin:0 0 2px;color:#4a2c17}.sub{color:#6b5a4c;margin-bottom:6px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #b9a594;padding:5px 6px}th{background:#6b4226;color:#fff;font-size:11.5px}td.n{text-align:right;white-space:nowrap;font-weight:700}td.c{text-align:center}.g{color:#2e7d32}.o{color:#c25e00}small{color:#8a7a6c;font-weight:400}h2{font-size:16px;color:#4a2c17;margin:0 0 6px;page-break-before:always}.blk{border:1.5px solid #b9a594;border-radius:8px;padding:6px 8px;margin-bottom:7px;page-break-inside:avoid}.bh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.bh b{font-size:15px}.bh span{font-size:11px;color:#8a7a6c}.ph3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:5px}.im{height:150px;background:#f4f1ec;border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden}.im img{max-width:100%;max-height:150px;object-fit:contain}.im span{color:#b0a294}.cap{margin-top:3px;font-size:12px}.cap small{display:block}.ft{margin-top:4px;font-size:12px;color:#4a2c17}</style></head><body>' +
+      '<h1>원료 용기 무게 증빙 <span style="font-size:12px;color:#8a6a52">빵을그리다 · 통합재고관리</span></h1><div class="sub">출력 ' + new Date().toLocaleString('ko-KR') + ' · 증빙 완료 ' + L.filter(i => evState(i).done).length + '/' + L.length + ' · 완료 = 제품 사진·제품 무게·빈 포장 사진·빈 포장 무게 4가지</div>' +
+      '<table><tr><th style="width:4%">#</th><th>원료</th><th style="width:8%">제품 사진</th><th style="width:11%">포장째 무게</th><th style="width:8%">빈 포장 사진</th><th style="width:10%">빈 포장</th><th style="width:8%">보관 통 사진</th><th style="width:14%">보관 통</th><th style="width:8%">상태</th></tr>' + rows + '</table>' +
+      (has.length ? '<h2>원료별 사진 증빙 (' + has.length + '종)</h2>' + blocks : '') + '</body></html>';
+    let fr = document.getElementById('evPrintFr'); if (fr) fr.remove(); fr = document.createElement('iframe'); fr.id = 'evPrintFr'; fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(fr);
+    const d = fr.contentWindow.document; d.open(); d.write(html); d.close();
+    const imgs = [...d.images]; await Promise.all(imgs.map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; setTimeout(r, 4000); })));
+    setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { toast('인쇄 창을 열지 못했습니다'); } }, 300); }
+  window.eviOpen = () => { wvView = 'evi'; wvOpen(); };
+  (function () { const s = document.createElement('style'); s.textContent = '#wvOv .ev-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}@media(max-width:560px){#wvOv .ev-grid{grid-template-columns:1fr 1fr}}#wvOv .ev-slot{border:1px solid #E4DED7;border-radius:12px;padding:6px;background:#FBFAF8}#wvOv .ev-slot.has{border-color:#2E7D32;background:#F3FAF4}#wvOv .ev-ph{height:130px;border-radius:10px;background:#EFEAE4;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer}#wvOv .ev-ph img{width:100%;height:100%;object-fit:cover}#wvOv .ev-cam{text-align:center;color:#7A4A23;font-weight:800;font-size:16px;line-height:1.4}#wvOv .ev-busy{color:#C25E00;font-weight:700}#wvOv .ev-lab{font-weight:800;font-size:15px;margin-top:6px}#wvOv .ev-lab em{font-style:normal;font-size:12px;color:#6B6159;font-weight:600}#wvOv .ev-lab small{display:block;font-weight:500;font-size:12.5px;color:#6B6159;line-height:1.35}#wvOv .ev-w{display:flex;align-items:center;gap:4px;margin-top:5px;flex-wrap:wrap}#wvOv .ev-w input{width:100px;min-height:46px;font:inherit;font-size:18px;font-weight:700;text-align:right;border:1px solid #CFC6BC;border-radius:10px;padding:0 8px}#wvOv .ev-tag{font-style:normal;font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 6px}#wvOv .ev-tag.me{background:#E3F2E5;color:#2E7D32}#wvOv .ev-tag.ap{background:#E8EEF7;color:#2F5A8A}#wvOv .ev-tag.ec{background:#FFF1E0;color:#C25E00}#wvOv .ev-when{font-size:11.5px;color:#8A7F75;margin-top:3px}#wvOv .ev-sum{margin-top:8px;font-size:14.5px;line-height:1.6;background:#fff;border-radius:10px;padding:6px 10px;border:1px dashed #DDD6CE}#wvOv .ev-sum .g{color:#2E7D32}#wvOv .ev-sum .o{color:#C25E00}'; document.head.appendChild(s); })();
+  const wvHash = () => { if (location.hash === '#evi') setTimeout(window.eviOpen, 300); if (location.hash === '#wver') setTimeout(() => { wvView = 'cards'; wvOpen(); }, 300); if (location.hash === '#silsa') setTimeout(window.silsaOpen, 300); }; window.addEventListener('hashchange', wvHash); setTimeout(wvHash, 1200);
 })(); } catch (e) { console.warn('wver patch', e); }
 
 
