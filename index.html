@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '287';
-const APP_BUILT = '2026-10-26 17:39';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '288';
+const APP_BUILT = '2026-10-26 18:24';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -7919,6 +7919,9 @@ function poLD(iso) { const d = new Date(iso); return isNaN(d) ? '' : d.getFullYe
 function poRoom(rule) { const m = String(rule || '').match(/「([^」]+)」/); return m ? m[1] : ''; }
 function poHour(rule) { const m = String(rule || '').match(/(\d{1,2})시까지/); return m ? Number(m[1]) : null; }
 function poSent(sup, since) { try { return (rbS().po || []).filter(p => p.sup === sup && p.status !== 'cancel' && poLD(p.at) >= since); } catch (e) { return []; } }
+/* v288: 보낸 발주(status sent · 입고 전) — 최근 21일 안에 보냈고 입고 희망일이 2일 넘게 지나지 않은 것만 */
+function poOpen(sup) { try { const td = today(); return (rbS().po || []).filter(p => p.sup === sup && p.status === 'sent' && poDays(poLD(p.at), td) <= 21 && (!p.due || poDays(p.due, td) <= 2)); } catch (e) { return []; } }
+function poOpenG(sup) { const m = {}; poOpen(sup).forEach(p => (p.lines || []).forEach(l => { if (l.raw) m[l.raw] = (m[l.raw] || 0) + (Number(l.n) || 0) * (Number(l.g) || 0); })); return m; }
 function poNo(sup) {
   const td = today(), n = (() => { try { return (rbS().po || []).filter(p => poLD(p.at) === td).length; } catch (e) { return 0; } })();
   return 'PO-' + td.slice(2).replace(/-/g, '') + '-' + String(n + 1).padStart(2, '0');
@@ -7957,9 +7960,10 @@ function poCss() {
 }
 function poAlertList(rb) {
   const td = today(); const ord = { late: 0, today: 1, soon: 2, info: 3, done: 4 };
-  return (rb.sups || []).filter(s => (s.items || []).some(i => Number(i.packs) > 0)).map(s => {
-    const sent = poSent(s.name, rb.snap || td), d = s.nextOrder ? poDays(td, s.nextOrder) : null, hr = poHour(s.rule);
+  return (rb.sups || []).filter(s => (s.items || []).some(i => Number(i.packs) > 0) || poOpen(s.name).length).map(s => {
+    const sent = poSent(s.name, rb.snap || td), open = poOpen(s.name), d = s.nextOrder ? poDays(td, s.nextOrder) : null, hr = poHour(s.rule);
     let lv, lab;
+    if (open.length) { const lp = open[open.length - 1]; return Object.assign({}, s, { lv: 'done', lab: `✓ ${rbMd(poLD(lp.at))} 발주함`, d, sent, open, deliv: lp.due || s.deliv }); }
     if (sent.length) { lv = 'done'; lab = `✓ ${rbMd(poLD(sent[sent.length - 1].at))} 발주 기록 있음`; }
     else if (d == null) { lv = 'info'; lab = '발주일 확인 필요'; }
     else if (d < 0) { lv = 'late'; lab = '발주일 지남 · 바로 발주'; }
@@ -7976,22 +7980,24 @@ function poPlan(rb, sup) {
   const fl = (rb.rule && rb.rule.floor) || 36, miro = (rb.rule && rb.rule.miroMin) || 9000;
   const s = (rb.sups || []).find(x => x.name === sup) || {}, deliv = s.deliv || '', td = today();
   const dDays = deliv ? Math.max(0, poDays(td, deliv)) : 6;
+  const OO = poOpenG(sup);
   return (rb.rows || []).filter(r => r.sup === sup).map(r => {
-    const wk = Number(r.weekly) || 0, st = Number(r.stock) || 0, pg = Number(r.packG) || 1, ou = Math.max(1, Number(r.ou) || 1);
+    const wk = Number(r.weekly) || 0, st = Number(r.stock) || 0, pg = Number(r.packG) || 1, ou = Math.max(1, Number(r.ou) || 1), oo = OO[r.code] || 0;
     const keep = r.perBox ? fl * r.perBox : (r.nm === '미로와데코젤' ? miro : (Number(r.target) || 0) * 0.36);
-    const needG = PO_WEEKS * wk + keep - st;
+    const needG = PO_WEEKS * wk + keep - st - oo;
     let rec = 0; if (needG > 0) { const p = needG / pg; rec = Math.ceil(Math.max(0, p - 0.1) / ou) * ou; if (rec === 0) rec = ou; }
     const weeks = wk > 0 ? st / wk : null;
     const outDay = wk > 0 && st > 0 ? rbAddD(Math.floor(st / wk * 7)) : (st <= 0 ? td : '');
     const atDeliv = st - wk * dDays / 7;
     let lv, why;
-    if (st <= 0) { lv = 'red'; why = '재고 바닥 (전산 ' + Math.round(st) + 'g)'; }
+    if (oo > 0 && rec === 0) { lv = 'green'; why = '발주함 · 입고 전 (' + poAmt(oo, pg, r.unit) + ')'; }
+    else if (st <= 0) { lv = 'red'; why = '재고 바닥 (전산 ' + Math.round(st) + 'g)'; }
     else if (weeks != null && weeks < 1) { lv = 'red'; why = `1주도 안 남음 · ${rbMd(outDay)}쯤 바닥`; }
     else if (r.nm === '미로와데코젤' && st < miro) { lv = 'red'; why = `기준 3통(9kg)보다 적음`; }
     else if (r.perBox && atDeliv < keep) { lv = 'amber'; why = `입고일(${rbMd(deliv)})쯤 최소선(${fl}박스분) 아래`; }
     else if (rec > 0) { lv = 'blue'; why = `다음 발주(약 ${PO_WEEKS}주 뒤)까지 모자람 → 같이 주문`; }
     else { lv = 'green'; why = '충분 · 이번엔 주문 안 함'; }
-    return { code: r.code, nm: r.nm, item: r.item || r.nm, unit: r.unit, stock: st, packG: pg, weekly: wk, weeks, outDay, rec, fill: Number(r.packs) || 0, lv, why, lastIn: r.lastIn, lastQty: r.lastQty, boxes: r.boxes, price: Number(r.price) || 0, priceAt: r.priceAt || '', pricePrev: r.pricePrev || null, vf: !!r.vatFree };
+    return { code: r.code, nm: r.nm, item: r.item || r.nm, unit: r.unit, stock: st, oo, packG: pg, weekly: wk, weeks, outDay, rec, fill: Number(r.packs) || 0, lv, why, lastIn: r.lastIn, lastQty: r.lastQty, boxes: r.boxes, price: Number(r.price) || 0, priceAt: r.priceAt || '', pricePrev: r.pricePrev || null, vf: !!r.vatFree };
   }).sort((a, b) => ({ red: 0, amber: 1, blue: 2, green: 3 })[a.lv] - ({ red: 0, amber: 1, blue: 2, green: 3 })[b.lv]);
 }
 function poWon(v) { return Math.round(v).toLocaleString('ko-KR') + '원'; }
@@ -8008,6 +8014,27 @@ function poSupWhy(rb, s, plan) {
   else if (s.lastIn) out.push(['gray', '지난 입고', `${rbMd(s.lastIn)} (${poDays(s.lastIn, today())}일 전)`]);
   return out;
 }
+/* v288: 발주를 보낸 거래처는 추천 대신 「보낸 발주 수량」을 보여 줌 (2026-10-26 사용자 「오늘 발주 확정된 것으로 반영」) */
+function poDoneCard(s) {
+  const plan = s.plan || [], byC = {}; plan.forEach(p => byC[p.code] = p);
+  const lines = []; s.open.forEach(p => (p.lines || []).forEach(l => lines.push(Object.assign({ _po: p }, l))));
+  let sa = 0, va = 0;
+  const rows = lines.map(l => {
+    const p = byC[l.raw], n = Number(l.n) || 0, g = Number(l.g) || 0, pr = Number(l.price) || 0;
+    if (pr) { sa += n * pr; if (!l.vf) va += Math.round(n * pr * 0.1); }
+    const now = p ? poAmt(p.stock, p.packG, p.unit) : '-', aft = p ? poAmt(p.stock + p.oo, p.packG, p.unit) : '-';
+    return `<tr><td class="nm"><b>${esc(l.bname || l.name)}</b>${l.raw ? '' : '<div class="po-r">육쪽 원료 외 · 추가 주문</div>'}</td><td class="n">${esc(now)}</td><td class="q">${n} ${esc(l.u || '')}</td><td class="n">${esc(aft)}</td><td class="n">${pr ? poWon(n * pr) : '<span class="po-r">-</span>'}</td></tr>`;
+  }).join('');
+  const more = plan.filter(p => p.rec > 0);
+  const lp = s.open[s.open.length - 1];
+  const head = s.open.map(p => `${rbMd(poLD(p.at))} 발주 · 입고 희망 ${p.due ? rbMd(p.due) : '미정'}${p.no ? ' · ' + esc(p.no) : ''}${p.by ? ' · ' + esc(p.by) : ''}`).join('<br>');
+  return `<div class="po-card done"><div class="po-top"><span class="po-badge done">${esc(s.lab)}</span><span class="po-name">${esc(s.name)}</span>${lp.due ? `<span class="po-deliv">입고 예정 ${rbMd(lp.due)}</span>` : ''}</div>
+    <div class="po-why gray"><span class="k">보낸 발주</span><span>${head}</span></div>
+    <div class="po-listh">발주 확정 리스트 · ${lines.length}품목 <span class="po-r">(보낸 발주서 수량 · 「입고 후」 = 지금 재고 + 발주 수량)</span></div>
+    <div class="tablewrap"><table class="po-tb"><tr><th class="l">원료</th><th>지금 재고</th><th>발주 수량</th><th>입고 후</th><th>예상 금액</th></tr>${rows}</table></div>
+    ${sa ? `<div class="po-tot2">발주 금액 <b>약 ${poWon(sa + va)}</b> <span class="po-r">(공급가 ${poWon(sa)} + 부가세 ${poWon(va)} · 최근 매입 단가 기준)</span></div>` : ''}
+    ${more.length ? `<div class="po-guide warn">발주 수량을 넣고도 다음 발주(약 ${PO_WEEKS}주 뒤)까지 모자랄 수 있는 원료: ${more.map(p => esc(p.nm) + ' ' + p.rec + esc(p.unit)).join(', ')}</div>` : `<div class="po-guide ok">이 발주가 들어오면 다음 발주(약 ${PO_WEEKS}주 뒤)까지 충분해요. 물건이 오면 원료 발주 탭에서 「입고 완료」를 눌러 주세요.</div>`}</div>`;
+}
 async function poAlertOpen() {
   poCss(); poCss2();
   let F; try { F = await facLoad(); } catch (e) { return toast(String((e && e.message) || e)); }
@@ -8018,6 +8045,7 @@ async function poAlertOpen() {
   const LV = { red: '부족', amber: '곧 부족', blue: '같이 주문', green: '충분' };
   const cards = list.length ? list.map((s, i) => {
     const plan = poPlan(rb, s.name); s.plan = plan;
+    if (s.open && s.open.length) return poDoneCard(s);
     const why = poSupWhy(rb, s, plan).map(([c, k, t]) => `<div class="po-why ${c}"><span class="k">${esc(k)}</span><span>${esc(t)}</span></div>`).join('');
     const rows = plan.map(p => `<tr class="${p.lv === 'green' ? 'off' : ''}"><td><span class="po-lv ${p.lv}">${LV[p.lv]}</span></td><td class="nm"><b>${esc(p.item)}</b><div class="po-r">${esc(p.why)}</div></td>
       <td class="n">${esc(poAmt(p.stock, p.packG, p.unit))}<div class="po-r">${p.weeks != null ? (p.weeks <= 0 ? '0주' : (Math.round(p.weeks * 10) / 10) + '주분') : ''}</div></td>
@@ -8034,7 +8062,7 @@ async function poAlertOpen() {
   const auto = localStorage.getItem('po_alert_auto') !== 'off';
   modal(`<div class="po-wrap"><div class="po-hd"><div><h2>🔔 오늘 발주 알림</h2><div class="po-sub">이카운트 ${rbMd(rb.snap)} 아침 06:30 재고 · 최근 8주 사용량 기준 · 육쪽마늘빵 100박스분 · 미로와데코젤 3통 유지</div></div><button class="btn" data-podo="big" style="min-height:46px">🔍 크게 보기</button></div>
     ${sum}${cards}
-    <div class="po-sub" style="margin:4px 0 12px">· 수량은 아침 재고로 계산했어요. 오늘 이 앱에서 「보낸 것으로 기록」한 거래처는 초록색으로 바뀌어요.<br>· 발주서 화면에서 수량·입고 희망일을 고칠 수 있어요.</div>
+    <div class="po-sub" style="margin:4px 0 12px">· 수량은 아침 재고로 계산했어요. 「보낸 것으로 기록」한 거래처는 초록색 「발주함」으로 바뀌고, 보낸 발주 수량이 그대로 보여요(입고 전까지 추천 계산에도 더해요).<br>· 발주서 화면에서 수량·입고 희망일을 고칠 수 있어요.</div>
     <div class="row" style="justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span class="po-sub">이 알림은 원료 발주 탭 맨 위 버튼으로 열어요(자동으로 뜨지 않음)</span><button class="btn" onclick="closeModal()" style="min-height:50px;padding:0 22px">닫기</button></div></div>`);
   $('#modalBody').classList.add('wide'); if (PO.big) $('#modalBody').classList.add('po-bigm');
   const ck = $('#poAuto'); if (ck) ck.onchange = () => { try { localStorage.setItem('po_alert_auto', ck.checked ? 'on' : 'off'); } catch (e) {} };
