@@ -1,5 +1,5 @@
 
-/* ══ 금요일 실사 전용 앱(silsa.html) — 「금요일 원료 실사」 화면만 보이게 (2026-10-23 Aside) ══
+/* ══ 금요일 실사 전용 앱(silsa.html) — 「금요일 원료 실사」 화면만 보이게 (2026-10-23 Aside) · 2026-10-26 v286: 「📷 용기 증빙」 탭은 보이게(검증 탭만 숨김) ══
    silsa.html이 index.html을 그대로 불러와 실행하므로 자료·로그인·공유는 통합 재고관리와 100% 같다.
    index.html 안에서는 window.SILSA_APP이 없어서 아래 블록이 아무 일도 하지 않는다. */
 (function () {
@@ -10,7 +10,7 @@
   try { poAlertOpen = function () {}; } catch (e) {}
   try { saleSound = async function () {}; } catch (e) {}
   const st = document.createElement('style');
-  st.textContent = '#wvOv [data-wv="close"],#wvOv .wv-tabs{display:none!important}#fld,#modal{display:none!important}'
+  st.textContent = '#wvOv [data-wv="close"],#wvOv .wv-tabs [data-wvt="cards"]{display:none!important}#fld,#modal{display:none!important}'
     + '#wvOv{z-index:2147483000!important}'
     + '#wvOv .sa-foot{max-width:700px;margin:6px auto 40px;padding:14px 16px;border-radius:14px;background:#fff;border:1px solid #DCE6DE;font-size:17px;color:#2B2B2B;line-height:1.6;word-break:keep-all}'
     + '#wvOv .sa-foot b{color:#2F6B45}#wvOv .sa-foot .sa-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}'
