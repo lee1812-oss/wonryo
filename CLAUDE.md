@@ -324,3 +324,11 @@
 - saleKxAnalyze: 방 이름·거래처 쪽 보낸 사람 이름으로 거래처(saleKParse 거래처 찾기) · 우리 쪽(SALE_KX_OURS 이름 또는 「주문 확인하였습니다」 2번 이상)은 뺌. saleKxItems: 메시지마다 saleKParse(force) → 품목별 주문 횟수·마지막 수량·거래처 표현. 물류비·수수료, 맞춤 점수 0.6 미만이면서 2번 이하는 「못 찾은 표현」으로.
 - saleKxApply: 카톡 품목을 자주 시킨 순으로 맨 앞 체크(+판매 이력 180일 품목, 최대 40), 2번 이상 같은 이름으로 부른 것만 품목 표시(it[5]), 판매 이력 없는 품목은 「판매 이력 없음」(단가 null, 지난 수량은 카톡 값). 점수 0.75 미만은 노란 「맞는지 확인」.
 - 저장은 기존 putOrderForm 그대로(분석 결과는 저장하지 않음). 이미 링크 있는 거래처면 빨간 안내.
+
+
+## v286 (2026-10-26) 📷 용기 무게 증빙 탭
+- 위치: v251 wver IIFE 안, wvHash 바로 앞 블록(EV_*, ev* 함수). 주소 #evi, window.eviOpen(). 탭: 금요일 실사 / 용기·포장 검증 / 📷 용기 증빙 (silsa 앱은 검증 탭만 숨김, silsa_patch.js).
+- 자료: S.wver.ev[code] = { ph:{prod|pack|tub:{i,t,w,h,ts,who}}, g(포장째 무게), w_pack, w_tub, m, ts, who }. 사진은 사내 대화 저장소(tcPrep→tcUpImg, 읽기 tcImgLoad). 공유는 wvSend note의 v(ts 비교, wvApplyRemote).
+- 빈 포장(pack)·보관 통(tub) 무게 입력 → ssTareSave(code, s, p) 로 금요일 실사 빼는 무게(S.wver.app)에 바로 반영. 완료 = 제품 사진·g·빈 포장 사진·w_pack 4가지.
+- 「🖨 증빙 인쇄」: 33품목 현황표 + 사진 있는 원료별 사진 3칸(썸네일).
+- 첫 자료: 생크림 CH.123_0 빈 팩 50g, 머스타드 CH.08_0 빈 통 132g (10/26 HACCP 업무 공유방 사진).
