@@ -1,9 +1,9 @@
 {
- "updatedAt": "2026-10-28T08:02:10+09:00",
+ "updatedAt": "2026-10-28T08:07:12+09:00",
  "baseDate": "2026-10-28",
  "company": "빵을그리다(주)",
  "source": "ecount-oapi",
- "count": 818,
+ "count": 819,
  "items": [
   {
    "code": "00001",
@@ -3252,6 +3252,10 @@
   {
    "code": "YL100",
    "qty": 118.0
+  },
+  {
+   "code": "YL101",
+   "qty": -4.0
   },
   {
    "code": "YL33",
