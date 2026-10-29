@@ -100,6 +100,9 @@ input.miss{border-color:var(--org);background:var(--orgl)}
 .pi .kg{font-weight:800;white-space:nowrap;color:var(--br)}
 .pi .s{font-size:13.5px;color:var(--sub)}
 .pi .ed{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;margin-top:8px;align-items:end}
+.lk{border:0;background:none;color:var(--blu);font:inherit;font-size:13.5px;font-weight:700;text-decoration:underline;padding:4px 0;cursor:pointer}
+#olBg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px}
+.olBox{background:#fff;border-radius:18px;padding:18px;max-width:640px;width:100%;margin:auto}
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#2B2622;color:#fff;padding:10px 18px;border-radius:999px;font-size:15px;opacity:0;transition:.3s;pointer-events:none;z-index:50}
 #toast.on{opacity:.95}
 .nw{white-space:nowrap}
@@ -139,10 +142,12 @@ input.miss{border-color:var(--org);background:var(--orgl)}
 <main id="app"></main>
 <div id="toast"></div>
 <script>
-const ING0=[{"n": "꽃소금", "p": 11200, "g": 15000, "s": "이카운트 재고단가 2026-10-11 (최근 매입 기록 없음)", "c": "CH.01", "chk": 1}, {"n": "게랑드 소금", "p": 86252, "g": 10000, "s": "이카운트 재고단가 2026-10-11 (최근 매입 기록 없음)", "c": "BK01", "chk": 1}, {"n": "드라이이스트(골드) 400g", "p": 4650, "g": 400, "s": "이카운트 재고단가 2026-10-11", "c": "CH.G02-1", "chk": 1}, {"n": "올리브유-포마스", "p": 32500, "g": 5000, "s": "이카운트 재고단가 2026-10-11", "c": "GFS09", "chk": 1}, {"n": "잡화벌꿀", "p": 6800, "g": 2400, "s": "이카운트 재고단가 2026-10-11 (2.4L를 2.4kg로 계산)", "c": "GNFS69", "chk": 1}, {"n": "이즈니 고메버터", "p": 10970, "g": 500, "s": "이카운트 재고단가 2026-10-11 (최근 매입 기록 없음)", "c": "CH.134", "chk": 1}, {"n": "코코넛슈가", "p": 11000, "g": 1000, "s": "시중가 추정 (이카운트 품목 없음)", "c": "", "chk": 1}, {"n": "계란 대란 (껍질 뺀 50g/개)", "p": 7980, "g": 1500, "s": "만선마트 2025-12-31 (30구)", "c": ""}, {"n": "물", "p": 0, "g": 1000, "s": "0원", "c": ""}, {"n": "(큐원)골든쇼트닝", "p": 21818, "g": 4500, "s": "이카운트 매입 2026-08-17 · 철은인터내셔날", "c": "CH.30"}, {"n": "Cream Cheese(크림치즈) 10kg", "p": 74000, "g": 10000, "s": "이카운트 매입 2026-05-14 · (주)제이에이치엘코포레이션", "c": "JHL01"}, {"n": "K-블레소레이유", "p": 30000, "g": 20000, "s": "이카운트 매입 2026-08-17 · 철은인터내셔날", "c": "CH.A06"}, {"n": "큐원)강력밀가루 20kg", "p": 28325, "g": 20000, "s": "이카운트 매입 2025-11-17 · (주)한국내츄럴치즈", "c": "NC01"}, {"n": "S-500개량제", "p": 3500, "g": 500, "s": "이카운트 매입 2026-08-17 · 철은인터내셔날", "c": "CH.B22"}, {"n": "녹차레진N_(실온) 300g", "p": 8200, "g": 300, "s": "이카운트 매입 2025-12-04 · (주)선인", "c": "SI06"}, {"n": "딸기레진N_(실온) 300g", "p": 7000, "g": 300, "s": "이카운트 매입 2025-12-04 · (주)선인", "c": "SI07"}, {"n": "마론레진_(실온) 600g", "p": 12000, "g": 600, "s": "이카운트 매입 2025-12-04 · (주)선인", "c": "SI01"}, {"n": "민트레진_(실온) 600g", "p": 12000, "g": 600, "s": "이카운트 매입 2025-12-04 · (주)선인", "c": "SI02"}, {"n": "바나나레진N_(실온) 300g", "p": 7000, "g": 300, "s": "이카운트 매입 2025-12-04 · (주)선인", "c": "SI08"}, {"n": "초코레진다크_(실온) 500g", "p": 27600, "g": 500, "s": "이카운트 매입 2025-12-04 · (주)선인", "c": "SI03"}, {"n": "포도레진N_(실온) 300g", "p": 8200, "g": 300, "s": "이카운트 매입 2025-12-04 · (주)선인", "c": "SI09"}, {"n": "프렌치바닐라레진_(실온) 600g", "p": 10000, "g": 600, "s": "이카운트 매입 2025-12-04 · (주)선인", "c": "SI04"}, {"n": "피스타치오레진_(실온) 600g", "p": 12000, "g": 600, "s": "이카운트 매입 2025-12-04 · (주)선인", "c": "SI05"}, {"n": "건조크랜베리 (1kg)", "p": 7182, "g": 1000, "s": "이카운트 매입 2025-11-05 · 철은인터내셔날", "c": "CH.09"}, {"n": "무화과(반건조,면세) (1kg)", "p": 10200, "g": 1000, "s": "이카운트 매입 2025-11-05 · 철은인터내셔날", "c": "CH.10"}, {"n": "맑은식용유(큐원)", "p": 42273, "g": 16450, "s": "이카운트 매입 2026-01-13 · 철은인터내셔날", "c": "CH.139"}, {"n": "엔지 그래스 무염버터", "p": 272500, "g": 25000, "s": "이카운트 매입 2026-05-11 · (주)한국내츄럴치즈", "c": "LH25"}, {"n": "우유", "p": 1500, "g": 1000, "s": "이카운트 매입 2026-05-11 · (주)한국내츄럴치즈", "c": "CH.B01"}, {"n": "냉동개량제(크리스탈)", "p": 6800, "g": 500, "s": "이카운트 매입 2026-06-11 · 쿠팡(주)", "c": "CH.B21"}, {"n": "엘로이 크림치즈", "p": 133960, "g": 13600, "s": "이카운트 매입 2026-02-03 · (주)한국내츄럴치즈", "c": "LH.1"}, {"n": "비앙코 브리오 크림 1L", "p": 3600, "g": 1000, "s": "이카운트 매입 2025-12-26 · (주)한국내츄럴치즈", "c": "LH27"}, {"n": "갈색설탕", "p": 24500, "g": 15000, "s": "이카운트 매입 2026-01-13 · 철은인터내셔날", "c": "CH.138"}, {"n": "아몬드분말 1KG", "p": 9360, "g": 1000, "s": "이카운트 매입 2025-12-03 · 철은인터내셔날", "c": "CH.28"}, {"n": "코끼리강력밀가루(면세)", "p": 26500, "g": 20000, "s": "이카운트 매입 2026-01-13 · 철은인터내셔날", "c": "CH.A12"}, {"n": "슈크림(크리미비트)_퓨라토스(커스터드 분말)", "p": 10545, "g": 1000, "s": "이카운트 매입 2026-04-24 · 철은인터내셔날", "c": "CH.31"}, {"n": "프랑스밀가루T65", "p": 54700, "g": 25000, "s": "이카운트 매입 2026-01-13 · 철은인터내셔날", "c": "CH.A01"}, {"n": "미로와데코젤", "p": 39600, "g": 5000, "s": "이카운트 매입 2026-02-04 · 철은인터내셔날", "c": "CH.1225"}, {"n": "엘르앤비르 고메버터", "p": 11400, "g": 500, "s": "이카운트 매입 2026-01-15 · (주)한국내츄럴치즈", "c": "LH26"}, {"n": "건국연유", "p": 141600, "g": 24000, "s": "이카운트 매입 2026-09-22 · (주)한국내츄럴치즈", "c": "LH.5_1"}, {"n": "건국연유 (4kg)", "p": 34000, "g": 4980, "s": "이카운트 매입 2026-09-21 · 철은인터내셔날", "c": "LH.5"}, {"n": "검정깨", "p": 12550, "g": 1000, "s": "이카운트 매입 2026-08-17 · 철은인터내셔날", "c": "CH.247"}, {"n": "고당 드라이이스트(효모)", "p": 36182, "g": 3500, "s": "이카운트 매입 2026-01-13 · 철은인터내셔날", "c": "CH.G26"}, {"n": "냉동마늘(황보)", "p": 3000, "g": 1000, "s": "이카운트 매입 2026-10-13 · 철은인터내셔날", "c": "CH.05"}, {"n": "대두 흑미골드 강력쌀가루 3kg", "p": 16000, "g": 3000, "s": "이카운트 매입 2026-06-11 · 쿠팡(주)", "c": "00064"}, {"n": "마요네즈스파우트", "p": 15636, "g": 3180, "s": "이카운트 매입 2026-10-13 · 철은인터내셔날", "c": "CH.000"}, {"n": "머스타드소시 모아하우스", "p": 16636, "g": 3600, "s": "이카운트 매입 2026-10-13 · 철은인터내셔날", "c": "CH.08"}, {"n": "몰트엑기스(액상,선인)", "p": 5636, "g": 1250, "s": "이카운트 매입 2026-09-04 · 철은인터내셔날", "c": "CH.25"}, {"n": "미로와(서브리모)", "p": 10000, "g": 1200, "s": "이카운트 매입 2026-09-18 · 철은인터내셔날", "c": "CH.1227"}, {"n": "미로와데코젤 (3kg)", "p": 26455, "g": 3000, "s": "이카운트 매입 2026-10-13 · 철은인터내셔날", "c": "CH.1226"}, {"n": "볶은현미가루", "p": 104500, "g": 10000, "s": "이카운트 매입 2026-08-14 · (이천)이천쌀 라이스크림_N38", "c": "IC02"}, {"n": "스마트 베이커 마가린", "p": 29000, "g": 10000, "s": "이카운트 매입 2026-10-12 · (주)한국내츄럴치즈", "c": "LH.2"}, {"n": "스미스필드 크림치즈", "p": 121040, "g": 13600, "s": "이카운트 매입 2026-10-12 · (주)한국내츄럴치즈", "c": "LH11"}, {"n": "식용유", "p": 4905, "g": 1650, "s": "이카운트 매입 2026-08-14 · 쿠팡(주)", "c": "CP01"}, {"n": "식용유 (450g)", "p": 3636, "g": 450, "s": "이카운트 매입 2026-08-18 · 만선마트", "c": "MS01"}, {"n": "양조간장_쿠팡구매", "p": 6373, "g": 2120, "s": "이카운트 매입 2026-08-14 · 쿠팡(주)", "c": "CO.95_0"}, {"n": "에그앤리치 냉동전란", "p": 69000, "g": 10000, "s": "이카운트 매입 2026-10-21 · 주식회사 사우스코어", "c": "SC02"}, {"n": "에버휩 생크림", "p": 2818, "g": 1000, "s": "이카운트 매입 2026-10-13 · 철은인터내셔날", "c": "CH.123"}, {"n": "탈지분유(서울) 1kg", "p": 18100, "g": 1000, "s": "이카운트 매입 2025-12-03 · 철은인터내셔날", "c": "CH.B20"}, {"n": "파슬리(선인)", "p": 5650, "g": 250, "s": "이카운트 매입 2026-10-13 · 철은인터내셔날", "c": "CH.27"}, {"n": "파인소프트-202", "p": 12627, "g": 2000, "s": "이카운트 매입 2026-09-04 · 철은인터내셔날", "c": "CH.202"}, {"n": "파인소프트T(대두)", "p": 59473, "g": 15000, "s": "이카운트 매입 2026-09-04 · 철은인터내셔날", "c": "CH.77"}, {"n": "펄솔트", "p": 3300, "g": 500, "s": "이카운트 매입 2026-06-26 · 철은인터내셔날", "c": "CH.B23"}, {"n": "하얀설탕(큐원)", "p": 17200, "g": 15000, "s": "이카운트 매입 2026-10-13 · 철은인터내셔날", "c": "CH.A10"}];
-const PACK0=[{"n": "BAM.무지 크라프트 쇼핑백(중, 10매)", "p": 8728, "k": 10, "s": "이카운트 매입 2026-04-13", "c": "BAM01"}, {"n": "BAM.크라프트 종이봉투(중, 150*90/265mm) 10매", "p": 1209, "k": 10, "s": "이카운트 매입 2026-04-13", "c": "BAM02"}, {"n": "KL.무염 라벨지(100*80, 500매)", "p": 3818, "k": 500, "s": "이카운트 매입 2025-11-10", "c": "KL01"}, {"n": "OPP접착봉투(10*18*+4)(길쭉이무지) 500EA*1PK", "p": 6000, "k": 500, "s": "이카운트 매입 2026-08-31", "c": "SP.08"}, {"n": "OPP접착봉투(12*18*+4) 200EA*1PK", "p": 3636, "k": 200, "s": "이카운트 매입 2025-12-23", "c": "SP.01"}, {"n": "OPP접착봉투(15*18*+4)(2입무지) 500EA*1PK", "p": 8182, "k": 500, "s": "이카운트 매입 2026-08-31", "c": "SP.07"}, {"n": "OPP접착봉투(15*20*+4) 500EA*1PK", "p": 7273, "k": 500, "s": "이카운트 매입 2026-01-15", "c": "SP.04"}, {"n": "OPP접착봉투(18*25*+4) 50EA*1PK", "p": 1818, "k": 50, "s": "이카운트 매입 2026-03-31", "c": "SP.02"}, {"n": "OPP접착봉투(20*25*+4) 200EA*1PK", "p": 9091, "k": 200, "s": "이카운트 매입 2026-08-31", "c": "SP.05"}, {"n": "OPP접착봉투(30*25*+4) 200EA*1PK", "p": 9545, "k": 200, "s": "이카운트 매입 2026-01-15", "c": "SP.03"}, {"n": "OPP접착봉투(8*9*+4)(마드렌무지) 500EA*1PK", "p": 4727, "k": 500, "s": "이카운트 매입 2026-08-31", "c": "SP.06"}, {"n": "PE 포장 비닐", "p": 110, "k": 1, "s": "이카운트 매입 2026-08-25", "c": "SY08"}, {"n": "W.아이스박스(대)", "p": 2750, "k": 1, "s": "이카운트 매입 2026-09-21", "c": "RO.1"}, {"n": "sy.포장 비닐,HD 무지(45*65)", "p": 80, "k": 1, "s": "이카운트 매입 2026-03-05", "c": "SY07"}, {"n": "다용도박스(10호)백색(골지)(290*240*85(H)mm)", "p": 31818, "k": 1, "s": "이카운트 매입 2026-09-23", "c": "SP.13"}, {"n": "띠지(PB-101)정성목련(50*620mm)", "p": 3182, "k": 1, "s": "이카운트 매입 2026-09-23", "c": "SP.12"}, {"n": "마늘 빵박스(무인쇄) 550*400*200(1.2)", "p": 970, "k": 1, "s": "이카운트 매입 2026-07-10", "c": "D006"}, {"n": "마늘 빵박스(인쇄) 550*400*200(1.2)", "p": 970, "k": 1, "s": "이카운트 매입 2026-09-17", "c": "D006_1"}, {"n": "빵박스(무인쇄) 3종 박스", "p": 755, "k": 1, "s": "이카운트 매입 2026-07-10", "c": "D001"}, {"n": "빵박스(인쇄) 박스", "p": 755, "k": 1, "s": "이카운트 매입 2026-09-17", "c": "D001_1"}, {"n": "스티커(S-159)땡큐직사각그레이(8개*10장)", "p": 3182, "k": 8, "s": "이카운트 매입 2026-09-23", "c": "SP.O9"}, {"n": "스티커(S-316)쿠키사각블랙(10개*10장)", "p": 3182, "k": 10, "s": "이카운트 매입 2026-09-23", "c": "SP.10"}, {"n": "쿠키사각(XYB-304)투명(95*95*63(H)mm)", "p": 5909, "k": 1, "s": "이카운트 매입 2026-09-23", "c": "SP.15"}, {"n": "쿠키용기(원형)중(70*80(H)mm)", "p": 5000, "k": 1, "s": "이카운트 매입 2026-09-23", "c": "SP.14"}, {"n": "포유리본(10mm)레드(10mm*25yd(22m))", "p": 4091, "k": 1, "s": "이카운트 매입 2026-09-23", "c": "SP.11"}];
-
-const APP_VER='v001', APP_BUILT='2026-10-29', PRICE_BASE='2026-10-26 원가계산표 + 2026-10-11 이카운트 재고단가';
+const APP_VER='v002', APP_BUILT='2026-10-29';
+const LSK='drawbread_cost_key', LSP='drawbread_cost_prices';
+let PD=null, PSTAT='loading';
+try{const c=JSON.parse(localStorage.getItem(LSP)||'null');if(c&&c.data)PD=c.data}catch(e){}
+(function(){const m=location.hash.match(/[#&]k=([A-Za-z0-9_-]{10,})/);if(m){try{localStorage.setItem(LSK,m[1])}catch(e){}history.replaceState(null,'',location.pathname+location.search)}})();
+const priceBase=()=>PD?`이카운트 최근 매입가 (${PD.snap} 06:30 자료)`:'단가표 없음';
 const LS='drawbread_cost_v1';
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -171,21 +176,47 @@ function saveSoon(){clearTimeout(saveT);saveT=setTimeout(()=>save(true),500)}
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1600)}
 function cur(){let p=S.products.find(x=>x.id===S.cur);if(!p){p=S.products[0];S.cur=p.id}return p}
 
-/* 단가 */
-function ingAll(){
+/* 단가: 이카운트 최근 매입가(암호 파일) + 이 기기에서 고친 값·온라인 조회 값 */
+function mergeP(base,store){
  const m=new Map();
- ING0.forEach(x=>m.set(x.n,{...x,base:1}));
- Object.entries(S.prices).forEach(([n,o])=>{if(o.del){m.delete(n);return}const b=m.get(n);m.set(n,{...(b||{n,s:'직접 추가'}),...o,n,edited:!!b,custom:!b})});
+ base.forEach(x=>m.set(x.n,{...x,base:1}));
+ Object.entries(store).forEach(([n,o])=>{if(o.del){m.delete(n);return}const b=m.get(n);
+  if(b&&b.src==='buy'&&b.d&&o.at&&b.d>String(o.at).slice(0,10)){b.staleOv=o;return}
+  m.set(n,{...(b||{n,s:'직접 추가'}),...o,n,edited:!!b,custom:!b,ecount:b&&b.src==='buy'?b:null})});
  return [...m.values()];
 }
-function packAll(){
- const m=new Map();
- PACK0.forEach(x=>m.set(x.n,{...x,base:1}));
- Object.entries(S.packs).forEach(([n,o])=>{if(o.del){m.delete(n);return}const b=m.get(n);m.set(n,{...(b||{n,s:'직접 추가'}),...o,n,edited:!!b,custom:!b})});
- return [...m.values()];
+const ingAll=()=>mergeP((PD&&PD.ing)||[{n:'물',p:0,g:1000,src:'fix',s:'0원'}],S.prices);
+const packAll=()=>mergeP((PD&&PD.pack)||[],S.packs);
+let ING_MAP,PACK_MAP,CODE_MAP;
+function refreshMaps(){ING_MAP=new Map(ingAll().map(x=>[x.n,x]));PACK_MAP=new Map(packAll().map(x=>[x.n,x]));
+ CODE_MAP=new Map();((PD&&PD.ing)||[]).forEach(x=>{if(x.c)CODE_MAP.set(x.c,x.n)});((PD&&PD.pack)||[]).forEach(x=>{if(x.c)CODE_MAP.set('P:'+x.c,x.n)});
+ migrate()}
+function migrate(){(S.products||[]).forEach(p=>{(p.rows||[]).forEach(x=>{if(x.c&&CODE_MAP.has(x.c))x.n=CODE_MAP.get(x.c);else if(x.n){const it=ING_MAP.get(x.n);if(it&&it.c)x.c=it.c}});
+ (p.packs||[]).forEach(x=>{if(x.c&&CODE_MAP.has('P:'+x.c))x.n=CODE_MAP.get('P:'+x.c);else if(x.n){const it=PACK_MAP.get(x.n);if(it&&it.c)x.c=it.c}})})}
+async function decryptP(j,pw){
+ const ub=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+ const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+ const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:ub(j.salt),iterations:100000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+ return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:ub(j.iv)},key,ub(j.ct))));
 }
-let ING_MAP,PACK_MAP;
-function refreshMaps(){ING_MAP=new Map(ingAll().map(x=>[x.n,x]));PACK_MAP=new Map(packAll().map(x=>[x.n,x]))}
+async function loadPrices(force){
+ let key=null;try{key=localStorage.getItem(LSK)}catch(e){}
+ if(!key){PSTAT='nokey';return false}
+ try{
+  const j=await (await fetch('cost_prices.enc.json?t='+Date.now(),{cache:'no-store'})).json();
+  let c=null;try{c=JSON.parse(localStorage.getItem(LSP)||'null')}catch(e){}
+  if(!force&&c&&c.updated===j.updated&&c.data){PD=c.data;PSTAT='ok';return false}
+  const data=await decryptP(j,key);PD=data;try{localStorage.setItem(LSP,JSON.stringify({updated:j.updated,data}))}catch(e){}
+  PSTAT='ok';return true;
+ }catch(e){PSTAT=(e&&e.name==='OperationError')?'badkey':(PD?'offline':'fail');return false}
+}
+function priceBanner(){
+ if(PSTAT==='ok'||PSTAT==='loading')return '';
+ const t={nokey:'단가표가 잠겨 있어요. 조조가 드린 「원가계산기 열쇠 링크」(QR)로 이 기기에서 한 번 열어 주세요. 그 전에는 가격을 직접 넣어 계산할 수 있어요.',
+  badkey:'열쇠가 맞지 않아 단가표를 열지 못했어요. 열쇠 링크로 다시 열어 주세요.',
+  offline:'인터넷이 안 돼서 이 기기에 저장된 지난 단가표를 쓰고 있어요.',fail:'단가표를 받지 못했어요. 인터넷 연결을 확인해 주세요.'}[PSTAT]||'';
+ return `<div class="note noprint" style="margin:0 0 14px">${t}</div>`;
+}
 refreshMaps();
 const autoKp=n=>{const x=ING_MAP.get(n);return x&&N(x.g)>0?N(x.p)/N(x.g)*1000:null};
 const kpOf=r=>(r.kp!=null&&r.kp!=='')?N(r.kp):autoKp(r.n);
@@ -230,7 +261,7 @@ function presets(k,vals,v,unit){return `<div class="presets">${vals.map(x=>`<but
 function renderCalc(){
  const r=cur();
  const opts=S.products.map(p=>`<option value="${p.id}" ${p.id===r.id?'selected':''}>${esc(p.name)}</option>`).join('');
- $('#app').innerHTML=`
+ $('#app').innerHTML=priceBanner()+`
  <div class="card noprint" style="padding:12px">
   <div class="bar">
    <select id="pick">${opts}</select>
@@ -300,19 +331,31 @@ function renderCalc(){
  <div class="card"><h2>메모</h2><input data-k="memo" value="${esc(r.memo)}" placeholder="배합 출처, 확인할 것 등">
   <div class="noprint" style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn del sm" id="bDel">이 제품 삭제</button></div>
  </div>
- <p class="help" style="text-align:center">단가 기준: ${esc(PRICE_BASE)} · 모든 금액은 부가세 별도 · ${APP_VER}</p>`;
+ <p class="help" style="text-align:center">단가 기준: ${esc(priceBase())} · 모든 금액은 부가세 별도 · ${APP_VER}</p>`;
  bindCalc();update();
 }
-function hintHtml(x){
- const ak=autoKp(x.n),ov=x.kp!=null&&x.kp!=='',it=ING_MAP.get(x.n);
- if(x.n&&!it&&!ov)return '<span class="ps" style="color:var(--org)">단가표에 없는 재료 → 1kg 가격을 넣어 주세요</span>';
- if(ov)return `<span class="ps">직접 넣은 가격${ak!=null?` (단가표 ${num(ak)}원)`:''}</span>`;
- if(it&&it.chk)return '<span class="ps" style="color:var(--org)">단가 확인 필요</span>';
+function srcLine(it){
+ if(!it)return '';
+ if(it.src==='online')return `온라인 ${esc((it.at||'').slice(5,10).replace('-','/'))} · ${esc(it.mall||'')}`;
+ if(it.edited||it.custom)return '이 기기에서 고친 값';
+ if(it.src==='buy')return `이카운트 ${esc((it.d||'').slice(2).replace(/-/g,'.'))} 매입${it.prev?(it.p>it.prev?' <b style="color:var(--red)">▲'+num((it.p/it.prev-1)*100)+'%</b>':' <b style="color:var(--grn)">▼'+num((1-it.p/it.prev)*100)+'%</b>'):''}`;
+ if(it.src==='stock')return '이카운트 재고 단가 (최근 매입 없음)';
+ if(it.src==='est')return '추정값';
  return '';
 }
-function rowHint(tr,x){if(!tr||!x)return;const td=tr.querySelector('td.n');td.querySelectorAll('.ps').forEach(e=>e.remove());td.insertAdjacentHTML('beforeend',hintHtml(x))}
+function hintHtml(x,i){
+ const ak=autoKp(x.n),ov=x.kp!=null&&x.kp!=='',it=ING_MAP.get(x.n);
+ const ob=`<button type="button" class="lk noprint" data-online="${i}">🔎 쿠팡·네이버에서 찾기</button>`;
+ if(x.n&&!it&&!ov)return `<span class="ps" style="color:var(--org)">이카운트에 없는 재료 · ${ob}</span>`;
+ if(ov)return `<span class="ps">이번만 직접 넣은 가격${ak!=null?` (단가표 ${num(ak)}원)`:''}</span>`;
+ if(it&&it.staleOv)return `<span class="ps">${srcLine(it)} · 고친 값보다 최근이라 매입가를 씀</span>`;
+ if(it&&it.chk&&it.src!=='online'&&!it.edited)return `<span class="ps" style="color:var(--org)">${srcLine(it)} · 확인 필요 · ${ob}</span>`;
+ if(it)return `<span class="ps">${srcLine(it)}</span>`;
+ return '';
+}
+function rowHint(tr,x){if(!tr||!x)return;const td=tr.querySelector('td.n');td.querySelectorAll('.ps').forEach(e=>e.remove());td.insertAdjacentHTML('beforeend',hintHtml(x,+tr.dataset.row))}
 function ingRow(x,i){
- const k=kpOf(x),ps=hintHtml(x);
+ const k=kpOf(x),ps=hintHtml(x,i);
  return `<tr data-row="${i}">
   <td class="n"><input list="dlIng" data-f="n" value="${esc(x.n)}" placeholder="재료 이름">${ps}</td>
   <td class="g"><input type="number" inputmode="decimal" data-f="g" value="${esc(x.g)}" placeholder="g"><span class="bp" data-bp="${i}"></span></td>
@@ -347,13 +390,13 @@ function bindCalc(){
   if(tr&&t.dataset.f){const x=r.rows[+tr.dataset.row];
    if(t.dataset.f==='kp'){const ak=autoKp(x.n);x.kp=(t.value===''||(ak!=null&&Math.abs(N(t.value)-ak)<0.5))?null:t.value;rowHint(tr,x)}
    else x[t.dataset.f]=t.value;
-   if(t.dataset.f==='n'){x.kp=null;const k=autoKp(x.n);const pin=tr.querySelector('[data-f=kp]');pin.value=k!=null?Math.round(k):'';pin.classList.toggle('miss',!!x.n&&k==null)}
+   if(t.dataset.f==='n'){x.kp=null;const it0=ING_MAP.get(x.n);x.c=it0&&it0.c||undefined;const k=autoKp(x.n);const pin=tr.querySelector('[data-f=kp]');pin.value=k!=null?Math.round(k):'';pin.classList.toggle('miss',!!x.n&&k==null)}
    touch();update();return}
   const pi=t.closest('[data-pack]');
   if(pi&&t.dataset.pf){const p=r.packs[+pi.dataset.pack];
    if(t.dataset.pf==='up'){const au=autoUp(p.n);p.up=(t.value===''||(au!=null&&Math.abs(N(t.value)-au)<0.005))?null:t.value}
    else p[t.dataset.pf]=t.value;
-   if(t.dataset.pf==='n'){p.up=null;const u=autoUp(p.n);const uin=pi.querySelector('[data-pf=up]');uin.value=u!=null?Math.round(u*100)/100:''}
+   if(t.dataset.pf==='n'){p.up=null;const it1=PACK_MAP.get(p.n);p.c=it1&&it1.c||undefined;const u=autoUp(p.n);const uin=pi.querySelector('[data-pf=up]');uin.value=u!=null?Math.round(u*100)/100:''}
    touch();update();return}
  };
  app.onchange=e=>{const t=e.target;if(t.dataset.f==='n'){const tr=t.closest('[data-row]');rowHint(tr,r.rows[+tr.dataset.row])}};
@@ -363,6 +406,7 @@ function bindCalc(){
   else if(t.dataset.scrap){r.scrap=t.dataset.scrap;app.querySelectorAll('[data-scrap]').forEach(b=>b.classList.toggle('on',b===t));touch();update()}
   else if(t.dataset.delrow!=null){r.rows.splice(+t.dataset.delrow,1);if(!r.rows.length)r.rows.push({n:'',g:''});touch();renderCalcKeep()}
   else if(t.dataset.delpack!=null){r.packs.splice(+t.dataset.delpack,1);touch();renderCalcKeep()}
+  else if(t.dataset.online!=null){const x=r.rows[+t.dataset.online];openOnline(x.n,(name)=>{x.n=name;x.kp=null;const it2=ING_MAP.get(name);x.c=it2&&it2.c||undefined;touch();renderCalcKeep()})}
  };
 }
 function renderCalcKeep(){const y=window.scrollY;renderCalc();window.scrollTo(0,y)}
@@ -448,38 +492,116 @@ function renderList(){
 /* 단가표 */
 let PQ='',PT='ing';
 function renderPrice(){
- $('#app').innerHTML=`
- <div class="card"><h2>단가표</h2><p class="help">${esc(PRICE_BASE)} 기준 공급가(부가세 별도)예요. 값이 오르면 여기서 고치면 모든 제품 원가가 같이 바뀌어요. <span class="chip o">확인 필요</span> 표시는 최근 매입 기록이 없거나 추정한 단가예요.</p>
-  <div class="seg" style="margin-bottom:10px"><button type="button" data-pt="ing" class="${PT==='ing'?'on':''}">원료</button><button type="button" data-pt="pack" class="${PT==='pack'?'on':''}">포장재</button></div>
+ const cnt=PD?PD.ing.filter(x=>x.src==='buy').length:0;
+ $('#app').innerHTML=priceBanner()+`
+ <div class="card"><h2>단가표</h2>
+  <p class="help">${PD?`<b>${esc(priceBase())}</b> · 이카운트 매입가 ${num(cnt)}개 · 포장재 ${num(PD.pack.length)}개. 매일 아침 자동으로 새 매입가가 들어와요.`:'아직 단가표를 받지 않았어요.'}
+   모든 값은 공급가(부가세 별도)예요. <span class="chip o">확인 필요</span>는 최근 매입 기록이 없는 품목이에요.</p>
+  <div class="bar noprint" style="margin-bottom:10px"><button class="btn g sm" id="pReload">↻ 단가표 다시 받기</button></div>
+  <div class="seg" style="margin-bottom:10px"><button type="button" data-pt="ing" class="${PT==='ing'?'on':''}">원료</button><button type="button" data-pt="dough" class="${PT==='dough'?'on':''}">생지</button><button type="button" data-pt="pack" class="${PT==='pack'?'on':''}">포장재</button></div>
   <input id="pq" placeholder="찾기 (예: 버터, 소금)" value="${esc(PQ)}">
   <div id="plist" style="margin-top:6px"></div></div>
- <div class="card"><h2>새로 추가</h2>
-  <label class="f">이름</label><input id="nN" placeholder="${PT==='ing'?'예: 엑스트라버진 올리브오일':'예: 피자 박스'}">
-  <div class="row2"><div><label class="f">포장 가격 (원)</label><input id="nP" type="number" inputmode="decimal"></div>
-  <div><label class="f">${PT==='ing'?'포장 무게 (g)':'포장 안 개수'}</label><input id="nG" type="number" inputmode="decimal" placeholder="${PT==='ing'?'예: 1000':'예: 100'}"></div></div>
-  <button class="btn" id="nAdd" style="width:100%;margin-top:12px">추가하기</button></div>`;
+ <div class="card"><h2>이카운트에 없는 품목 추가</h2>
+  <p class="help">쿠팡·네이버쇼핑에서 찾아 고르거나, 아는 가격을 직접 넣으세요.</p>
+  <label class="f">이름</label><input id="nN" placeholder="${PT==='pack'?'예: 피자 박스':'예: 엑스트라버진 올리브오일'}">
+  ${PT!=='pack'?'<button class="btn" id="nOnline" style="width:100%;margin-top:10px">🔎 쿠팡·네이버에서 찾아서 추가</button><p class="help" style="margin:10px 0 0">또는 직접 넣기</p>':''}
+  <div class="row2"><div><label class="f">포장 가격 (원, 부가세 빼고)</label><input id="nP" type="number" inputmode="decimal"></div>
+  <div><label class="f">${PT!=='pack'?'포장 무게 (g)':'포장 안 개수'}</label><input id="nG" type="number" inputmode="decimal" placeholder="${PT!=='pack'?'예: 1000':'예: 100'}"></div></div>
+  <button class="btn g" id="nAdd" style="width:100%;margin-top:12px">직접 넣어 추가하기</button></div>`;
  document.querySelectorAll('[data-pt]').forEach(b=>b.onclick=()=>{PT=b.dataset.pt;renderPrice()});
  $('#pq').oninput=e=>{PQ=e.target.value;drawP()};
- $('#nAdd').onclick=()=>{const n=$('#nN').value.trim(),p=N($('#nP').value),g=N($('#nG').value);if(!n||!(g>0)){alert('이름과 '+(PT==='ing'?'포장 무게':'개수')+'를 넣어 주세요.');return}
-  if(PT==='ing')S.prices[n]={p,g,s:'직접 추가 '+new Date().toLocaleDateString('ko-KR')};else S.packs[n]={p,k:g,s:'직접 추가 '+new Date().toLocaleDateString('ko-KR')};
+ $('#pReload').onclick=async()=>{toast('단가표 받는 중…');const ch=await loadPrices(true);refreshMaps();renderPrice();toast(PSTAT==='ok'?'최신 단가표예요':'받지 못했어요')};
+ if($('#nOnline'))$('#nOnline').onclick=()=>{const n=$('#nN').value.trim();openOnline(n,(name)=>{PQ=name;renderPrice()})};
+ $('#nAdd').onclick=()=>{const n=$('#nN').value.trim(),p=N($('#nP').value),g=N($('#nG').value);if(!n||!(g>0)){alert('이름과 '+(PT!=='pack'?'포장 무게':'개수')+'를 넣어 주세요.');return}
+  const at=new Date().toISOString();
+  if(PT!=='pack')S.prices[n]={p,g,s:'직접 추가',at};else S.packs[n]={p,k:g,s:'직접 추가',at};
   refreshMaps();save();PQ=n;renderPrice()};
  drawP();
 }
 function drawP(){
- const isI=PT==='ing',list=(isI?[...ING_MAP.values()]:[...PACK_MAP.values()]).filter(x=>!PQ||x.n.includes(PQ.trim()));
- $('#plist').innerHTML=list.map(x=>{
-  const unit=isI?(N(x.g)>0?`1kg ${num(N(x.p)/N(x.g)*1000)}원`:'-'):`1개 ${num(N(x.p)/(N(x.k)||1),1)}원`;
-  const pack=isI?`${num(x.g)}g ${won(x.p)}`:`${num(x.k||1)}개 ${won(x.p)}`;
-  return `<div class="pi" data-pn="${esc(x.n)}"><div class="top"><div><b>${esc(x.n)}</b> ${x.chk&&!x.edited?'<span class="chip o">확인 필요</span>':''}${x.edited?'<span class="chip g">고침</span>':''}${x.custom?'<span class="chip b">추가</span>':''}
-   <div class="s">${pack} · ${esc(x.s||'')}</div></div><div class="kg">${unit}</div></div>
+ const isP=PT==='pack';
+ let list=(isP?[...PACK_MAP.values()]:[...ING_MAP.values()].filter(x=>PT==='dough'?x.cat==='생지':x.cat!=='생지'));
+ const q=PQ.trim();if(q)list=list.filter(x=>x.n.includes(q)||(x.n0||'').includes(q)||(x.c||'').includes(q));
+ list.sort((a,b)=>(a.src==='fix')-(b.src==='fix')||a.n.localeCompare(b.n,'ko'));
+ const shown=list.slice(0,q?200:80);
+ $('#plist').innerHTML=(list.length>shown.length?`<p class="help">${num(list.length)}개 중 ${shown.length}개만 보여요. 찾기 칸에 이름을 넣으세요.</p>`:'')+shown.map(x=>{
+  const unit=!isP?(N(x.g)>0?`1kg ${num(N(x.p)/N(x.g)*1000)}원`:'-'):`1개 ${num(N(x.p)/(N(x.k)||1),1)}원`;
+  const pack=!isP?`${num(x.g)}g ${won(x.p)}`:`${num(x.k||1)}개 ${won(x.p)}`;
+  const chips=(x.chk&&!x.edited&&x.src!=='online'?'<span class="chip o">확인 필요</span> ':'')+(x.src==='online'?'<span class="chip b">온라인</span> ':'')+(x.edited&&x.src!=='online'?'<span class="chip g">고침</span> ':'')+(x.custom&&x.src!=='online'?'<span class="chip b">추가</span> ':'');
+  const sub=[srcLine(x),x.cust&&x.src==='buy'?esc(x.cust):'',x.prev&&x.src==='buy'?`직전 ${won(x.prev)}`:'',x.s&&x.src!=='buy'?esc(x.s):'',x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">상품 보기</a>`:''].filter(Boolean).join(' · ');
+  return `<div class="pi" data-pn="${esc(x.n)}"><div class="top"><div><b>${esc(x.n)}</b> ${chips}
+   <div class="s">${pack} · ${sub}</div>${x.staleOv?'<div class="s" style="color:var(--blu)">이 기기에서 고친 값이 있었지만, 그 뒤 이카운트 매입가가 새로 들어와서 매입가를 써요.</div>':''}</div><div class="kg">${unit}</div></div>
    <div class="ed"><div><label class="f" style="font-size:14px">포장 가격(원)</label><input type="number" inputmode="decimal" data-pe="p" value="${esc(x.p)}"></div>
-   <div><label class="f" style="font-size:14px">${isI?'포장 무게(g)':'포장 안 개수'}</label><input type="number" inputmode="decimal" data-pe="${isI?'g':'k'}" value="${esc(isI?x.g:(x.k||1))}"></div>
-   <button class="btn sm" data-psave>저장</button>${x.edited||x.custom?`<button class="btn gr sm" data-preset>${x.custom?'삭제':'원래대로'}</button>`:'<span></span>'}</div></div>`}).join('')||'<p class="help">찾는 품목이 없어요. 아래에서 새로 추가하세요.</p>';
- $('#plist').onclick=e=>{const b=e.target.closest('button');if(!b)return;const pi=b.closest('[data-pn]'),n=pi.dataset.pn,store=isI?S.prices:S.packs;
-  if(b.hasAttribute('data-psave')){const p=N(pi.querySelector('[data-pe=p]').value),q=N(pi.querySelector(`[data-pe=${isI?'g':'k'}]`).value);if(!(q>0)){alert('무게(개수)를 넣어 주세요.');return}
-   const o=store[n]||{};o.p=p;if(isI)o.g=q;else o.k=q;o.s=(o.custom||!(isI?ING0:PACK0).some(z=>z.n===n)?'직접 추가':'고친 날')+' '+new Date().toLocaleDateString('ko-KR');store[n]=o;refreshMaps();save();drawP()}
-  else if(b.hasAttribute('data-preset')){delete store[n];refreshMaps();save();drawP()}};
+   <div><label class="f" style="font-size:14px">${!isP?'포장 무게(g)':'포장 안 개수'}</label><input type="number" inputmode="decimal" data-pe="${!isP?'g':'k'}" value="${esc(!isP?x.g:(x.k||1))}"></div>
+   <button class="btn sm" data-psave>저장</button>${x.edited||x.custom?`<button class="btn gr sm" data-preset>${x.custom?'삭제':'매입가로'}</button>`:(!isP&&x.src!=='buy'&&x.src!=='fix'?'<button class="btn g sm" data-pon>🔎 찾기</button>':'<span></span>')}</div></div>`}).join('')||'<p class="help">찾는 품목이 없어요. 아래에서 추가하세요.</p>';
+ $('#plist').onclick=e=>{const b=e.target.closest('button');if(!b)return;const pi=b.closest('[data-pn]'),n=pi.dataset.pn,store=isP?S.packs:S.prices;
+  if(b.hasAttribute('data-psave')){const p=N(pi.querySelector('[data-pe=p]').value),qq=N(pi.querySelector(`[data-pe=${!isP?'g':'k'}]`).value);if(!(qq>0)){alert('무게(개수)를 넣어 주세요.');return}
+   const o={p,s:'직접 고침',at:new Date().toISOString()};if(!isP)o.g=qq;else o.k=qq;store[n]=o;refreshMaps();save();drawP()}
+  else if(b.hasAttribute('data-preset')){delete store[n];refreshMaps();save();drawP()}
+  else if(b.hasAttribute('data-pon')){openOnline(n,()=>drawP())}};
 }
+
+/* 온라인 조회 (쿠팡·네이버쇼핑 검색창 열기 → 고른 상품 붙여넣기) */
+function parseShop(t){
+ t=String(t||'');const o={};
+ const u=t.match(/https?:\/\/[^\s<>"']+/);if(u)o.url=u[0];
+ o.mall=/coupang/i.test(t)||/쿠팡/.test(t)?'쿠팡':/naver|네이버|smartstore/i.test(t)?'네이버쇼핑':/11st|11번가/i.test(t)?'11번가':/gmarket|지마켓/i.test(t)?'G마켓':'';
+ let title=t.replace(/https?:\/\/[^\s]+/g,'').replace(/\[(쿠팡|네이버[^\]]*)\]/g,'').split(/\n/).map(s=>s.trim()).filter(s=>s&&!/^(쿠팡|공유|링크)/.test(s))[0]||'';
+ o.title=title.replace(/\s*(\d{1,3}(?:,\d{3})+|\d{3,7})\s*원.*$/,'').slice(0,120);
+ const pr=[...t.matchAll(/(\d{1,3}(?:,\d{3})+|\d{3,7})\s*원/g)].map(m=>N(m[1]));if(pr.length)o.price=pr[0];
+ o.g=parseQty(o.title||t);
+ return o;
+}
+function parseQty(s){
+ s=String(s||'');const U=(v,u)=>/kg|l|리터/i.test(u)?v*1000:v;
+ let m=s.match(/(\d+(?:\.\d+)?)\s*(kg|g|ml|l|리터)(?![a-z])\s*[x×*X]\s*(\d+)/i);if(m)return U(+m[1],m[2])*+m[3];
+ m=s.match(/(\d+(?:\.\d+)?)\s*(kg|g|ml|l|리터)(?![a-z])[^\d]{0,6}?(\d+)\s*(개|입|팩|병|봉|통|EA)/i);if(m)return U(+m[1],m[2])*+m[3];
+ m=s.match(/(\d+(?:\.\d+)?)\s*(kg|g|ml|l|리터)(?![a-z])/i);if(m)return U(+m[1],m[2]);
+ return null;
+}
+function openOnline(name,done){
+ name=name||'';
+ const q0=name.replace(/\(.*?\)/g,'').replace(/[_]/g,' ').trim();
+ const w=document.createElement('div');w.id='olBg';
+ w.innerHTML=`<div class="olBox">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:20px">🔎 온라인에서 단가 찾기</h2><button class="xb" id="olX" style="color:var(--ink)">×</button></div>
+  <label class="f">재료 이름 <small>(원가 계산에 쓰는 이름)</small></label><input id="olN" value="${esc(name)}" placeholder="예: 엑스트라버진 올리브오일">
+  <label class="f">① 검색어</label><input id="olQ" value="${esc(q0)}">
+  <div class="row2" style="margin-top:8px"><button class="btn" id="olC" style="background:#E3242B">쿠팡에서 찾기</button><button class="btn" id="olV" style="background:#03A94D">네이버쇼핑에서 찾기</button></div>
+  <p class="help" style="margin-top:8px">새 창에서 상품을 고른 뒤 <b>공유 → 링크 복사</b>(또는 상품명·가격 복사)를 하고, 이 화면으로 돌아와 아래에 붙여 넣으세요.</p>
+  <label class="f">② 고른 상품 붙여넣기</label><textarea id="olT" rows="3" style="width:100%;font:inherit;font-size:16px;border:1.5px solid #C9C1B8;border-radius:10px;padding:10px" placeholder="예: [쿠팡] 코끼리 올리브오일 엑스트라버진 1L x 2개 23,900원 https://link.coupang.com/..."></textarea>
+  <label class="f">상품명</label><input id="olTi">
+  <div class="row2">
+   <div><label class="f">판매 가격 <small>(원, 묶음 전체)</small></label><input id="olP" type="number" inputmode="decimal"></div>
+   <div><label class="f">배송비 <small>(원)</small></label><input id="olS" type="number" inputmode="decimal" value="0"></div>
+   <div><label class="f">총 용량 <small>(g, 묶음 전체)</small></label><input id="olG" type="number" inputmode="decimal" placeholder="상품명에서 자동"></div>
+   <div><label class="f">링크</label><input id="olU" placeholder="https://"></div>
+  </div>
+  <label style="display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:16px"><input type="checkbox" id="olVat" checked style="width:26px;min-height:26px;margin-top:2px"><span>부가세 빼고 계산 (가격 ÷ 1.1)<br><small style="color:var(--sub)">이카운트 매입가와 같은 기준. 밀가루·계란·채소처럼 가공하지 않은 농산물(면세)은 체크를 끄세요.</small></span></label>
+  <div class="info" id="olR">가격과 용량을 넣으면 1kg 가격이 나와요.</div>
+  <button class="btn" id="olOk" style="width:100%;margin-top:12px">이 가격으로 원가에 반영</button>
+ </div>`;
+ document.body.appendChild(w);
+ const g=id=>w.querySelector('#'+id);
+ const calcR=()=>{const p=N(g('olP').value)+N(g('olS').value),gg=N(g('olG').value),v=g('olVat').checked;
+  if(p>0&&gg>0){const pp=v?p/1.1:p;g('olR').innerHTML=`포장 가격 <b>${won(pp)}</b>${v?' (부가세 뺀 값)':''} · 용량 ${num(gg)}g → <b>1kg ${num(pp/gg*1000)}원</b>`}else g('olR').textContent='가격과 용량을 넣으면 1kg 가격이 나와요.'};
+ const close=()=>w.remove();
+ g('olX').onclick=close;w.onclick=e=>{if(e.target===w)close()};
+ g('olC').onclick=()=>window.open('https://www.coupang.com/np/search?q='+encodeURIComponent(g('olQ').value),'_blank');
+ g('olV').onclick=()=>window.open('https://search.shopping.naver.com/search/all?query='+encodeURIComponent(g('olQ').value),'_blank');
+ g('olT').oninput=()=>{const o=parseShop(g('olT').value);if(o.title)g('olTi').value=o.title;if(o.price)g('olP').value=o.price;if(o.g)g('olG').value=o.g;if(o.url)g('olU').value=o.url;w._mall=o.mall;calcR()};
+ g('olTi').oninput=()=>{const q=parseQty(g('olTi').value);if(q&&!g('olG').value)g('olG').value=q;calcR()};
+ ['olP','olS','olG','olVat'].forEach(id=>g(id).oninput=g(id).onchange=calcR);
+ g('olOk').onclick=()=>{const n=g('olN').value.trim(),p=N(g('olP').value)+N(g('olS').value),gg=N(g('olG').value),v=g('olVat').checked;
+  if(!n){alert('재료 이름을 넣어 주세요.');return}if(!(p>0)||!(gg>0)){alert('판매 가격과 총 용량을 넣어 주세요.');return}
+  const url=g('olU').value.trim();const mall=w._mall||(/coupang/i.test(url)?'쿠팡':/naver/i.test(url)?'네이버쇼핑':'온라인');
+  S.prices[n]={p:Math.round((v?p/1.1:p)*100)/100,g:gg,src:'online',mall,title:g('olTi').value.trim(),url,vat:v,at:new Date().toISOString(),s:`${mall} ${g('olTi').value.trim()}`.slice(0,90)};
+  refreshMaps();save();close();toast('원가에 반영했어요');if(done)done(n)};
+ setTimeout(()=>g(name?'olQ':'olN').focus(),50);
+}
+
+/* 시작: 저장된 단가표로 먼저 그리고, 새 단가표를 받으면 다시 그림 */
+loadPrices(false).then(ch=>{refreshMaps();if(ch||PSTAT!=='ok')render()});
 render();
 </script>
 </body>
