@@ -341,3 +341,16 @@
 - 보낼 때: ③ 발주 보내기 거래처 카드에 ➕ 줄로 보이고(rqLis), 발주서 창(poDocOpen)에 줄로 더해짐(같은 원료코드면 수량 합침, 「➕ 추가 요청」 표시). 「✓ 보낸 것으로 기록」(poRecord)·rbSend 하면 요청 st 'po' + po.req. 연결된 발주를 취소하면 요청은 다시 대기로 보임.
 - ⚠ poDocOpen·poDo는 try 블록 안 async 함수라 밖에서 안 보임 → 같은 블록에 window.__poHook(get/set d=poDocOpen, r=poRecord)을 둠. 이 이름을 바꾸면 v287 블록이 발주서에 요청을 못 넣음.
 - 10/26 철은 발주(17:14 본 발주 9품목 + 17:19 추가 아몬드분말·슈가파우더, 입고 10/28 수 예정)를 S.rbuy.po에 「보낸 것으로 기록」함(id po-cheol-20261026).
+
+
+## 🧾 v291 마트 구매 (2026-10-30 Aside · 중계 6.3 · 전송기 v4 · 육안검사 v100) — 사용자 「마트 영수증 사진 → 이카운트 자동 구매 입력, 영수증 없이도, 육안검사 연결」
+- 메뉴: 원료수불부 › 생산·구매 › 「마트 구매」(rmart, NEW 화면, window.mrcRender) · 원료 발주 화면 맨 위 버튼 · 주소 #mart. 코드: app-code 맨 끝 「v291 블록」 하나 + v279 블록의 RAW_MENU·GROUPS·NEW·renderAll 분기 4곳.
+- 사진: 중계 readReceipt → GEMINI_KEY 있으면 Gemini(gemModel_: GEMINI_MODEL 속성, 없으면 flash 최신 자동), 없고 ANTHROPIC_KEY 있으면 Claude, 둘 다 없으면 구글 드라이브 글자인식(ocrText_, 무료) → 앱 parseOcr(단가×수량=금액 찾기, 순서가 섞일 수 있어 「사진과 맞춰 보세요」). 사진은 읽자마자 putReceiptImg → 드라이브 「빵을그리다 중계 자료/영수증」(기기 저장소엔 안 넣음), 보기는 getReceiptImg.
+- 품목 맞추기: 거래처별 기억(S.mrc.alias[거래처][norm(영수증 글자)] = 코드, 공유 plog mrcx~cfg) → 이름 비슷한 것(노란 줄 「✓ 맞아요」) → 🔍 고르기(MRC_SEED 마트 품목 16개 + S.mrc.items + S.master + 최근 전산재고, _0·_gg 코드 제외) → 🆕 새 품목(코드 = 거래처 앞글자_다음 번호, 예 NH_07, 면세면 VAT_RATE_BY 0).
+- 거래처: MRC_CUST0(하나로 1268203339 NH · 도깨비 12358 DG · 서울푸드 1298647523 SF · 만선마트 1262843421 MS) + S.mrc.custs. 모르는 곳은 사업자번호 10자리 = 거래처 코드로 새로 등록(SaveBasicCust).
+- 이카운트 줄: IO_DATE 영수증 날짜, WH_CD 10, 과세 = 금액/11 반올림 부가세, 면세 = 부가세 0, PRICE = 공급가/수량 반올림, SUPPLY_AMT·VAT_AMT 직접. 기존 품목은 PROD_DES 안 보냄.
+- 막는 것: 거래처·날짜·품목 확인(초록) 전, 사진은 줄 합계 ≠ 영수증 합계, 영수증 없이 입력은 「없는 이유」 필수. 같은 거래처·날짜·금액이 이미 보냄/완료면 한 번 더 묻기.
+- 보내기: 중계 savePurchase(kind purchase, items 새 품목, cust 새 거래처) → 전송기 v4(EcBasic로 거래처·품목 먼저 등록, 「이미/중복」은 통과, 11초 간격) → Purchases/SavePurchases → status로 「입력 완료 · 전표」/「입력 실패」. 중계는 purchase 건을 ver 4 이상 전송기에만 줌(v3은 sale 아니면 생산입고로 보내므로). 권한 확인: checkPurchase(kind purchaseCheck).
+- 이카운트 오픈 API는 메뉴(API)마다 인증이 필요할 수 있음(판매입력 때 「인증되지 않은 API」 사례) → 첫 구매 건이 실패하면 오류 글을 보고 이카운트 API 관리에서 구매입력 인증.
+- Aside 대신 입력: window.__mrcQueue()(실패·10분 넘게 대기) → 이카운트 화면 입력 → window.__mrcMarkDone(id, 전표번호, 'Aside').
+- 육안검사: 넣기를 누른 순간(queued) inspList(최근 21일, 「육안검사」 체크 줄) → inspSendKey 뒤 2.5초·보낼 때 postMessage {type:'wonryo-mrc', list}. inspect.html v100 mrcApply: 그 날짜 일지에 공급업체 = 영수증 거래처, 수량·단위·소비기한 = 영수증, 「확인 필요」(_ecPending), 키 mrc:<id>:<줄>은 한 번만. 재고 증가로 이미 자동 입력된 같은 품목 행(앞뒤 3일)은 영수증 날짜로 옮기고 고침. ecApply 감싸기: mrcClaims(품목 id, 보낸 시각 −2시간~+3일)에 걸리는 재고 증가는 새 행 대신 연결(_ecLinked).

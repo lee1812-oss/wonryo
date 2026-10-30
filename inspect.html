@@ -5011,7 +5011,7 @@ function init(){
 //   · 신규 입력에서 품목만 고르면 고정값 자동 반영, 수정 가능 / 변동값만 손으로 입력
 //   · 2026-09-14 이후 일지는 신양식(A4 가로, 18열)으로 입력·인쇄, 그 이전 일지는 기존 양식 그대로 조회·인쇄
 // ═══════════════════════════════════════════════════════════════════
-const APP_VER        = 'v099';
+const APP_VER        = 'v100';
 const NEW_FORM_START_DEFAULT = '2026-09-14';
 function NEW_FORM_START_(){ return (typeof cfg==='object' && cfg && isValidDate(cfg.newFormStart)) ? cfg.newFormStart : NEW_FORM_START_DEFAULT; }
 const ALLERGEN_LIST  = ['난류','우유','메밀','땅콩','대두','밀','고등어','게','새우','돼지고기','복숭아','토마토','아황산류','호두','닭고기','쇠고기','오징어','조개류','잣'];
@@ -8224,6 +8224,84 @@ let __ecKick = null;
 window.__inspBooted = false; const __inspWait = [];
 function inspWhenBooted(fn){ if(window.__inspBooted) fn(); else __inspWait.push(fn); }
 LS.ready().then(()=>{ setTimeout(()=>{ window.__inspBooted = true; __inspWait.splice(0).forEach(f=>{ try{ f(); }catch(e){} }); }, 700); });
+/* ══ v100 (2026-10-30 Aside) 🧾 마트 구매 연결 — 통합재고관리 「마트 구매」에서 이카운트에 넣은 영수증 품목을 그 날짜 일지에 「확인 필요」 행으로
+   · 통합재고관리가 postMessage { type:'wonryo-mrc', list:[{id, date, store, at, lines:[{i, code, name, spec, qty, unit, exp}]}] } 로 넘겨 줌 (육안검사 체크된 줄만)
+   · 공급업체 = 영수증 거래처, 수량·단위 = 영수증, 소비기한 = 적었으면 그 값. 같은 줄(mrc:<id>:<줄>)은 한 번만 들어감(행을 지워도 다시 안 넣음)
+   · 같은 입고를 이카운트 재고 증가로도 잡으면(ecApply) 새 행을 만들지 않고 이 행에 연결 — 공급업체가 엉뚱하게(품목 기본 공급업체) 들어가던 것 방지
+   · 이미 재고 증가로 자동 입력된 행이 있으면(영수증보다 먼저 잡힌 경우) 그 행을 영수증 날짜·거래처·수량으로 고침 ══ */
+function mrcNorm(s){ return String(s||'').toLowerCase().replace(/\(.*?\)|\[.*?\]/g,' ').replace(/[^0-9a-z가-힣]/g,''); }
+function mrcFindMaster(l, map){
+  const codes = [l.code, l.code ? l.code+'_0' : ''].filter(Boolean);
+  for(const c of codes){ if(map[c]) return map[c].m; }
+  const n = mrcNorm(l.name); if(!n) return null;
+  return itemMaster.find(m=>mrcNorm(m.name)===n) || itemMaster.find(m=>{ const a = mrcNorm(m.name); return a.length>1 && n.length>1 && (a.includes(n) || n.includes(a)); }) || null;
+}
+function mrcApply(list){
+  if(!Array.isArray(list) || !list.length) return 0;
+  ecLoad(); const AP = ecState.applied = Array.isArray(ecState.applied) ? ecState.applied : [];
+  const done = new Set(AP); entries.forEach(e=>(e.items||[]).forEach(it=>{ if(it._mrc && it._mrc.key) done.add(it._mrc.key); }));
+  const CL = ecState.mrcClaims = Array.isArray(ecState.mrcClaims) ? ecState.mrcClaims : [];
+  let map = {}; try{ map = ecActiveMap(); }catch(e){}
+  let added = 0; const touched = new Set();
+  list.forEach(r=>{ if(!r || !r.id || !/^\d{4}-\d{2}-\d{2}$/.test(r.date||'')) return;
+    (r.lines||[]).forEach(l=>{
+      const key = 'mrc:'+r.id+':'+l.i; if(done.has(key)) return; AP.push(key); done.add(key);
+      const m = mrcFindMaster(l, map);
+      const qty = String(l.qty!=null ? l.qty : '·'), unit = l.unit||'';
+      /* 이미 재고 증가로 자동 입력된 행(아직 확인 전)이 있으면 그 행을 고침 */
+      let row = null;
+      if(m){ const t0 = new Date(r.at||0).getTime();
+        entries.forEach(e=>{ if(row) return; const k = (e.items||[]).findIndex(it=>it.id===m.id && it._ec && it._ecPending && !it._mrc && Math.abs(new Date(it._ec.at||0).getTime()-t0) < 3*864e5); if(k>=0){ row = e.items[k]; if(e.date !== r.date){ e.items.splice(k,1); e.supplier = [...new Set(e.items.map(it=>it.supplier).filter(Boolean))].join(' / '); touched.add(e.date); } } }); }
+      if(!row){
+        row = { _rowId: uid(), name: m ? m.name : (l.name||''), supplier: r.store||'', store:'', spec:'', unit:'', cert:'', insp:'양호', qty:'·', expiry:'', weight:'', passResult:'적합', unfitAction:'해당없음', vehicleTemp:'', vehicleStatus:'양호' };
+        if(m) row.id = m.id;
+        try{ applyProfileToRow(row); }catch(e){ try{ ensureV2Fields(row); }catch(_){} }
+      }
+      row.supplier = r.store || row.supplier || '';
+      row.qty = qty; if(unit) row.unit = unit; if(!row.spec && l.spec) row.spec = l.spec;
+      if(l.exp){ row.expiry = l.exp; if(row._auto) delete row._auto.expiry; }
+      else if(!row.expiry && cfg.autoFillVar !== false && m){ const lu = m.lastUse||{}; let p = null; try{ p = profileForItem(row); }catch(e){} const days = lu.expiryDays || (p && p.expDays); if(days){ row.expiry = addDays(r.date, days); row._auto = row._auto||{}; row._auto.expiry = true; } }
+      ['_hintQty','_hintVt','_hintExp','_hist'].forEach(k=>delete row[k]);
+      row._mrc = { key, id: r.id, code: l.code||'', store: r.store||'', at: r.at||'' }; row._ecPending = true;
+      if(row._ec && row._ec.keys){ row._ecLinked = (row._ecLinked||[]).concat(row._ec.keys); }
+      let entry = entries.find(e=>e.date===r.date);
+      if(!entry){ entry = { id: uid(), date: r.date, supplier: row.supplier, vehicleTemp:'', vehicleStatus:'양호', checker: cfg.signer1||'', passResult:'적합', note:'', items: [], createdAt: new Date().toISOString(), _ecAuto: true }; try{ entry.formVer = isNewForm(r.date) ? 2 : 1; }catch(e){} entries.push(entry); }
+      if(entry.items.indexOf(row) < 0) entry.items.push(row);
+      const sups = [...new Set(entry.items.map(it=>it.supplier).filter(Boolean))]; if(sups.length) entry.supplier = sups.join(' / ');
+      if(m) CL.push({ key, mid: m.id, at: r.at||new Date().toISOString(), date: r.date, used: '' });
+      touched.add(r.date); added++;
+      try{ ecLog(`${r.date} ${row.name}: 마트 구매(${r.store}) ${qty} ${unit} → 일지 자동 입력 (확인 필요)`); }catch(e){}
+    });
+  });
+  if(CL.length > 400) CL.splice(0, CL.length-400); if(AP.length > 3000) AP.splice(0, AP.length-3000);
+  ecSave();
+  if(touched.size){
+    saveEntries();
+    try{ mergeSameDateEntries(); }catch(e){}
+    try{ syncItemMasterFromEntries(); }catch(e){}
+    try{ buildItemProfile(); }catch(e){}
+    try{ if(document.getElementById('page-list')?.classList.contains('active')){ renderDateList(); if(selectedDate) renderRightPanel(selectedDate); } }catch(e){}
+    try{ if(document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard(); }catch(e){}
+    try{ showToast(`마트 구매 ${added}품목을 육안검사일지에 넣었습니다 (확인 필요)`, 'success'); }catch(e){}
+  }
+  return added;
+}
+/* 이카운트 재고 증가 자동 입력: 마트 구매로 이미 넣은 품목(앞뒤 3일)은 새 행 대신 그 행에 연결 */
+(function(){ const _ea = ecApply; ecApply = function(found, map){
+  try{ ecLoad(); const CL = ecState.mrcClaims || []; if(CL.length && Array.isArray(found) && found.length){
+    const AP = ecState.applied = Array.isArray(ecState.applied) ? ecState.applied : []; const keep = []; let link = 0;
+    found.forEach(f=>{ const x = map && map[f.code]; const t = new Date(f.at).getTime();
+      const c = x && CL.find(c=>!c.used && c.mid===x.m.id && t >= new Date(c.at).getTime()-2*3600e3 && t <= new Date(c.at).getTime()+3*864e5);
+      if(!c){ keep.push(f); return; }
+      c.used = f.key; if(AP.indexOf(f.key)<0) AP.push(f.key); link++;
+      entries.forEach(e=>(e.items||[]).forEach(it=>{ if(it._mrc && it._mrc.key===c.key) it._ecLinked = (it._ecLinked||[]).concat(f.key); }));
+    });
+    if(link){ try{ ecLog(`이카운트 입고 ${link}건은 마트 구매로 이미 넣은 행에 연결`); }catch(e){} saveEntries(); ecSave(); }
+    found = keep;
+  } }catch(e){}
+  return _ea.call(this, found, map);
+}; })();
+
 window.addEventListener('message', e=>{
   if(!INSP_EMBED || e.source !== window.parent) return;
   if(location.protocol!=='file:' && e.origin !== location.origin && e.origin !== 'null') return;
@@ -8239,7 +8317,8 @@ window.addEventListener('message', e=>{
     if(el){ if(m.tab==='eclink') el.click(); else goPage(m.tab, el); }
     inspModeTitle();
   }
-  if(m.type==='wonryo-mode'){ inspSetMode(!!m.admin); }   /* v096: 관리자 / 직원 화면 */
+  if(m.type==='wonryo-mode'){ inspSetMode(!!m.admin); }
+  if(m.type==='wonryo-mrc' && Array.isArray(m.list)){ const L = m.list; inspWhenBooted(()=>{ try{ mrcApply(L); }catch(_){ } }); }   /* v100: 마트 구매 → 일지 */   /* v096: 관리자 / 직원 화면 */
 });
 // ── v096: 「결재 서명 관리」 화면 틀(page-sign)이 원본에 빠져 있어 모든 화면 아래에 붙어 보이던 것을 한 화면으로 묶음
 (function(){

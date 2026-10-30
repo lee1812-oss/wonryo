@@ -3,6 +3,9 @@
  *
  * v3: 같은 날짜의 생산을 정해진 시각(holdUntil)까지 모아 두었다가 한 전표로 합쳐 전송기에 넘깁니다.
  *     (같은 품목은 수량을 더함 · 「지금 보내기」 release · 들어가기 전 취소 cancel)
+ * v6.3: 마트 영수증 구매(통합재고관리 v291 「마트 구매」) — readReceipt(Claude가 영수증 사진을 거래처·날짜·줄별 금액·면세로 읽음) ·
+ *       savePurchase(구매입력 작업 kind purchase, 새 품목·새 거래처 등록 목록 포함) · checkPurchase(구매입력 권한 확인) · putReceiptImg/getReceiptImg(영수증 사진 드라이브 「영수증」 폴더)
+ *       구매 작업은 v4 이상 전송기에만 줌 (v3 전송기는 kind가 sale이 아니면 생산입고로 보내므로)
  * v6.2: 사무실 PC 화면 중계기(pcScreen, 열쇠 필요) — 이카운트 전송기·재고 동기화 검은 창의 마지막 16줄을 캐시에 받아 두고 hb로 보여 줌(scr)
  * v6.1: 업무 대시보드 「사무실 PC 프로그램」 — 열쇠 없이 읽는 상태 확인(hb: 전송기 마지막 신호·오늘 전표 수만, 품목·거래처 없음, 20초 캐시) ·
  *       재고 동기화 프로그램 신호(syncBeat, 열쇠 필요 → sync:beat)
@@ -97,7 +100,7 @@ function wkStart_(ymd) { var p = ymd.split('-'), d = new Date(Date.UTC(+p[0], +p
 function skipOf_(t) { var v = props_().getProperty('sk:' + t.slice(0, 20)); return v && wkStart_(v.slice(0, 10)) === wkStart_(ymdK_()) ? v : ''; }   // 이번 주 「주문 없음」 응답 (날짜 시각)
 function skipList_() { var all = props_().getProperties(), out = [], ws = wkStart_(ymdK_()); Object.keys(all).forEach(function (k) { if (k.indexOf('sk:') !== 0 || wkStart_(String(all[k]).slice(0, 10)) !== ws) return; var t = k.slice(3), fv = null;
   Object.keys(all).some(function (k2) { if (k2.indexOf(ORDF_ + t) === 0) { try { fv = JSON.parse(all[k2]); fv.t = k2.slice(ORDF_.length); } catch (e) {} return true; } return false; }); if (fv) out.push({ t: fv.t, name: fv.name, cust: fv.cust, at: all[k] }); }); return out; }
-function secretKey_(k) { return /^(API_KEY|GH_TOKEN|ANTHROPIC_KEY|SOLAPI_KEY|SOLAPI_SECRET)$/.test(k); }   // v5.7: 백업에 넣지도, 되살릴 때 덮어쓰지도 않음
+function secretKey_(k) { return /^(API_KEY|GH_TOKEN|ANTHROPIC_KEY|GEMINI_KEY|SOLAPI_KEY|SOLAPI_SECRET)$/.test(k); }   // v5.7: 백업에 넣지도, 되살릴 때 덮어쓰지도 않음
 // v5.7: 사진 발주 읽기 — Claude(Messages API)에 사진과 우리 품목 이름을 주고 줄별 {raw 쓴 그대로, name 품목 이름, qty, unit}을 JSON으로 받음
 function aiReadOrder_(img, mime, names) {
   var key = props_().getProperty('ANTHROPIC_KEY'); if (!key) return { ok: false, nokey: true, error: 'ANTHROPIC_KEY 없음 — Apps Script 프로젝트 설정 › 스크립트 속성에 Anthropic API 키를 넣어 주세요' };
@@ -117,6 +120,66 @@ function aiReadOrder_(img, mime, names) {
   if (j.stop_reason === 'refusal') return { ok: false, error: 'AI가 이 사진을 읽지 않았습니다 — 다른 사진으로 해 보세요' };
   var tx = ''; (j.content || []).forEach(function (b) { if (b.type === 'text') tx += b.text; }); var o; try { o = JSON.parse(tx); } catch (e) { return { ok: false, error: 'AI 결과를 읽지 못했습니다' + (j.stop_reason === 'max_tokens' ? ' (너무 긴 발주서)' : '') }; }
   return { ok: true, cust: String(o.cust || '').slice(0, 60), ship: String(o.ship || '').slice(0, 30), note: String(o.note || '').slice(0, 200), lines: (o.lines || []).slice(0, 80).map(function (l) { return { raw: String(l.raw || '').slice(0, 60), name: String(l.name || '').slice(0, 60), qty: Math.max(0, Math.round(Number(l.qty) || 0)), unit: String(l.unit || '').slice(0, 6) }; }).filter(function (l) { return l.name && l.qty > 0; }) };
+}
+// v6.3: AI 열쇠(ANTHROPIC_KEY)가 없으면 구글 드라이브 글자인식(OCR, 무료)으로 영수증 글자만 뽑아 앱에 줌 — 줄 나누기는 앱이 함 (임시 문서는 바로 지움)
+function ocrText_(b64, mime) {
+  var token = ScriptApp.getOAuthToken(), bd = 'rcp' + Date.now(), bytes = Utilities.base64Decode(String(b64));
+  var meta = { name: 'wonryo_ocr_tmp_' + Date.now(), mimeType: 'application/vnd.google-apps.document' };
+  var head = Utilities.newBlob('--' + bd + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) + '\r\n--' + bd + '\r\nContent-Type: ' + (/^image\/(png|jpeg|webp)$/.test(mime) ? mime : 'image/jpeg') + '\r\n\r\n').getBytes();
+  var tail = Utilities.newBlob('\r\n--' + bd + '--').getBytes();
+  var r = UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&ocrLanguage=ko', { method: 'post', contentType: 'multipart/related; boundary=' + bd, payload: head.concat(bytes).concat(tail), headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true });
+  var f = {}; try { f = JSON.parse(r.getContentText()); } catch (e) {}
+  if (!f.id) throw new Error('글자인식 실패: ' + r.getContentText().slice(0, 200));
+  try { return UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + f.id + '/export?mimeType=text/plain', { headers: { Authorization: 'Bearer ' + token } }).getContentText('UTF-8').replace(/^\uFEFF/, '').replace(/^_{5,}\s*/m, ''); }
+  finally { UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + f.id, { method: 'delete', headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true }); }
+}
+// v6.3: Gemini(구글 AI Studio 무료 열쇠 GEMINI_KEY)로 영수증 읽기 — 모델은 GEMINI_MODEL 속성, 없으면 목록에서 flash 최신을 골라 기억
+function gemModel_(key) {
+  var m = props_().getProperty('GEMINI_MODEL'); if (m) return m;
+  try { var r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=' + encodeURIComponent(key), { muteHttpExceptions: true }); var L = (JSON.parse(r.getContentText()).models || []).map(function (x) { return String(x.name || '').replace('models/', ''); })
+      .filter(function (n) { return /^gemini-[\d.]+-flash(-latest)?$/.test(n); }).sort(function (a, b) { return parseFloat(b.slice(7)) - parseFloat(a.slice(7)); }); if (L.length) { props_().setProperty('GEMINI_MODEL', L[0]); return L[0]; } } catch (e) {}
+  return 'gemini-2.5-flash';
+}
+function gemReceipt_(key, img, mime, prompt) {
+  var S = function (t, x) { return Object.assign({ type: t }, x || {}); };
+  var line = S('OBJECT', { properties: { raw: S('STRING'), name: S('STRING'), qty: S('NUMBER'), unit: S('STRING'), amt: S('NUMBER'), tax: S('STRING', { enum: ['면세', '과세', '모름'] }) }, required: ['raw', 'name', 'qty', 'unit', 'amt', 'tax'] });
+  var schema = S('OBJECT', { properties: { store: S('STRING'), bizNo: S('STRING'), date: S('STRING'), total: S('NUMBER'), freeTotal: S('NUMBER'), taxTotal: S('NUMBER'), vat: S('NUMBER'), note: S('STRING'), lines: S('ARRAY', { items: line }) }, required: ['store', 'bizNo', 'date', 'total', 'freeTotal', 'taxTotal', 'vat', 'note', 'lines'] });
+  var body = { contents: [{ parts: [{ inline_data: { mime_type: /^image\/(png|jpeg|webp)$/.test(mime) ? mime : 'image/jpeg', data: String(img) } }, { text: prompt }] }], generationConfig: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0 } };
+  var model = gemModel_(key), r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + encodeURIComponent(key), { method: 'post', contentType: 'application/json', payload: JSON.stringify(body), muteHttpExceptions: true });
+  var code = r.getResponseCode(), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {}
+  if (code === 404) props_().deleteProperty('GEMINI_MODEL');
+  if (code >= 300) throw new Error('Gemini 응답 ' + code + ': ' + ((j.error && j.error.message) || '').slice(0, 200));
+  var tx = ''; try { (j.candidates[0].content.parts || []).forEach(function (p) { if (p.text) tx += p.text; }); } catch (e) {}
+  return JSON.parse(tx);
+}
+// v6.3: 마트 영수증 읽기 — 거래처(상호·사업자번호)·날짜·합계·줄별 {raw, name, qty, amt(부가세 포함 낸 돈), tax 면세/과세}
+function aiReadReceipt_(img, mime, names) {
+  var key = props_().getProperty('ANTHROPIC_KEY'), gkey = props_().getProperty('GEMINI_KEY'); if (!key && !gkey) return { ok: false, nokey: true, error: 'AI 열쇠(GEMINI_KEY 또는 ANTHROPIC_KEY) 없음' };
+  if (!img || String(img).length > 7000000) return { ok: false, error: '사진이 없거나 너무 큽니다' };
+  var line = { type: 'object', additionalProperties: false, required: ['raw', 'name', 'qty', 'unit', 'amt', 'tax'], properties: { raw: { type: 'string' }, name: { type: 'string' }, qty: { type: 'number' }, unit: { type: 'string' }, amt: { type: 'number' }, tax: { type: 'string', enum: ['면세', '과세', '모름'] } } };
+  var schema = { type: 'object', additionalProperties: false, required: ['store', 'bizNo', 'date', 'total', 'freeTotal', 'taxTotal', 'vat', 'note', 'lines'], properties: { store: { type: 'string' }, bizNo: { type: 'string' }, date: { type: 'string' }, total: { type: 'number' }, freeTotal: { type: 'number' }, taxTotal: { type: 'number' }, vat: { type: 'number' }, note: { type: 'string' }, lines: { type: 'array', items: line } } };
+  var prompt = '빵 공장(빵을그리다)이 마트·식자재마트에서 재료를 사고 받은 영수증 사진입니다. 이카운트 구매 입력용으로 읽어 주세요.\n'
+    + '- store: 가게 상호(지점 포함), bizNo: 사업자등록번호(숫자와 -), date: 산 날짜 YYYY-MM-DD, total: 실제 낸 합계(할인 뒤)\n'
+    + '- freeTotal: 면세 물품 합계, taxTotal: 과세 물품 합계(부가세 포함), vat: 부가세 — 영수증에 없으면 0\n'
+    + '- lines: 산 물건 한 줄씩. raw: 영수증에 찍힌 품명 그대로, name: 아래 「우리 품목」 중 같은 물건이 있으면 그 이름, 없으면 raw를 알아보기 쉽게 다듬은 이름\n'
+    + '  qty: 수량, unit: 단위(개·봉·팩·kg 등, 모르면 「개」), amt: 그 줄에 실제 낸 금액(부가세 포함, 그 줄 할인은 뺀 값)\n'
+    + '  tax: 영수증 표시(*, #, 면세 표시 등)와 면세/과세 소계로 판단한 「면세」 또는 「과세」, 판단이 안 되면 「모름」\n'
+    + '- 봉투값·할인 줄·포인트·카드 정보·합계 줄은 lines에 넣지 마세요. 영수증 전체 할인은 해당 줄 금액에서 빼서 lines 금액의 합이 total과 같게 맞춰 주세요.\n'
+    + '- note: 읽기 어려운 곳이나 확인할 점(없으면 빈 글자)\n\n우리 품목:\n' + (names || []).slice(0, 300).map(function (n) { return String(n).slice(0, 40); }).join('\n');
+  var n_ = function (v) { v = Number(v); return isFinite(v) ? v : 0; }, o;
+  if (gkey) { try { o = gemReceipt_(gkey, img, mime, prompt); } catch (e) { if (!key) return { ok: false, error: String(e.message || e).slice(0, 250) }; } }
+  if (!o) {
+  var body = { model: 'claude-opus-5-5', max_tokens: 8000, fallbacks: 'default', output_config: { effort: 'low', format: { type: 'json_schema', schema: schema } },
+    messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: /^image\/(png|jpeg|gif|webp)$/.test(mime) ? mime : 'image/jpeg', data: String(img) } }, { type: 'text', text: prompt }] }] };
+  var r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, payload: JSON.stringify(body),
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'server-side-fallback-2026-07-01' } });
+  var code = r.getResponseCode(), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {}
+  if (code >= 300) return { ok: false, error: 'AI 응답 ' + code + ': ' + ((j.error && j.error.message) || '').slice(0, 200) };
+  if (j.stop_reason === 'refusal') return { ok: false, error: 'AI가 이 사진을 읽지 않았습니다 — 다른 사진으로 해 보세요' };
+  var tx = ''; (j.content || []).forEach(function (b) { if (b.type === 'text') tx += b.text; }); try { o = JSON.parse(tx); } catch (e) { return { ok: false, error: 'AI 결과를 읽지 못했습니다' + (j.stop_reason === 'max_tokens' ? ' (너무 긴 영수증)' : '') }; }
+  }
+  return { ok: true, ai: gkey && o ? 'gemini' : 'claude', store: String(o.store || '').slice(0, 60), bizNo: String(o.bizNo || '').replace(/[^0-9-]/g, '').slice(0, 14), date: /^\d{4}-\d{2}-\d{2}$/.test(o.date || '') ? o.date : '', total: Math.round(n_(o.total)), freeTotal: Math.round(n_(o.freeTotal)), taxTotal: Math.round(n_(o.taxTotal)), vat: Math.round(n_(o.vat)), note: String(o.note || '').slice(0, 300),
+    lines: (o.lines || []).slice(0, 80).map(function (l) { return { raw: String(l.raw || '').slice(0, 60), name: String(l.name || '').slice(0, 60), qty: Math.max(0, Math.round(n_(l.qty) * 100) / 100), unit: String(l.unit || '').slice(0, 6), amt: Math.round(n_(l.amt)), tax: /^(면세|과세)$/.test(l.tax) ? l.tax : '모름' }; }).filter(function (l) { return (l.raw || l.name) && l.amt !== 0; }) };
 }
 // v5.7: 거래처별 표현 기억 — al:<거래처코드> = {표현: 품목코드} (9KB 넘으면 오래된 것부터 버림)
 function aliasPut_(cust, add) { var c = String(cust || '').slice(0, 30); if (!c) return 0; var k = 'al:' + c, cur = {}; try { cur = JSON.parse(props_().getProperty(k) || '{}'); } catch (e) {}
@@ -224,7 +287,7 @@ function doPost(e) {
 }
 
 function doGet() {
-  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 6.2 }))
+  return ContentService.createTextOutput(JSON.stringify({ ok: true, service: 'wonryo-ecount-relay', version: 6.3 }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -267,17 +330,17 @@ function hb_() {
   var all = props_().getProperties(), now = Date.now(), td = ymdK_(), o = { prod: 0, sale: 0, fail: 0, wait: 0, hold: 0, recent: [] };
   Object.keys(all).forEach(function (k) {
     if (k.indexOf(JOB_) !== 0) return; var j; try { j = JSON.parse(all[k]); } catch (e) { return; }
-    if (j.kind === 'saleCheck' || j.mergedInto) return;
+    if (j.kind === 'saleCheck' || j.kind === 'purchaseCheck' || j.mergedInto) return;
     if (j.status === 'queued' || j.status === 'taken') { if (j.status === 'queued' && j.holdUntil > now) o.hold++; else o.wait++; return; }
     if (j.status !== 'sent' && j.status !== 'fail') return;
     var at = String(j.doneAt || j.ts || ''), ok = j.status === 'sent', sale = j.kind === 'sale', tday = at && ymdK_(new Date(at)) === td;
-    if (tday && !j.test) { if (!ok) o.fail++; else if (sale) o.sale++; else o.prod++; }
-    o.recent.push({ at: at, k: sale ? 'sale' : 'prod', ok: ok, n: (j.rows || []).length, m: (j.members || []).length || 1, t: !!j.test, d: String(j.date || '').slice(0, 10), e: ok ? '' : String((j.result && j.result.error) || '').slice(0, 60) });
+    if (tday && !j.test) { if (!ok) o.fail++; else if (sale) o.sale++; else if (j.kind === 'purchase') o.buy = (o.buy || 0) + 1; else o.prod++; }
+    o.recent.push({ at: at, k: sale ? 'sale' : j.kind === 'purchase' ? 'buy' : 'prod', ok: ok, n: (j.rows || []).length, m: (j.members || []).length || 1, t: !!j.test, d: String(j.date || '').slice(0, 10), e: ok ? '' : String((j.result && j.result.error) || '').slice(0, 60) });
   });
   o.recent.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); }); o.recent = o.recent.slice(0, 8);
   var sync = null; try { var sv = all['sync:beat']; if (sv) sync = JSON.parse(sv); } catch (e) {}
   var scr = null; try { var scv2 = hc ? hc.get('scr:v') : null; if (scv2) scr = JSON.parse(scv2); } catch (e) {}
-  var out = { ok: true, version: 6.2, now: new Date().toISOString(), agent: { seen: all['agent:seen'] || '', ver: Number(all['agent:ver'] || 2) }, jobs: o, sync: sync, scr: scr };
+  var out = { ok: true, version: 6.3, now: new Date().toISOString(), agent: { seen: all['agent:seen'] || '', ver: Number(all['agent:ver'] || 2) }, jobs: o, sync: sync, scr: scr };
   try { if (hc) hc.put('hb:v', JSON.stringify(out), 20); } catch (e) {}
   return out;
 }
@@ -432,7 +495,7 @@ function handle_(req) {
     for (var di = 0; di < days; di++) { var dv = props_().getProperty(LOG_ + ymd_(new Date(now2 - di * 86400000))); if (dv) { try { lg = lg.concat(JSON.parse(dv).reverse()); } catch (e) {} } }
     return { ok: true, logins: lg }; }
 
-  if (req.action === 'ping') return { ok: true, version: 6.2, po: true, sms: !!(alimCfg_().key && alimCfg_().from), agentSeen: agentSeen_(), agentVer: agentVer_() };
+  if (req.action === 'ping') return { ok: true, version: 6.3, mrc: true, po: true, sms: !!(alimCfg_().key && alimCfg_().from), agentSeen: agentSeen_(), agentVer: agentVer_() };
   // v6.1: 사무실 PC 재고 동기화 프로그램 신호 (5분마다) — 업무 대시보드가 hb로 읽음
   if (req.action === 'syncBeat') { var sb = { at: new Date().toISOString(), pc: String(req.pc || '').slice(0, 30), n: Number(req.n) || 0, base: String(req.base || '').slice(0, 10), msg: String(req.msg || '').slice(0, 80), up: !!req.up, next: String(req.next || '').slice(0, 5), quota: String(req.quota || '').slice(0, 40) };
     props_().setProperty('sync:beat', JSON.stringify(sb)); try { CacheService.getScriptCache().remove('hb:v'); } catch (e) {} return { ok: true }; }
@@ -508,6 +571,10 @@ function handle_(req) {
     var cur = balGet_() || {}, keepB = { at: /^\d{4}-\d{2}-\d{2}$/.test(req.at || '') ? req.at : (cur.at || ymdK_()), show: req.show == null ? !!cur.show : !!req.show, b: req.b ? bb : (cur.b || {}) };
     var jsb = JSON.stringify(keepB); if (jsb.length > 8800) return { ok: false, error: '거래처가 너무 많습니다 — 주문 링크 있는 거래처만 올려 주세요' }; props_().setProperty('cfg2:bal', jsb); return { ok: true, n: Object.keys(keepB.b).length, at: keepB.at, show: keepB.show }; }
   if (req.action === 'readOrderImg') return aiReadOrder_(req.img, String(req.mime || ''), req.names);
+  if (req.action === 'readReceipt') { if ((!props_().getProperty('ANTHROPIC_KEY') && !props_().getProperty('GEMINI_KEY')) || req.ocr) { if (!req.img || String(req.img).length > 7000000) return { ok: false, error: '사진이 없거나 너무 큽니다' }; return { ok: true, ocr: true, text: ocrText_(req.img, String(req.mime || '')) }; } return aiReadReceipt_(req.img, String(req.mime || ''), req.names); }   // v6.3: 열쇠 없으면 구글 글자인식
+  if (req.action === 'putReceiptImg') { var m63 = String(req.data || '').match(/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+\/=]+)$/); if (!m63) return { ok: false, error: '사진 형식이 맞지 않습니다' }; if (m63[2].length > 6000000) return { ok: false, error: '사진이 너무 큽니다' };
+    var nm63 = String(req.name || ('rc_' + Date.now())).replace(/[\\\/:*?"<>|]/g, '_').slice(0, 80) + '.' + (m63[1] === 'jpeg' ? 'jpg' : m63[1]); var f63 = subDir_('영수증').createFile(Utilities.newBlob(Utilities.base64Decode(m63[2]), 'image/' + m63[1], nm63)); return { ok: true, id: f63.getId(), name: nm63 }; }
+  if (req.action === 'getReceiptImg') { var f64 = DriveApp.getFileById(String(req.id || '')); if (f64.getParents().next().getName() !== '영수증') return { ok: false, error: '영수증 사진이 아닙니다' }; var b64 = f64.getBlob(); return { ok: true, data: 'data:' + b64.getContentType() + ';base64,' + Utilities.base64Encode(b64.getBytes()) }; }
   if (req.action === 'aliasPut') { var lka = LockService.getScriptLock(); lka.waitLock(10000); try { return { ok: true, n: aliasPut_(req.cust, req.add) }; } finally { lka.releaseLock(); } }
   if (req.action === 'aliasAll') { var aa = props_().getProperties(), AL = {}; Object.keys(aa).forEach(function (k) { if (k.indexOf('al:') === 0) { try { AL[k.slice(3)] = JSON.parse(aa[k]); } catch (e) {} } }); return { ok: true, alias: AL }; }
   if (req.action === 'alimTest') { var rt = alimSend_(req.phone, String(req.kind || 'ok'), { '거래처': '빵을그리다(시험)', '배송일': '10/8(목)', '품목': '2품목 5개', '안내': '알림톡 시험입니다.', '마감': '10/7 15:00' }); return { ok: rt.ok, error: rt.error || '' }; }
@@ -610,6 +677,20 @@ function handle_(req) {
       prune_(); var ck = { id: 'CK' + Date.now().toString(36), kind: 'saleCheck', test: !!req.test, rows: [], ts: new Date().toISOString(), status: 'queued', who: String(req.who || '').slice(0, 30), date: '' };
       putJob_(ck); return { ok: true, queued: true, job: view_(ck), agentSeen: agentSeen_(), agentVer: agentVer_() };
     }
+    // v6.3: 마트 영수증 구매입력 한 건(한 거래처 전표) — items: 먼저 만들 새 품목, cust: 먼저 만들 새 거래처 (같은 clientId는 한 번만)
+    if (req.action === 'savePurchase') {
+      var pid3 = String(req.clientId || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40); if (!pid3) return { ok: false, error: 'clientId가 없습니다' };
+      var cl3 = function (r) { var b = {}; Object.keys(r || {}).slice(0, 30).forEach(function (k) { if (r[k] !== '' && r[k] != null && /^[A-Z_0-9]{2,30}$/.test(k)) b[k] = String(r[k]).slice(0, 200); }); return b; };
+      var prows = (req.rows || []).slice(0, 80).map(function (r) { var b = cl3(r); if (!b.UPLOAD_SER_NO) b.UPLOAD_SER_NO = '1'; return b; }).filter(function (b) { return b.PROD_CD && b.QTY; });
+      if (!prows.length) return { ok: false, error: '보낼 품목이 없습니다' };
+      var pj = getJob_(pid3);
+      if (!pj) { prune_(); pj = { id: pid3, kind: 'purchase', test: !!req.test, rows: prows, items: (req.items || []).slice(0, 30).map(cl3).filter(function (b) { return b.PROD_CD && b.PROD_DES; }), cust: req.cust && req.cust.BUSINESS_NO ? cl3(req.cust) : null, ts: new Date().toISOString(), status: 'queued', who: String(req.who || '').slice(0, 30), date: String(prows[0].IO_DATE || '') }; putJob_(pj); }
+      return { ok: true, queued: true, job: view_(pj), agentSeen: agentSeen_(), agentVer: agentVer_() };
+    }
+    if (req.action === 'checkPurchase') {
+      prune_(); var ck3 = { id: 'CP' + Date.now().toString(36), kind: 'purchaseCheck', test: !!req.test, rows: [], ts: new Date().toISOString(), status: 'queued', who: String(req.who || '').slice(0, 30), date: '' };
+      putJob_(ck3); return { ok: true, queued: true, job: view_(ck3), agentSeen: agentSeen_(), agentVer: agentVer_() };
+    }
     // 휴대폰: 보낸 건들의 처리 결과
     if (req.action === 'status') {
       var out = {}; (req.ids || []).slice(0, 50).forEach(function (x) { out[x] = view_(getJob_(String(x))); });
@@ -645,10 +726,11 @@ function handle_(req) {
       var all = props_().getProperties(), now = Date.now(), list = [], ready = {};
       Object.keys(all).forEach(function (k) {
         if (k.indexOf(JOB_) !== 0) return; var jj; try { jj = JSON.parse(all[k]); } catch (e) { return; }
+        if ((jj.kind === 'purchase' || jj.kind === 'purchaseCheck') && !(Number(req.ver) >= 4)) return;   // v6.3: 구매 건은 v4 이상 전송기만 (v3은 sale 아니면 생산입고로 보냄)
         if (jj.kind && !(Number(req.ver) >= 3)) return;   // 판매·확인 건은 v3 이상 전송기만 (v2는 모두 생산입고로 보내므로)
         if (jj.status === 'taken' && !jj.mergedInto && now - new Date(jj.takenAt).getTime() > TAKE_MS_) {   // 가져갔는데 결과가 안 온 건(합친 건 포함)은 같은 id로 다시 줌
-          jj.takenAt = new Date().toISOString(); putJob_(jj); list.push({ id: jj.id, test: jj.test, kind: jj.kind || '', rows: jj.rows }); return; }
-        if (jj.status === 'queued' && jj.kind) { jj.status = 'taken'; jj.takenAt = new Date().toISOString(); putJob_(jj); list.push({ id: jj.id, test: jj.test, kind: jj.kind, rows: jj.rows }); return; }   // 판매·확인 건은 합치지 않음
+          jj.takenAt = new Date().toISOString(); putJob_(jj); list.push({ id: jj.id, test: jj.test, kind: jj.kind || '', rows: jj.rows, items: jj.items || [], cust: jj.cust || null }); return; }
+        if (jj.status === 'queued' && jj.kind) { jj.status = 'taken'; jj.takenAt = new Date().toISOString(); putJob_(jj); list.push({ id: jj.id, test: jj.test, kind: jj.kind, rows: jj.rows, items: jj.items || [], cust: jj.cust || null }); return; }   // 판매·확인 건은 합치지 않음
         if (jj.status === 'queued' && !(jj.holdUntil > now)) { var g = (jj.date || (jj.rows && jj.rows[0] && jj.rows[0].IO_DATE) || '') + '|' + (jj.test ? 1 : 0); (ready[g] = ready[g] || []).push(jj); }
       });
       Object.keys(ready).forEach(function (g) {

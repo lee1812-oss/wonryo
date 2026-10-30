@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '290';
-const APP_BUILT = '2026-10-30 00:30';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '291';
+const APP_BUILT = '2026-10-30 09:48';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -2624,7 +2624,7 @@ function prodHoldUntil(date) { const c = prodS().cfg; if (c.batch === false) ret
   const ms = Date.parse(`${date}T${t}:00+09:00`); return isFinite(ms) && ms > Date.now() ? ms : 0; }
 function prodHoldText(en) { if (!(en.holdUntil > Date.now())) return ''; const d = new Date(en.holdUntil); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }
 /* v172: 머리글에 중계(구글 Apps Script) 버전 — 저장소의 ecount_relay.gs보다 낮으면 「새 버전 배포 필요」 */
-const RELAY_WANT = 6.0;
+const RELAY_WANT = 6.3;
 async function hdrRelayVer() { const hv = document.getElementById('hVer'); if (!hv) return; const base = `v${APP_VER} · ${APP_BUILT} 업데이트`;
   try { if (!String(prodS().cfg.relayUrl || '').trim() || !prodKey()) return false; const r = await prodRelayCall({ action: 'ping' }); const v = r && r.ok ? Number(r.version) || 0 : 0; if (!v) return false;
     hv.innerHTML = `${esc(base)} · <b class="${v >= RELAY_WANT ? 'rv-ok' : 'rv-old'}">중계 ${v.toFixed(1)}${v >= RELAY_WANT ? '' : ` → ${RELAY_WANT.toFixed(1)} 배포 필요`}</b>`; if (!saleUi.bootPoll) { saleUi.bootPoll = true; try { saleOrdPoll(); saleSyncSoon(1500); } catch (e) {} }
@@ -10118,7 +10118,7 @@ try { (function () {
 try { (function () {
   if (window.FIELD_APP || window.SILSA_APP) return;
   const RL = window.__RL = window.__RL || { mode: 'item', it: '', per: 'm0', day: '', mon: '', q: '', sort: 'risk', tr: { raw: '', lot: '', doc: '' }, open: {}, data: null, err: '', at: 0 };
-  const NEW = ['rhome', 'rledg', 'rprod', 'rtrace', 'rmast'];
+  const NEW = ['rhome', 'rledg', 'rprod', 'rtrace', 'rmast', 'rmart'];
   const ic = p => `<svg viewBox="0 0 24 24">${p}</svg>`;
   const tabIco = id => { const t = TABS.find(x => x[0] === id); return t ? t[2] : ''; };
   const ICO_RL = {
@@ -10131,11 +10131,11 @@ try { (function () {
   const RAW_MENU = [
     ['rhome', '현황', ICO_RL.rhome], ['rledg', '수불대장', ICO_RL.rledg],
     ['phys', '실사 입력', tabIco('phys')], ['cmp', '실사 차이', tabIco('cmp')], ['adj', '재고 조정', tabIco('adj')],
-    ['rprod', '생산 연동', ICO_RL.rprod], ['rbuy', '원료 발주', tabIco('rbuy')], ['fifo', '소비기한', tabIco('fifo')],
+    ['rprod', '생산 연동', ICO_RL.rprod], ['rbuy', '원료 발주', tabIco('rbuy')], ['rmart', '마트 구매', ic('<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/>')], ['fifo', '소비기한', tabIco('fifo')],
     ['rtrace', '로트 추적', ICO_RL.rtrace], ['rmast', '기준 정보', ICO_RL.rmast],
     ['stock', '전산재고', tabIco('stock')], ['weekly', '주간재고', tabIco('weekly')], ['trend', '추이', tabIco('trend')], ['dash', '옛 대시보드', tabIco('dash')]
   ];
-  const GROUPS = [['매일', ['rhome', 'rledg']], ['금요일 실사', ['phys', 'cmp', 'adj']], ['생산 · 구매', ['rprod', 'rbuy', 'fifo']], ['관리 · 점검', ['rtrace', 'rmast']], ['예전 화면', ['stock', 'weekly', 'trend', 'dash']]];
+  const GROUPS = [['매일', ['rhome', 'rledg']], ['금요일 실사', ['phys', 'cmp', 'adj']], ['생산 · 구매', ['rprod', 'rbuy', 'rmart', 'fifo']], ['관리 · 점검', ['rtrace', 'rmast']], ['예전 화면', ['stock', 'weekly', 'trend', 'dash']]];
   const BOTTOM = ['rhome', 'rledg', 'phys', 'cmp', 'rprod', 'rbuy'];
   /* v283: 카테고리 색 — 매일 파랑 · 금요일 실사 보라 · 생산·구매 주황 · 관리·점검 청록 · 예전 화면 회색 */
   const CATS = [['매일', '#1F5FA8', '#E8F0FA', '📅'], ['금요일 실사', '#6B47B8', '#F0EBFA', '📋'], ['생산 · 구매', '#C2620E', '#FDF0E3', '🏭'], ['관리 · 점검', '#0F7C7A', '#E2F4F3', '🔎'], ['예전 화면', '#757575', '#F1F1F1', '🗂']];
@@ -10186,7 +10186,7 @@ try { (function () {
     if (S.ui.menu === 'home') renderHome();
     if (isProdM(S.ui.menu)) renderProd();
     if (S.ui.menu === 'sys') { if (S.ui.sysTab === 'set' || S.ui.sysTab === 'setraw') renderSet(); if (S.ui.sysTab === 'pset') { try { finEnsure(); } catch (e) { } renderProdSet(); } renderModeBox(); }
-    if (S.ui.menu === 'raw') rlRender(S.ui.tab);
+    if (S.ui.menu === 'raw') { if (S.ui.tab === 'rmart' && window.mrcRender) window.mrcRender(); else rlRender(S.ui.tab); }
   };
 
   /* ── 공통 도우미 ── */
@@ -10876,6 +10876,366 @@ try { (function () {
     document.head.appendChild(s);
   }
 })(); } catch (e) { console.warn('v287 추가 발주 요청', e); }
+
+
+/* ════ v291 (2026-10-30 Aside) 🧾 마트 구매 — 영수증 사진 → 이카운트 구매입력 자동 · 영수증 없이도 입력 · 육안검사일지 연결 ════
+   사용자 요청 「마트 영수증을 사진 찍어 첨부하면 이카운트에 자동 구매 입력되는 메뉴, 영수증이 없을 때도 입력, 들어온 품목은 육안검사와 연결」.
+   흐름: 📷 영수증 사진 → 중계 readReceipt(Claude가 거래처·날짜·줄별 금액·면세를 읽음) → 품목 맞추기(거래처별 기억 → 이름 비슷한 것 → 새 품목)
+         → 합계 확인 → 「⚡ 이카운트에 넣기」 → 중계 savePurchase(kind purchase) → 사무실 PC 전송기 v4가 새 거래처·새 품목 등록 후 Purchases/SavePurchases
+         → 전표번호가 오면 「입력 완료」. 사진은 중계 putReceiptImg로 드라이브 「영수증」 폴더에 보관.
+   육안검사: 넣기를 누른 순간 「육안검사」 체크된 줄을 육안검사일지(inspect.html, v100)로 넘김(postMessage wonryo-mrc) → 그 날짜 일지에 거래처·수량·소비기한이 맞는 「확인 필요」 행.
+   자료: S.mrc = { list:{id:rec}, alias:{거래처코드:{영수증글자:품목코드}}, items:{코드:[이름,규격,단위,면세1/과세0,거래처코드]}, custs:{코드:[이름,사업자번호,코드앞글자]} }
+         rec = {id, at, by, src 'photo'|'manual', img 드라이브id, store, cust, custName, bizNo, newCust, date, total, note, why,
+                lines:[{raw, code, name, spec, qty, unit, amt 부가세포함, free 1/0, exp, insp 1/0, ok 1/0, nw {PROD_CD,PROD_DES,SIZE_DES,UNIT,free}}],
+                st 'draft'|'queued'|'sent'|'fail'|'cancel', cid, tries, slip, err, mt}
+   기기 간 공유: plog 'mrc~<id>'(한 건), 'mrcx~cfg'(기억·품목·거래처). 블록을 지우면 v290과 같음(메뉴만 사라짐). */
+try { (function () {
+  const MRC_CUST0 = {   /* 이카운트 거래처 코드 → [이름, 사업자번호, 새 품목 코드 앞글자, 찾는 말] — 2026-10-30 구매 입력 기준 */
+    '1268203339': ['곤지암농협하나로마트만선점', '126-82-03339', 'NH', '하나로|농협|만선점|곤지암농협'],
+    '12358': ['도깨비식자재마트분당점', '', 'DG', '도깨비'],
+    '1298647523': ['서울푸드시스템', '129-86-47523', 'SF', '서울푸드'],
+    '1262843421': ['만선마트', '126-28-43421', 'MS', '만선마트']
+  };
+  /* 마트에서 산 적 있는 이카운트 품목 [코드, 이름, 규격, 단위, 면세(1)·과세(0), 거래처코드] — 2026-10-24~29 영수증 입력분 */
+  const MRC_SEED = [
+    ['NH_01', '깐마늘', '', '봉', 1, '1268203339'], ['NH_02', '청정원 올리브유', '500ml', '병', 0, '1268203339'], ['NH_03', '서리태', '500g', '봉', 1, '1268203339'],
+    ['NH_04', '감자', '', '봉', 1, '1268203339'], ['NH_05', '청정원 쌀조청', '1.2kg', '개', 0, '1268203339'], ['NH_06', '방울토마토', '', '팩', 1, '1268203339'],
+    ['DG_01', '그린올리브 홀', '', '개', 0, '12358'], ['DG_02', '바질페스토', '', '개', 0, '12358'], ['DG_03', '블랙올리브 슬라이스', '', '개', 0, '12358'],
+    ['DG_04', '옥수수전분', '', '봉', 0, '12358'], ['DG_05', '로즈마리', '', '봉', 0, '12358'], ['SF_01', '버터갈릭시즈닝', '', '개', 0, '1298647523'],
+    ['MS.248', '양파 소', '', '망', 1, ''], ['AL-001', '계란 30구', '30구', '판', 1, ''], ['CP01', '콩기름(식용유)', '1.8L', '병', 0, ''], ['CH.B01', '멸균우유', '1L', '팩', 1, '']
+  ];
+  const WH = '10';   /* 입고창고 「빵을그리다」 */
+  const ORG = '#C2620E', ORG_B = '#FDF0E3';
+  function MS() { if (!S.mrc || typeof S.mrc !== 'object') S.mrc = {}; const M = S.mrc; ['list', 'alias', 'items', 'custs'].forEach(k => { if (!M[k] || typeof M[k] !== 'object') M[k] = {}; }); return M; }
+  const MR = window.__MR = window.__MR || { view: 'home', cur: null, photo: {}, busy: '', msg: '', pick: null, q: '', agent: null, poll: 0 };
+  const me = () => { try { return (typeof nbMe === 'function' && nbMe()) || (S.settings && S.settings.reporter) || ''; } catch (e) { return ''; } };
+  const won = v => (Math.round(Number(v) || 0)).toLocaleString('ko-KR') + '원';
+  const n0 = v => { const x = Number(String(v == null ? '' : v).replace(/[^0-9.\-]/g, '')); return isFinite(x) ? x : 0; };
+  const norm = s => String(s || '').toLowerCase().replace(/\(.*?\)|\[.*?\]/g, ' ').replace(/[^0-9a-z가-힣]/g, '');
+  const md = d => d ? (+d.slice(5, 7)) + '/' + (+d.slice(8, 10)) : '';
+  const nid = () => 'mr' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  function custs() { const o = {}; Object.entries(MRC_CUST0).forEach(([c, a]) => { o[c] = { c, n: a[0], bn: a[1], px: a[2], kw: a[3] }; }); Object.entries(MS().custs).forEach(([c, a]) => { if (!o[c]) o[c] = { c, n: a[0], bn: a[1] || '', px: a[2] || '', kw: '' }; }); return o; }
+  function custFind(store, bizNo) {
+    const C = custs(), bn = String(bizNo || '').replace(/\D/g, ''), st = norm(store);
+    if (bn.length === 10) { const hit = Object.values(C).find(x => x.c === bn || String(x.bn).replace(/\D/g, '') === bn); if (hit) return hit; }
+    if (st) { const hit = Object.values(C).find(x => (x.kw && new RegExp(x.kw).test(store)) || (norm(x.n) && (st.includes(norm(x.n)) || norm(x.n).includes(st)))); if (hit) return hit; }
+    return null;
+  }
+  function allItems() {
+    const m = new Map();
+    Object.entries(MS().items).forEach(([c, a]) => m.set(c, { c, n: a[0], s: a[1] || '', u: a[2] || '', f: a[3], k: a[4] || '' }));
+    MRC_SEED.forEach(a => { if (!m.has(a[0])) m.set(a[0], { c: a[0], n: a[1], s: a[2], u: a[3], f: a[4], k: a[5] }); });
+    try { Object.entries((S.master && S.master.items) || {}).forEach(([c, o]) => { if (!m.has(c) && o && o.name) m.set(c, { c, n: String(o.name), s: o.spec || '', u: '', f: null, k: '' }); }); } catch (e) {}
+    try { const w = latestWeek(); ((S.snapshots[w] && S.snapshots[w].items) || []).forEach(i => { if (i.code && !m.has(i.code)) m.set(i.code, { c: i.code, n: String(i.name || i.code), s: '', u: '', f: null, k: '' }); }); } catch (e) {}
+    return [...m.values()].filter(x => !/_0$/.test(x.c) && !/_gg\d/.test(x.n));
+  }
+  function dice(a, b) { a = norm(a); b = norm(b); if (!a || !b) return 0; if (a === b) return 1; if (a.length > 1 && (b.includes(a) || a.includes(b))) return 0.85; const bg = s => { const o = []; for (let i = 0; i < s.length - 1; i++) o.push(s.slice(i, i + 2)); return o; }; const A = bg(a), B = bg(b); if (!A.length || !B.length) return 0; let h = 0; const used = B.slice(); A.forEach(x => { const k = used.indexOf(x); if (k >= 0) { h++; used.splice(k, 1); } }); return 2 * h / (A.length + B.length); }
+  function matchLine(l, cust) {
+    const al = (MS().alias[cust] || {}), k = norm(l.raw || l.name);
+    if (k && al[k]) { const it = allItems().find(x => x.c === al[k]); if (it) return { it, ok: 1, why: '기억' }; }
+    let best = null, bs = 0;
+    allItems().forEach(x => { let s = Math.max(dice(l.name, x.n), dice(l.raw, x.n) * 0.95); if (x.k && x.k === cust) s += 0.08; if (s > bs) { bs = s; best = x; } });
+    if (best && bs >= 0.62) return { it: best, ok: 0, why: '비슷한 이름' };
+    return null;
+  }
+  function applyMatch(l, cust) { const m = matchLine(l, cust); if (m) { l.code = m.it.c; l.name = m.it.n; l.spec = m.it.s || ''; if (!l.unit && m.it.u) l.unit = m.it.u; if (l.free == null && m.it.f != null) l.free = m.it.f ? 1 : 0; l.ok = m.ok; l.why = m.why; } else { l.code = ''; l.ok = 0; l.why = ''; } }
+  function nextCode(px) { px = (px || 'MT').toUpperCase(); let mx = 0; const re = new RegExp('^' + px + '_(\\d+)$'); allItems().forEach(x => { const m = re.exec(x.c); if (m) mx = Math.max(mx, +m[1]); }); (MR.cur ? MR.cur.lines : []).forEach(l => { const m = l.nw && re.exec(l.nw.PROD_CD); if (m) mx = Math.max(mx, +m[1]); }); return px + '_' + String(mx + 1).padStart(2, '0'); }
+
+  /* ── 공유 ── */
+  function recLite(r) { return JSON.parse(JSON.stringify(r)); }
+  function share(r) { try { r.mt = new Date().toISOString(); if (shareOn()) nbQueue({ ts: r.mt, week: '', code: r.id, name: '마트 구매 ' + (r.custName || r.store || ''), kind: 'mrc', note: JSON.stringify(recLite(r)) }); } catch (e) {} }
+  function shareX() { try { const M = MS(); if (shareOn()) nbQueue({ ts: new Date().toISOString(), week: '', code: 'cfg', name: '마트 구매 기억', kind: 'mrcx', note: JSON.stringify({ alias: M.alias, items: M.items, custs: M.custs }) }); } catch (e) {} }
+  { const _sw = shareWire; shareWire = function (r) { if (r && (r.kind === 'mrc' || r.kind === 'mrcx')) return Object.assign({}, r, { kind: 'plog', code: r.kind + '~' + r.code, note: JSON.stringify({ x: r.kind, n: r.note || '' }) }); return _sw(r); };
+    const _su = shareUnwire; shareUnwire = function (r) { try { const m = r && r.kind === 'plog' && /^(mrc|mrcx)~(.+)$/.exec(String(r.code || '')); if (m) { let n = null; try { n = JSON.parse((JSON.parse(r.note || '{}') || {}).n || 'null'); } catch (e) {} if (n) { const M = MS(); let ch = false;
+          if (m[1] === 'mrc') { const cur = M.list[m[2]]; if (!cur || (cur.mt || '') < (n.mt || r.ts || '')) { if (cur && cur.img && !n.img) n.img = cur.img; M.list[m[2]] = n; if (MR.cur && MR.cur.id === n.id && MR.cur.st === 'draft' && n.st !== 'draft') MR.cur = n; ch = true; } }
+          else { ['alias', 'items', 'custs'].forEach(k => { const src = n[k] || {}; Object.keys(src).forEach(c => { if (k === 'alias') { M.alias[c] = Object.assign({}, M.alias[c] || {}, src[c]); ch = true; } else if (!M[k][c]) { M[k][c] = src[c]; ch = true; } }); }); }
+          if (ch) { save(); if (S.ui && S.ui.tab === 'rmart' && MR.view === 'home') setTimeout(render, 0); } } return r; } } catch (e) {} return _su(r); };
+    try { const _rt = shareRowText; shareRowText = function (row) { if (row && row.kind === 'mrc') return (row.name || '마트 구매') + ' 기록'; if (row && row.kind === 'mrcx') return '마트 구매 품목 기억'; return _rt(row); }; } catch (e) {} }
+
+  /* ── 중계 ── */
+  function relayOk() { try { const P = prodS(); return !!(P.cfg && P.cfg.relayUrl && P.cfg.relayUrl.trim() && prodKey()); } catch (e) { return false; } }
+  async function rc(body) { if (!relayOk()) throw new Error('이 기기에 이카운트 중계가 설정돼 있지 않아요 (설정 → 생산일지 이카운트 연동)'); const r = await prodRelayCall(body); if (!r || !r.ok) { const e = new Error((r && r.error) || '중계가 거절했습니다'); e.nokey = !!(r && r.nokey); throw e; } return r; }
+  async function imgB64(f, max) { const bm = await createImageBitmap(f); const k = Math.min(1, (max || 2000) / Math.max(bm.width, bm.height)); const c = document.createElement('canvas'); c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k); c.getContext('2d').drawImage(bm, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.85); }
+
+  /* AI 열쇠가 없을 때: 구글 글자인식 글자에서 거래처·날짜·합계·줄(품명·단가×수량=금액)을 찾음. 순서가 섞일 수 있어 사진과 맞춰 보게 함 */
+  function parseOcr(text) {
+    const T = String(text || '').replace(/\r/g, ''); const L = T.split('\n').map(s => s.trim()).filter(Boolean);
+    const num = s => Number(String(s).replace(/[,\s]/g, ''));
+    const o = { store: '', bizNo: '', date: '', total: 0, lines: [], note: '' };
+    const bm = T.match(/사업자\s*(?:등록)?\s*번호\s*[:：]?\s*(\d{3})\s*-?\s*(\d{2})\s*-?\s*(\d{5})/) || T.match(/\b(\d{3})-(\d{2})-(\d{5})\b/); if (bm) o.bizNo = bm[1] + '-' + bm[2] + '-' + bm[3];
+    let dm = T.match(/(20\d{2})[-./년]\s*(\d{1,2})[-./월]\s*(\d{1,2})/); if (dm) o.date = dm[1] + '-' + dm[2].padStart(2, '0') + '-' + dm[3].padStart(2, '0');
+    else { dm = T.match(/(?:판매일|거래일|일자|날짜)\s*[:：]?\s*(\d{2})[-./](\d{1,2})[-./](\d{1,2})/); if (dm) o.date = '20' + dm[1] + '-' + dm[2].padStart(2, '0') + '-' + dm[3].padStart(2, '0'); }
+    o.store = (L.find(s => /(마트|푸드|식자재|상회|유통|하나로|농협|시스템|\(주\)|주식회사)/.test(s) && !/(주소|대표|전화|사업자)/.test(s)) || L[0] || '').replace(/^[^가-힣A-Za-z(]+/, '').slice(0, 40);
+    /* 합계 */
+    const TL = /(총\s*구매액|합\s*계|받은\s*금액|신용카드\s*지불|내실\s*금액|결제\s*금액|판매\s*금액|신용액|카드\s*결제)/;
+    let ti = L.findIndex(s => TL.test(s)); const tots = [];
+    L.forEach((s, i) => { if (!TL.test(s)) return; const m = s.match(/(\d{1,3}(?:,\d{3})+|\d{4,7})\s*$/); if (m) tots.push(num(m[1])); else for (let k = i + 1; k < Math.min(L.length, i + 4); k++) { const m2 = L[k].match(/^(\d{1,3}(?:,\s?\d{3})+|\d{4,7})$/); if (m2) { tots.push(num(m2[1])); break; } } });
+    if (tots.length) { const cnt = {}; tots.forEach(v => cnt[v] = (cnt[v] || 0) + 1); o.total = +Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || b - a)[0]; }
+    /* 품목 구간: 머리(상품명·품목·단가) 뒤 ~ 합계 앞 */
+    let hi = L.findIndex(s => /(상품명|상품\(코드\)|품\s*목|단가)/.test(s)); if (hi < 0) hi = 0; if (ti < 0) ti = L.length;
+    const body = L.slice(hi + 1, ti);
+    /* 품명 줄 */
+    const HDR = /(단가|수량|금액|박스|낱개|주소|대표|전화|사업자|담당|계산대|판매일|면세|과세|부가세|합계|코드)/;
+    let names = [];
+    body.forEach((s, i) => { let m = s.match(/^0?\d{2,3}\s*([^\d\s].*)$/); let nm = m ? m[1] : (/[가-힣]{2,}/.test(s) && !HDR.test(s) ? s : ''); if (!nm) return; nm = nm.replace(/\b\d{8,14}\b.*$/, '').replace(/[\d,]+\s*$/, '').replace(/^\*|^P\s*(?=[가-힣(])/, '').replace(/\.$/, '').trim(); if (nm.length < 2 || !/[가-힣A-Za-z]{2,}/.test(nm)) return; const free = /^\*/.test(s) || (body[i + 1] && /^\*/.test(body[i + 1])) || /#\s*$/.test(s); names.push({ nm, free }); });
+    /* 숫자: 바코드(8자리 이상, 쉼표 없음)·시각 빼고 차례대로 */
+    const toks = []; body.forEach(s => { s.replace(/\b\d{1,2}:\d{2}(:\d{2})?\b/g, ' ').replace(/(\d{1,3}(?:,\s?\d{3})+|\d+(?:\.\d+)?)/g, (w) => { const plain = !/,/.test(w); if (plain && w.replace(/\D/g, '').length >= 8) return w; toks.push({ v: num(w), c: !plain }); return w; }); });
+    const used = new Set(), trip = [];
+    for (let i = 0; i < toks.length; i++) { if (used.has(i)) continue; let hit = null;
+      for (let j = i + 1; j < Math.min(toks.length, i + 5) && !hit; j++) { if (used.has(j)) continue; for (let k = j + 1; k < Math.min(toks.length, i + 6) && !hit; k++) { if (used.has(k)) continue; const a = toks[i].v, b = toks[j].v, c = toks[k].v; if (c >= 100 && a > 0 && b > 0 && Math.abs(a * b - c) < 0.5) { const q = Math.min(a, b), p = Math.max(a, b); if (q <= 999 && p >= 100) hit = [i, j, k, p, q, c]; } } }
+      if (hit) { used.add(hit[0]); used.add(hit[1]); used.add(hit[2]); trip.push({ p: hit[3], q: hit[4], a: hit[5], at: hit[0] }); } }
+    trip.sort((x, y) => x.at - y.at);
+    const n = Math.max(names.length, trip.length);
+    for (let i = 0; i < n; i++) { const a = names[i] || { nm: '', free: false }, t = trip[i] || { q: 1, a: 0 }; o.lines.push({ raw: a.nm, name: a.nm, qty: t.q, unit: '개', amt: t.a, tax: a.free ? '면세' : '모름' }); }
+    const sum = o.lines.reduce((s, l) => s + l.amt, 0);
+    /* 합계 후보(라벨 옆 숫자 + 합계 아래 쉼표 숫자)에 줄 합계와 같은 값이 있으면 그것, 없으면 후보 중 가장 큰 값 */
+    const cand = tots.slice(); L.slice(ti).forEach(s => { (s.match(/\d{1,3}(?:,\s?\d{3})+/g) || []).forEach(w => cand.push(num(w))); });
+    if (sum && cand.includes(sum)) o.total = sum; else if (cand.length) o.total = Math.max(...cand.filter(v => v < 10000000));
+    o.note = '글자인식(무료)으로 읽었어요. 품목과 금액 짝이 바뀌었을 수 있으니 영수증 사진과 맞춰 보세요.' + (o.total && sum !== o.total ? ` (줄 합계 ${sum.toLocaleString('ko-KR')}원 ≠ 합계 ${o.total.toLocaleString('ko-KR')}원)` : '');
+    return o;
+  }
+
+  /* ── 새 영수증 ── */
+  function blank(src) { return { id: nid(), at: new Date().toISOString(), by: me(), src, img: '', store: '', cust: '', custName: '', bizNo: '', newCust: 0, date: today(), total: 0, note: '', why: '', lines: [], st: 'draft', tries: 0, mt: '' }; }
+  function emptyLine() { return { raw: '', code: '', name: '', spec: '', qty: 1, unit: '개', amt: 0, free: null, exp: '', insp: 1, ok: 0 }; }
+  async function fromPhotos(files) {
+    files = [...files].filter(f => /^image\//.test(f.type)); if (!files.length) return;
+    const names = allItems().slice(0, 300).map(x => x.n);
+    let made = 0, last = null;
+    for (let i = 0; i < files.length; i++) {
+      MR.busy = `AI가 영수증을 읽는 중… (${i + 1}/${files.length}, 10~40초)`; render();
+      try {
+        const data = await imgB64(files[i], 2000);
+        const r0 = await rc({ action: 'readReceipt', img: data.split(',')[1], mime: 'image/jpeg', names }); const r = r0.ocr ? Object.assign(parseOcr(r0.text), { ocr: 1 }) : r0;
+        const rec = blank('photo'); MR.photo[rec.id] = data; rec.store = r.store; rec.bizNo = r.bizNo; rec.date = r.date || today(); rec.total = r.total; rec.note = r.note || ''; rec.ocr = r.ocr ? 1 : 0;
+        rec.ai = { free: r.freeTotal, tax: r.taxTotal, vat: r.vat };
+        const c = custFind(r.store, r.bizNo); if (c) { rec.cust = c.c; rec.custName = c.n; } else { const bn = String(r.bizNo || '').replace(/\D/g, ''); if (bn.length === 10) { rec.cust = bn; rec.custName = r.store; rec.newCust = 1; } }
+        rec.lines = (r.lines || []).map(l => { const x = Object.assign(emptyLine(), { raw: l.raw, name: l.name || l.raw, qty: l.qty || 1, unit: l.unit || '개', amt: l.amt, free: l.tax === '면세' ? 1 : l.tax === '과세' ? 0 : null }); const aiFree = x.free; applyMatch(x, rec.cust); if (aiFree != null) x.free = aiFree; if (x.free == null) x.free = 0; return x; });
+        MS().list[rec.id] = rec; save(); made++; last = rec; upPhoto(rec);
+      } catch (e) { MR.msg = '⚠ ' + (i + 1) + '번째 사진을 읽지 못했어요: ' + e.message + (e.nokey ? ' — 영수증 없이 입력으로 적어 주세요' : ''); }
+    }
+    MR.busy = ''; if (made === 1) { MR.cur = last; MR.view = 'edit'; } else { MR.view = 'home'; if (made > 1) MR.msg = `✓ 영수증 ${made}장을 읽었어요. 하나씩 눌러 확인하고 이카운트에 넣어 주세요.`; }
+    render();
+  }
+  /* 사진은 기기 저장소에 넣지 않음(용량) — 읽자마자 드라이브 「영수증」 폴더로 올리고 id만 기록 */
+  function upPhoto(r) { const d = MR.photo[r.id]; if (!d || r.img) return; const nm = `${String(r.date || today()).replace(/-/g, '')}_${(r.custName || r.store || '거래처').replace(/[\s\\/:*?"<>|]/g, '')}_${Math.round(n0(r.total) || sumL(r))}_${r.id}`; rc({ action: 'putReceiptImg', name: nm, data: d }).then(x => { r.img = x.id; save(); }).catch(() => {}); }
+  function manual() { const r = blank('manual'); r.lines = [emptyLine()]; MS().list[r.id] = r; MR.cur = r; MR.view = 'edit'; save(); render(); }
+
+  /* ── 검사 ── */
+  function sumL(r) { return r.lines.reduce((s, l) => s + (n0(l.amt) || 0), 0); }
+  function problems(r) {
+    const p = [];
+    if (!r.cust) p.push('거래처를 골라 주세요');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(r.date || '')) p.push('날짜를 넣어 주세요');
+    if (r.date > today()) p.push('날짜가 오늘보다 뒤예요');
+    if (!r.lines.length) p.push('품목이 없어요');
+    const nk = [], nq = [], na = []; r.lines.forEach((l, i) => { if (!(l.code && l.ok) && !l.nw) nk.push(i + 1); if (!(n0(l.qty) > 0)) nq.push(i + 1); if (!(n0(l.amt) > 0)) na.push(i + 1); });
+    if (nk.length) p.push(`품목 확인 필요: ${nk.join(', ')}번 줄 (노란 줄은 「✓ 맞아요」, 빨간 줄은 「🔍 고르기」)`); if (nq.length) p.push(`수량을 넣어 주세요: ${nq.join(', ')}번 줄`); if (na.length) p.push(`금액을 넣어 주세요: ${na.join(', ')}번 줄`);
+    if (r.src === 'photo' && r.total && Math.abs(sumL(r) - n0(r.total)) > 0) p.push(`줄 합계 ${won(sumL(r))} ≠ 영수증 합계 ${won(r.total)}`);
+    if (r.src === 'manual' && !String(r.why || '').trim()) p.push('영수증이 없는 이유를 적어 주세요');
+    return p;
+  }
+  function dupOf(r) { const t = r.src === 'photo' ? n0(r.total) : sumL(r); return Object.values(MS().list).find(x => x.id !== r.id && x.cust === r.cust && x.date === r.date && ['queued', 'sent'].includes(x.st) && Math.abs((x.src === 'photo' ? n0(x.total) : sumL(x)) - t) < 1); }
+
+  /* ── 이카운트 줄 ── */
+  function rows(r) {
+    const d = r.date.replace(/-/g, '');
+    return r.lines.map(l => {
+      const code = l.nw ? l.nw.PROD_CD : l.code, qty = n0(l.qty), amt = Math.round(n0(l.amt)), free = l.nw ? !!l.nw.free : !!l.free;
+      const vat = free ? 0 : Math.round(amt / 11), sup = amt - vat, price = Math.round(sup / qty);
+      return { UPLOAD_SER_NO: '1', IO_DATE: d, CUST: r.cust, CUST_DES: r.custName || r.store || '', WH_CD: WH, PROD_CD: code, PROD_DES: l.nw ? l.nw.PROD_DES : '', QTY: String(qty), PRICE: String(price), SUPPLY_AMT: String(sup), VAT_AMT: String(vat) };
+    });
+  }
+  function newItems(r) { return r.lines.filter(l => l.nw).map(l => { const o = { PROD_CD: l.nw.PROD_CD, PROD_DES: l.nw.PROD_DES, SIZE_DES: l.nw.SIZE_DES || '', UNIT: l.nw.UNIT || l.unit || '', IN_PRICE: String(Math.round(n0(l.amt) / (n0(l.qty) || 1))), IN_PRICE_VAT: '1', CUST: r.cust }; if (l.nw.free) o.VAT_RATE_BY = '0'; return o; }); }
+  async function send(r) {
+    const p = problems(r); if (p.length) { MR.msg = '⚠ ' + p.join(' · '); render(); return; }
+    const dp = dupOf(r); if (dp && !confirm(`같은 거래처·날짜·금액의 구매가 이미 있어요 (${md(dp.date)} ${won(dp.src === 'photo' ? dp.total : sumL(dp))}, ${dp.st === 'sent' ? '입력 완료' : '보내는 중'}).\n\n같은 영수증을 두 번 넣으면 재고와 갚을 돈이 두 번 잡혀요. 그래도 넣을까요?`)) return;
+    if (!confirm(`${r.custName || r.store} · ${md(r.date)} · ${r.lines.length}품목 · ${won(sumL(r))}\n\n이카운트에 구매로 넣을까요?${r.lines.some(l => l.nw) ? '\n(새 품목 ' + r.lines.filter(l => l.nw).length + '개도 이카운트에 함께 등록돼요)' : ''}\n\n※ 사무실에서 이미 손으로 넣은 영수증이면 「취소」를 눌러 주세요.`)) return;
+    MR.busy = '이카운트로 보내는 중…'; render();
+    try {
+      r.tries = (r.tries || 0) + 1; r.cid = r.tries > 1 ? r.id + 'r' + r.tries : r.id; r.by = r.by || me(); r.err = '';
+      const body = { action: 'savePurchase', clientId: r.cid, who: r.by, rows: rows(r), items: newItems(r) };
+      if (r.newCust) body.cust = { BUSINESS_NO: r.cust, CUST_NAME: r.custName || r.store };
+      const res = await rc(body); MR.agent = { seen: res.agentSeen, ver: res.agentVer };
+      r.st = 'queued'; r.sentAt = new Date().toISOString(); learn(r); save(); share(r); toInsp();
+      MR.msg = '✓ 보냈어요. 사무실 PC 전송기가 이카운트에 넣으면 「입력 완료」로 바뀌어요 (보통 1분 안).';
+      MR.view = 'home'; MR.cur = null;
+      if (MR.photo[r.id] && !r.img) upPhoto(r);
+      setTimeout(poll, 20000);
+    } catch (e) { MR.msg = '⚠ 보내지 못했어요: ' + e.message; }
+    MR.busy = ''; render();
+  }
+  function learn(r) {
+    const M = MS(); M.alias[r.cust] = M.alias[r.cust] || {};
+    r.lines.forEach(l => { const code = l.nw ? l.nw.PROD_CD : l.code; const k = norm(l.raw || ''); if (k && code) M.alias[r.cust][k] = code; if (l.nw) M.items[l.nw.PROD_CD] = [l.nw.PROD_DES, l.nw.SIZE_DES || '', l.nw.UNIT || l.unit || '', l.nw.free ? 1 : 0, r.cust]; });
+    if (r.newCust && !custs()[r.cust]) M.custs[r.cust] = [r.custName || r.store, r.bizNo || '', 'MT'];
+    shareX();
+  }
+  async function poll() {
+    const M = MS(), wait = Object.values(M.list).filter(r => r.st === 'queued' && r.cid); if (!wait.length || !relayOk()) return;
+    try {
+      const res = await rc({ action: 'status', ids: wait.map(r => r.cid) }); MR.agent = { seen: res.agentSeen, ver: res.agentVer }; let ch = false;
+      wait.forEach(r => { const j = res.jobs && res.jobs[r.cid]; if (!j) return; if (j.status === 'sent') { r.st = 'sent'; r.slip = ((j.result && j.result.slipNos) || []).join(', '); r.doneAt = j.doneAt; ch = true; share(r); } else if (j.status === 'fail') { r.st = 'fail'; r.err = (j.result && j.result.error) || '이카운트가 거절했어요'; ch = true; share(r); } });
+      if (ch) save();
+    } catch (e) {}
+    if (S.ui && S.ui.tab === 'rmart' && MR.view === 'home') render();
+  }
+  setInterval(() => { if (!document.hidden && Object.values(MS().list).some(r => r.st === 'queued')) poll(); }, 30000);
+
+  /* ── 육안검사 연결 ── */
+  function inspList() { const cut = new Date(Date.now() - 21 * 864e5).toISOString(); return Object.values(MS().list).filter(r => (r.st === 'queued' || r.st === 'sent') && (r.sentAt || r.at) >= cut).map(r => ({ id: r.id, date: r.date, store: r.custName || r.store || '', at: r.sentAt || r.at, lines: r.lines.map((l, i) => ({ i, code: l.nw ? l.nw.PROD_CD : l.code, name: l.nw ? l.nw.PROD_DES : l.name, spec: l.nw ? l.nw.SIZE_DES : l.spec, qty: n0(l.qty), unit: l.unit || '', exp: l.exp || '', insp: l.insp ? 1 : 0 })).filter(l => l.insp) })).filter(r => r.lines.length); }
+  function toInsp() { try { const f = $('#inspFrame'); if (!f || !f.contentWindow || !inspLoaded) return; f.contentWindow.postMessage({ type: 'wonryo-mrc', list: inspList() }, inspOrigin()); } catch (e) {} }
+  try { const _isk = inspSendKey; inspSendKey = function () { const r = _isk.apply(this, arguments); setTimeout(toInsp, 2500); return r; }; } catch (e) {}
+  window.__mrcInspList = inspList;
+
+  /* ── Aside(사무실 PC) 대신 입력용 ── */
+  window.__mrcQueue = function () { return Object.values(MS().list).filter(r => r.st === 'fail' || (r.st === 'queued' && Date.now() - new Date(r.sentAt || r.at).getTime() > 10 * 60e3)).map(r => Object.assign(recLite(r), { rows: rows(r), items: newItems(r) })); };
+  window.__mrcMarkDone = function (id, slip, by) { const r = MS().list[id]; if (!r) return false; r.st = 'sent'; r.slip = String(slip || ''); r.err = ''; r.doneBy = by || 'Aside'; r.doneAt = new Date().toISOString(); save(); share(r); if (S.ui && S.ui.tab === 'rmart') render(); return true; };
+
+  /* ── 그리기 ── */
+  function css() {
+    if (document.getElementById('mrcCss')) return; const s = document.createElement('style'); s.id = 'mrcCss';
+    s.textContent = `.mrc{max-width:980px;font-size:17px;color:#1f2937}.mrc h2{font-size:22px;margin:0 0 4px}.mrc .sub{color:#4b5563;margin-bottom:14px;line-height:1.5}
+.mrc .big{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0 16px}.mrc .big label,.mrc .big button{min-height:96px;border-radius:14px;border:2px solid ${ORG};background:#fff;color:${ORG};font-size:20px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;text-align:center;padding:8px}
+.mrc .big label{background:${ORG};color:#fff}.mrc .big small{font-size:14px;font-weight:600;opacity:.9}.mrc .big input{display:none}
+.mrc .msg{padding:12px 14px;border-radius:10px;margin:8px 0;background:#ECFDF5;color:#065F46;font-weight:700}.mrc .msg.bad{background:#FEF2F2;color:#991B1B}.mrc .busy{padding:14px;border-radius:10px;background:${ORG_B};color:${ORG};font-weight:800;margin:8px 0}
+.mrc .warn{padding:10px 14px;border-radius:10px;background:#FFF7ED;color:#9A3412;margin:8px 0;line-height:1.5}
+.mrc .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;margin:8px 0}
+.mrc .li{display:flex;gap:10px;align-items:center;cursor:pointer}.mrc .li b{font-size:18px}.mrc .li .r{margin-left:auto;text-align:right;white-space:nowrap}
+.mrc .chip{display:inline-block;padding:3px 9px;border-radius:999px;font-size:14px;font-weight:800;white-space:nowrap}
+.c-draft{background:#F3F4F6;color:#374151}.c-queued{background:#DBEAFE;color:#1E40AF}.c-sent{background:#DCFCE7;color:#166534}.c-fail{background:#FEE2E2;color:#991B1B}.c-cancel{background:#F3F4F6;color:#9CA3AF}
+.mrc .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.mrc .fl{display:flex;flex-direction:column;gap:4px;font-weight:700;color:#374151}.mrc .fl span{font-size:14px;color:#6b7280;font-weight:600}
+.mrc input,.mrc select{font-size:17px;min-height:46px;border:1px solid #cbd5e1;border-radius:8px;padding:6px 10px;width:100%;box-sizing:border-box;background:#fff}
+.mrc .ln{border:1px solid #e5e7eb;border-left:6px solid #e5e7eb;border-radius:10px;padding:10px;margin:8px 0;background:#fff}.mrc .ln.ok{border-left-color:#16a34a}.mrc .ln.chk{border-left-color:#f59e0b;background:#FFFBEB}.mrc .ln.no{border-left-color:#dc2626;background:#FEF2F2}
+.mrc .ln .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.mrc .ln .raw{color:#6b7280;font-size:15px}.mrc .ln .it{font-weight:800;font-size:18px}
+.mrc .ln .g{display:grid;grid-template-columns:90px 70px 130px 1fr;gap:8px;margin-top:8px;align-items:end}
+.mrc .btn2{width:auto;flex:0 0 auto;min-height:46px;border-radius:9px;border:1px solid #cbd5e1;background:#fff;font-size:16px;font-weight:700;padding:0 12px;cursor:pointer}.mrc .btn2.p{background:${ORG};border-color:${ORG};color:#fff}.mrc .btn2.g{background:#16a34a;border-color:#16a34a;color:#fff}.mrc .btn2.s{min-height:38px;font-size:15px}
+.mrc .tg{align-self:flex-start;width:auto;display:inline-flex;border:1px solid #cbd5e1;border-radius:9px;overflow:hidden}.mrc .tg button{border:0;background:#fff;min-height:44px;padding:0 12px;font-size:15px;font-weight:700;cursor:pointer}.mrc .tg button.on{background:#1f2937;color:#fff}
+.mrc .sum{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:18px;font-weight:800;padding:12px 14px;border-radius:10px;background:#F9FAFB;margin:10px 0}.mrc .sum .bad{color:#b91c1c}.mrc .sum .good{color:#15803d}
+.mrc .acts{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 30px}.mrc .acts .btn2{min-height:56px;font-size:18px;padding:0 18px}
+.mrc .pk{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9000;display:flex;align-items:flex-end;justify-content:center}.mrc .pk>div{background:#fff;width:min(720px,100%);max-height:86vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px}
+.mrc .pk .opt{display:block;width:100%;text-align:left;min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;margin:6px 0;padding:8px 12px;font-size:17px;cursor:pointer}.mrc .pk .opt small{color:#6b7280;margin-left:6px}.mrc .pk .opt.hot{border-color:${ORG};background:${ORG_B}}
+.mrc .ph{max-width:100%;max-height:420px;border-radius:10px;border:1px solid #e5e7eb;display:block;margin:6px 0}
+.mrc .agent{font-size:14px;color:#6b7280;margin:6px 0}
+@media(max-width:640px){.mrc .big{grid-template-columns:1fr}.mrc .row2{grid-template-columns:1fr}.mrc .ln .g{grid-template-columns:1fr 1fr}}`;
+    document.head.appendChild(s);
+  }
+  const ST = { draft: ['작성 중', 'c-draft'], queued: ['보내는 중', 'c-queued'], sent: ['이카운트 입력 완료', 'c-sent'], fail: ['입력 실패', 'c-fail'], cancel: ['취소', 'c-cancel'] };
+  function agentLine() { const a = MR.agent; if (!a) return ''; const v = Number(a.ver || 0); if (v && v < 4) return `<div class="warn">⚠ 사무실 PC 전송기가 예전 판(v${v})이라 구매 입력을 아직 못 해요. 전송기를 v4로 바꾸면 보낸 건이 자동으로 들어가요.</div>`; const s = a.seen ? Math.round((Date.now() - new Date(a.seen).getTime()) / 60e3) : null; return s != null && s > 10 ? `<div class="warn">⚠ 사무실 PC 전송기 신호가 ${s}분 전이 마지막이에요. 사무실 PC가 켜져 있는지 확인해 주세요.</div>` : ''; }
+  function homeHtml() {
+    const L = Object.values(MS().list).filter(r => r.st !== 'cancel' || Date.now() - new Date(r.mt || r.at).getTime() < 3 * 864e5).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 40);
+    const pend = L.filter(r => r.st === 'draft' || r.st === 'fail').length;
+    return `<div class="mrc"><h2>🧾 마트 구매 입력</h2>
+      <div class="sub">마트·식자재마트에서 산 재료를 이카운트 <b>구매</b>로 넣어요. 영수증을 찍으면 AI가 읽고, 확인 후 한 번 누르면 이카운트에 들어가요.<br>육안검사가 필요한 품목은 <b>육안검사일지</b>에 자동으로 넘어가요.</div>
+      ${MR.busy ? `<div class="busy">⏳ ${esc(MR.busy)}</div>` : ''}${MR.msg ? `<div class="msg${/^⚠/.test(MR.msg) ? ' bad' : ''}">${esc(MR.msg)}</div>` : ''}${agentLine()}
+      <div class="big"><label>📷 영수증 사진 찍기·올리기<small>여러 장 한 번에 가능</small><input type="file" accept="image/*" multiple data-mr="photo"></label>
+      <button type="button" data-mr="manual">✍ 영수증 없이 입력<small>영수증을 잃어버렸거나 못 받았을 때</small></button></div>
+      ${pend ? `<div class="warn">아직 이카운트에 안 넣은 영수증이 <b>${pend}건</b> 있어요. 눌러서 확인해 주세요.</div>` : ''}
+      ${L.length ? L.map(r => { const s = ST[r.st] || ST.draft; return `<div class="card li" data-mropen="${r.id}"><div><b>${esc(r.custName || r.store || '거래처 미정')}</b> <span class="chip ${s[1]}">${s[0]}</span>${r.src === 'manual' ? ' <span class="chip c-draft">영수증 없음</span>' : ''}<br><small>${md(r.date)} · ${r.lines.length}품목 · ${esc(r.by || '')}${r.slip ? ' · 전표 ' + esc(r.slip) : ''}${r.err ? ' · ' + esc(r.err).slice(0, 80) : ''}</small></div><div class="r"><b>${won(r.src === 'photo' && r.total ? r.total : sumL(r))}</b></div></div>`; }).join('') : '<div class="card" style="color:#6b7280">아직 입력한 영수증이 없어요.</div>'}
+      <div class="agent">보낸 건은 사무실 PC 전송기가 이카운트에 넣어요. 새 품목·새 거래처도 함께 등록돼요.</div></div>`;
+  }
+  function lineHtml(l, i, r, ro) {
+    const cls = l.nw ? 'ok' : l.code && l.ok ? 'ok' : l.code ? 'chk' : 'no';
+    const it = l.nw ? `🆕 새 품목 <b>${esc(l.nw.PROD_CD)}</b> ${esc(l.nw.PROD_DES)}${l.nw.SIZE_DES ? ' ' + esc(l.nw.SIZE_DES) : ''}` : l.code ? `${esc(l.name)}${l.spec ? ' ' + esc(l.spec) : ''} <small style="color:#6b7280">${esc(l.code)}</small>` : '<span style="color:#b91c1c">이카운트 품목을 골라 주세요</span>';
+    return `<div class="ln ${cls}"><div class="top"><b>${i + 1}</b>${l.raw ? `<span class="raw">영수증: ${esc(l.raw)}</span>` : ''}<span class="it">${it}</span>
+      ${ro ? '' : `${l.code && !l.ok && !l.nw ? `<button type="button" class="btn2 g s" data-mr="okl" data-i="${i}">✓ 맞아요</button>` : ''}<button type="button" class="btn2 s" data-mr="pick" data-i="${i}">${l.code || l.nw ? '바꾸기' : '🔍 고르기'}</button><button type="button" class="btn2 s" data-mr="del" data-i="${i}" title="이 줄 빼기">✕</button>`}</div>
+      ${l.code && !l.ok && !l.nw && l.why ? `<div style="color:#92400E;font-size:15px;margin-top:4px">${esc(l.why)}로 찾은 품목이에요. 맞으면 「✓ 맞아요」</div>` : ''}
+      <div class="g"><label class="fl"><span>수량</span><input inputmode="decimal" data-mrl="qty" data-i="${i}" value="${esc(l.qty)}"${ro ? ' disabled' : ''}></label>
+      <label class="fl"><span>단위</span><input data-mrl="unit" data-i="${i}" value="${esc(l.unit)}"${ro ? ' disabled' : ''}></label>
+      <label class="fl"><span>금액 (부가세 포함)</span><input inputmode="numeric" data-mrl="amt" data-i="${i}" value="${esc(l.amt || '')}"${ro ? ' disabled' : ''}></label>
+      <div class="fl"><span>부가세</span><div class="tg"><button type="button" class="${(l.nw ? l.nw.free : l.free) ? '' : 'on'}" data-mr="tax" data-i="${i}" data-v="0"${ro ? ' disabled' : ''}>과세</button><button type="button" class="${(l.nw ? l.nw.free : l.free) ? 'on' : ''}" data-mr="tax" data-i="${i}" data-v="1"${ro ? ' disabled' : ''}>면세</button></div></div></div>
+      <div class="g" style="grid-template-columns:1fr auto"><label class="fl"><span>소비기한 (알면, 육안검사일지에 들어가요)</span><input type="date" data-mrl="exp" data-i="${i}" value="${esc(l.exp || '')}"${ro ? ' disabled' : ''}></label>
+      <label style="display:flex;gap:6px;align-items:center;font-weight:700;min-height:46px"><input type="checkbox" style="width:24px;min-height:24px" data-mrl="insp" data-i="${i}"${l.insp ? ' checked' : ''}${ro ? ' disabled' : ''}> 육안검사</label></div></div>`;
+  }
+  function editHtml() {
+    const r = MR.cur; if (!r) return homeHtml(); const ro = r.st === 'queued' || r.st === 'sent'; const C = custs(); const sm = sumL(r); const p = problems(r);
+    const cOpts = Object.values(C).map(c => `<option value="${esc(c.c)}"${r.cust === c.c ? ' selected' : ''}>${esc(c.n)}</option>`).join('');
+    const unknownCust = r.cust && !C[r.cust];
+    return `<div class="mrc"><h2>${r.src === 'manual' ? '✍ 영수증 없이 입력' : '🧾 영수증 확인'} <span class="chip ${(ST[r.st] || ST.draft)[1]}">${(ST[r.st] || ST.draft)[0]}</span></h2>
+      <div class="sub">${ro ? `이미 보낸 영수증이에요${r.slip ? ' (전표 ' + esc(r.slip) + ')' : ''}. 고칠 것이 있으면 이카운트에서 고쳐 주세요.` : '줄마다 이카운트 품목이 맞는지 보고, 초록색이 되면 맨 아래 「⚡ 이카운트에 넣기」를 눌러 주세요.'}</div>
+      ${MR.busy ? `<div class="busy">⏳ ${esc(MR.busy)}</div>` : ''}${MR.msg ? `<div class="msg${/^⚠/.test(MR.msg) ? ' bad' : ''}">${esc(MR.msg)}</div>` : ''}
+      ${r.err ? `<div class="msg bad">⚠ 이카운트 답: ${esc(r.err)}</div>` : ''}
+      ${MR.photo[r.id] ? `<details${r.lines.length ? '' : ' open'}><summary style="cursor:pointer;font-weight:700;padding:6px 0">🧾 영수증 사진 보기</summary><img class="ph" src="${MR.photo[r.id]}" alt="영수증"></details>` : r.img ? `<button type="button" class="btn2 s" data-mr="img">🧾 영수증 사진 보기</button>` : ''}
+      ${r.note && r.st === 'draft' ? `<div class="warn">${r.ocr ? '📝 ' : 'AI 메모: '}${esc(r.note)}</div>` : ''}
+      <div class="card"><div class="row2"><label class="fl"><span>거래처 ${r.store && r.src === 'photo' ? '· 영수증: ' + esc(r.store) : ''}</span><select data-mrf="cust"${ro ? ' disabled' : ''}><option value="">— 고르기 —</option>${cOpts}${unknownCust ? `<option value="${esc(r.cust)}" selected>🆕 ${esc(r.custName || r.store)} (${esc(r.cust)})</option>` : ''}<option value="__new">＋ 다른 거래처 (사업자번호로 새로 등록)</option></select></label>
+        <label class="fl"><span>산 날짜 (이카운트 일자)</span><input type="date" data-mrf="date" value="${esc(r.date)}"${ro ? ' disabled' : ''}></label></div>
+        ${r.newCust ? `<div class="warn">🆕 이카운트에 없는 거래처예요. 넣을 때 사업자번호 <b>${esc(r.cust)}</b>, 이름 「${esc(r.custName || r.store)}」로 함께 등록해요.</div>` : ''}
+        ${r.src === 'manual' ? `<label class="fl" style="margin-top:8px"><span>영수증이 없는 이유 (필수)</span><input data-mrf="why" value="${esc(r.why || '')}" placeholder="예: 영수증 분실, 현금 구매로 영수증 못 받음"${ro ? ' disabled' : ''}></label>` : ''}</div>
+      ${r.lines.map((l, i) => lineHtml(l, i, r, ro)).join('')}
+      ${ro ? '' : `<div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn2" data-mr="add">＋ 줄 추가</button>${r.lines.filter(l => l.code && !l.ok && !l.nw).length > 1 ? `<button type="button" class="btn2 g" data-mr="okall">✓ 노란 줄 ${r.lines.filter(l => l.code && !l.ok && !l.nw).length}개 모두 맞아요</button>` : ''}</div>`}
+      <div class="sum">줄 합계 <span class="${r.src === 'photo' && r.total && Math.abs(sm - n0(r.total)) > 0 ? 'bad' : 'good'}">${won(sm)}</span>${r.src === 'photo' ? `<span>영수증 합계 <input style="width:140px;display:inline-block" inputmode="numeric" data-mrf="total" value="${esc(r.total || '')}"${ro ? ' disabled' : ''}></span>` : ''}
+        <small style="font-weight:600;color:#6b7280">과세 ${won(r.lines.filter(l => !(l.nw ? l.nw.free : l.free)).reduce((s, l) => s + n0(l.amt), 0))} · 면세 ${won(r.lines.filter(l => (l.nw ? l.nw.free : l.free)).reduce((s, l) => s + n0(l.amt), 0))}</small></div>
+      ${!ro && p.length ? `<div class="warn">${p.map(esc).join('<br>')}</div>` : ''}
+      <div class="acts"><button type="button" class="btn2" data-mr="back">← 목록</button>
+        ${ro ? (r.st === 'queued' ? '<button type="button" class="btn2" data-mr="poll">↻ 결과 확인</button>' : '') : `<button type="button" class="btn2 p" data-mr="send"${p.length ? ' disabled style="opacity:.45"' : ''}>⚡ 이카운트에 넣기</button><button type="button" class="btn2" data-mr="later">나중에 (저장만)</button><button type="button" class="btn2" data-mr="cancel" style="color:#b91c1c">이 영수증 지우기</button>`}
+        ${r.st === 'fail' ? '<button type="button" class="btn2" data-mr="resend">다시 고쳐서 넣기</button>' : ''}</div></div>`;
+  }
+  function pickHtml() {
+    const r = MR.cur, i = MR.pick, l = r.lines[i], q = MR.q.trim(); const all = allItems();
+    const cho = s => { const Cc = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ'; return Array.from(String(s)).map(ch => { const c = ch.charCodeAt(0); return c >= 0xAC00 && c <= 0xD7A3 ? Cc[Math.floor((c - 0xAC00) / 588)] : ch; }).join(''); };
+    let list;
+    if (q) list = all.filter(x => x.n.includes(q) || cho(x.n).includes(q) || x.c.toLowerCase().includes(q.toLowerCase())).slice(0, 40);
+    else list = all.map(x => ({ x, s: Math.max(dice(l.name, x.n), dice(l.raw, x.n)) + (x.k && x.k === r.cust ? 0.3 : 0) })).sort((a, b) => b.s - a.s).slice(0, 12).map(o => o.x);
+    const px = (custs()[r.cust] || {}).px || 'MT';
+    const nw = l.nw || { PROD_CD: nextCode(px), PROD_DES: (l.name || l.raw || '').trim(), SIZE_DES: '', UNIT: l.unit || '개', free: l.free ? 1 : 0 };
+    return `<div class="pk" data-mr="pkbg"><div><h3 style="margin:0 0 6px">${i + 1}번 줄 품목 고르기</h3>${l.raw ? `<div style="color:#6b7280;margin-bottom:6px">영수증: ${esc(l.raw)}</div>` : ''}
+      <input data-mrq="1" placeholder="🔍 찾기 (예: 올리브, ㅇㄹㅂ, NH_02)" value="${esc(MR.q)}" autocomplete="off">
+      ${list.map(x => `<button type="button" class="opt${x.k && x.k === r.cust ? ' hot' : ''}" data-mrpick="${esc(x.c)}">${esc(x.n)}${x.s ? ' ' + esc(x.s) : ''}<small>${esc(x.c)}${x.k && x.k === r.cust ? ' · 이 거래처에서 산 적 있음' : ''}</small></button>`).join('') || '<div style="padding:10px;color:#6b7280">찾는 품목이 없어요 · 아래 「새 품목」으로 등록해 주세요</div>'}
+      <div class="card" style="background:#F9FAFB;margin-top:12px"><b>🆕 이카운트에 없는 새 품목으로 등록</b>
+        <div class="row2" style="margin-top:6px"><label class="fl"><span>품목 이름</span><input data-mrn="PROD_DES" value="${esc(nw.PROD_DES)}"></label><label class="fl"><span>품목 코드 (자동 제안)</span><input data-mrn="PROD_CD" value="${esc(nw.PROD_CD)}"></label>
+        <label class="fl"><span>규격 (예: 500g, 1L)</span><input data-mrn="SIZE_DES" value="${esc(nw.SIZE_DES || '')}"></label><label class="fl"><span>단위</span><input data-mrn="UNIT" value="${esc(nw.UNIT || '')}"></label></div>
+        <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div class="tg"><button type="button" class="${nw.free ? '' : 'on'}" data-mrnf="0">과세</button><button type="button" class="${nw.free ? 'on' : ''}" data-mrnf="1">면세</button></div><button type="button" class="btn2 p" data-mr="nwok">이 이름으로 새 품목 등록</button></div></div>
+      <div class="acts"><button type="button" class="btn2" data-mr="pkclose">닫기</button></div></div></div>`;
+  }
+  let _nwFree = null;
+  function render() {
+    css(); const box = document.getElementById('rl_rmart'); if (!box) return;
+    if (MR.view === 'edit' && MR.cur && !MS().list[MR.cur.id]) { MR.view = 'home'; MR.cur = null; }
+    box.innerHTML = (MR.view === 'edit' ? editHtml() : homeHtml()) + (MR.view === 'edit' && MR.pick != null ? pickHtml() : '');
+    bind(box);
+    try { const k = window.rlCatOf && window.rlCatOf('rmart'); const h = box.querySelector('.mrc h2'); if (k && h && !h.querySelector('.rl-cat')) h.insertAdjacentHTML('afterbegin', `<span class="rl-cat" style="--c:${k.c};--cb:${k.cb}">${k.e} ${esc(k.nm)}</span> `); } catch (e) {}
+    if (MR.view === 'home' && !MR._polled) { MR._polled = 1; poll(); }
+  }
+  window.mrcRender = render;
+  function bind(box) {
+    const r = MR.cur, q = s => box.querySelectorAll(s);
+    q('[data-mr="photo"]').forEach(inp => inp.onchange = () => { MR.msg = ''; fromPhotos(inp.files); });
+    q('[data-mropen]').forEach(b => b.onclick = () => { MR.cur = MS().list[b.dataset.mropen]; MR.view = 'edit'; MR.msg = ''; MR.pick = null; render(); window.scrollTo(0, 0); });
+    q('[data-mrf]').forEach(inp => inp.onchange = () => { if (!r) return; const k = inp.dataset.mrf;
+      if (k === 'cust') { if (inp.value === '__new') { const bn = (prompt('새 거래처 사업자번호 (숫자 10자리)', String(r.bizNo || '').replace(/\D/g, '')) || '').replace(/\D/g, ''); if (bn.length !== 10) { alert('사업자번호 10자리를 넣어 주세요'); render(); return; } const nm = (prompt('거래처 이름 (예: ○○마트 ○○점)', r.store || '') || '').trim(); if (!nm) { render(); return; } r.cust = bn; r.custName = nm; r.newCust = 1; } else { r.cust = inp.value; r.custName = (custs()[inp.value] || {}).n || ''; r.newCust = 0; } r.lines.forEach(l => { if (!l.ok && !l.nw) applyMatch(l, r.cust); }); }
+      else if (k === 'total') r.total = n0(inp.value); else r[k] = inp.value;
+      save(); render(); });
+    q('[data-mrl]').forEach(inp => inp.onchange = () => { if (!r) return; const l = r.lines[+inp.dataset.i], k = inp.dataset.mrl; if (k === 'insp') l.insp = inp.checked ? 1 : 0; else if (k === 'qty' || k === 'amt') l[k] = n0(inp.value); else l[k] = inp.value; save(); render(); });
+    q('[data-mrpick]').forEach(b => b.onclick = () => { const it = allItems().find(x => x.c === b.dataset.mrpick); const l = r.lines[MR.pick]; if (it && l) { l.code = it.c; l.name = it.n; l.spec = it.s || ''; if (it.u && !l.unit) l.unit = it.u; if (it.f != null) l.free = it.f ? 1 : 0; l.ok = 1; l.why = ''; delete l.nw; } MR.pick = null; MR.q = ''; save(); render(); });
+    q('[data-mrq]').forEach(inp => { const go = () => { MR.q = inp.value; const pos = inp.selectionStart; render(); const n = document.querySelector('[data-mrq]'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } }; inp.oninput = e => { MR.q = inp.value; if (e.isComposing) return; go(); }; inp.addEventListener('compositionend', go); });
+    q('[data-mrnf]').forEach(b => b.onclick = () => { _nwFree = +b.dataset.mrnf; q('[data-mrnf]').forEach(x => x.classList.toggle('on', x === b)); });
+    q('[data-mr]').forEach(b => { if (b.tagName === 'INPUT') return; b.onclick = e => { const a = b.dataset.mr, i = +b.dataset.i;
+      if (a === 'pkbg') { if (e.target === b) { MR.pick = null; render(); } return; }
+      if (a === 'manual') return manual();
+      if (a === 'back') { MR.view = 'home'; MR.cur = null; MR.msg = ''; render(); return; }
+      if (a === 'later') { MR.view = 'home'; MR.cur = null; MR.msg = '저장했어요. 목록에서 다시 눌러 이어서 할 수 있어요.'; save(); share(r); render(); return; }
+      if (a === 'cancel') { if (!confirm('이 영수증 기록을 지울까요? (이카운트에는 아직 안 들어간 것만 지워져요)')) return; r.st = 'cancel'; save(); share(r); MR.view = 'home'; MR.cur = null; render(); return; }
+      if (a === 'send') return send(r);
+      if (a === 'resend') { r.st = 'draft'; r.err = ''; save(); render(); return; }
+      if (a === 'poll') { poll().then(render); return; }
+      if (a === 'add') { r.lines.push(emptyLine()); save(); render(); return; }
+      if (a === 'del') { if (r.lines.length > 0 && confirm((i + 1) + '번 줄을 뺄까요? (봉투값·할인 줄 등)')) { r.lines.splice(i, 1); save(); render(); } return; }
+      if (a === 'okall') { r.lines.forEach(l => { if (l.code && !l.nw) { l.ok = 1; l.why = ''; } }); save(); render(); return; }
+      if (a === 'okl') { r.lines[i].ok = 1; r.lines[i].why = ''; save(); render(); return; }
+      if (a === 'tax') { const l = r.lines[i]; if (l.nw) l.nw.free = +b.dataset.v; l.free = +b.dataset.v; save(); render(); return; }
+      if (a === 'pick') { MR.pick = i; MR.q = ''; _nwFree = null; render(); return; }
+      if (a === 'pkclose') { MR.pick = null; render(); return; }
+      if (a === 'nwok') { const l = r.lines[MR.pick]; const g = k => (document.querySelector(`[data-mrn="${k}"]`) || {}).value || ''; const cd = g('PROD_CD').trim().toUpperCase(), nm = g('PROD_DES').trim(); if (!cd || !nm) { alert('품목 이름과 코드를 넣어 주세요'); return; } if (allItems().some(x => x.c === cd)) { alert(cd + '는 이미 있는 코드예요. 목록에서 고르거나 다른 코드를 넣어 주세요.'); return; }
+        l.nw = { PROD_CD: cd, PROD_DES: nm, SIZE_DES: g('SIZE_DES').trim(), UNIT: g('UNIT').trim() || l.unit || '개', free: _nwFree != null ? _nwFree : (l.free ? 1 : 0) }; l.free = l.nw.free; l.code = ''; l.ok = 1; MR.pick = null; save(); render(); return; }
+      if (a === 'img') { rc({ action: 'getReceiptImg', id: r.img }).then(x => { MR.photo[r.id] = x.data; render(); }).catch(er => alert('사진을 못 불러왔어요: ' + er.message)); return; }
+    }; });
+  }
+
+  /* 원료 발주 화면 맨 위에도 들어가는 버튼 · 주소 #mart */
+  try { const _rr = renderRbuy; renderRbuy = function () { const x = _rr.apply(this, arguments); try { const sec = document.querySelector('section.view[data-view="rbuy"]'); if (sec && !sec.querySelector('.mrc-go')) sec.insertAdjacentHTML('afterbegin', '<div class="mrc-go" style="margin:0 0 10px"><button class="btn" onclick="rlGo(\'rmart\')">🧾 마트 영수증 구매 입력 (이카운트 자동)</button></div>'); } catch (e) {} return x; }; } catch (e) {}
+  (function hashGo(n) { if (!/^#mart/.test(location.hash)) return; if (typeof window.rlGo === 'function' && document.getElementById('rl_rmart') && !document.querySelector('#lockScreen.on, .wlock.on')) { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} window.rlGo('rmart'); return; } if (n < 40) setTimeout(() => hashGo(n + 1), 700); })(0);
+  window.__mrcTest = { allItems, matchLine, rows, newItems, problems, custFind, inspList, MS, MR };
+})(); } catch (e) { console.warn('v291 마트 구매', e); }
 
 </script>
 <script>
