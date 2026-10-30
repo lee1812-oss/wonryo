@@ -356,6 +356,7 @@
 - 육안검사: 넣기를 누른 순간(queued) inspList(최근 21일, 「육안검사」 체크 줄) → inspSendKey 뒤 2.5초·보낼 때 postMessage {type:'wonryo-mrc', list}. inspect.html v100 mrcApply: 그 날짜 일지에 공급업체 = 영수증 거래처, 수량·단위·소비기한 = 영수증, 「확인 필요」(_ecPending), 키 mrc:<id>:<줄>은 한 번만. 재고 증가로 이미 자동 입력된 같은 품목 행(앞뒤 3일)은 영수증 날짜로 옮기고 고침. ecApply 감싸기: mrcClaims(품목 id, 보낸 시각 −2시간~+3일)에 걸리는 재고 증가는 새 행 대신 연결(_ecLinked).
 - v292 (같은 날): #mart 주소 — 앱 코드가 돌 때 아직 주소에 #mart가 없을 수 있어 60초 동안 기다렸다가 1.2초 뒤 이동, hashchange도 받음.
 - v293~294 (같은 날 10:53 6fbc22a · 10:59 v294 「명세표:」 문구): 메뉴 이름 「구매 입력」(영수증·거래명세표). 큰 버튼 3개 — 📷 사진 · 📎 파일 넣기(PDF·xlsx·xls·csv) · ✍ 영수증 없이.
+  · v295 (11:30): 목록에서 취소(지운) 기록은 숨김, 아무것도 안 적은 빈 「영수증 없이 입력」 기록(isBlank)은 목록을 그릴 때 지움.
   · 거래명세표 = rec.src 'stmt', rec.file {n, k photo|pdf|xlsx}. 줄 {price, sup 공급가액, vat 세액, exp, lot, vg 세액 계산값, pg 최근 단가로 채움}. 이카운트 줄은 명세표 값 그대로(SUPPLY_AMT·VAT_AMT·PRICE, ÷11 안 함), REMARKS = 소비기한 YY.MM.DD + LOT (영수증도 소비기한 있으면 적요로). 새 품목 IN_PRICE_VAT 0.
   · 읽기: 엑셀 = XLSX 앞 3장, 머리줄(품목명·수량·공급가액/단가) 찾아 칸 맞춤(parseTable). PDF = pdf.js 3.11.174(jsdelivr, 처음 쓸 때 내려받음) 글자+위치 → parsePdf(접힌 머리칸 합치기, 숫자 없는 품명 조각은 가장 가까운 줄에 붙임). 글자 없는 스캔 PDF는 앞 2쪽 그림을 중계 글자인식. 사진은 글자인식 글자에 「거래명세·납품서·공급가액+단가」가 있으면 parseStmtText(수량×단가≈공급가액, 세액≈10% 짝 찾기, 단위 붙은 수량 순서로 줄 맞춤).
   · 매입처: STMT_SUP 27곳(이카운트 거래처 코드 — 철은 1228170334, 한국내츄럴 240-86-00975, 사우스코어 159-86-03109, 서로도우 8491701789_2 등, 출처 Aside data/drawbread_audit/customers.json + 구매 이력). 찾는 순서: 사업자번호(우리 244-88-02571 뺌) → 찾는 말(우리 주소 줄 뺌) → 상호. 품목: 기억 → STMT_HINT(10/28 값연결 짝, 이름으로) → 이름 비슷한 것. 발주 줄(S.rbuy.po lines.buy)도 품목 후보·최근 단가(priceOf).

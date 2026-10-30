@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '294';
-const APP_BUILT = '2026-10-30 10:59';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '295';
+const APP_BUILT = '2026-10-30 11:30';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -11340,8 +11340,11 @@ try { (function () {
   }
   const ST = { draft: ['작성 중', 'c-draft'], queued: ['보내는 중', 'c-queued'], sent: ['이카운트 입력 완료', 'c-sent'], fail: ['입력 실패', 'c-fail'], cancel: ['취소', 'c-cancel'] };
   function agentLine() { const a = MR.agent; if (!a) return ''; const v = Number(a.ver || 0); if (v && v < 4) return `<div class="warn">⚠ 사무실 PC 전송기가 예전 판(v${v})이라 구매 입력을 아직 못 해요. 전송기를 v4로 바꾸면 보낸 건이 자동으로 들어가요.</div>`; const s = a.seen ? Math.round((Date.now() - new Date(a.seen).getTime()) / 60e3) : null; return s != null && s > 10 ? `<div class="warn">⚠ 사무실 PC 전송기 신호가 ${s}분 전이 마지막이에요. 사무실 PC가 켜져 있는지 확인해 주세요.</div>` : ''; }
+  /* v295: 「영수증 없이 입력」을 눌렀다가 아무것도 안 적고 나온 빈 기록 */
+  function isBlank(r) { return r.st === 'draft' && !r.cust && !r.img && !MR.photo[r.id] && !String(r.why || '').trim() && (r.lines || []).every(l => !l.code && !l.nw && !n0(l.amt) && !n0(l.sup) && !String(l.raw || l.name || '').trim()); }
   function homeHtml() {
-    const L = Object.values(MS().list).filter(r => r.st !== 'cancel' || Date.now() - new Date(r.mt || r.at).getTime() < 3 * 864e5).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 40);
+    const M0 = MS(); let gone = 0; Object.values(M0.list).forEach(r => { if (isBlank(r) && !(MR.cur && MR.cur.id === r.id)) { delete M0.list[r.id]; gone++; } }); if (gone) save();   /* v295: 아무것도 안 적은 기록은 지우고, 지운(취소) 기록은 목록에서 숨김 */
+    const L = Object.values(M0.list).filter(r => r.st !== 'cancel' && !isBlank(r)).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 40);
     const pend = L.filter(r => r.st === 'draft' || r.st === 'fail').length;
     return `<div class="mrc"><h2>🧾 구매 입력 <small style="font-size:16px;color:#6b7280;font-weight:700">영수증 · 거래명세표</small></h2>
       <div class="sub">마트 영수증과 매입처 <b>거래명세표</b>를 이카운트 <b>구매</b>로 넣어요. 사진·PDF·엑셀을 넣으면 줄을 채워 주고, 확인 후 한 번 누르면 이카운트에 들어가요.<br>육안검사가 필요한 품목은 <b>육안검사일지</b>에 자동으로 넘어가요.</div>
