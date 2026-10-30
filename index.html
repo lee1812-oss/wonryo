@@ -1450,8 +1450,8 @@ break;case"<bookViews":;case"<bookViews>":;case"</bookViews>":break;case"<workbo
    ═════════════════════════════════════════════════════════════ */
 const APP_NAME = '원료수불부';
 const FILE_NAME = '통합재고관리';   /* v052: 내보내는 파일 이름은 플랫폼 이름으로 */
-const APP_VER  = '292';
-const APP_BUILT = '2026-10-30 10:03';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
+const APP_VER  = '293';
+const APP_BUILT = '2026-10-30 10:53';   /* v154: 머리글에 버전·업데이트 시각 표시 — 배포할 때마다 함께 바꿈 */
 try { const hv = document.getElementById('hVer'); if (hv) { hv.textContent = `v${APP_VER} · ${APP_BUILT} 업데이트`; hv.title = '현재 열려 있는 통합 재고관리 버전과 마지막 업데이트 시각'; } } catch (e) {}
 const STORE_KEY = 'wonryo_subulbu_v1';
 
@@ -10131,7 +10131,7 @@ try { (function () {
   const RAW_MENU = [
     ['rhome', '현황', ICO_RL.rhome], ['rledg', '수불대장', ICO_RL.rledg],
     ['phys', '실사 입력', tabIco('phys')], ['cmp', '실사 차이', tabIco('cmp')], ['adj', '재고 조정', tabIco('adj')],
-    ['rprod', '생산 연동', ICO_RL.rprod], ['rbuy', '원료 발주', tabIco('rbuy')], ['rmart', '마트 구매', ic('<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/>')], ['fifo', '소비기한', tabIco('fifo')],
+    ['rprod', '생산 연동', ICO_RL.rprod], ['rbuy', '원료 발주', tabIco('rbuy')], ['rmart', '구매 입력', ic('<path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/>')], ['fifo', '소비기한', tabIco('fifo')],
     ['rtrace', '로트 추적', ICO_RL.rtrace], ['rmast', '기준 정보', ICO_RL.rmast],
     ['stock', '전산재고', tabIco('stock')], ['weekly', '주간재고', tabIco('weekly')], ['trend', '추이', tabIco('trend')], ['dash', '옛 대시보드', tabIco('dash')]
   ];
@@ -10888,7 +10888,10 @@ try { (function () {
          rec = {id, at, by, src 'photo'|'manual', img 드라이브id, store, cust, custName, bizNo, newCust, date, total, note, why,
                 lines:[{raw, code, name, spec, qty, unit, amt 부가세포함, free 1/0, exp, insp 1/0, ok 1/0, nw {PROD_CD,PROD_DES,SIZE_DES,UNIT,free}}],
                 st 'draft'|'queued'|'sent'|'fail'|'cancel', cid, tries, slip, err, mt}
-   기기 간 공유: plog 'mrc~<id>'(한 건), 'mrcx~cfg'(기억·품목·거래처). 블록을 지우면 v290과 같음(메뉴만 사라짐). */
+   기기 간 공유: plog 'mrc~<id>'(한 건), 'mrcx~cfg'(기억·품목·거래처). 블록을 지우면 v290과 같음(메뉴만 사라짐).
+   v293 (2026-10-30 Aside) 일반 매입 거래명세표 + 파일 넣기 — 메뉴 이름 「구매 입력」. src 'stmt' = 거래명세표: 줄마다 단가·공급가액·세액을 명세표 그대로 씀(÷11 안 함), 소비기한·LOT → 이카운트 적요(REMARKS, YY.MM.DD)·육안검사.
+         파일: 사진(중계 글자인식 → 명세표 글자가 보이면 parseStmtText) · PDF(pdf.js로 글자 읽기, 글자 없는 스캔 PDF는 쪽 그림을 글자인식) · 엑셀(XLSX, 머리줄 품목명·수량·공급가액 찾기).
+         매입처: STMT_SUP(이카운트 거래처 코드) — 사업자번호(우리 244-88-02571 제외) → 찾는 말 → 상호. 품목: 기억 → STMT_HINT(10/28 값연결 짝) → 이름 비슷한 것. 보내면 같은 매입처 「발주 중」을 「입고 완료」로. */
 try { (function () {
   const MRC_CUST0 = {   /* 이카운트 거래처 코드 → [이름, 사업자번호, 새 품목 코드 앞글자, 찾는 말] — 2026-10-30 구매 입력 기준 */
     '1268203339': ['곤지암농협하나로마트만선점', '126-82-03339', 'NH', '하나로|농협|만선점|곤지암농협'],
@@ -10904,6 +10907,32 @@ try { (function () {
     ['DG_04', '옥수수전분', '', '봉', 0, '12358'], ['DG_05', '로즈마리', '', '봉', 0, '12358'], ['SF_01', '버터갈릭시즈닝', '', '개', 0, '1298647523'],
     ['MS.248', '양파 소', '', '망', 1, ''], ['AL-001', '계란 30구', '30구', '판', 1, ''], ['CP01', '콩기름(식용유)', '1.8L', '병', 0, ''], ['CH.B01', '멸균우유', '1L', '팩', 1, '']
   ];
+  /* v293: 일반 매입처 — 이카운트 거래처 코드 (2026-10 거래처 목록·최근 1년 구매 기준) [코드, 이름, 사업자번호, 찾는 말] */
+  const STMT_SUP = [
+    ['1228170334', '철은인터내셔날', '1228170334', '철은'], ['240-86-00975', '(주)한국내츄럴치즈', '2408600975', '내츄럴|내추럴'],
+    ['159-86-03109', '주식회사 사우스코어', '1598603109', '사우스코어'], ['8491701789_2', '서로도우ㅁ(매입)', '8491701789', '서로도우'],
+    ['621-81-91627', '(양산)(주)서로푸드', '6218191627', '서로푸드'], ['246-87-01678', '(매입)바이오브래드 주식회사', '2468701678', '바이오\\s*브래드'],
+    ['7444800820', '금강베이커리', '7444800820', '금강베이커리'], ['781-85-00412', '(주)삼양사 판교', '7818500412', '삼양사'],
+    ['6978701949_2', '주식회사 마이브레드(매입)', '6978701949', '마이브레드'], ['251-88-02429_1', '(매입)해누리기업_53', '2518802429', '해누리'],
+    ['6848601228', '(주)브레드플랜트', '6848601228', '브레드플랜트'], ['6148802765', '이엠비에스(굿투베이커리)', '6148802765', '이엠비에스|굿투베이커리'],
+    ['5718702699', '바게트번(벗말식품)', '5718702699', '바게트번|벗말'], ['11356', '델리베이', '6278500888', '델리베이|DELIBAY'],
+    ['11479', '(매입)로이에프앤비', '', '로이\\s*에프앤비'], ['6058621726', '(주) 한국푸드본', '6058621726', '한국푸드본'],
+    ['531-86-02087', '(매입처) 주식회사 보명', '5318602087', '주식회사\\s*보명|㈜\\s*보명'], ['385-88-03153', '(하남)(주)하남제빵소', '3858803153', '하남제빵소'],
+    ['330-81-03571_1', '(청주)골든밀_매입', '3308103571', '골든밀'], ['289-87-01001', '(송파_매입)(주)이탈코', '2898701001', '이탈코'],
+    ['312-81-23021', '(주)선인', '3128123021', '\\(주\\)\\s*선인|㈜\\s*선인|주식회사\\s*선인'], ['602-88-01161', '(주)블랙와인커피', '6028801161', '블랙와인'],
+    ['120-86-17283', '(주)제이에이치엘코포레이션', '1208617283', '제이에이치엘'], ['117-09-27542', '엔젤비엔디', '1170927542', '엔젤비엔디'],
+    ['2018624249', '새로피엔엘', '2018624249', '새로피'], ['6208159788', '동진패키지', '6208159788', '동진패키지'], ['1262974765', '세영종합상사(김다영)', '1262974765', '세영종합']
+  ];
+  /* 명세표 품목 → 우리 품목 (10/28 이카운트 값연결로 확인한 짝). 앞 번호(B07 등)만 보면 틀려서 이름으로 찾음 */
+  const STMT_HINT = {
+    '1228170334': [[/설탕/, 'CH.A10'], [/마요네즈/, 'CH.000'], [/슈가\s*파우/, 'CH.B07'], [/펄\s*솔트/, 'CH.B23'], [/미로와/, 'CH.1226'], [/파슬리/, 'CH.27'], [/간\s*마늘|다진\s*마늘/, 'CH.05'], [/에버휩|생크림/, 'CH.123'], [/호두/, 'CH.20'], [/해바라기/, 'CH.17'], [/호박씨/, 'CH.18'], [/아몬드/, 'CH.28']],
+    '240-86-00975': [[/크림\s*치즈/, 'LH11'], [/마가린/, 'LH.2'], [/고메\s*버터|엘르\s*앤\s*비르/, 'LH26'], [/연유.*\b5\s*kg|\b5\s*kg.*연유/i, 'LH.5'], [/연유/, 'LH.5_1']],
+    '159-86-03109': [[/전란|에그앤리치/, 'SC02']]
+  };
+  const HINT_NM = { 'CH.A10': '하얀설탕 15kg', 'CH.000': '마요네즈 스파우트 3.2kg', 'CH.B07': '슈가파우더', 'CH.B23': '펄솔트 500g', 'CH.1226': '미로와데코젤 3kg', 'CH.27': '파슬리 250g', 'CH.05': '다진마늘 1kg', 'CH.123': '에버휩 생크림 1kg', 'CH.20': '호두', 'CH.17': '해바라기씨', 'CH.18': '호박씨', 'CH.28': '아몬드분말 1kg', 'LH11': '스미스필드 크림치즈 13.6kg', 'LH.2': '스마트 베이커 마가린 10kg', 'LH26': '엘르앤비르 고메버터', 'LH.5': '건국연유 5kg', 'LH.5_1': '건국연유 24kg', 'SC02': '에그앤리치 냉동전란 1kg×10' };
+  const OWN_BN = '2448802571';   /* 빵을그리다(옛 버블스윗트) — 명세표의 「공급받는자」라 거래처 찾기에서 뺌 */
+  const PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/';
+  const bnAll = t => { const o = []; String(t || '').replace(/(\d{3})\s*-\s*(\d{2})\s*-\s*(\d{5})/g, (w, a, b, c) => { const x = a + b + c; if (x !== OWN_BN && !o.includes(x)) o.push(x); return w; }); return o; };
   const WH = '10';   /* 입고창고 「빵을그리다」 */
   const ORG = '#C2620E', ORG_B = '#FDF0E3';
   function MS() { if (!S.mrc || typeof S.mrc !== 'object') S.mrc = {}; const M = S.mrc; ['list', 'alias', 'items', 'custs'].forEach(k => { if (!M[k] || typeof M[k] !== 'object') M[k] = {}; }); return M; }
@@ -10914,11 +10943,13 @@ try { (function () {
   const norm = s => String(s || '').toLowerCase().replace(/\(.*?\)|\[.*?\]/g, ' ').replace(/[^0-9a-z가-힣]/g, '');
   const md = d => d ? (+d.slice(5, 7)) + '/' + (+d.slice(8, 10)) : '';
   const nid = () => 'mr' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-  function custs() { const o = {}; Object.entries(MRC_CUST0).forEach(([c, a]) => { o[c] = { c, n: a[0], bn: a[1], px: a[2], kw: a[3] }; }); Object.entries(MS().custs).forEach(([c, a]) => { if (!o[c]) o[c] = { c, n: a[0], bn: a[1] || '', px: a[2] || '', kw: '' }; }); return o; }
-  function custFind(store, bizNo) {
-    const C = custs(), bn = String(bizNo || '').replace(/\D/g, ''), st = norm(store);
-    if (bn.length === 10) { const hit = Object.values(C).find(x => x.c === bn || String(x.bn).replace(/\D/g, '') === bn); if (hit) return hit; }
-    if (st) { const hit = Object.values(C).find(x => (x.kw && new RegExp(x.kw).test(store)) || (norm(x.n) && (st.includes(norm(x.n)) || norm(x.n).includes(st)))); if (hit) return hit; }
+  function custs() { const o = {}; Object.entries(MRC_CUST0).forEach(([c, a]) => { o[c] = { c, n: a[0], bn: a[1], px: a[2], kw: a[3] }; }); STMT_SUP.forEach(a => { if (!o[a[0]]) o[a[0]] = { c: a[0], n: a[1], bn: a[2], px: '', kw: a[3], sup: 1 }; }); Object.entries(MS().custs).forEach(([c, a]) => { if (!o[c]) o[c] = { c, n: a[0], bn: a[1] || '', px: a[2] || '', kw: '' }; }); return o; }
+  function custFind(store, bizNo, text) {
+    const C = custs(), st = norm(store);
+    const bns = [String(bizNo || '').replace(/\D/g, '')].concat(bnAll(text)).filter((x, i, A) => x.length === 10 && x !== OWN_BN && A.indexOf(x) === i);
+    for (const bn of bns) { const hit = Object.values(C).find(x => x.c === bn || String(x.bn).replace(/\D/g, '') === bn); if (hit) return hit; }
+    if (text) { const T = String(text).split('\n').filter(s => !/빵\s*을?\s*그\s*리\s*다|버블스윗트|만선로/.test(s)).join('\n'); const hit = Object.values(C).find(x => x.sup && x.kw && new RegExp(x.kw, 'i').test(T)); if (hit) return hit; }
+    if (st && !/빵을?그리다|버블스윗트/.test(st)) { const hit = Object.values(C).find(x => (x.kw && new RegExp(x.kw).test(store)) || (norm(x.n) && (st.includes(norm(x.n)) || norm(x.n).includes(st)))); if (hit) return hit; }
     return null;
   }
   function allItems() {
@@ -10927,12 +10958,15 @@ try { (function () {
     MRC_SEED.forEach(a => { if (!m.has(a[0])) m.set(a[0], { c: a[0], n: a[1], s: a[2], u: a[3], f: a[4], k: a[5] }); });
     try { Object.entries((S.master && S.master.items) || {}).forEach(([c, o]) => { if (!m.has(c) && o && o.name) m.set(c, { c, n: String(o.name), s: o.spec || '', u: '', f: null, k: '' }); }); } catch (e) {}
     try { const w = latestWeek(); ((S.snapshots[w] && S.snapshots[w].items) || []).forEach(i => { if (i.code && !m.has(i.code)) m.set(i.code, { c: i.code, n: String(i.name || i.code), s: '', u: '', f: null, k: '' }); }); } catch (e) {}
+    try { (rbS().po || []).slice(-40).forEach(p => { const cu = custFind(p.sup, '', ''); (p.lines || []).forEach(l => { if (l.buy && !m.has(l.buy)) m.set(l.buy, { c: l.buy, n: String(l.bname || l.name || l.buy), s: '', u: l.u || '', f: null, k: cu ? cu.c : '' }); }); }); } catch (e) {}
+    Object.entries(STMT_HINT).forEach(([cu, L]) => L.forEach(a => { const x = m.get(a[1]); if (x) { if (!x.k) x.k = cu; } else m.set(a[1], { c: a[1], n: HINT_NM[a[1]] || a[1], s: '', u: '', f: null, k: cu }); }));
     return [...m.values()].filter(x => !/_0$/.test(x.c) && !/_gg\d/.test(x.n));
   }
   function dice(a, b) { a = norm(a); b = norm(b); if (!a || !b) return 0; if (a === b) return 1; if (a.length > 1 && (b.includes(a) || a.includes(b))) return 0.85; const bg = s => { const o = []; for (let i = 0; i < s.length - 1; i++) o.push(s.slice(i, i + 2)); return o; }; const A = bg(a), B = bg(b); if (!A.length || !B.length) return 0; let h = 0; const used = B.slice(); A.forEach(x => { const k = used.indexOf(x); if (k >= 0) { h++; used.splice(k, 1); } }); return 2 * h / (A.length + B.length); }
   function matchLine(l, cust) {
     const al = (MS().alias[cust] || {}), k = norm(l.raw || l.name);
     if (k && al[k]) { const it = allItems().find(x => x.c === al[k]); if (it) return { it, ok: 1, why: '기억' }; }
+    const H0 = STMT_HINT[cust]; if (H0) { const tx = String(l.raw || l.name || ''); const h = H0.find(a => a[0].test(tx)); if (h) { const it = allItems().find(x => x.c === h[1]); if (it) return { it, ok: 1, why: '자주 쓰는 짝' }; } }
     let best = null, bs = 0;
     allItems().forEach(x => { let s = Math.max(dice(l.name, x.n), dice(l.raw, x.n) * 0.95); if (x.k && x.k === cust) s += 0.08; if (s > bs) { bs = s; best = x; } });
     if (best && bs >= 0.62) return { it: best, ok: 0, why: '비슷한 이름' };
@@ -10995,26 +11029,203 @@ try { (function () {
     return o;
   }
 
+  /* ── v293: 거래명세표 읽기 (엑셀 · PDF 글자 · 사진 글자인식) ── */
+  function parseExp(s) {
+    s = String(s == null ? '' : s).trim(); if (!s) return '';
+    let y, mo, d, m = s.match(/(20\d{2})\s*[-./년]\s*(\d{1,2})\s*[-./월]\s*(\d{1,2})/) || s.match(/(?:^|\D)(20\d{2})(\d{2})(\d{2})(?!\d)/);
+    if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; } else { m = s.match(/(?:^|[^\d])(\d{2})\s*[-./]\s*(\d{1,2})\s*[-./]\s*(\d{1,2})(?![\d])/); if (!m) return ''; y = 2000 + +m[1]; mo = +m[2]; d = +m[3]; }
+    if (y < 2024 || y > 2035 || mo < 1 || mo > 12 || d < 1 || d > 31) return '';
+    return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
+  const rmk = l => [l.exp ? String(l.exp).slice(2).replace(/-/g, '.') : '', l.lot ? 'LOT ' + l.lot : ''].filter(Boolean).join(' ');   /* 이카운트 적요 — 기존 구매 전표처럼 소비기한 YY.MM.DD */
+  const unitN = u => /^ea$/i.test(u) ? 'EA' : /^box$/i.test(u) ? 'BOX' : /^pk$/i.test(u) ? 'PK' : String(u || '');
+  function fileKind(f) { const n = String((f && f.name) || ''), t = String((f && f.type) || ''); if (/^image\//.test(t) || /\.(jpe?g|png|webp|heic|heif|gif)$/i.test(n)) return 'photo'; if (/pdf/i.test(t) || /\.pdf$/i.test(n)) return 'pdf'; if (/sheet|excel|csv/i.test(t) || /\.(xlsx|xlsm|xls|csv)$/i.test(n)) return 'xlsx'; return ''; }
+  function isStmt(T) { T = String(T || ''); return /거\s*래\s*명\s*세|납\s*품\s*서|명\s*세\s*서|명\s*세\s*표/.test(T) || (/공\s*급\s*가\s*액/.test(T) && /단\s*가/.test(T) && !/(승인\s*번호|카드\s*번호|신용\s*카드|현금\s*영수증|POS)/i.test(T)); }
+  /* 공급자 사업자번호·상호·날짜·합계 */
+  function docMeta(T) {
+    T = String(T || ''); const o = { store: '', bizNo: '', date: '', total: 0, tc: [] };
+    const bn = bnAll(T); if (bn.length) o.bizNo = bn[0].replace(/(\d{3})(\d{2})(\d{5})/, '$1-$2-$3');
+    const dm = T.match(/(20\d{2})\s*[-./년]\s*(\d{1,2})\s*[-./월]\s*(\d{1,2})/); if (dm) o.date = dm[1] + '-' + dm[2].padStart(2, '0') + '-' + dm[3].padStart(2, '0');
+    const L = T.split('\n').map(s => s.trim()).filter(Boolean), OUR = /빵\s*을?\s*그\s*리\s*다|버블스윗트/;
+    const si = L.findIndex((s, i) => /상\s*호/.test(s) && !OUR.test(s.replace(/.*상\s*호/, '') || L[i + 1] || ''));
+    if (si >= 0) { const v = L[si].replace(/.*상\s*호\s*(\(\s*법인명\s*\))?\s*[:：]?/, '').trim(); o.store = (v.length >= 2 ? v : (L[si + 1] || '')).replace(/\s*(성\s*명|대\s*표).*$/, '').trim().slice(0, 40); if (OUR.test(o.store)) o.store = ''; }
+    (T.match(/[₩W]\s*\d{1,3}(?:,\d{3})+/g) || []).forEach(w => o.tc.push(n0(w)));
+    L.forEach((s, i) => { if (/(총\s*합\s*계|합\s*계\s*금\s*액|청\s*구\s*금\s*액|총\s*금\s*액|^합\s*계)/.test(s)) { const m = s.match(/(\d{1,3}(?:,\d{3})+|\d{4,9})(?!.*\d)/); if (m) o.tc.push(n0(m[1])); else if (L[i + 1] && /^[\d,]{4,}$/.test(L[i + 1])) o.tc.push(n0(L[i + 1])); } });
+    for (const m of T.matchAll(/[^공급가액세]\s*합\s*계\s*(?:금\s*액)?\s*[:：]?\s*(\d{1,3}(?:,\d{3})+)/g)) o.tc.push(n0(m[1]));
+    o.tc = o.tc.filter(v => v > 0); o.total = o.tc[0] || 0; return o;
+  }
+  const HDF = [['date', /^(일\s*자|월\s*일|날\s*짜|거래\s*일)$/], ['code', /품\s*목\s*코\s*드|상\s*품\s*코\s*드|^코\s*드$/], ['name', /품\s*목\s*명|품\s*명|상\s*품\s*명|제\s*품\s*명|^품\s*목$|^내\s*역$/], ['spec', /규\s*격/], ['qty', /수\s*량/], ['unit', /^단\s*위$/], ['price', /단\s*가/],
+    ['vat', /세\s*액|부\s*가\s*세|^vat$/i], ['tot', /합\s*계|총\s*액|^계$/], ['sup', /공\s*급\s*가|금\s*액/], ['exp', /소비\s*기한|유통\s*기한|유효\s*기간|기\s*한/], ['lot', /lot|로\s*트|제조\s*번호|batch/i], ['note', /비\s*고|적\s*요/]];
+  const cellS = c => (c instanceof Date ? c.getFullYear() + '-' + String(c.getMonth() + 1).padStart(2, '0') + '-' + String(c.getDate()).padStart(2, '0') : String(c && typeof c === 'object' ? c.s : c == null ? '' : c)).trim();
+  function hdrMap(row) { const map = {}; (row || []).forEach((c, i) => { const s = cellS(c); if (!s || s.length > 16) return; for (const [f, re] of HDF) { if (re.test(s)) { if (map[f] == null) map[f] = i; break; } } }); return map; }
+  /* 표(엑셀 줄 또는 PDF 글자 줄) → 명세표 줄. 머리줄(품목명·수량·공급가액/단가)을 찾아 칸을 맞춤. PDF는 글자 위치(x)로 가장 가까운 머리 칸에 넣음 */
+  function parseTable(rows, T) {
+    const o = docMeta(T); o.lines = [];
+    let h = -1, map = null;
+    for (let i = 0; i < Math.min(rows.length, 80); i++) { const m = hdrMap(rows[i]); if (m.name != null && m.qty != null && (m.sup != null || m.price != null || m.tot != null)) { h = i; map = m; break; } }
+    if (h < 0) return o;
+    const hdr = rows[h], pos = hdr.some(c => c && typeof c === 'object' && c.x0 != null);
+    const cols = Object.entries(map).map(([f, i]) => ({ f, i, x: pos ? (hdr[i].x0 + hdr[i].x1) / 2 : 0 }));
+    const get = row => { const v = {}; if (pos) { row.forEach(c => { if (!c || c.x0 == null) return; const cx = (c.x0 + c.x1) / 2; let best = null, bd = 1e9; cols.forEach(k => { const d = Math.abs(k.x - cx); if (d < bd) { bd = d; best = k; } }); if (best) v[best.f] = (v[best.f] ? v[best.f] + ' ' : '') + c.s; }); } else cols.forEach(k => { v[k.f] = cellS(row[k.i]); }); return v; };
+    const has = s => s != null && String(s).trim() !== '';
+    for (let i = h + 1; i < rows.length; i++) {
+      const row = rows[i] || [], all = row.map(cellS).join(' ').trim(); if (!all) continue;
+      const v = get(row), nm0 = String(v.name || '').trim();
+      if (/^(총\s*합\s*계|합\s*계|소\s*계|총\s*계|계|total)(\s|$|:)/i.test(all) || /^(총\s*합\s*계|합\s*계|소\s*계|계)$/.test(nm0)) break;
+      const hm = hdrMap(row); if (hm.qty != null && hm.name != null) continue;   /* 쪽마다 반복되는 머리줄 */
+      const name = nm0.replace(/^\d{1,2}\/\d{1,2}\s+/, '').trim();
+      const qm = String(v.qty || '').match(/(-?\d[\d,]*(?:\.\d+)?)\s*([^\d\s,.()]*)/);
+      const qty = qm ? n0(qm[1]) : 0, price = n0(v.price);
+      const sup0 = has(v.sup) ? n0(v.sup) : null, vat0 = has(v.vat) ? n0(v.vat) : null, tot0 = has(v.tot) ? n0(v.tot) : null;
+      if (!name) continue;
+      if (!qty && !sup0 && !price && !tot0) { const L0 = o.lines[o.lines.length - 1]; if (L0 && name.length < 14) L0.raw += ' ' + name; continue; }   /* 줄바꿈된 품명 이어 붙이기 */
+      let sup = sup0, vat = vat0, vg = 0;
+      if (sup == null && tot0 != null && vat != null) sup = tot0 - vat;
+      if (sup == null && price && qty) sup = Math.round(price * qty);
+      if (sup == null && tot0 != null) sup = tot0;
+      if (vat == null) { if (tot0 != null && sup != null && tot0 !== sup) vat = tot0 - sup; else if (map.vat != null) vat = 0; else if (sup != null) { vat = /면세|비과세/.test(name) ? 0 : Math.round(sup * 0.1); vg = vat ? 1 : 0; } }
+      sup = sup || 0; vat = vat || 0;
+      const spec = String(v.spec || '').trim();
+      o.lines.push({ raw: (name + (spec && !name.includes(spec) ? ' [' + spec + ']' : '')).trim(), name, qty: qty || 1, unit: unitN((qm && qm[2]) || String(v.unit || '').trim()) || '개', price: price || (qty ? Math.round(sup / qty) : sup), sup, vat, free: vat === 0 && sup > 0 ? 1 : 0, exp: parseExp(v.exp) || parseExp(v.note) || '', lot: String(v.lot || '').trim().slice(0, 30), vg });
+    }
+    const sum = o.lines.reduce((s, l) => s + l.sup + l.vat, 0); if (o.tc.includes(sum)) o.total = sum;
+    return o;
+  }
+  /* 사진 글자인식 글자(칸이 흩어짐) → 수량×단가≈공급가액, 세액≈공급가액의 10% 짝을 찾음 */
+  function parseStmtText(text) {
+    const T = String(text || '').replace(/\r/g, ''), L = T.split('\n').map(s => s.trim()).filter(Boolean);
+    const t1 = parseTable(L.map(s => s.split(/\t|\s{2,}/)), T); if (t1.lines.length && t1.lines.every(l => l.sup > 0)) return t1;
+    const o = docMeta(T); o.lines = [];
+    let hi = L.findIndex(s => /(품\s*목\s*명|상\s*품\s*명|품\s*명)/.test(s)); if (hi < 0) hi = 0;
+    let ei = L.findIndex((s, i) => i > hi && /(총\s*합\s*계|합\s*계\s*금\s*액|^합\s*계|총\s*매\s*출|공급가액\s*합계)/.test(s)); if (ei < 0) ei = L.length;
+    const body = L.slice(hi + 1, ei), exps = [], toks = [], tset = new Set(o.tc), names = [];
+    const HDR2 = /(단가|수량|공급가|부가세|세액|비고|적요|일련번호|사업자|등록번호|성명|상호|주소|전화|TEL|FAX|대표|업태|종목|貴中|귀중|금액|합계|입수|바코드|중량|일자|품목명|상품명|규격|위포함)/i;
+    const NOISE = /(주소|TEL|FAX|전화|사업자|등록\s*번호|일련\s*번호|계좌|[가-힣]+(시|군|구|읍|면|동|로|길)\s*\d)/i;
+    body.forEach((s0, li) => {
+      let s = NOISE.test(s0) ? '' : s0.replace(/\b0\d{1,2}-\d{3,4}-\d{4}\b/g, ' ').replace(/\d{3}\s*-\s*\d{2}\s*-\s*\d{5}/g, ' ').replace(/-?\d+(\.\d+)?\s*°\s*C?/gi, ' ').replace(/\[[^\]]*\]?/g, ' ').replace(/\(\s*[\d.]+\s*(kg|g|ml|l|ea)\s*\)/gi, ' ').replace(/\b[A-Z]{1,3}\d{1,3}(-\d)?\)/g, ' ').replace(/\b\d{1,2}\/\d{1,2}\b/g, ' ').replace(/\b20\d{2}[-./]\d{1,2}[-./]\d{1,2}\b/g, ' ');
+      s = s.replace(/(^|\s)(\d{2}\s*[.\-]\s*\d{1,2}\s*[.\-]\s*\d{1,2})(?=\s|$)/g, (w, a, d) => { const e = parseExp(d); if (e) exps.push(e); return ' '; });
+      s.replace(/(\d{1,3}(?:,\s?\d{3})+|\d{1,3}(?:\.\d{3})+(?![\d.])|\d+(?:\.\d{1,2})?)\s*(포|ea|개|박스|box|봉|팩|통|병|캔|판|pk|set|매|롤)?/gi, (w, n, u) => { const th = /^\d{1,3}(\.\d{3})+$/.test(n), plain = !/,/.test(n) && !th; if (plain && n.replace(/\D/g, '').length >= 8) return w; toks.push({ v: th ? Number(n.replace(/\./g, '')) : Number(n.replace(/[,\s]/g, '')), u: u || '', li }); return w; });
+      let nm = ''; const m = s0.match(/^\d{1,2}\/\d{1,2}\s+(.+)$/);
+      if (m && /[가-힣A-Za-z]{2,}/.test(m[1])) nm = m[1];
+      else if (li > 0 && /^\d{1,2}\/\d{1,2}$/.test(body[li - 1]) && /[가-힣A-Za-z]{2,}/.test(s0) && !HDR2.test(s0)) nm = s0;
+      else if (/[가-힣]{2,}/.test(s0) && /\[[^\]]+\]|\(\s*[\d.]+\s*(kg|g|ml|l)\s*\)|^[A-Z]{1,2}\d{2}/i.test(s0) && !HDR2.test(s0)) nm = s0;
+      if (nm) names.push(nm.replace(/\s{2,}/g, ' ').trim());
+    });
+    const cand = [], used = new Set();
+    for (let k = 0; k < toks.length; k++) { const s = toks[k].v; if (!(s >= 100) || tset.has(s)) continue;
+      for (let i = 0; i < toks.length; i++) { if (i === k) continue; const q = toks[i].v; if (!(q > 0 && q <= 5000)) continue;
+        for (let j = 0; j < toks.length; j++) { if (j === k || j === i) continue; const p = toks[j].v; if (!(p >= 10) || p > s + 0.5 || (p < q && !toks[i].u)) continue;
+          if (Math.abs(q * p - s) <= Math.max(1, q * 0.6)) cand.push({ i, j, k, q, p, s, d: Math.abs(i - j) + Math.abs(j - k) + (toks[i].u ? 0 : 3) + (q === 1 && p === s ? 2 : 0) }); } } }
+    cand.sort((a, b) => a.d - b.d); const trip = [];
+    cand.forEach(c => { if (used.has(c.i) || used.has(c.j) || used.has(c.k)) return; used.add(c.i); used.add(c.j); used.add(c.k); trip.push(c); });
+    trip.forEach(c => { let bv = -1, bd = 1e9; toks.forEach((t, x) => { if (used.has(x) || Math.abs(t.v - c.s / 10) > 1.5) return; const d = Math.abs(x - c.k); if (d < bd) { bd = d; bv = x; } }); if (bv >= 0) { used.add(bv); c.v = toks[bv].v; } else c.v = null; });
+    trip.sort((a, b) => Math.min(a.i, a.j) - Math.min(b.i, b.j));
+    /* 「4포·8Ea」처럼 단위가 붙은 수량이 품명 수와 같으면 그 순서로 줄을 맞춤 (금액이 흐려 못 읽은 줄은 수량만 넣고 빈칸) */
+    const qU = toks.map((t, x) => t.u ? x : -1).filter(x => x >= 0); let slots = null;
+    if (names.length && qU.length === names.length) { slots = names.map(() => null); trip.forEach(c => { const s = qU.indexOf(c.i); if (s >= 0 && !slots[s]) slots[s] = c; }); }
+    const n = slots ? names.length : Math.max(names.length, trip.length);
+    for (let x = 0; x < n; x++) { const nm = names[x] || '', c = slots ? slots[x] : trip[x], free = /면세|비과세/.test(nm), qt = slots && !c ? toks[qU[x]] : null;
+      const sup = c ? Math.round(c.s) : 0, vat = c ? (c.v != null ? c.v : free ? 0 : Math.round(sup * 0.1)) : 0;
+      o.lines.push({ raw: nm, name: nm, qty: c ? c.q : qt ? qt.v : 1, unit: c && toks[c.i].u ? unitN(toks[c.i].u) : qt ? unitN(qt.u) : '개', price: c ? c.p : 0, sup, vat, free: c && c.v == null && free ? 1 : 0, exp: exps.length === n ? exps[x] : '', lot: '', vg: c && c.v == null && !free ? 1 : 0 }); }
+    const sum = o.lines.reduce((s, l) => s + l.sup + l.vat, 0); if (o.tc.includes(sum)) o.total = sum;
+    return o;
+  }
+  /* PDF: pdf.js(처음 쓸 때만 내려받음)로 글자와 위치를 읽고, 앞 2쪽은 그림으로도 만듦(보관·글자 없는 스캔 PDF 글자인식용) */
+  let _pdfjs = null;
+  function pdfLib() { if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib); if (_pdfjs) return _pdfjs; _pdfjs = new Promise((ok, no) => { const s = document.createElement('script'); s.src = PDFJS + 'pdf.min.js'; s.onload = () => { try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js'; ok(window.pdfjsLib); } catch (e) { no(e); } }; s.onerror = () => { _pdfjs = null; no(new Error('PDF 읽기 도구를 못 불러왔어요 (인터넷 연결 확인)')); }; document.head.appendChild(s); }); return _pdfjs; }
+  async function pdfRead(f) {
+    const lib = await pdfLib(); const doc = await lib.getDocument({ data: new Uint8Array(await f.arrayBuffer()) }).promise;
+    const rows = [], imgs = []; let chars = 0;
+    for (let p = 1; p <= Math.min(doc.numPages, 5); p++) {
+      const pg = await doc.getPage(p), tc = await pg.getTextContent();
+      const its = tc.items.filter(i => i.str && i.str.trim()).map(i => ({ s: i.str.trim(), x: i.transform[4], y: i.transform[5], w: i.width || 0 }));
+      chars += its.reduce((a, i) => a + i.s.length, 0);
+      its.sort((a, b) => b.y - a.y || a.x - b.x); let cur = null;
+      its.forEach(i => { if (!cur || Math.abs(cur.y - i.y) > 3) { cur = { y: i.y, items: [] }; rows.push(cur); } cur.items.push(i); });
+      if (p <= 2) { const vp = pg.getViewport({ scale: 1 }), k = Math.min(2.5, 1800 / Math.max(vp.width, vp.height)), v2 = pg.getViewport({ scale: k }); const c = document.createElement('canvas'); c.width = Math.round(v2.width); c.height = Math.round(v2.height); const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); await pg.render({ canvasContext: ctx, viewport: v2 }).promise; imgs.push(c); }
+    }
+    rows.forEach(r => r.items.sort((a, b) => a.x - b.x));
+    return { rows, chars, imgs, pages: doc.numPages };
+  }
+  function pdfCells(r) { const out = []; r.items.forEach(i => { const x1 = i.x + (i.w || i.s.length * 5), last = out[out.length - 1]; if (last && i.x - last.x1 < 3.5) { last.s += (i.x - last.x1 > 1 ? ' ' : '') + i.s; last.x1 = x1; } else out.push({ s: i.s, x0: i.x, x1 }); }); return out; }
+  /* PDF 표: 머리칸이 2~3줄로 접히고(수량(단위포/함)) 품명이 위·아래 줄로 넘치므로, 머리는 위치가 겹치는 글자끼리 합치고
+     숫자가 있는 줄을 기준 줄로, 숫자 없는 품명 조각은 세로로 가장 가까운 기준 줄에 붙임 */
+  function parsePdf(P, T) {
+    const R = P.rows.map(r => ({ y: r.y, cells: pdfCells(r) })), o = docMeta(T); o.lines = [];
+    const h = R.findIndex((r, i) => /품\s*목|품\s*명|상\s*품\s*명/.test(r.cells.map(c => c.s).join(' ')) && /단\s*가|수\s*량|공\s*급/.test(R.slice(Math.max(0, i - 2), i + 3).map(x => x.cells.map(c => c.s).join(' ')).join(' ')));
+    if (h < 0) return o;
+    const band = R.slice(Math.max(0, h - 2), h + 3).filter(r => Math.abs(r.y - R[h].y) <= 16), bi = R.indexOf(band[band.length - 1]);
+    const hc = []; band.forEach(r => r.cells.forEach(c => { const g = hc.find(x => c.x0 < x.x1 + 2 && c.x1 > x.x0 - 2); if (g) { g.s += c.s; g.x0 = Math.min(g.x0, c.x0); g.x1 = Math.max(g.x1, c.x1); } else hc.push({ s: c.s, x0: c.x0, x1: c.x1 }); }));
+    hc.sort((a, b) => a.x0 - b.x0); const map = hdrMap(hc);
+    if (map.name == null || (map.sup == null && map.price == null && map.tot == null)) return o;
+    const cols = Object.entries(map).map(([f, i]) => ({ f, x: (hc[i].x0 + hc[i].x1) / 2 }));
+    const anchors = [], loose = [];
+    for (let i = bi + 1; i < R.length; i++) { const v = {}; R[i].cells.forEach(c => { const cx = (c.x0 + c.x1) / 2; let best = null, bd = 1e9; cols.forEach(k => { const d = Math.abs(k.x - cx); if (d < bd) { bd = d; best = k; } }); v[best.f] = (v[best.f] ? v[best.f] + ' ' : '') + c.s; });
+      const all = R[i].cells.map(c => c.s).join(' '); if (/^(총\s*합\s*계|합\s*계|소\s*계|계)(\s|$)/.test(all) || /^(총\s*합\s*계|합\s*계|소\s*계)$/.test(String(v.name || '').trim())) break;
+      if (/\d/.test((v.qty || '') + (v.sup || '') + (v.price || '') + (v.tot || ''))) anchors.push({ y: R[i].y, v }); else if (v.name) loose.push({ y: R[i].y, s: v.name }); }
+    loose.forEach(x => { let b = null, bd = 1e9; anchors.forEach(a => { const d = Math.abs(a.y - x.y); if (d < bd) { bd = d; b = a; } }); if (b && bd <= 24) (b.extra = b.extra || []).push(x); });
+    const rows = [Object.keys(map).map(f => f)], fs = Object.keys(map);
+    anchors.forEach(a => { const parts = (a.extra || []).concat([{ y: a.y, s: a.v.name || '' }]).sort((p, q) => q.y - p.y).map(p => p.s).filter(Boolean); const v = Object.assign({}, a.v, { name: parts.join(' ').replace(/\b\d{1,2}\/\d{1,2}\b/g, ' ').replace(/\s{2,}/g, ' ').trim() }); rows.push(fs.map(f => v[f] || '')); });
+    const HN = { date: '일자', code: '품목코드', name: '품목명', spec: '규격', qty: '수량', unit: '단위', price: '단가', vat: '세액', tot: '합계', sup: '공급가액', exp: '소비기한', lot: 'LOT', note: '비고' };
+    rows[0] = fs.map(f => HN[f] || f);
+    const t = parseTable(rows, T); return Object.assign(o, { lines: t.lines, total: t.total || o.total });
+  }
+  function stackImgs(cs) { if (!cs.length) return ''; const w = Math.min(1400, Math.max(...cs.map(c => c.width))); const hs = cs.map(c => Math.round(c.height * w / c.width)); const out = document.createElement('canvas'); out.width = w; out.height = Math.min(4200, hs.reduce((a, b) => a + b, 0)); const x = out.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, out.width, out.height); let y = 0; cs.forEach((c, i) => { x.drawImage(c, 0, y, w, hs[i]); y += hs[i]; }); return out.toDataURL('image/jpeg', 0.8); }
+  async function fromPdf(f) {
+    const P = await pdfRead(f), img = stackImgs(P.imgs); let o;
+    if (P.chars >= 40) { const T = P.rows.map(r => pdfCells(r).map(c => c.s).join('  ')).join('\n'); o = parsePdf(P, T); if (!o.lines.length) o = parseStmtText(T); o.text = T; }
+    else { let T = ''; for (const c of P.imgs) { const r0 = await rc({ action: 'readReceipt', img: c.toDataURL('image/jpeg', 0.85).split(',')[1], mime: 'image/jpeg', names: [], ocr: 1 }); T += (r0.text || '') + '\n'; } o = Object.assign(parseStmtText(T), { ocr: 1, text: T }); }
+    return buildStmt(o, { n: f.name || 'PDF', k: 'pdf' }, img);
+  }
+  /* 엑셀: 앞 3장의 모든 줄을 읽어 머리줄을 찾음 (AI 필요 없음) */
+  async function xlsRead(f) { const wb = XLSX.read(new Uint8Array(await f.arrayBuffer()), { type: 'array', cellDates: true }); const rows = []; wb.SheetNames.slice(0, 3).forEach(n => { XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }).forEach(r => rows.push(r.map(c => c instanceof Date ? cellS(c) : String(c == null ? '' : c).trim()))); }); return rows; }
+  async function fromXls(f) { const rows = await xlsRead(f), T = rows.map(r => r.join('  ')).join('\n'), o = parseTable(rows, T); o.text = T; if (!o.lines.length) throw new Error('엑셀에서 품목 표(품목명·수량·공급가액 머리줄)를 찾지 못했어요'); return buildStmt(o, { n: f.name || '엑셀', k: 'xlsx' }, ''); }
+  function priceOf(code) { try { const P = (rbS().po || []).slice().reverse(); for (const p of P) { const l = (p.lines || []).find(x => x.buy === code && x.price); if (l) return n0(l.price); } } catch (e) {} try { const a = Object.values(RB_RAW0).find(a => a[2] === code && a[8]); if (a) return n0(a[8]); } catch (e) {} return 0; }
+  function buildStmt(o, file, img) {
+    const rec = blank('stmt'); rec.file = file; rec.store = o.store || ''; rec.bizNo = o.bizNo || ''; rec.date = o.date || today(); rec.total = o.total || 0; rec.ocr = o.ocr ? 1 : 0;
+    rec.note = o.ocr ? '사진 글자인식(무료)으로 읽었어요. 줄과 금액 짝이 바뀌었거나 빠진 줄이 있을 수 있으니 명세표와 꼭 맞춰 보세요.' : '';
+    const c = custFind(o.store, o.bizNo, o.text || ''); if (c) { rec.cust = c.c; rec.custName = c.n; }
+    rec.lines = (o.lines || []).map(l => { const x = Object.assign(emptyLine(), { raw: l.raw, name: l.name || l.raw, qty: l.qty || 1, unit: l.unit || '개', price: l.price || 0, sup: l.sup || 0, vat: l.vat || 0, free: l.free ? 1 : 0, exp: l.exp || '', lot: l.lot || '', vg: l.vg || 0 }); applyMatch(x, rec.cust); x.free = l.free ? 1 : 0;
+      if (!(x.sup > 0) && x.code) { const kp = priceOf(x.code); if (kp) { x.price = kp; x.sup = Math.round(kp * x.qty); x.vat = Math.round(x.sup * 0.1); x.pg = 1; x.vg = 1; } }
+      x.amt = lineAmt(x, rec); return x; });
+    const same = Object.values(MS().list).find(x => x.st !== 'cancel' && x.file && file.k !== 'photo' && x.file.n === file.n);
+    if (same) rec.note = (rec.note ? rec.note + ' ' : '') + `⚠ 같은 이름의 파일을 ${md(same.date)}에 이미 넣었어요 (${(ST[same.st] || ST.draft)[0]}). 같은 명세표인지 확인해 주세요.`;
+    MS().list[rec.id] = rec; if (img) MR.photo[rec.id] = img; save(); if (img) upPhoto(rec); return rec;
+  }
+  /* 보낸 명세표·영수증과 같은 매입처의 「발주 중」 발주(같은 품목이 하나라도 있으면) → 「입고 완료」 */
+  function poRecv(r) {
+    try { const R = rbS(), cn = norm(r.custName), codes = new Set(r.lines.map(l => l.nw ? l.nw.PROD_CD : l.code).filter(Boolean)); if (!cn || !codes.size) return '';
+      const hit = (R.po || []).filter(p => p.status === 'sent' && String(p.at || '').slice(0, 10) <= r.date && (norm(p.sup) === cn || norm(p.sup).includes(cn) || cn.includes(norm(p.sup)) || ((custFind(p.sup, '', '') || {}).c === r.cust)) && (p.lines || []).some(l => codes.has(l.buy)));
+      if (!hit.length) return '';
+      hit.forEach(p => { p.status = 'recv'; p.doneAt = new Date().toISOString(); p.mt = p.doneAt; p.recvBy = '구매 입력 ' + md(r.date) + (r.by ? ' · ' + r.by : ''); });
+      rbSave(); return hit.map(p => p.sup + ' ' + md(String(p.at).slice(0, 10)) + ' 발주').join(', ');
+    } catch (e) { return ''; } }
+
   /* ── 새 영수증 ── */
   function blank(src) { return { id: nid(), at: new Date().toISOString(), by: me(), src, img: '', store: '', cust: '', custName: '', bizNo: '', newCust: 0, date: today(), total: 0, note: '', why: '', lines: [], st: 'draft', tries: 0, mt: '' }; }
-  function emptyLine() { return { raw: '', code: '', name: '', spec: '', qty: 1, unit: '개', amt: 0, free: null, exp: '', insp: 1, ok: 0 }; }
+  function emptyLine() { return { raw: '', code: '', name: '', spec: '', qty: 1, unit: '개', amt: 0, free: null, exp: '', insp: 1, ok: 0, price: 0, sup: 0, vat: 0, lot: '' }; }
   async function fromPhotos(files) {
-    files = [...files].filter(f => /^image\//.test(f.type)); if (!files.length) return;
+    files = [...files]; if (!files.length) return;
     const names = allItems().slice(0, 300).map(x => x.n);
     let made = 0, last = null;
     for (let i = 0; i < files.length; i++) {
-      MR.busy = `AI가 영수증을 읽는 중… (${i + 1}/${files.length}, 10~40초)`; render();
+      const f = files[i], fk = fileKind(f);
+      if (!fk) { MR.msg = '⚠ ' + (f.name || '파일') + ': 사진·PDF·엑셀 파일만 넣을 수 있어요'; continue; }
+      MR.busy = `${fk === 'xlsx' ? '엑셀' : fk === 'pdf' ? 'PDF' : '사진'}을 읽는 중… (${i + 1}/${files.length}${fk === 'xlsx' ? '' : ', 10~40초'})`; render();
       try {
+        if (fk !== 'photo') { last = await (fk === 'pdf' ? fromPdf(f) : fromXls(f)); made++; continue; }
         const data = await imgB64(files[i], 2000);
-        const r0 = await rc({ action: 'readReceipt', img: data.split(',')[1], mime: 'image/jpeg', names }); const r = r0.ocr ? Object.assign(parseOcr(r0.text), { ocr: 1 }) : r0;
+        const r0 = await rc({ action: 'readReceipt', img: data.split(',')[1], mime: 'image/jpeg', names });
+        if (r0.ocr && isStmt(r0.text)) { last = buildStmt(Object.assign(parseStmtText(r0.text), { ocr: 1, text: r0.text }), { n: f.name || '사진', k: 'photo' }, data); made++; continue; }
+        const r = r0.ocr ? Object.assign(parseOcr(r0.text), { ocr: 1 }) : r0;
         const rec = blank('photo'); MR.photo[rec.id] = data; rec.store = r.store; rec.bizNo = r.bizNo; rec.date = r.date || today(); rec.total = r.total; rec.note = r.note || ''; rec.ocr = r.ocr ? 1 : 0;
         rec.ai = { free: r.freeTotal, tax: r.taxTotal, vat: r.vat };
         const c = custFind(r.store, r.bizNo); if (c) { rec.cust = c.c; rec.custName = c.n; } else { const bn = String(r.bizNo || '').replace(/\D/g, ''); if (bn.length === 10) { rec.cust = bn; rec.custName = r.store; rec.newCust = 1; } }
         rec.lines = (r.lines || []).map(l => { const x = Object.assign(emptyLine(), { raw: l.raw, name: l.name || l.raw, qty: l.qty || 1, unit: l.unit || '개', amt: l.amt, free: l.tax === '면세' ? 1 : l.tax === '과세' ? 0 : null }); const aiFree = x.free; applyMatch(x, rec.cust); if (aiFree != null) x.free = aiFree; if (x.free == null) x.free = 0; return x; });
         MS().list[rec.id] = rec; save(); made++; last = rec; upPhoto(rec);
-      } catch (e) { MR.msg = '⚠ ' + (i + 1) + '번째 사진을 읽지 못했어요: ' + e.message + (e.nokey ? ' — 영수증 없이 입력으로 적어 주세요' : ''); }
+      } catch (e) { MR.msg = '⚠ ' + (i + 1) + '번째 파일을 읽지 못했어요: ' + e.message + (e.nokey ? ' — 영수증 없이 입력으로 적어 주세요' : ''); }
     }
-    MR.busy = ''; if (made === 1) { MR.cur = last; MR.view = 'edit'; } else { MR.view = 'home'; if (made > 1) MR.msg = `✓ 영수증 ${made}장을 읽었어요. 하나씩 눌러 확인하고 이카운트에 넣어 주세요.`; }
+    MR.busy = ''; if (made === 1) { MR.cur = last; MR.view = 'edit'; } else { MR.view = 'home'; if (made > 1) MR.msg = `✓ ${made}건을 읽었어요. 하나씩 눌러 확인하고 이카운트에 넣어 주세요.`; }
     render();
   }
   /* 사진은 기기 저장소에 넣지 않음(용량) — 읽자마자 드라이브 「영수증」 폴더로 올리고 id만 기록 */
@@ -11022,35 +11233,39 @@ try { (function () {
   function manual() { const r = blank('manual'); r.lines = [emptyLine()]; MS().list[r.id] = r; MR.cur = r; MR.view = 'edit'; save(); render(); }
 
   /* ── 검사 ── */
-  function sumL(r) { return r.lines.reduce((s, l) => s + (n0(l.amt) || 0), 0); }
+  function lineAmt(l, r) { return r && r.src === 'stmt' ? n0(l.sup) + ((l.nw ? l.nw.free : l.free) ? 0 : n0(l.vat)) : n0(l.amt); }
+  function sumL(r) { return r.lines.reduce((s, l) => s + (lineAmt(l, r) || 0), 0); }
+  function tot(r) { return (r.src !== 'manual' && n0(r.total)) || sumL(r); }
   function problems(r) {
     const p = [];
     if (!r.cust) p.push('거래처를 골라 주세요');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(r.date || '')) p.push('날짜를 넣어 주세요');
     if (r.date > today()) p.push('날짜가 오늘보다 뒤예요');
     if (!r.lines.length) p.push('품목이 없어요');
-    const nk = [], nq = [], na = []; r.lines.forEach((l, i) => { if (!(l.code && l.ok) && !l.nw) nk.push(i + 1); if (!(n0(l.qty) > 0)) nq.push(i + 1); if (!(n0(l.amt) > 0)) na.push(i + 1); });
+    const nk = [], nq = [], na = []; r.lines.forEach((l, i) => { if (!(l.code && l.ok) && !l.nw) nk.push(i + 1); if (!(n0(l.qty) > 0)) nq.push(i + 1); if (!(n0(r.src === 'stmt' ? l.sup : l.amt) > 0)) na.push(i + 1); });
     if (nk.length) p.push(`품목 확인 필요: ${nk.join(', ')}번 줄 (노란 줄은 「✓ 맞아요」, 빨간 줄은 「🔍 고르기」)`); if (nq.length) p.push(`수량을 넣어 주세요: ${nq.join(', ')}번 줄`); if (na.length) p.push(`금액을 넣어 주세요: ${na.join(', ')}번 줄`);
-    if (r.src === 'photo' && r.total && Math.abs(sumL(r) - n0(r.total)) > 0) p.push(`줄 합계 ${won(sumL(r))} ≠ 영수증 합계 ${won(r.total)}`);
+    if ((r.src === 'photo' || r.src === 'stmt') && r.total && Math.abs(sumL(r) - n0(r.total)) > 0) p.push(`줄 합계 ${won(sumL(r))} ≠ ${r.src === 'stmt' ? '명세표' : '영수증'} 합계 ${won(r.total)}`);
     if (r.src === 'manual' && !String(r.why || '').trim()) p.push('영수증이 없는 이유를 적어 주세요');
     return p;
   }
-  function dupOf(r) { const t = r.src === 'photo' ? n0(r.total) : sumL(r); return Object.values(MS().list).find(x => x.id !== r.id && x.cust === r.cust && x.date === r.date && ['queued', 'sent'].includes(x.st) && Math.abs((x.src === 'photo' ? n0(x.total) : sumL(x)) - t) < 1); }
+  /* v293: 같은 거래처 · 앞뒤 3일 · 같은 금액이면 (작성 중인 것 포함) 한 번 더 묻기 */
+  function dupOf(r) { const t = tot(r), d0 = new Date(r.date + 'T00:00:00').getTime(); return Object.values(MS().list).find(x => x.id !== r.id && x.st !== 'cancel' && x.cust === r.cust && Math.abs(new Date(x.date + 'T00:00:00').getTime() - d0) <= 3 * 864e5 && Math.abs(tot(x) - t) < 1); }
 
   /* ── 이카운트 줄 ── */
   function rows(r) {
     const d = r.date.replace(/-/g, '');
     return r.lines.map(l => {
       const code = l.nw ? l.nw.PROD_CD : l.code, qty = n0(l.qty), amt = Math.round(n0(l.amt)), free = l.nw ? !!l.nw.free : !!l.free;
-      const vat = free ? 0 : Math.round(amt / 11), sup = amt - vat, price = Math.round(sup / qty);
-      return { UPLOAD_SER_NO: '1', IO_DATE: d, CUST: r.cust, CUST_DES: r.custName || r.store || '', WH_CD: WH, PROD_CD: code, PROD_DES: l.nw ? l.nw.PROD_DES : '', QTY: String(qty), PRICE: String(price), SUPPLY_AMT: String(sup), VAT_AMT: String(vat) };
+      let vat = free ? 0 : Math.round(amt / 11), sup = amt - vat, price = Math.round(sup / qty);
+      if (r.src === 'stmt') { sup = Math.round(n0(l.sup)); vat = free ? 0 : Math.round(n0(l.vat)); price = n0(l.price) > 0 ? Math.round(n0(l.price) * 100) / 100 : Math.round(sup / qty); }   /* v293: 명세표 값 그대로 */
+      return { UPLOAD_SER_NO: '1', IO_DATE: d, CUST: r.cust, CUST_DES: r.custName || r.store || '', WH_CD: WH, PROD_CD: code, PROD_DES: l.nw ? l.nw.PROD_DES : '', QTY: String(qty), PRICE: String(price), SUPPLY_AMT: String(sup), VAT_AMT: String(vat), REMARKS: rmk(l) };
     });
   }
-  function newItems(r) { return r.lines.filter(l => l.nw).map(l => { const o = { PROD_CD: l.nw.PROD_CD, PROD_DES: l.nw.PROD_DES, SIZE_DES: l.nw.SIZE_DES || '', UNIT: l.nw.UNIT || l.unit || '', IN_PRICE: String(Math.round(n0(l.amt) / (n0(l.qty) || 1))), IN_PRICE_VAT: '1', CUST: r.cust }; if (l.nw.free) o.VAT_RATE_BY = '0'; return o; }); }
+  function newItems(r) { return r.lines.filter(l => l.nw).map(l => { const o = { PROD_CD: l.nw.PROD_CD, PROD_DES: l.nw.PROD_DES, SIZE_DES: l.nw.SIZE_DES || '', UNIT: l.nw.UNIT || l.unit || '', IN_PRICE: String(r.src === 'stmt' ? Math.round(n0(l.price) || n0(l.sup) / (n0(l.qty) || 1)) : Math.round(n0(l.amt) / (n0(l.qty) || 1))), IN_PRICE_VAT: r.src === 'stmt' ? '0' : '1', CUST: r.cust }; if (l.nw.free) o.VAT_RATE_BY = '0'; return o; }); }
   async function send(r) {
     const p = problems(r); if (p.length) { MR.msg = '⚠ ' + p.join(' · '); render(); return; }
-    const dp = dupOf(r); if (dp && !confirm(`같은 거래처·날짜·금액의 구매가 이미 있어요 (${md(dp.date)} ${won(dp.src === 'photo' ? dp.total : sumL(dp))}, ${dp.st === 'sent' ? '입력 완료' : '보내는 중'}).\n\n같은 영수증을 두 번 넣으면 재고와 갚을 돈이 두 번 잡혀요. 그래도 넣을까요?`)) return;
-    if (!confirm(`${r.custName || r.store} · ${md(r.date)} · ${r.lines.length}품목 · ${won(sumL(r))}\n\n이카운트에 구매로 넣을까요?${r.lines.some(l => l.nw) ? '\n(새 품목 ' + r.lines.filter(l => l.nw).length + '개도 이카운트에 함께 등록돼요)' : ''}\n\n※ 사무실에서 이미 손으로 넣은 영수증이면 「취소」를 눌러 주세요.`)) return;
+    const dp = dupOf(r); if (dp && !confirm(`같은 거래처·비슷한 날짜·같은 금액의 기록이 이미 있어요 (${md(dp.date)} ${won(tot(dp))}, ${(ST[dp.st] || ST.draft)[0]}).\n\n같은 ${r.src === 'stmt' ? '명세표' : '영수증'}를 두 번 넣으면 재고와 갚을 돈이 두 번 잡혀요. 그래도 넣을까요?`)) return;
+    if (!confirm(`${r.custName || r.store} · ${md(r.date)} · ${r.lines.length}품목 · ${won(sumL(r))}\n\n이카운트에 구매로 넣을까요?${r.lines.some(l => l.nw) ? '\n(새 품목 ' + r.lines.filter(l => l.nw).length + '개도 이카운트에 함께 등록돼요)' : ''}\n\n※ ${r.src === 'stmt' ? '이카운트에 이미 손으로 넣었거나 「값연결」(메일 명세서)로 넣은 명세표' : '사무실에서 이미 손으로 넣은 영수증'}이면 「취소」를 눌러 주세요.`)) return;
     MR.busy = '이카운트로 보내는 중…'; render();
     try {
       r.tries = (r.tries || 0) + 1; r.cid = r.tries > 1 ? r.id + 'r' + r.tries : r.id; r.by = r.by || me(); r.err = '';
@@ -11058,7 +11273,8 @@ try { (function () {
       if (r.newCust) body.cust = { BUSINESS_NO: r.cust, CUST_NAME: r.custName || r.store };
       const res = await rc(body); MR.agent = { seen: res.agentSeen, ver: res.agentVer };
       r.st = 'queued'; r.sentAt = new Date().toISOString(); learn(r); save(); share(r); toInsp();
-      MR.msg = '✓ 보냈어요. 사무실 PC 전송기가 이카운트에 넣으면 「입력 완료」로 바뀌어요 (보통 1분 안).';
+      const pr = poRecv(r);
+      MR.msg = '✓ 보냈어요. 사무실 PC 전송기가 이카운트에 넣으면 「입력 완료」로 바뀌어요 (보통 1분 안).' + (pr ? ` · 원료 발주의 ${pr}을(를) 「입고 완료」로 바꿨어요.` : '');
       MR.view = 'home'; MR.cur = null;
       if (MR.photo[r.id] && !r.img) upPhoto(r);
       setTimeout(poll, 20000);
@@ -11117,7 +11333,9 @@ try { (function () {
 .mrc .pk .opt{display:block;width:100%;text-align:left;min-height:52px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;margin:6px 0;padding:8px 12px;font-size:17px;cursor:pointer}.mrc .pk .opt small{color:#6b7280;margin-left:6px}.mrc .pk .opt.hot{border-color:${ORG};background:${ORG_B}}
 .mrc .ph{max-width:100%;max-height:420px;border-radius:10px;border:1px solid #e5e7eb;display:block;margin:6px 0}
 .mrc .agent{font-size:14px;color:#6b7280;margin:6px 0}
-@media(max-width:640px){.mrc .big{grid-template-columns:1fr}.mrc .row2{grid-template-columns:1fr}.mrc .ln .g{grid-template-columns:1fr 1fr}}`;
+.mrc .big.b3{grid-template-columns:1fr 1fr 1fr}.mrc .big label.alt{background:#fff;color:${ORG}}.c-stmt{background:#EDE9FE;color:#5B21B6}
+.mrc .ln .g.g6{grid-template-columns:76px 64px 110px 124px 104px 1fr}.mrc .ln .g.g3{grid-template-columns:1fr 1fr auto}.mrc .gs{color:#C2410C;font-weight:800}
+@media(max-width:640px){.mrc .big,.mrc .big.b3{grid-template-columns:1fr}.mrc .row2{grid-template-columns:1fr}.mrc .ln .g,.mrc .ln .g.g6,.mrc .ln .g.g3{grid-template-columns:1fr 1fr}}`;
     document.head.appendChild(s);
   }
   const ST = { draft: ['작성 중', 'c-draft'], queued: ['보내는 중', 'c-queued'], sent: ['이카운트 입력 완료', 'c-sent'], fail: ['입력 실패', 'c-fail'], cancel: ['취소', 'c-cancel'] };
@@ -11125,46 +11343,65 @@ try { (function () {
   function homeHtml() {
     const L = Object.values(MS().list).filter(r => r.st !== 'cancel' || Date.now() - new Date(r.mt || r.at).getTime() < 3 * 864e5).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 40);
     const pend = L.filter(r => r.st === 'draft' || r.st === 'fail').length;
-    return `<div class="mrc"><h2>🧾 마트 구매 입력</h2>
-      <div class="sub">마트·식자재마트에서 산 재료를 이카운트 <b>구매</b>로 넣어요. 영수증을 찍으면 AI가 읽고, 확인 후 한 번 누르면 이카운트에 들어가요.<br>육안검사가 필요한 품목은 <b>육안검사일지</b>에 자동으로 넘어가요.</div>
+    return `<div class="mrc"><h2>🧾 구매 입력 <small style="font-size:16px;color:#6b7280;font-weight:700">영수증 · 거래명세표</small></h2>
+      <div class="sub">마트 영수증과 매입처 <b>거래명세표</b>를 이카운트 <b>구매</b>로 넣어요. 사진·PDF·엑셀을 넣으면 줄을 채워 주고, 확인 후 한 번 누르면 이카운트에 들어가요.<br>육안검사가 필요한 품목은 <b>육안검사일지</b>에 자동으로 넘어가요.</div>
       ${MR.busy ? `<div class="busy">⏳ ${esc(MR.busy)}</div>` : ''}${MR.msg ? `<div class="msg${/^⚠/.test(MR.msg) ? ' bad' : ''}">${esc(MR.msg)}</div>` : ''}${agentLine()}
-      <div class="big"><label>📷 영수증 사진 찍기·올리기<small>여러 장 한 번에 가능</small><input type="file" accept="image/*" multiple data-mr="photo"></label>
-      <button type="button" data-mr="manual">✍ 영수증 없이 입력<small>영수증을 잃어버렸거나 못 받았을 때</small></button></div>
-      ${pend ? `<div class="warn">아직 이카운트에 안 넣은 영수증이 <b>${pend}건</b> 있어요. 눌러서 확인해 주세요.</div>` : ''}
-      ${L.length ? L.map(r => { const s = ST[r.st] || ST.draft; return `<div class="card li" data-mropen="${r.id}"><div><b>${esc(r.custName || r.store || '거래처 미정')}</b> <span class="chip ${s[1]}">${s[0]}</span>${r.src === 'manual' ? ' <span class="chip c-draft">영수증 없음</span>' : ''}<br><small>${md(r.date)} · ${r.lines.length}품목 · ${esc(r.by || '')}${r.slip ? ' · 전표 ' + esc(r.slip) : ''}${r.err ? ' · ' + esc(r.err).slice(0, 80) : ''}</small></div><div class="r"><b>${won(r.src === 'photo' && r.total ? r.total : sumL(r))}</b></div></div>`; }).join('') : '<div class="card" style="color:#6b7280">아직 입력한 영수증이 없어요.</div>'}
-      <div class="agent">보낸 건은 사무실 PC 전송기가 이카운트에 넣어요. 새 품목·새 거래처도 함께 등록돼요.</div></div>`;
+      <div class="big b3"><label>📷 사진 찍기·올리기<small>영수증·명세표 · 여러 장 가능</small><input type="file" accept="image/*" multiple data-mr="photo"></label>
+      <label class="alt">📎 파일 넣기<small>명세표 PDF · 엑셀(xlsx·xls·csv)</small><input type="file" accept=".pdf,.xlsx,.xlsm,.xls,.csv,application/pdf,image/*" multiple data-mr="photo"></label>
+      <button type="button" data-mr="manual">✍ 영수증 없이 입력<small>영수증·명세표를 못 받았을 때</small></button></div>
+      ${pend ? `<div class="warn">아직 이카운트에 안 넣은 영수증·명세표가 <b>${pend}건</b> 있어요. 눌러서 확인해 주세요.</div>` : ''}
+      ${L.length ? L.map(r => { const s = ST[r.st] || ST.draft; return `<div class="card li" data-mropen="${r.id}"><div><b>${esc(r.custName || r.store || '거래처 미정')}</b> <span class="chip ${s[1]}">${s[0]}</span>${r.src === 'manual' ? ' <span class="chip c-draft">영수증 없음</span>' : ''}${r.src === 'stmt' ? ' <span class="chip c-stmt">명세표' + (r.file && r.file.k === 'pdf' ? ' · PDF' : r.file && r.file.k === 'xlsx' ? ' · 엑셀' : '') + '</span>' : ''}<br><small>${md(r.date)} · ${r.lines.length}품목 · ${esc(r.by || '')}${r.slip ? ' · 전표 ' + esc(r.slip) : ''}${r.err ? ' · ' + esc(r.err).slice(0, 80) : ''}</small></div><div class="r"><b>${won(tot(r))}</b></div></div>`; }).join('') : '<div class="card" style="color:#6b7280">아직 입력한 영수증·명세표가 없어요.</div>'}
+      <div class="agent">보낸 건은 사무실 PC 전송기가 이카운트에 넣어요. 새 품목·새 거래처도 함께 등록돼요.<br>⚠ 이카운트에 이미 손으로 넣었거나 「값연결」(메일 명세서)로 넣은 명세표는 여기서 또 넣지 마세요. 두 번 들어가요.</div></div>`;
   }
   function lineHtml(l, i, r, ro) {
     const cls = l.nw ? 'ok' : l.code && l.ok ? 'ok' : l.code ? 'chk' : 'no';
     const it = l.nw ? `🆕 새 품목 <b>${esc(l.nw.PROD_CD)}</b> ${esc(l.nw.PROD_DES)}${l.nw.SIZE_DES ? ' ' + esc(l.nw.SIZE_DES) : ''}` : l.code ? `${esc(l.name)}${l.spec ? ' ' + esc(l.spec) : ''} <small style="color:#6b7280">${esc(l.code)}</small>` : '<span style="color:#b91c1c">이카운트 품목을 골라 주세요</span>';
+    const tail = r.src === 'stmt' ? stmtTail(l, i, ro) : null;
     return `<div class="ln ${cls}"><div class="top"><b>${i + 1}</b>${l.raw ? `<span class="raw">영수증: ${esc(l.raw)}</span>` : ''}<span class="it">${it}</span>
       ${ro ? '' : `${l.code && !l.ok && !l.nw ? `<button type="button" class="btn2 g s" data-mr="okl" data-i="${i}">✓ 맞아요</button>` : ''}<button type="button" class="btn2 s" data-mr="pick" data-i="${i}">${l.code || l.nw ? '바꾸기' : '🔍 고르기'}</button><button type="button" class="btn2 s" data-mr="del" data-i="${i}" title="이 줄 빼기">✕</button>`}</div>
       ${l.code && !l.ok && !l.nw && l.why ? `<div style="color:#92400E;font-size:15px;margin-top:4px">${esc(l.why)}로 찾은 품목이에요. 맞으면 「✓ 맞아요」</div>` : ''}
-      <div class="g"><label class="fl"><span>수량</span><input inputmode="decimal" data-mrl="qty" data-i="${i}" value="${esc(l.qty)}"${ro ? ' disabled' : ''}></label>
+      ${tail != null ? tail : `<div class="g"><label class="fl"><span>수량</span><input inputmode="decimal" data-mrl="qty" data-i="${i}" value="${esc(l.qty)}"${ro ? ' disabled' : ''}></label>
       <label class="fl"><span>단위</span><input data-mrl="unit" data-i="${i}" value="${esc(l.unit)}"${ro ? ' disabled' : ''}></label>
       <label class="fl"><span>금액 (부가세 포함)</span><input inputmode="numeric" data-mrl="amt" data-i="${i}" value="${esc(l.amt || '')}"${ro ? ' disabled' : ''}></label>
       <div class="fl"><span>부가세</span><div class="tg"><button type="button" class="${(l.nw ? l.nw.free : l.free) ? '' : 'on'}" data-mr="tax" data-i="${i}" data-v="0"${ro ? ' disabled' : ''}>과세</button><button type="button" class="${(l.nw ? l.nw.free : l.free) ? 'on' : ''}" data-mr="tax" data-i="${i}" data-v="1"${ro ? ' disabled' : ''}>면세</button></div></div></div>
       <div class="g" style="grid-template-columns:1fr auto"><label class="fl"><span>소비기한 (알면, 육안검사일지에 들어가요)</span><input type="date" data-mrl="exp" data-i="${i}" value="${esc(l.exp || '')}"${ro ? ' disabled' : ''}></label>
-      <label style="display:flex;gap:6px;align-items:center;font-weight:700;min-height:46px"><input type="checkbox" style="width:24px;min-height:24px" data-mrl="insp" data-i="${i}"${l.insp ? ' checked' : ''}${ro ? ' disabled' : ''}> 육안검사</label></div></div>`;
+      <label style="display:flex;gap:6px;align-items:center;font-weight:700;min-height:46px"><input type="checkbox" style="width:24px;min-height:24px" data-mrl="insp" data-i="${i}"${l.insp ? ' checked' : ''}${ro ? ' disabled' : ''}> 육안검사</label></div>`}</div>`;
+  }
+  /* v293: 명세표 줄 — 단가·공급가액·세액·소비기한·LOT */
+  function stmtTail(l, i, ro) {
+    const fr = l.nw ? l.nw.free : l.free, dis = ro ? ' disabled' : '';
+    return `<div class="g g6"><label class="fl"><span>수량</span><input inputmode="decimal" data-mrl="qty" data-i="${i}" value="${esc(l.qty)}"${dis}></label>
+      <label class="fl"><span>단위</span><input data-mrl="unit" data-i="${i}" value="${esc(l.unit)}"${dis}></label>
+      <label class="fl"><span>단가${l.pg ? ' <b class="gs">최근 단가</b>' : ''}</span><input inputmode="decimal" data-mrl="price" data-i="${i}" value="${esc(l.price || '')}"${dis}></label>
+      <label class="fl"><span>공급가액</span><input inputmode="numeric" data-mrl="sup" data-i="${i}" value="${esc(l.sup || '')}"${dis}></label>
+      <label class="fl"><span>세액${l.vg && !fr ? ' <b class="gs">계산값</b>' : ''}</span><input inputmode="numeric" data-mrl="vat" data-i="${i}" value="${esc(fr ? 0 : (l.vat || 0))}"${ro || fr ? ' disabled' : ''}></label>
+      <div class="fl"><span>부가세</span><div class="tg"><button type="button" class="${fr ? '' : 'on'}" data-mr="tax" data-i="${i}" data-v="0"${dis}>과세</button><button type="button" class="${fr ? 'on' : ''}" data-mr="tax" data-i="${i}" data-v="1"${dis}>면세</button></div></div></div>
+      <div class="g g3"><label class="fl"><span>소비기한 (이카운트 적요·육안검사일지)</span><input type="date" data-mrl="exp" data-i="${i}" value="${esc(l.exp || '')}"${dis}></label>
+      <label class="fl"><span>LOT · 제조번호</span><input data-mrl="lot" data-i="${i}" value="${esc(l.lot || '')}"${dis}></label>
+      <label style="display:flex;gap:6px;align-items:center;font-weight:700;min-height:46px"><input type="checkbox" style="width:24px;min-height:24px" data-mrl="insp" data-i="${i}"${l.insp ? ' checked' : ''}${dis}> 육안검사</label></div>`;
   }
   function editHtml() {
     const r = MR.cur; if (!r) return homeHtml(); const ro = r.st === 'queued' || r.st === 'sent'; const C = custs(); const sm = sumL(r); const p = problems(r);
     const cOpts = Object.values(C).map(c => `<option value="${esc(c.c)}"${r.cust === c.c ? ' selected' : ''}>${esc(c.n)}</option>`).join('');
     const unknownCust = r.cust && !C[r.cust];
-    return `<div class="mrc"><h2>${r.src === 'manual' ? '✍ 영수증 없이 입력' : '🧾 영수증 확인'} <span class="chip ${(ST[r.st] || ST.draft)[1]}">${(ST[r.st] || ST.draft)[0]}</span></h2>
+    const SM = r.src === 'stmt', DOC = SM ? '명세표' : '영수증';
+    return `<div class="mrc"><h2>${r.src === 'manual' ? '✍ 영수증 없이 입력' : SM ? '📄 거래명세표 확인' : '🧾 영수증 확인'} <span class="chip ${(ST[r.st] || ST.draft)[1]}">${(ST[r.st] || ST.draft)[0]}</span></h2>
       <div class="sub">${ro ? `이미 보낸 영수증이에요${r.slip ? ' (전표 ' + esc(r.slip) + ')' : ''}. 고칠 것이 있으면 이카운트에서 고쳐 주세요.` : '줄마다 이카운트 품목이 맞는지 보고, 초록색이 되면 맨 아래 「⚡ 이카운트에 넣기」를 눌러 주세요.'}</div>
       ${MR.busy ? `<div class="busy">⏳ ${esc(MR.busy)}</div>` : ''}${MR.msg ? `<div class="msg${/^⚠/.test(MR.msg) ? ' bad' : ''}">${esc(MR.msg)}</div>` : ''}
       ${r.err ? `<div class="msg bad">⚠ 이카운트 답: ${esc(r.err)}</div>` : ''}
-      ${MR.photo[r.id] ? `<details${r.lines.length ? '' : ' open'}><summary style="cursor:pointer;font-weight:700;padding:6px 0">🧾 영수증 사진 보기</summary><img class="ph" src="${MR.photo[r.id]}" alt="영수증"></details>` : r.img ? `<button type="button" class="btn2 s" data-mr="img">🧾 영수증 사진 보기</button>` : ''}
+      ${r.file ? `<div class="agent">📎 ${esc(r.file.n || '')} (${r.file.k === 'pdf' ? 'PDF' : r.file.k === 'xlsx' ? '엑셀' : '사진'})</div>` : ''}
+      ${MR.photo[r.id] ? `<details${r.lines.length ? '' : ' open'}><summary style="cursor:pointer;font-weight:700;padding:6px 0">${SM ? '📄 명세표 보기' : '🧾 영수증 사진 보기'}</summary><img class="ph" src="${MR.photo[r.id]}" alt="${DOC}"></details>` : r.img ? `<button type="button" class="btn2 s" data-mr="img">${SM ? '📄 명세표 보기' : '🧾 영수증 사진 보기'}</button>` : ''}
       ${r.note && r.st === 'draft' ? `<div class="warn">${r.ocr ? '📝 ' : 'AI 메모: '}${esc(r.note)}</div>` : ''}
-      <div class="card"><div class="row2"><label class="fl"><span>거래처 ${r.store && r.src === 'photo' ? '· 영수증: ' + esc(r.store) : ''}</span><select data-mrf="cust"${ro ? ' disabled' : ''}><option value="">— 고르기 —</option>${cOpts}${unknownCust ? `<option value="${esc(r.cust)}" selected>🆕 ${esc(r.custName || r.store)} (${esc(r.cust)})</option>` : ''}<option value="__new">＋ 다른 거래처 (사업자번호로 새로 등록)</option></select></label>
-        <label class="fl"><span>산 날짜 (이카운트 일자)</span><input type="date" data-mrf="date" value="${esc(r.date)}"${ro ? ' disabled' : ''}></label></div>
+      <div class="card"><div class="row2"><label class="fl"><span>거래처 ${r.store && r.src !== 'manual' ? '· ' + DOC + ': ' + esc(r.store) : ''}</span><select data-mrf="cust"${ro ? ' disabled' : ''}><option value="">— 고르기 —</option>${cOpts}${unknownCust ? `<option value="${esc(r.cust)}" selected>🆕 ${esc(r.custName || r.store)} (${esc(r.cust)})</option>` : ''}<option value="__new">＋ 다른 거래처 (사업자번호로 새로 등록)</option></select></label>
+        <label class="fl"><span>${SM ? '입고(거래) 날짜' : '산 날짜'} (이카운트 일자)</span><input type="date" data-mrf="date" value="${esc(r.date)}"${ro ? ' disabled' : ''}></label></div>
+        ${SM && !r.cust ? '<div class="warn">명세표의 공급자를 목록에서 찾지 못했어요. 위에서 거래처를 골라 주세요. 목록에 없으면 「＋ 다른 거래처」인데, <b>이카운트에 이미 있는 매입처면 새로 만들지 말고</b> 서재우 차장님께 거래처 코드를 물어봐 주세요.</div>' : ''}
         ${r.newCust ? `<div class="warn">🆕 이카운트에 없는 거래처예요. 넣을 때 사업자번호 <b>${esc(r.cust)}</b>, 이름 「${esc(r.custName || r.store)}」로 함께 등록해요.</div>` : ''}
         ${r.src === 'manual' ? `<label class="fl" style="margin-top:8px"><span>영수증이 없는 이유 (필수)</span><input data-mrf="why" value="${esc(r.why || '')}" placeholder="예: 영수증 분실, 현금 구매로 영수증 못 받음"${ro ? ' disabled' : ''}></label>` : ''}</div>
       ${r.lines.map((l, i) => lineHtml(l, i, r, ro)).join('')}
       ${ro ? '' : `<div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn2" data-mr="add">＋ 줄 추가</button>${r.lines.filter(l => l.code && !l.ok && !l.nw).length > 1 ? `<button type="button" class="btn2 g" data-mr="okall">✓ 노란 줄 ${r.lines.filter(l => l.code && !l.ok && !l.nw).length}개 모두 맞아요</button>` : ''}</div>`}
-      <div class="sum">줄 합계 <span class="${r.src === 'photo' && r.total && Math.abs(sm - n0(r.total)) > 0 ? 'bad' : 'good'}">${won(sm)}</span>${r.src === 'photo' ? `<span>영수증 합계 <input style="width:140px;display:inline-block" inputmode="numeric" data-mrf="total" value="${esc(r.total || '')}"${ro ? ' disabled' : ''}></span>` : ''}
-        <small style="font-weight:600;color:#6b7280">과세 ${won(r.lines.filter(l => !(l.nw ? l.nw.free : l.free)).reduce((s, l) => s + n0(l.amt), 0))} · 면세 ${won(r.lines.filter(l => (l.nw ? l.nw.free : l.free)).reduce((s, l) => s + n0(l.amt), 0))}</small></div>
+      ${SM && r.st === 'draft' && r.lines.some(l => l.vg || l.pg) ? '<div class="warn">주황 글씨(<b class="gs">계산값</b>·<b class="gs">최근 단가</b>) 칸은 명세표에서 읽지 못해 계산하거나 최근 단가로 채운 값이에요. 명세표와 맞는지 봐 주세요.</div>' : ''}
+      <div class="sum">줄 합계 <span class="${r.src !== 'manual' && r.total && Math.abs(sm - n0(r.total)) > 0 ? 'bad' : 'good'}">${won(sm)}</span>${r.src !== 'manual' ? `<span>${DOC} 합계 <input style="width:140px;display:inline-block" inputmode="numeric" data-mrf="total" value="${esc(r.total || '')}"${ro ? ' disabled' : ''}></span>` : ''}
+        <small style="font-weight:600;color:#6b7280">${SM ? `공급가액 ${won(r.lines.reduce((s, l) => s + n0(l.sup), 0))} · 세액 ${won(r.lines.reduce((s, l) => s + ((l.nw ? l.nw.free : l.free) ? 0 : n0(l.vat)), 0))} · ` : ''}과세 ${won(r.lines.filter(l => !(l.nw ? l.nw.free : l.free)).reduce((s, l) => s + lineAmt(l, r), 0))} · 면세 ${won(r.lines.filter(l => (l.nw ? l.nw.free : l.free)).reduce((s, l) => s + lineAmt(l, r), 0))}</small></div>
       ${!ro && p.length ? `<div class="warn">${p.map(esc).join('<br>')}</div>` : ''}
       <div class="acts"><button type="button" class="btn2" data-mr="back">← 목록</button>
         ${ro ? (r.st === 'queued' ? '<button type="button" class="btn2" data-mr="poll">↻ 결과 확인</button>' : '') : `<button type="button" class="btn2 p" data-mr="send"${p.length ? ' disabled style="opacity:.45"' : ''}>⚡ 이카운트에 넣기</button><button type="button" class="btn2" data-mr="later">나중에 (저장만)</button><button type="button" class="btn2" data-mr="cancel" style="color:#b91c1c">이 영수증 지우기</button>`}
@@ -11205,7 +11442,14 @@ try { (function () {
       if (k === 'cust') { if (inp.value === '__new') { const bn = (prompt('새 거래처 사업자번호 (숫자 10자리)', String(r.bizNo || '').replace(/\D/g, '')) || '').replace(/\D/g, ''); if (bn.length !== 10) { alert('사업자번호 10자리를 넣어 주세요'); render(); return; } const nm = (prompt('거래처 이름 (예: ○○마트 ○○점)', r.store || '') || '').trim(); if (!nm) { render(); return; } r.cust = bn; r.custName = nm; r.newCust = 1; } else { r.cust = inp.value; r.custName = (custs()[inp.value] || {}).n || ''; r.newCust = 0; } r.lines.forEach(l => { if (!l.ok && !l.nw) applyMatch(l, r.cust); }); }
       else if (k === 'total') r.total = n0(inp.value); else r[k] = inp.value;
       save(); render(); });
-    q('[data-mrl]').forEach(inp => inp.onchange = () => { if (!r) return; const l = r.lines[+inp.dataset.i], k = inp.dataset.mrl; if (k === 'insp') l.insp = inp.checked ? 1 : 0; else if (k === 'qty' || k === 'amt') l[k] = n0(inp.value); else l[k] = inp.value; save(); render(); });
+    q('[data-mrl]').forEach(inp => inp.onchange = () => { if (!r) return; const l = r.lines[+inp.dataset.i], k = inp.dataset.mrl;
+      if (k === 'insp') l.insp = inp.checked ? 1 : 0;
+      else if (['qty', 'amt', 'price', 'sup', 'vat'].includes(k)) { const oq = n0(l.qty), op = n0(l.price), os = n0(l.sup), ov = n0(l.vat); l[k] = n0(inp.value);
+        if (r.src === 'stmt') { const fr = l.nw ? l.nw.free : l.free;   /* 명세표 값과 맞던 칸만 따라 바꿈 (단가 반올림 차이는 그대로 둠) */
+          if ((k === 'qty' || k === 'price') && n0(l.price) > 0 && (!(os > 0) || Math.abs(oq * op - os) <= Math.max(1, oq))) l.sup = Math.round(n0(l.qty) * n0(l.price));
+          if (k !== 'vat' && !fr && n0(l.sup) !== os && (l.vg || !(ov > 0) || Math.abs(ov - os * 0.1) <= 1.5)) l.vat = Math.round(n0(l.sup) * 0.1);
+          if (k === 'vat') l.vg = 0; if (k === 'price' || k === 'sup') l.pg = 0; l.amt = lineAmt(l, r); } }
+      else l[k] = inp.value; save(); render(); });
     q('[data-mrpick]').forEach(b => b.onclick = () => { const it = allItems().find(x => x.c === b.dataset.mrpick); const l = r.lines[MR.pick]; if (it && l) { l.code = it.c; l.name = it.n; l.spec = it.s || ''; if (it.u && !l.unit) l.unit = it.u; if (it.f != null) l.free = it.f ? 1 : 0; l.ok = 1; l.why = ''; delete l.nw; } MR.pick = null; MR.q = ''; save(); render(); });
     q('[data-mrq]').forEach(inp => { const go = () => { MR.q = inp.value; const pos = inp.selectionStart; render(); const n = document.querySelector('[data-mrq]'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } }; inp.oninput = e => { MR.q = inp.value; if (e.isComposing) return; go(); }; inp.addEventListener('compositionend', go); });
     q('[data-mrnf]').forEach(b => b.onclick = () => { _nwFree = +b.dataset.mrnf; q('[data-mrnf]').forEach(x => x.classList.toggle('on', x === b)); });
@@ -11222,7 +11466,7 @@ try { (function () {
       if (a === 'del') { if (r.lines.length > 0 && confirm((i + 1) + '번 줄을 뺄까요? (봉투값·할인 줄 등)')) { r.lines.splice(i, 1); save(); render(); } return; }
       if (a === 'okall') { r.lines.forEach(l => { if (l.code && !l.nw) { l.ok = 1; l.why = ''; } }); save(); render(); return; }
       if (a === 'okl') { r.lines[i].ok = 1; r.lines[i].why = ''; save(); render(); return; }
-      if (a === 'tax') { const l = r.lines[i]; if (l.nw) l.nw.free = +b.dataset.v; l.free = +b.dataset.v; save(); render(); return; }
+      if (a === 'tax') { const l = r.lines[i], v = +b.dataset.v; if (l.nw) l.nw.free = v; l.free = v; if (r.src === 'stmt') { if (!v && !(n0(l.vat) > 0)) { l.vat = Math.round(n0(l.sup) * 0.1); l.vg = 1; } l.amt = lineAmt(l, r); } save(); render(); return; }
       if (a === 'pick') { MR.pick = i; MR.q = ''; _nwFree = null; render(); return; }
       if (a === 'pkclose') { MR.pick = null; render(); return; }
       if (a === 'nwok') { const l = r.lines[MR.pick]; const g = k => (document.querySelector(`[data-mrn="${k}"]`) || {}).value || ''; const cd = g('PROD_CD').trim().toUpperCase(), nm = g('PROD_DES').trim(); if (!cd || !nm) { alert('품목 이름과 코드를 넣어 주세요'); return; } if (allItems().some(x => x.c === cd)) { alert(cd + '는 이미 있는 코드예요. 목록에서 고르거나 다른 코드를 넣어 주세요.'); return; }
@@ -11232,10 +11476,10 @@ try { (function () {
   }
 
   /* 원료 발주 화면 맨 위에도 들어가는 버튼 · 주소 #mart */
-  try { const _rr = renderRbuy; renderRbuy = function () { const x = _rr.apply(this, arguments); try { const sec = document.querySelector('section.view[data-view="rbuy"]'); if (sec && !sec.querySelector('.mrc-go')) sec.insertAdjacentHTML('afterbegin', '<div class="mrc-go" style="margin:0 0 10px"><button class="btn" onclick="rlGo(\'rmart\')">🧾 마트 영수증 구매 입력 (이카운트 자동)</button></div>'); } catch (e) {} return x; }; } catch (e) {}
+  try { const _rr = renderRbuy; renderRbuy = function () { const x = _rr.apply(this, arguments); try { const sec = document.querySelector('section.view[data-view="rbuy"]'); if (sec && !sec.querySelector('.mrc-go')) sec.insertAdjacentHTML('afterbegin', '<div class="mrc-go" style="margin:0 0 10px"><button class="btn" onclick="rlGo(\'rmart\')">🧾 구매 입력 (영수증·거래명세표 → 이카운트 자동)</button></div>'); } catch (e) {} return x; }; } catch (e) {}
   (function hashGo(n) { if (n > 80) return; if (/^#mart/.test(location.hash) && typeof window.rlGo === 'function' && document.getElementById('rl_rmart')) { setTimeout(() => { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} window.rlGo('rmart'); }, 1200); return; } setTimeout(() => hashGo(n + 1), 750); })(0);   /* v292: 로그인 뒤 주소가 늦게 붙어도 60초 동안 기다림 */
   window.addEventListener('hashchange', () => { if (/^#mart/.test(location.hash) && typeof window.rlGo === 'function') { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} window.rlGo('rmart'); } });
-  window.__mrcTest = { allItems, matchLine, rows, newItems, problems, custFind, inspList, MS, MR };
+  window.__mrcTest = { allItems, matchLine, rows, newItems, problems, custFind, inspList, MS, MR, parseTable, parseStmtText, docMeta, isStmt, xlsRead, pdfRead, pdfCells, fileKind, dupOf, poRecv, priceOf };
 })(); } catch (e) { console.warn('v291 마트 구매', e); }
 
 </script>
