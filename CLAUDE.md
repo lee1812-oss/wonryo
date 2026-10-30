@@ -354,3 +354,4 @@
 - 이카운트 오픈 API는 메뉴(API)마다 인증이 필요할 수 있음(판매입력 때 「인증되지 않은 API」 사례) → 첫 구매 건이 실패하면 오류 글을 보고 이카운트 API 관리에서 구매입력 인증.
 - Aside 대신 입력: window.__mrcQueue()(실패·10분 넘게 대기) → 이카운트 화면 입력 → window.__mrcMarkDone(id, 전표번호, 'Aside').
 - 육안검사: 넣기를 누른 순간(queued) inspList(최근 21일, 「육안검사」 체크 줄) → inspSendKey 뒤 2.5초·보낼 때 postMessage {type:'wonryo-mrc', list}. inspect.html v100 mrcApply: 그 날짜 일지에 공급업체 = 영수증 거래처, 수량·단위·소비기한 = 영수증, 「확인 필요」(_ecPending), 키 mrc:<id>:<줄>은 한 번만. 재고 증가로 이미 자동 입력된 같은 품목 행(앞뒤 3일)은 영수증 날짜로 옮기고 고침. ecApply 감싸기: mrcClaims(품목 id, 보낸 시각 −2시간~+3일)에 걸리는 재고 증가는 새 행 대신 연결(_ecLinked).
+- v292 (같은 날): #mart 주소 — 앱 코드가 돌 때 아직 주소에 #mart가 없을 수 있어 60초 동안 기다렸다가 1.2초 뒤 이동, hashchange도 받음.
