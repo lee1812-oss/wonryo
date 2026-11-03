@@ -1561,3 +1561,33 @@
     location.href = 'index.html'; }, true);
   try { fieldRender(); } catch (e) {}
 })();
+
+
+/* ══ 오븐 종료 칸: 지금 시각 크게 + 시작 후 지난 시간 (2026-11-03 사용자 요청) ══
+   - 종료를 아직 안 눌렀을 때만, 「눌러서 저장」 자리에 지금 시각을 크게, 그 아래 줄에 「시작 후 ○시간 ○분」을 보여 준다.
+   - 시작 시각은 화면의 시작 칸 글자에서 읽는다(기록은 건드리지 않음). 15초마다 그 글자만 바꾼다(화면 전체를 다시 그리지 않음).
+   - 이 블록을 지우면 예전 「눌러서 저장 / 지금 시각으로」로 돌아간다. */
+(function () { if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fov3 .ft.big .tm.fclk{font-size:44px!important;height:56px!important;letter-spacing:1px;font-variant-numeric:tabular-nums;opacity:1!important}'
+    + '#fld .fov3 .ft.big .vv .fel{display:block;font-size:1.3em;font-weight:900;margin:2px 0 4px;white-space:nowrap}'
+    + '@media (max-width:520px){#fld .fov3 .ft.big .tm.fclk{font-size:32px!important;height:44px!important}#fld .fov3 .ft.big .vv .fel{font-size:1.15em;white-space:normal}}';
+  document.head.appendChild(st);
+  const p2 = n => String(n).padStart(2, '0');
+  const toM = t => { const x = /(\d{1,2}):(\d{2})/.exec(t || ''); return x ? +x[1] * 60 + +x[2] : null; };
+  const paint = () => { try {
+      const box = document.querySelector('#fld .fov3'); if (!box) return false;
+      const e = box.querySelector('[data-fq2="종료"]'); if (!e || e.classList.contains('on')) return false;
+      const tm = e.querySelector('.tm'), vv = e.querySelector('.vv'); if (!tm || !vv) return false;
+      const d = new Date(), now = p2(d.getHours()) + ':' + p2(d.getMinutes());
+      tm.classList.remove('ph'); tm.classList.add('fclk'); if (tm.textContent !== now) tm.textContent = now;
+      let el = ''; const s = box.querySelector('[data-fq2="시작"]');
+      if (s && s.classList.contains('on')) { const sm = toM((s.querySelector('.tm') || {}).textContent); if (sm != null) { let m = d.getHours() * 60 + d.getMinutes() - sm; if (m < 0) m += 1440; el = '시작 후 ' + (m >= 60 ? Math.floor(m / 60) + '시간 ' : '') + (m % 60) + '분'; } }
+      const html = (el ? '<span class="fel">' + el + '</span>' : '') + '누르면 지금 시각으로 저장';
+      if (vv.innerHTML !== html) vv.innerHTML = html; return true;
+    } catch (x) { return false; } };
+  const _r = fieldRender; fieldRender = function () { const r = _r.apply(this, arguments); if (paint()) { try { fldFit(); } catch (e) {} } return r; };
+  setInterval(paint, 15000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) paint(); });
+  try { fieldRender(); } catch (e) {}
+})();
