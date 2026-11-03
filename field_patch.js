@@ -1596,3 +1596,132 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden) paint(); });
   try { fieldRender(); } catch (e) {}
 })();
+
+/* v296: 생산일지 종료 취소, 시각 수정, 단계 선택 (2026-11-03) */
+(function () {
+  if (!window.FIELD_APP) return;
+  const ORDER = ['mix', 'oven', 'freeze', 'metal'];
+  const CSS = document.createElement('style');
+  CSS.textContent = '#fld .frw-bar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px}#fld .frw-bar button,.frw-dialog button{min-height:48px;border:2px solid #C9B79F;border-radius:12px;background:#fff;color:#493323;font-size:17px;font-weight:800;padding:8px 14px;cursor:pointer}#fld .frw-bar .danger,.frw-dialog .danger{color:#B42318;border-color:#DCA59F;background:#FFF5F4}.frw-bg{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}.frw-dialog{background:#fff;color:#30261F;border-radius:18px;width:560px;max-width:100%;max-height:85vh;overflow:auto;padding:20px;box-sizing:border-box;box-shadow:0 10px 40px #0006}.frw-dialog h2{margin:0 0 8px;font-size:23px}.frw-dialog p{font-size:16px;line-height:1.5;margin:8px 0 16px;color:#635448}.frw-list{display:grid;gap:8px}.frw-list button{text-align:left;display:flex;justify-content:space-between;gap:12px}.frw-list button:disabled{opacity:.55;cursor:default}.frw-dialog .close{width:100%;margin-top:16px;background:#F1ECE6}.frw-dialog .frw-confirm{width:100%;margin-top:12px;background:#B42318;color:#fff;border-color:#B42318}.frw-summary{background:#FFF5E8;padding:12px;border-radius:12px;font-size:17px;line-height:1.6}#fld .frw-edit-note{background:#FFF5E8;color:#493323;border-radius:12px;padding:10px 14px;font-size:17px;font-weight:700;margin-bottom:12px}@media(max-width:520px){#fld .frw-bar button{flex:1;font-size:15px;padding:8px}.frw-dialog{padding:16px}.frw-list button{font-size:16px}}';
+  document.head.appendChild(CSS);
+  const close = () => document.querySelectorAll('.frw-bg').forEach(e => e.remove());
+  function dialog(title, hint, html) {
+    close(); const bg = document.createElement('div'); bg.className = 'frw-bg';
+    bg.innerHTML = '<div class="frw-dialog" role="dialog" aria-modal="true" aria-label="' + esc(title) + '"><h2>' + esc(title) + '</h2><p>' + esc(hint) + '</p>' + html + '<button type="button" class="close" data-frw="close">닫기</button></div>';
+    document.body.appendChild(bg); bg.querySelector('button')?.focus(); return bg;
+  }
+  function stageList() {
+    const by = ccpProdByDate()[fldD()] || {}, use = new Set();
+    Object.keys(by).forEach(c => { const it = prodItem(c); if (it) { const of = ccpOf(it); ORDER.forEach(t => { if (of[t]) use.add(t); }); } });
+    if (ORDER.includes(FLD.type)) use.add(FLD.type);
+    return ['ws'].concat(ORDER.filter(t => use.has(t)), ['qty']);
+  }
+  const label = k => k === 'ws' ? '작업 시작 · 품목 선택' : k === 'qty' ? '생산량 입력' : FLD_T[k].nm;
+  function currentStage() { return ['ws', 'qty', 'qtyin'].includes(FLD.step) ? (FLD.step === 'qtyin' ? 'qty' : FLD.step) : FLD.type || 'ws'; }
+  function go(k) {
+    const stages = stageList(); if (!stages.includes(k)) return;
+    if ((FLD.step === 'form' && Object.keys(FLD.typed || {}).length || FLD.step === 'qtyin') && !confirm('저장하지 않은 입력은 취소합니다. 이미 저장된 기록은 그대로 유지됩니다.\n이 단계로 이동할까요?')) return;
+    if (FLD.step === 'act') { toast('먼저 개선조치를 저장한 뒤 이동하세요'); return; }
+    const code = FLD.code; close(); document.querySelectorAll('.fwarn-bg').forEach(e => e.remove()); delete FLD.rework; FLD.q = ''; FLD.mode = ''; FLD.rowId = ''; FLD.vals = {}; FLD.fields = []; FLD.typed = {}; FLD.fresh = {}; FLD.edit = false;
+    window.__fqBack = ''; window.__fq2Back = false; window.__f2hDirect = false;
+    if (k === 'ws' || k === 'qty') { FLD.step = k; FLD.type = ''; }
+    else { FLD.type = k; const ps = fldProds(k), p = ps.find(p => p.code === code) || ps[0]; if (p) { FLD.code = p.code; FLD.name = p.name; } FLD.step = k === 'metal' || !p ? 'type' : 'mode'; }
+    fieldRender(); const box = document.getElementById('fld'); if (box) box.scrollTop = 0;
+  }
+  function choices() {
+    const stages = stageList(), cur = currentStage();
+    dialog('단계 선택', '이전 단계도 직접 고를 수 있습니다. 이동만으로 저장된 기록이 지워지지는 않습니다.', '<div class="frw-list">' + stages.map((k,i) => '<button type="button" data-frw="go" data-stage="' + k + '">' + (i+1) + '. ' + esc(label(k)) + '<span>' + (k === cur ? '현재 단계' : '이동') + '</span></button>').join('') + '</div>');
+  }
+  function selectedRows() {
+    const g = fldLog(FLD.type); if (!g) return [];
+    return (g.rows || []).filter(r => FLD.type === 'metal' ? (!r.code || !FLD.code || r.code === FLD.code) : FLD.type === 'mix' ? r.name === FLD.code : r.code === FLD.code);
+  }
+  function timeOptions() {
+    const out = []; selectedRows().forEach(r => {
+      const defs = FLD.type === 'oven' ? [['time',(r.tag || '중간') + ' 측정','' + (r.tag || '중간')]] : FLD.type === 'freeze' ? [['t1','넣은 시각','in'],['t2','꺼낸 시각','out']] : FLD.type === 'mix' ? [['start','배합 시각','start'],['end','소진 시각','end']] : [['time',r.kind === 'pre' ? '작업 전 점검' : r.kind === 'post' ? '작업 후 점검' : fldShort(r.name) + ' 제품 확인',r.kind]];
+      defs.forEach(([f,lb,mode]) => { if (r[f]) out.push({r,f,lb,mode}); });
+    }); return out;
+  }
+  function times() {
+    const opts = timeOptions();
+    dialog('시간 수정', fldShort(FLD.name || '') + ' · 고칠 시각을 고르세요. 측정값은 그대로 유지합니다.', '<div class="frw-list">' + (opts.length ? opts.map(o => '<button type="button" data-frw="edit-time" data-row="' + esc(o.r.id) + '" data-field="' + o.f + '">' + esc(o.lb) + '<span>' + esc(o.r[o.f]) + ' 수정</span></button>').join('') : '<p>저장된 시각이 없습니다.</p>') + '</div>');
+  }
+  function editTime(id, f) {
+    const o = timeOptions().find(x => x.r.id === id && x.f === f); if (!o) { close(); toast('기록이 변경됐습니다. 다시 골라 주세요'); return; }
+    const type = FLD.type, date = fldD(); close(); FLD.code = type === 'mix' ? o.r.name : (o.r.code || o.r.kind); FLD.name = o.r.name; FLD.mode = o.mode;
+    fldStartForm(o.r, 'rows'); const field = FLD.fields.find(x => x.f === f); if (!field) return;
+    FLD.fields = [field]; FLD.vals = { [f]: String(o.r[f]) }; FLD.fresh = {}; FLD.typed = {}; FLD.fi = 0; FLD.edit = true; FLD.rework = { date, type, id, f, old: String(o.r[f]) };
+    if (type === 'oven') window.__fq2Back = true; else window.__fqBack = type === 'metal' ? 'type' : 'mode'; fieldRender();
+  }
+  function endRow() {
+    const rs = selectedRows(); if (FLD.type === 'oven') return rs.find(r => r.tag === '종료' && r.time);
+    if (FLD.type === 'freeze') return [...rs].reverse().find(r => r.t2);
+    if (FLD.type === 'mix') return [...rs].reverse().find(r => r.end);
+    if (FLD.type === 'metal') return rs.find(r => r.kind === 'post' && r.time);
+  }
+  function cancelEnd() {
+    const r = endRow(), type = FLD.type, date = fldD(); if (!r) return;
+    if (!fldWk()) { toast('먼저 작업자를 고르세요'); return; }
+    const fields = type === 'oven' ? ['time','temp','min','core'] : type === 'freeze' ? ['t2','v2'] : type === 'mix' ? ['end'] : ['time','fe','sus'];
+    const old = JSON.stringify(Object.fromEntries(fields.map(f => [f,r[f] || '']))), id = r.id, time = r.time || r.t2 || r.end;
+    const bg = dialog('종료 취소', '선택한 종료 기록만 취소합니다. 시작 기록과 다른 품목 기록은 그대로 남습니다.', '<div class="frw-summary">' + esc(fldShort(r.name)) + '<br>' + esc(label(type)) + ' · 종료 ' + esc(time) + '<br>취소 뒤 종료 버튼을 다시 누를 수 있습니다.' + (type === 'oven' ? '<br>2시간 측정 기록은 유지됩니다.' : '') + (fldLog(type).apAt ? '<br>승인이 풀리고 다시 승인이 필요합니다.' : '') + '</div><button type="button" class="frw-confirm">종료 취소하고 전단계로</button>');
+    bg.querySelector('.frw-confirm').onclick = () => {
+      const g = fldLog(type), row = (g.rows || []).find(x => x.id === id); if (!row || JSON.stringify(Object.fromEntries(fields.map(f => [f,row[f] || '']))) !== old || fldD() !== date || FLD.type !== type) { close(); toast('기록이 변경됐습니다. 다시 확인해 주세요'); return; }
+      const ap = g.apBy || '', at = new Date().toISOString();
+      g.hist = (g.hist || []).slice(-99); g.hist.push({ at, by: fldWk(), f: fldShort(row.name) + ' 종료 취소', from: old, to: '종료 전 단계', ap });
+      fields.forEach(f => ccpSet(date + '|' + type + '|rows|' + g.rows.indexOf(row) + '|' + f, ''));
+      if (type === 'oven' || type === 'metal') { row.sg = ''; delete row.us; } row.mt = at; ccpAutoDev(g); ccpTouch(g); close(); delete FLD.rework;
+      FLD.rowId = ''; FLD.vals = {}; FLD.fields = []; FLD.mode = ''; FLD.step = type === 'metal' ? 'type' : 'mode'; window.__fqBack = ''; window.__fq2Back = false; window.__f2hDirect = false;
+      fieldRender(); toast('종료를 취소했습니다. 종료 버튼을 다시 누르세요', 3500);
+    };
+  }
+  const _start = fldStartForm;
+  fldStartForm = function () { delete FLD.rework; return _start.apply(this, arguments); };
+  const _save = fldSave;
+  fldSave = function () {
+    const ctx = FLD.rework;
+    const tf = FLD.fields.filter(x => x.k === 'time');
+    const invalid = tf.find(x => !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(FLD.vals[x.f] || ''));
+    if (invalid) { toast('시각을 00:00~23:59로 입력하세요'); FLD.fi = FLD.fields.indexOf(invalid); fieldRender(); return; }
+    if (FLD.type === 'oven') {
+      const rs = selectedRows(), r = rs.find(r => r.id === FLD.rowId), v = FLD.vals.time;
+      const s = rs.find(x => x.tag === '시작' && x.time), e = rs.find(x => x.tag === '종료' && x.time), mode = r ? r.tag : FLD.mode;
+      const mids = rs.filter(x => x.id !== FLD.rowId && x.tag !== '시작' && x.tag !== '종료' && x.time);
+      const wrong = v && (mode === '시작' && (e && v > e.time || mids.some(x => v > x.time)) || mode === '종료' && (s && v < s.time || mids.some(x => v < x.time)) || mode !== '시작' && mode !== '종료' && (s && v < s.time || e && v > e.time));
+      if (wrong) { toast('시작 ≤ 중간 측정 ≤ 종료 순서가 되도록 시각을 확인하세요', 4000); FLD.fi = 0; fieldRender(); return; }
+    }
+    if (FLD.type === 'mix' && FLD.rowId) {
+      const r = selectedRows().find(x => x.id === FLD.rowId), start = FLD.vals.start ?? r?.start, end = FLD.vals.end ?? r?.end;
+      if (start && end && end < start) { toast('소진 시각은 배합 시각 이후로 입력하세요'); FLD.fi = 0; fieldRender(); return; }
+    }
+    if (ctx) {
+      const g = fldLog(ctx.type), r = (g?.rows || []).find(x => x.id === ctx.id);
+      if (fldD() !== ctx.date || !r || String(r[ctx.f]) !== ctx.old) { toast('기록이 변경됐습니다. 시간 수정을 다시 열어 주세요'); return; }
+    }
+    _save.apply(this, arguments);
+    if (ctx && FLD.lastRow && FLD.lastRow.id === ctx.id) {
+      const g = fldLog(ctx.type), now = String(FLD.lastRow[ctx.f]);
+      if (now !== ctx.old) { g.hist = (g.hist || []).slice(-99); g.hist.push({ at: new Date().toISOString(), by: fldWk(), f: fldShort(FLD.lastRow.name) + ' ' + ctx.f + ' 시각 수정', from: ctx.old, to: now, ap: '' }); ccpTouch(g); }
+      delete FLD.rework;
+    }
+  };
+  const _render = fieldRender;
+  fieldRender = function () {
+    _render.apply(this, arguments);
+    if (!FLD.open) return; const body = document.querySelector('#fld .fpc-main') || document.querySelector('#fld .fld-body'); if (!body || body.querySelector('.frw-bar')) return;
+    if (!['home','ws','type','mode','form','qty','qtyin'].includes(FLD.step)) return;
+    const stage = currentStage(), seq = stageList(), previous = seq[seq.indexOf(stage)-1];
+    const hasLog = ORDER.includes(FLD.type) && ['type','mode','form'].includes(FLD.step);
+    const bar = document.createElement('div'); bar.className = 'frw-bar';
+    bar.innerHTML = (previous ? '<button type="button" data-frw="go" data-stage="' + previous + '">‹ 이전 단계</button>' : '') + '<button type="button" data-frw="stages">단계 선택</button>' + (hasLog ? '<button type="button" data-frw="times">시간 수정</button>' + (endRow() && FLD.step !== 'form' ? '<button type="button" class="danger" data-frw="cancel-end">종료 취소</button>' : '') : '');
+    const head = body.querySelector('h1'); if (head) head.insertAdjacentElement('afterend', bar); else body.prepend(bar);
+    if (FLD.rework && FLD.step === 'form') { const note = document.createElement('div'); note.className = 'frw-edit-note'; note.textContent = '시각만 수정합니다. 기존 측정값은 그대로 유지됩니다.'; bar.insertAdjacentElement('afterend', note); body.querySelectorAll('[data-f="delrow"]').forEach(b => b.remove()); }
+  };
+  window.addEventListener('click', e => {
+    const b = e.target.closest?.('[data-frw]'); if (!b || (!b.closest('#fld') && !b.closest('.frw-bg'))) return;
+    e.preventDefault(); e.stopImmediatePropagation(); const a = b.dataset.frw;
+    if (a === 'close') return close(); if (a === 'go') return go(b.dataset.stage); if (a === 'stages') return choices(); if (a === 'times') return times(); if (a === 'edit-time') return editTime(b.dataset.row,b.dataset.field); if (a === 'cancel-end') return cancelEnd();
+  }, true);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelector('.frw-bg')) { close(); e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+  try { fieldRender(); } catch (e) {}
+})();
