@@ -1566,12 +1566,17 @@
 /* ══ 오븐 종료 칸: 지금 시각 크게 + 시작 후 지난 시간 (2026-11-03 사용자 요청) ══
    - 종료를 아직 안 눌렀을 때만, 「눌러서 저장」 자리에 지금 시각을 크게, 그 아래 줄에 「시작 후 ○시간 ○분」을 보여 준다.
    - 시작 시각은 화면의 시작 칸 글자에서 읽는다(기록은 건드리지 않음). 15초마다 그 글자만 바꾼다(화면 전체를 다시 그리지 않음).
-   - 이 블록을 지우면 예전 「눌러서 저장 / 지금 시각으로」로 돌아간다. */
+   - 이 블록을 지우면 예전 「눌러서 저장 / 지금 시각으로」로 돌아간다.
+   - 2026-11-03 오후: 세로 키오스크처럼 칸이 좁으면 글자가 칸 밖으로 넘어가서, 글자 크기를 칸 너비에 맞춰 줄이게 했다(cqw = 칸 너비의 %).
+     cqw를 모르는 옛 브라우저는 앞의 고정 크기를 그대로 쓴다. 「누르면 지금 시각으로 저장」은 넘치면 낱말 단위로 두 줄. */
 (function () { if (!window.FIELD_APP) return;
   const st = document.createElement('style');
-  st.textContent = '#fld .fov3 .ft.big .tm.fclk{font-size:44px!important;height:56px!important;letter-spacing:1px;font-variant-numeric:tabular-nums;opacity:1!important}'
-    + '#fld .fov3 .ft.big .vv .fel{display:block;font-size:1.3em;font-weight:900;margin:2px 0 4px;white-space:nowrap}'
-    + '@media (max-width:520px){#fld .fov3 .ft.big .tm.fclk{font-size:32px!important;height:44px!important}#fld .fov3 .ft.big .vv .fel{font-size:1.15em;white-space:normal}}';
+  st.textContent = '#fld .fov3 .ft.big[data-fq2="종료"]{container-type:inline-size}'
+    + '#fld .fov3 .ft.big .tm.fclk{font-size:44px!important;font-size:min(44px,28cqw)!important;height:56px!important;height:min(56px,30cqw)!important;letter-spacing:0;white-space:nowrap;font-variant-numeric:tabular-nums;opacity:1!important}'
+    + '#fld .fov3 .ft.big[data-fq2="종료"] .vv{max-width:100%;white-space:normal;word-break:keep-all;overflow-wrap:break-word;line-height:1.3}'
+    + '#fld .fov3 .ft.big .vv .fel{display:block;font-size:1.3em;font-size:min(1.3em,10.5cqw);font-weight:900;margin:2px 0 4px;white-space:nowrap}'
+    + '#fld .fov3 .ft.big .vv .fsv{display:block;font-size:min(1em,12cqw)}'
+    + '#fld .fov3 .ft.big[data-fq2="종료"] .fpress{max-width:100%;box-sizing:border-box;white-space:nowrap;font-size:min(1em,10cqw)}';
   document.head.appendChild(st);
   const p2 = n => String(n).padStart(2, '0');
   const toM = t => { const x = /(\d{1,2}):(\d{2})/.exec(t || ''); return x ? +x[1] * 60 + +x[2] : null; };
@@ -1583,7 +1588,7 @@
       tm.classList.remove('ph'); tm.classList.add('fclk'); if (tm.textContent !== now) tm.textContent = now;
       let el = ''; const s = box.querySelector('[data-fq2="시작"]');
       if (s && s.classList.contains('on')) { const sm = toM((s.querySelector('.tm') || {}).textContent); if (sm != null) { let m = d.getHours() * 60 + d.getMinutes() - sm; if (m < 0) m += 1440; el = '시작 후 ' + (m >= 60 ? Math.floor(m / 60) + '시간 ' : '') + (m % 60) + '분'; } }
-      const html = (el ? '<span class="fel">' + el + '</span>' : '') + '누르면 지금 시각으로 저장';
+      const html = (el ? '<span class="fel">' + el + '</span>' : '') + '<span class="fsv">누르면 지금 <span style="white-space:nowrap">시각으로 저장</span></span>';
       if (vv.innerHTML !== html) vv.innerHTML = html; return true;
     } catch (x) { return false; } };
   const _r = fieldRender; fieldRender = function () { const r = _r.apply(this, arguments); if (paint()) { try { fldFit(); } catch (e) {} } return r; };
