@@ -1602,7 +1602,7 @@
   if (!window.FIELD_APP) return;
   const ORDER = ['mix', 'oven', 'freeze', 'metal'];
   const CSS = document.createElement('style');
-  CSS.textContent = '#fld .frw-bar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px}#fld .frw-bar button,.frw-dialog button{min-height:48px;border:2px solid #C9B79F;border-radius:12px;background:#fff;color:#493323;font-size:17px;font-weight:800;padding:8px 14px;cursor:pointer}#fld .frw-bar .danger,.frw-dialog .danger{color:#B42318;border-color:#DCA59F;background:#FFF5F4}.frw-bg{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}.frw-dialog{background:#fff;color:#30261F;border-radius:18px;width:560px;max-width:100%;max-height:85vh;overflow:auto;padding:20px;box-sizing:border-box;box-shadow:0 10px 40px #0006}.frw-dialog h2{margin:0 0 8px;font-size:23px}.frw-dialog p{font-size:16px;line-height:1.5;margin:8px 0 16px;color:#635448}.frw-list{display:grid;gap:8px}.frw-list button{text-align:left;display:flex;justify-content:space-between;gap:12px}.frw-list button:disabled{opacity:.55;cursor:default}.frw-dialog .close{width:100%;margin-top:16px;background:#F1ECE6}.frw-dialog .frw-confirm{width:100%;margin-top:12px;background:#B42318;color:#fff;border-color:#B42318}.frw-summary{background:#FFF5E8;padding:12px;border-radius:12px;font-size:17px;line-height:1.6}#fld .frw-edit-note{background:#FFF5E8;color:#493323;border-radius:12px;padding:10px 14px;font-size:17px;font-weight:700;margin-bottom:12px}@media(max-width:520px){#fld .frw-bar button{flex:1;font-size:15px;padding:8px}.frw-dialog{padding:16px}.frw-list button{font-size:16px}}';
+  CSS.textContent = '#fld .frw-bar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px}#fld .frw-bar button,.frw-dialog button{min-height:48px;border:2px solid #C9B79F;border-radius:12px;background:#fff;color:#493323;font-size:17px;font-weight:800;padding:8px 14px;cursor:pointer}#fld .frw-bar .danger,.frw-dialog .danger{color:#B42318;border-color:#DCA59F;background:#FFF5F4}.frw-bg{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}.frw-dialog{background:#fff;color:#30261F;border-radius:18px;width:560px;max-width:100%;max-height:85vh;overflow:auto;padding:20px;box-sizing:border-box;box-shadow:0 10px 40px #0006}.frw-dialog h2{margin:0 0 8px;font-size:23px}.frw-dialog p{font-size:16px;line-height:1.5;margin:8px 0 16px;color:#635448}.frw-list{display:grid;gap:8px}.frw-list button{text-align:left;display:flex;justify-content:space-between;gap:12px}.frw-list button:disabled{opacity:.55;cursor:default}.frw-dialog .close{width:100%;margin-top:16px;background:#F1ECE6}.frw-dialog .frw-confirm{width:100%;margin-top:12px;background:#B42318;color:#fff;border-color:#B42318}.frw-summary{background:#FFF5E8;padding:12px;border-radius:12px;font-size:17px;line-height:1.6}#fld .frw-edit-note{background:#FFF5E8;color:#493323;border-radius:12px;padding:10px 14px;font-size:17px;font-weight:700;margin-bottom:12px}@media(max-width:520px){#fld .frw-bar button{flex:1 1 calc(50% - 8px);font-size:15px!important;padding:8px;word-break:keep-all}.frw-dialog{padding:16px}.frw-list button{font-size:16px}}';
   document.head.appendChild(CSS);
   const close = () => document.querySelectorAll('.frw-bg').forEach(e => e.remove());
   function dialog(title, hint, html) {
@@ -1723,31 +1723,5 @@
     if (a === 'close') return close(); if (a === 'go') return go(b.dataset.stage); if (a === 'stages') return choices(); if (a === 'times') return times(); if (a === 'edit-time') return editTime(b.dataset.row,b.dataset.field); if (a === 'cancel-end') return cancelEnd();
   }, true);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelector('.frw-bg')) { close(); e.preventDefault(); e.stopImmediatePropagation(); } }, true);
-  try { fieldRender(); } catch (e) {}
-})();
-
-/* ── 2026-11-03 (Aside) K-HACCP 자동 작성 대비: 금속검출 「제품 확인」(제품만·FE+제품·STS+제품) 빠짐 막기 ──
-   K-HACCP 금속검출 일지(D3)는 품목마다 공정품 줄이 있어야 올라감(루틴 No.24, 매일 17:30).
-   ① 오늘 금속 품목 중 「⏱ 제품 확인」을 저장하지 않은 품목이 있으면 「🏁 작업 후 점검」 저장을 막고 안내(fldSave 감쌈, 제품 확인은 사람이 직접 누름)
-   ② 작업 후를 이미 저장했는데 제품 확인이 빠졌으면 금속 화면에 빨간 안내 + 제품 확인 칸 강조
-   이 블록을 지우면 예전 동작. */
-(function () { if (!window.FIELD_APP) return;
-  const missing = () => { try { const g = fldLog('metal'); if (!g) return []; const D = new Set(g.del || []); const rs = (g.rows || []).filter(r => !D.has(r.id));
-      return fldProds('metal').filter(p => !rs.some(r => r.kind === 'item' && r.code === p.code && r.time && r.fe && r.sus && r.p && r.fep && r.susp)); } catch (e) { return []; } };
-  const postSaved = () => { try { const g = fldLog('metal'); const D = new Set((g && g.del) || []); return !!(g && (g.rows || []).some(r => r.kind === 'post' && r.time && !D.has(r.id))); } catch (e) { return false; } };
-  const say = m => { try { if (typeof toast === 'function') return toast(m); } catch (e) {} alert(m); };
-  const _save = fldSave;
-  fldSave = function () { try { if (FLD.type === 'metal' && FLD.mode === 'post' && !postSaved()) { const ms = missing(); if (ms.length) {
-      say('먼저 ⏱ 제품 확인을 저장하세요 (' + ms.map(p => fldShort(p.name)).join(', ') + ') — K-HACCP 금속검출 일지에 꼭 필요해요');
-      FLD.step = 'type'; FLD.mode = ''; fieldRender(); return; } } } catch (e) {} return _save.apply(this, arguments); };
-  const _r = fieldRender;
-  fieldRender = function () { const r = _r.apply(this, arguments);
-    try { if (FLD.type !== 'metal') return r; const body = document.querySelector('#fld .fld-body'); const it = body && body.querySelector('[data-fq3="metal:item"]'); if (!it) return r;
-      const old = body.querySelector('.fmiss'); if (old) old.remove(); const ms = missing(); if (!ms.length || !postSaved()) return r;
-      body.querySelectorAll('.fnow').forEach(b => { b.classList.remove('fnow'); const p = b.querySelector('.fpress'); if (p) p.remove(); });
-      body.querySelectorAll('.fpv-done').forEach(d => { d.style.background = '#FFE3E3'; d.style.borderColor = '#FA5252'; const sp = d.querySelector('span'); if (sp) { sp.style.color = '#C92A2A'; sp.textContent = '⚠ 아직 완료 아님 — ⏱ 제품 확인을 저장하세요'; } });
-      it.classList.add('fnow'); if (!it.querySelector('.fpress')) it.insertAdjacentHTML('beforeend', '<span class="fpress">👆 여기를 누르세요</span>');
-      it.parentElement.insertAdjacentHTML('beforebegin', '<div class="fmiss" style="margin:6px 0 8px;padding:10px 14px;border-radius:12px;background:#FFE3E3;color:#C92A2A;font-weight:800;font-size:1.05em;word-break:keep-all">⚠ 제품 확인이 빠졌어요: ' + ms.map(p => esc(fldShort(p.name))).join(', ') + ' — 저장해야 K-HACCP 금속검출 일지에 올라가요</div>');
-      try { fldFit(); } catch (e) {} } catch (e) {} return r; };
   try { fieldRender(); } catch (e) {}
 })();
