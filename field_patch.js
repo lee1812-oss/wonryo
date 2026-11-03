@@ -1725,3 +1725,223 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelector('.frw-bg')) { close(); e.preventDefault(); e.stopImmediatePropagation(); } }, true);
   try { fieldRender(); } catch (e) {}
 })();
+
+/* ══ ECOUNT 입력 화면 — 생산입고Ⅱ(생산 + 원료 소모) 자료 모으기 (2026-11-03 Aside, 사용자 요청) ══
+   - 이카운트 오픈 API에는 생산입고Ⅱ 통로가 없다(생산입고Ⅰ만). 그래서 생산실이 「실제로 쓴 원료 양」을 여기에 저장하면
+     조조(Aside, 사무실 PC)가 window.__ec2Queue()로 읽어 이카운트 생산입고Ⅱ 화면에 넣고 window.__ec2MarkDone(날짜, 전표번호)로 완료 표시한다.
+   - K-HACCP와는 상관없다. 이카운트에는 이 화면이 직접 아무것도 쓰지 않는다(공유 저장소에 요청만 올림).
+   - 평소 값 = 이카운트 「생산입고/소모현황」 2026/07/01~11/02 기록에서 제품 1단위당 원료 사용량(최근 10번 중앙값).
+     자주 쓰는 원료(60% 이상 생산에서 사용)는 미리 채우고, 가끔 쓰는 원료는 0으로 두고 「평소 값 넣기」 버튼만 둔다.
+   - 공유: plog 'ec2req~날짜'(요청) · 'ec2done~날짜'(입력 완료). 같은 날짜는 마지막 저장이 이긴다.
+   - 지금은 생산량 입력(→ 생산입고Ⅰ 자동 전송)은 그대로다. 조조가 생산입고Ⅱ로 넣기 시작하기 전에 Ⅰ과 겹치지 않게 정리해야 한다(사용자 결정 필요). */
+(function () {
+  if (!window.FIELD_APP) return;
+  const EC2_AT = '이카운트 생산입고·소모 기록 2026/07/01~11/02';
+  /* 제품코드: {n:이름, k:분석한 생산 횟수, m:[[원료코드, 원료이름, 단위(g | 포장 들이 개수 | 0=이카운트 단위), 제품 1단위당 이카운트 수량, 사용 비율%]]} */
+  const STD = {"DBA_29":{"n":"DB.빅몽블랑 16EA","k":34,"m":[["SD_01","데니쉬스틱 생지(몽블랑) 200g*20EA",20,0.8,100],["SD_01_01","데니쉬스틱 생지(몽블랑) 25g_분할생지",0,16,53],["CH.1225_0","미로와데코젤","g",8,100]]},"DB114":{"n":"DB.구운 밀소금빵 BOX(60EA*50g)","k":17,"m":[["GK26","G.밀소금빵 생지 BOX (60g*100EA)",100,0.6,100],["CH.B23_0","펄솔트","g",15,100]]},"DB_02":{"n":"Db.데니쉬200몽블랑생지(Mont Blanc) 20EA","k":14,"m":[["SD_01","데니쉬스틱 생지(몽블랑) 200g*20EA",20,1,100]]},"DB001":{"n":"Db.마늘소스(육쪽마늘빵)_기본배합","k":29,"m":[["CH.27_0","파슬리","g",60,100],["CH.05_0","다진마늘","g",800,100],["CH.123_0","생크림(에버휩/비앙코)","g",1080,100],["LH.5_0","연유(건국)","g",1080,100],["SC02_0","냉동전란(에그앤리치)","g",1300,100],["CH.000_0","마요네즈","g",1840,100],["CH.A10_0","하얀설탕","g",3200,100],["LH.2_0","마가린","g",5600,100]]},"DBA12":{"n":"DB.육쪽마늘빵 36EA","k":17,"m":[["BM22","바게트롤(하드롤) 100g*48EA",48,0.751,100]]},"DB002":{"n":"Db.크림소스(육쪽마늘빵)_기본배합","k":25,"m":[["CH.08_0","머스타드","g",500,100],["CH.05_0","다진마늘","g",1600,100],["CH.A10_0","하얀설탕","g",2000,100],["CH.123_0","생크림(에버휩/비앙코)","g",6000,100],["LH.1_0","크림치즈(엘로이/스미스/JHL)","g",10880,100]]},"DBA_12":{"n":"Db.치즈듬뿍 마늘바게트 36EA","k":7,"m":[["BM02","반미바게트 95g*36EA",36,1,100]]},"DBA22":{"n":"DB.몽블랑 24EA","k":43,"m":[["SD_01","데니쉬스틱 생지(몽블랑) 200g*20EA",20,1.2308,100],["CH.1225_0","미로와데코젤","g",8,98]]},"DB_585":{"n":"DB.구운크로와상78 24EA","k":13,"m":[["SD_174","DB.크로와상78생지 100EA",100,0.25,85],["CH.B01_0","우유(수입/건국)","g",100,31]]},"DBA44":{"n":"DB.빅크로와상 36EA","k":7,"m":[["SD17","빅크로와상 생지 90g*24EA",24,1.5,100],["CH.B01_0","우유(수입/건국)","g",75,57],["SC02_0","냉동전란(에그앤리치)","g",5,43]]},"SD50":{"n":"DB.마늘바게트 BOX(36EA)","k":4,"m":[["BM02","반미바게트 95g*36EA",36,1,100]]},"DB100":{"n":"DB.구운 밀소금빵 1EA (50g)","k":5,"m":[["GK26_1","G.밀소금빵 생지 1EA (60g)",1,1,60],["CH.B23_0","펄솔트","g",0.2,40]]},"DB2000":{"n":"DB.현미찰생지 65g*30EA","k":1,"m":[["CH.01_0","꽃소금","g",6,100],["CH.A10_0","하얀설탕","g",17.9,100],["CH.95_0","양조간장","g",23.9,100],["CH.247_0","검정깨 1kg","g",29.9,100],["CH.139_0","식용유","g",53.8,100],["CH.202_0","파인소프트-202","g",119.5,100],["IC01_0","볶은현미가루","g",119.5,100],["CH.30_0","쇼트닝 4500","g",209.1,100],["SC02_0","냉동전란(에그앤리치)","g",298.7,100],["CH.07_0","파인소프트T","g",746.7,100]]},"DBG1":{"n":"DB.구운 골든 통밀소금빵 BOX(60EA)","k":9,"m":[["GM-02","GM.골든 통밀소금빵 생지 BOX(72g*80EA)",80,0.75,100],["CH.B23_0","펄솔트","g",17.5,100]]},"DBA4":{"n":"DB.빅크로와상 1EA","k":1,"m":[["SD17","빅크로와상 생지 90g*24EA",24,0.0417,100]]}};
+  /* 낱개·비상품 → [박스 제품, 박스 들이] : 박스 1단위 사용량 ÷ 들이 */
+  const SIB = {"DBA2":["DBA22",24],"NP_DBA2":["DBA22",24],"DBA_22":["DBA_29",16],"NP_DBA_22":["DBA_29",16],"DAB4":["DB_585",24],"NP_DB100":["DB114",60],"NP_DBG1_1":["DBG1",60],"DBG1_1":["DBG1",60],"DBA1":["DBA12",36],"DB_03_1":["DB_02",20]};
+  const RED = '#C8102E';
+  const st = document.createElement('style');
+  st.textContent = ''
+    + '#ec2{position:fixed;inset:0;z-index:99990;background:#16233F;overflow:auto;-webkit-overflow-scrolling:touch;font-family:Pretendard,"Noto Sans KR","Malgun Gothic",sans-serif;font-weight:600;color:#1E2A4A;word-break:keep-all}'
+    + '#ec2 *{box-sizing:border-box}#ec2 .w{max-width:860px;margin:0 auto;padding:0 12px 120px}'
+    + '#ec2 .top{position:sticky;top:0;z-index:2;background:#fff;border-bottom:6px solid ' + RED + ';box-shadow:0 2px 10px rgba(0,0,0,.25)}'
+    + '#ec2 .top .in{max-width:860px;margin:0 auto;padding:10px 12px;display:flex;align-items:center;gap:12px}'
+    + '#ec2 .top img{height:40px;width:auto;flex:none}'
+    + '#ec2 .top .tt{flex:1;min-width:0}#ec2 .top .tt b{display:block;font-size:30px;font-weight:800;color:' + RED + ';line-height:1.15}'
+    + '#ec2 .top .tt span{display:block;font-size:17px;color:#1E2A4A}'
+    + '#ec2 .top .x{flex:none;min-height:54px;min-width:54px;padding:0 14px;border-radius:12px;border:1px solid #cfd6e4;background:#F1F3F5;font-size:18px;font-weight:700;color:#1E2A4A}'
+    + '#ec2 .note{margin:12px 0;padding:10px 14px;border-radius:12px;background:#0E1830;color:#C9D3E6;font-size:16px;line-height:1.55}'
+    + '#ec2 .note b{color:#fff}'
+    + '#ec2 .day{display:flex;align-items:center;gap:8px;margin:12px 0}#ec2 .day b{flex:1;text-align:center;color:#fff;font-size:22px;white-space:nowrap}'
+    + '#ec2 .day button{min-height:54px;min-width:64px;border-radius:12px;border:0;background:#F1F3F5;font-size:20px;font-weight:800;color:#1E2A4A}'
+    + '#ec2 .card{background:#F1F3F5;border-radius:16px;padding:12px;margin:12px 0}'
+    + '#ec2 .card h3{margin:2px 4px 10px;font-size:21px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}'
+    + '#ec2 .card h3 .tag{font-size:14px;font-weight:800;color:#fff;background:' + RED + ';border-radius:8px;padding:3px 8px}'
+    + '#ec2 .card h3 small{font-size:15px;font-weight:600;color:#44506A}'
+    + '#ec2 .row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #DDE2EA;border-radius:12px;padding:10px 12px;margin:8px 0}'
+    + '#ec2 .row .nm{flex:1;min-width:0;font-size:18px;line-height:1.35}#ec2 .row .nm small{display:block;font-size:15px;color:#44506A;font-weight:600}'
+    + '#ec2 .row .nm small.chg{color:#B35C00;font-weight:800}'
+    + '#ec2 .row input{width:120px;min-height:54px;font-size:22px;font-weight:800;text-align:right;border:2px solid #9AA6BC;border-radius:10px;padding:0 10px;color:#1E2A4A;background:#fff;font-family:inherit}'
+    + '#ec2 .row input:focus{outline:none;border-color:#1D4ED8;box-shadow:0 0 0 3px rgba(29,78,216,.25)}'
+    + '#ec2 .row .u{width:34px;font-size:17px;color:#44506A;flex:none}'
+    + '#ec2 .row .del,#ec2 .row .use{flex:none;min-height:46px;padding:0 10px;border-radius:10px;border:1px solid #cfd6e4;background:#F7F8FA;font-size:15px;font-weight:700;color:#1E2A4A}'
+    + '#ec2 .row .use{background:#FFF6CC;border-color:#E8C200}'
+    + '#ec2 .row.off{opacity:.75}#ec2 .row.zero .nm{color:#5B6478}'
+    + '#ec2 .add{width:100%;min-height:54px;border-radius:12px;border:2px dashed #9AA6BC;background:transparent;font-size:18px;font-weight:700;color:#1E2A4A;margin-top:4px}'
+    + '#ec2 .pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:8px}'
+    + '#ec2 .pick button{min-height:54px;text-align:left;padding:8px 12px;border-radius:12px;border:1px solid #cfd6e4;background:#fff;font-size:17px;font-weight:700;color:#1E2A4A;font-family:inherit}'
+    + '#ec2 .empty{padding:14px;font-size:18px;color:#44506A;text-align:center;line-height:1.6}'
+    + '#ec2 .st{margin:12px 0;padding:12px 14px;border-radius:12px;font-size:18px;line-height:1.5;background:#fff}'
+    + '#ec2 .st.wait{border-left:8px solid #1D4ED8}#ec2 .st.done{border-left:8px solid #2B8A3E}#ec2 .st.chg{border-left:8px solid #E67700}'
+    + '#ec2 .bar{position:fixed;left:0;right:0;bottom:0;z-index:3;background:#0E1830;padding:10px 12px calc(10px + env(safe-area-inset-bottom))}'
+    + '#ec2 .bar .in{max-width:860px;margin:0 auto;display:flex;gap:10px}'
+    + '#ec2 .bar button{min-height:60px;border-radius:14px;font-size:20px;font-weight:800;font-family:inherit}'
+    + '#ec2 .bar .sv{flex:1;border:3px solid #1D4ED8;background:linear-gradient(#FFE45C,#FFC915);color:#1E2A4A;box-shadow:0 0 0 3px rgba(29,78,216,.25)}'
+    + '#ec2 .bar .cc{flex:none;padding:0 16px;border:1px solid #44506A;background:#16233F;color:#fff}'
+    + '#fld .ec2-go{display:flex;align-items:center;gap:12px;width:100%;min-height:62px;margin:10px 0 4px;padding:8px 14px;border-radius:14px;border:3px solid ' + RED + ';background:#fff;color:#1E2A4A;font-size:19px;font-weight:800;text-align:left;font-family:inherit;cursor:pointer}'
+    + '#fld .ec2-go img{height:24px;width:auto;flex:none}#fld .ec2-go span{flex:1}#fld .ec2-go small{display:block;font-size:14px;font-weight:600;color:#44506A}'
+    + '#fld .ec2-go em{font-style:normal;font-size:14px;font-weight:800;color:#fff;background:#1D4ED8;border-radius:8px;padding:3px 8px;flex:none}'
+    + '#fld .ec2-go em.d{background:#2B8A3E}#fld .ec2-go em.c{background:#E67700}'
+    + '@media (max-width:520px){#ec2 .top img{height:28px}#ec2 .top .tt b{font-size:24px}#ec2 .top .tt span{font-size:15px}#ec2 .row{flex-wrap:wrap}#ec2 .row .nm{flex-basis:100%}#ec2 .row input{flex:1}}';
+  document.head.appendChild(st);
+
+  const r1 = (v, d) => { const k = Math.pow(10, d); return Math.round(v * k) / k; };
+  const D2 = d => { const t = new Date(d + 'T00:00:00'); return (t.getMonth() + 1) + '/' + t.getDate() + ' (' + '일월화수목금토'[t.getDay()] + ')'; };
+  const addDay = (d, n) => { const t = new Date(d + 'T00:00:00'); t.setDate(t.getDate() + n); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
+  const short = n => String(n || '').replace(/^(\[비상품\]\s*)?(D|DB|Db|G|GM|SD)\.\s*/, '$1').replace(/_gg\d+$/, '').trim();
+  const whoNow = () => { try { return fldWk() || (S.settings && S.settings.reporter) || ''; } catch (e) { return ''; } };
+  const std = code => { if (STD[code]) return { m: STD[code].m, div: 1, from: '' }; const s = SIB[code]; if (s && STD[s[0]]) return { m: STD[s[0]].m, div: s[1], from: s[0] }; return null; };
+  const prodName = code => { try { const it = prodItem(code); if (it && it.name) return it.name; } catch (e) {} return (STD[code] && STD[code].n) || code; };
+  /* 원료 목록(추가용): 표준 자료에 나온 모든 원료 */
+  const MATS = {}; Object.values(STD).forEach(p => p.m.forEach(m => { if (!MATS[m[0]]) MATS[m[0]] = { c: m[0], n: m[1], u: m[2] }; }));
+  /* 화면 단위: g → g, 포장 들이를 알면 「개」(이카운트 수량 = 개 ÷ 들이), 모르면 이카운트 수량 그대로 */
+  const unitOf = u => u === 'g' ? 'g' : (u > 1 ? '개' : '');
+  const toShow = (u, ec) => u === 'g' ? Math.round(ec) : (u > 1 ? Math.round(ec * u * 10) / 10 : r1(ec, 3));
+  const toEc = (u, v) => u === 'g' ? Math.round(v) : (u > 1 ? r1(v / u, 4) : r1(v, 4));
+
+  const store = () => { S.ec2 = S.ec2 || {}; S.ec2.req = S.ec2.req || {}; S.ec2.done = S.ec2.done || {}; S.ec2.draft = S.ec2.draft || {}; return S.ec2; };
+  function stateOf(d) { const E = store(); const q = E.req[d], dn = E.done[d]; if (!q || q.x === 0) return dn ? 'done' : 'none'; if (dn && (dn.ts || '') >= (q.ts || '')) return 'done'; return dn ? 'chg' : 'wait'; }
+
+  /* ── 공유(다른 기기·사무실 PC) ── */
+  function share(kind, d, obj) { try { if (shareOn()) nbQueue({ ts: obj.ts || new Date().toISOString(), week: '', code: d, name: kind === 'ec2req' ? 'ECOUNT 생산입고Ⅱ 입력 요청' : 'ECOUNT 생산입고Ⅱ 입력 완료', kind, note: JSON.stringify(obj) }); else toast('작업자 입력 연동이 꺼져 있어 사무실 PC로 안 갑니다'); } catch (e) {} }
+  try {
+    const _w = shareWire; shareWire = function (r) { if (r && (r.kind === 'ec2req' || r.kind === 'ec2done')) return Object.assign({}, r, { kind: 'plog', code: r.kind + '~' + r.code, note: JSON.stringify({ x: r.kind, n: r.note || '' }) }); return _w(r); };
+    const _u = shareUnwire; shareUnwire = function (r) { try { const m = r && r.kind === 'plog' && /^(ec2req|ec2done)~(\d{4}-\d{2}-\d{2})$/.exec(String(r.code || '')); if (m) { let n = {}; try { n = JSON.parse((JSON.parse(r.note || '{}') || {}).n || '{}') || {}; } catch (e) {}
+          const E = store(); const A = m[1] === 'ec2req' ? E.req : E.done; const cur = A[m[2]];
+          if (!cur || (cur.ts || '') < (r.ts || '')) { if (!n.ts) n.ts = r.ts; A[m[2]] = n; save(); if (document.getElementById('ec2') && !ui.typing) setTimeout(paint, 0); else if (typeof FLD !== 'undefined' && FLD.open && FLD.step === 'home') setTimeout(fieldRender, 0); }
+          return r; } } catch (e) {} return _u(r); };
+    try { const _t = shareRowText; shareRowText = function (row) { if (row && row.kind === 'ec2req') return String(row.code || '') + ' ECOUNT 생산입고Ⅱ 원료 사용량 입력 요청'; if (row && row.kind === 'ec2done') return String(row.code || '') + ' ECOUNT 생산입고Ⅱ 입력 완료'; return _t(row); }; } catch (e) {}
+  } catch (e) {}
+
+  /* ── 화면 상태 ── */
+  const ui = { d: '', pickP: false, pickM: false, typing: false };
+  /* 초안: {prod:{코드:수량}, cons:{원료코드:화면값}, addM:[원료코드], ts} — 이 기기에만 */
+  function draft(d) { const E = store(); return E.draft[d] || null; }
+  function setDraft(d, f) { const E = store(); const x = E.draft[d] || (E.draft[d] = { prod: null, cons: {}, addM: [], ts: '' }); f(x); x.ts = new Date().toISOString(); save(); }
+  /* 그날 생산(이카운트로 보낸 생산량 기준) — 초안이나 저장한 요청이 있으면 그것 */
+  function prodOf(d) {
+    const dr = draft(d); if (dr && dr.prod) return dr.prod;
+    const q = store().req[d]; if (q && q.prod && q.x !== 0 && !(dr && dr.fresh)) { const o = {}; q.prod.forEach(p => { o[p.c] = p.q; }); return o; }
+    const o = {}; try { const by = ccpProdByDate()[d] || {}; Object.values(by).forEach(x => { if (x.ec > 0 && std(x.code)) o[x.code] = r1(x.ec, 3); }); } catch (e) {} return o;
+  }
+  /* 평소대로 계산한 원료 사용량(이카운트 수량): 자주 쓰는 것(≥60%)과 가끔 쓰는 것 */
+  function calc(prod) {
+    const out = {};
+    Object.entries(prod).forEach(([code, q]) => { const s = std(code); if (!s || !(q > 0)) return;
+      s.m.forEach(m => { const o = out[m[0]] || (out[m[0]] = { c: m[0], n: m[1], u: m[2], ec: 0, occ: 0, by: [] }); const v = q * m[3] / s.div; if (m[4] >= 60) { o.ec += v; o.by.push(short(prodName(code))); } else o.occ += v; }); });
+    return out;
+  }
+  function rows(d) {
+    const prod = prodOf(d), C = calc(prod), dr = draft(d) || { cons: {}, addM: [] }, q = store().req[d];
+    const saved = {}; if (!dr.fresh && q && q.cons && q.x !== 0) q.cons.forEach(c => { saved[c.c] = c; });
+    const codes = new Set([...Object.keys(C), ...(dr.addM || []), ...Object.keys(saved)]);
+    return [...codes].map(c => { const k = C[c] || { c, n: (MATS[c] || saved[c] || {}).n || c, u: (MATS[c] || saved[c] || {}).u ?? 0, ec: 0, occ: 0, by: [] };
+      const usual = toShow(k.u, k.ec), occ = toShow(k.u, k.occ);
+      let v = dr.cons && dr.cons[c] != null ? dr.cons[c] : (saved[c] ? saved[c].v : usual);
+      return { c, n: k.n, u: k.u, usual, occ, v: Number(v) || 0, by: k.by, added: !C[c] || (!k.ec && !k.occ) };
+    }).sort((a, b) => (a.u === 'g') - (b.u === 'g') || (b.usual > 0) - (a.usual > 0) || String(a.n).localeCompare(String(b.n), 'ko'));
+  }
+
+  function statusHtml(d) {
+    const s = stateOf(d), E = store(), q = E.req[d], dn = E.done[d];
+    const t = x => { try { const z = new Date(x); return (z.getMonth() + 1) + '/' + z.getDate() + ' ' + String(z.getHours()).padStart(2, '0') + ':' + String(z.getMinutes()).padStart(2, '0'); } catch (e) { return ''; } };
+    if (s === 'wait') return '<div class="st wait">📨 <b>저장됨 · 조조 입력 기다리는 중</b><br>' + esc(q.who || '') + ' · ' + t(q.ts) + ' 저장. 고쳐서 다시 저장해도 돼요.</div>';
+    if (s === 'chg') return '<div class="st chg">✏️ <b>이카운트에 넣은 뒤 다시 고쳐 저장했어요</b><br>조조가 이카운트 전표' + (dn.slip ? ' (' + esc(dn.slip) + ')' : '') + '를 고칠 거예요.</div>';
+    if (s === 'done') return '<div class="st done">✅ <b>이카운트 입력 완료</b>' + (dn.slip ? ' · 전표 ' + esc(dn.slip) : '') + '<br>' + esc(dn.who || '조조') + ' · ' + t(dn.ts) + '</div>';
+    return '';
+  }
+
+  function paint() {
+    let box = document.getElementById('ec2'); if (!box) return;
+    const d = ui.d, prod = prodOf(d), R = rows(d), pc = Object.keys(prod);
+    let h = '<div class="top"><div class="in"><img src="ecount_logo.png" alt="ECOUNT"><div class="tt"><b>ECOUNT 입력 화면</b><span>생산입고Ⅱ · 생산 + 원료 사용량</span></div><button type="button" class="x" data-e2="close">✕ 닫기</button></div></div><div class="w">';
+    h += '<div class="note">이 화면은 <b>이카운트용</b>이에요. K-HACCP 일지와는 상관없어요.<br>실제로 쓴 원료 양을 고쳐서 저장하면 <b>조조가 이카운트 생산입고Ⅱ에 넣어요.</b></div>';
+    h += '<div class="day"><button type="button" data-e2="prev">‹</button><b>' + esc(D2(d)) + (d === today() ? ' 오늘' : '') + '</b><button type="button" data-e2="next"' + (d >= today() ? ' disabled style="opacity:.35"' : '') + '>›</button></div>';
+    h += statusHtml(d);
+    /* 생산 */
+    h += '<div class="card"><h3><span class="tag">생산</span> 만든 제품 <small>이카운트 「생산」 칸</small></h3>';
+    if (!pc.length) h += '<div class="empty">이 날 이카운트로 보낸 생산량이 없어요.<br>아래 「＋ 제품 넣기」로 고르세요.</div>';
+    pc.forEach(c => { const sd = std(c); h += '<div class="row"><div class="nm">' + esc(short(prodName(c))) + '<small>' + esc(c) + (sd && sd.from ? ' · 박스 기준 ÷ ' + sd.div : '') + '</small></div><input type="text" inputmode="decimal" data-e2p="' + esc(c) + '" value="' + esc(prod[c]) + '"><span class="u">' + (/배합/.test(prodName(c)) ? '배합' : '') + '</span><button type="button" class="del" data-e2="delp" data-c="' + esc(c) + '">빼기</button></div>'; });
+    h += '<button type="button" class="add" data-e2="pickP">＋ 제품 넣기</button>';
+    if (ui.pickP) { h += '<div class="pick">' + Object.keys(STD).concat(Object.keys(SIB)).filter(c => !(c in prod)).sort((a, b) => ((STD[b] || {}).k || 0) - ((STD[a] || {}).k || 0)).map(c => '<button type="button" data-e2="addp" data-c="' + esc(c) + '">' + esc(short(prodName(c))) + '</button>').join('') + '</div>'; }
+    h += '</div>';
+    /* 소모 */
+    h += '<div class="card"><h3><span class="tag">소모</span> 실제로 쓴 원료 <small>이카운트 「소모」 칸 · 평소 값이 미리 들어 있어요</small></h3>';
+    if (!R.length) h += '<div class="empty">제품을 넣으면 평소 쓰는 원료가 나와요.</div>';
+    R.forEach(r => { const u = unitOf(r.u); const diff = r.usual > 0 && Math.abs(r.v - r.usual) >= Math.max(1, r.usual * 0.005);
+      const sub = (r.usual > 0 ? '평소대로면 ' + fmt(r.usual) + (u || '') : r.occ > 0 ? '가끔 쓰는 원료 · 평소 ' + fmt(r.occ) + (u || '') : '직접 넣은 원료') + (r.u > 1 ? ' · 이카운트 ' + fmt(toEc(r.u, r.v)) + ' (' + r.u + '개 들이)' : r.u ? '' : ' · 이카운트 수량');
+      h += '<div class="row' + (r.v ? '' : ' zero') + '"><div class="nm">' + esc(short(r.n)) + '<small' + (diff ? ' class="chg"' : '') + '>' + esc(sub) + (diff ? ' → ' + (r.v > r.usual ? '+' : '') + fmt(r1(r.v - r.usual, 1)) + (u || '') : '') + '</small></div>'
+        + (r.occ > 0 && !r.v ? '<button type="button" class="use" data-e2="occ" data-c="' + esc(r.c) + '">평소 값 넣기</button>' : '')
+        + '<input type="text" inputmode="decimal" data-e2m="' + esc(r.c) + '" value="' + esc(r.v) + '"><span class="u">' + esc(u) + '</span>'
+        + (r.usual > 0 && diff ? '<button type="button" class="del" data-e2="usual" data-c="' + esc(r.c) + '">평소대로</button>' : '') + '</div>'; });
+    h += '<button type="button" class="add" data-e2="pickM">＋ 원료 넣기</button>';
+    if (ui.pickM) { const have = new Set(R.map(r => r.c)); h += '<div class="pick">' + Object.values(MATS).filter(m => !have.has(m.c)).sort((a, b) => String(a.n).localeCompare(String(b.n), 'ko')).map(m => '<button type="button" data-e2="addm" data-c="' + esc(m.c) + '">' + esc(short(m.n)) + '</button>').join('') + '</div>'; }
+    h += '</div>';
+    h += '<div class="note">평소 값 = ' + esc(EC2_AT) + '에서 제품 1개(박스·배합)당 쓴 양. 숫자를 고치면 주황 글씨로 평소와 차이가 보여요.</div>';
+    h += '</div><div class="bar"><div class="in"><button type="button" class="cc" data-e2="reset">처음 값으로</button><button type="button" class="sv" data-e2="save">💾 저장 → 조조가 이카운트에 입력</button></div></div>';
+    const y = box.scrollTop; box.innerHTML = h; box.scrollTop = y;
+  }
+
+  function open(d) {
+    ui.d = d || (typeof fldD === 'function' ? fldD() : today()); ui.pickP = ui.pickM = false;
+    let box = document.getElementById('ec2'); if (!box) { box = document.createElement('div'); box.id = 'ec2'; document.body.appendChild(box); bind(box); }
+    box.style.display = ''; paint(); box.scrollTop = 0;
+  }
+  function close() { const b = document.getElementById('ec2'); if (b) b.remove(); try { if (FLD.open) fieldRender(); } catch (e) {} }
+  const num = s => { const v = Number(String(s).replace(/,/g, '').trim()); return isFinite(v) && v >= 0 ? v : null; };
+
+  function bind(box) {
+    box.addEventListener('focusin', e => { if (e.target.matches('input')) { ui.typing = true; try { e.target.select(); } catch (x) {} } });
+    box.addEventListener('focusout', e => { if (e.target.matches('input')) { ui.typing = false; const to = e.relatedTarget; if (to && to.closest && to.closest('#ec2 button')) return; setTimeout(() => { const ae = document.activeElement; if (!(ae && box.contains(ae) && ae.matches('input'))) paint(); }, 0); } });
+    box.addEventListener('change', e => { const t = e.target, d = ui.d;
+      if (t.dataset.e2p) { const v = num(t.value); if (v == null) { toast('숫자로 넣어 주세요'); paint(); return; } setDraft(d, x => { x.prod = Object.assign({}, prodOf(d)); x.prod[t.dataset.e2p] = v; }); }
+      else if (t.dataset.e2m) { const v = num(t.value); if (v == null) { toast('숫자로 넣어 주세요'); paint(); return; } setDraft(d, x => { x.cons[t.dataset.e2m] = v; }); }
+    });
+    box.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('input')) e.target.blur(); });
+    box.addEventListener('click', e => { const b = e.target.closest('[data-e2]'); if (!b) return; const a = b.dataset.e2, c = b.dataset.c, d = ui.d;
+      if (a === 'close') return close();
+      if (a === 'prev' || a === 'next') { const n = addDay(d, a === 'prev' ? -1 : 1); if (n > today()) return; ui.d = n; ui.pickP = ui.pickM = false; paint(); box.scrollTop = 0; return; }
+      if (a === 'pickP') { ui.pickP = !ui.pickP; return paint(); }
+      if (a === 'pickM') { ui.pickM = !ui.pickM; return paint(); }
+      if (a === 'addp') { setDraft(d, x => { x.prod = Object.assign({}, prodOf(d)); x.prod[c] = 1; }); ui.pickP = false; paint(); const i = box.querySelector('[data-e2p="' + CSS.escape(c) + '"]'); if (i) i.focus(); return; }
+      if (a === 'delp') { setDraft(d, x => { x.prod = Object.assign({}, prodOf(d)); delete x.prod[c]; }); return paint(); }
+      if (a === 'addm') { setDraft(d, x => { x.addM = (x.addM || []).concat(c); x.cons[c] = 0; }); ui.pickM = false; paint(); const i = box.querySelector('[data-e2m="' + CSS.escape(c) + '"]'); if (i) i.focus(); return; }
+      if (a === 'occ') { const r = rows(d).find(z => z.c === c); if (r) setDraft(d, x => { x.cons[c] = r.occ; }); return paint(); }
+      if (a === 'usual') { setDraft(d, x => { delete x.cons[c]; }); return paint(); }
+      if (a === 'reset') { if (!confirm('이 날 고친 값을 지우고 처음 값(이카운트로 보낸 생산량 + 평소 원료 양)으로 돌릴까요?')) return; const E = store(); E.draft[d] = { prod: null, cons: {}, addM: [], fresh: true, ts: new Date().toISOString() }; save(); return paint(); }
+      if (a === 'save') return doSave();
+    });
+  }
+
+  function doSave() {
+    const d = ui.d, prod = prodOf(d), R = rows(d);
+    const P = Object.entries(prod).filter(([, q]) => q > 0).map(([c, q]) => ({ c, n: prodName(c), q }));
+    if (!P.length) { toast('만든 제품을 먼저 넣어 주세요'); return; }
+    const C = R.filter(r => r.v > 0).map(r => ({ c: r.c, n: r.n, u: r.u, v: r.v, q: toEc(r.u, r.v), std: toEc(r.u, r.usual) }));
+    const ch = R.filter(r => r.usual > 0 && Math.abs(r.v - r.usual) >= Math.max(1, r.usual * 0.005)).length;
+    if (!confirm(D2(d) + ' ECOUNT 생산입고Ⅱ 자료를 저장할까요?\n\n제품 ' + P.length + '개 · 원료 ' + C.length + '개' + (ch ? ' (평소와 다른 원료 ' + ch + '개)' : ' (모두 평소대로)') + '\n저장하면 조조가 이카운트에 넣어요.')) return;
+    const Q = { ts: new Date().toISOString(), who: whoNow(), date: d, prod: P, cons: C, n: C.length, ch };
+    const E = store(); E.req[d] = Q; delete E.draft[d]; save(true); share('ec2req', d, Q);
+    toast('저장했어요 · 조조가 이카운트에 넣을게요'); paint();
+  }
+
+  /* ── 조조(Aside)용 ── */
+  window.__ec2Queue = function () { const E = store(); return Object.keys(E.req).sort().filter(d => { const s = stateOf(d); return s === 'wait' || s === 'chg'; }).map(d => Object.assign({ date: d, state: stateOf(d), prevSlip: (E.done[d] || {}).slip || '' }, JSON.parse(JSON.stringify(E.req[d])))); };
+  window.__ec2MarkDone = function (d, slip, by) { const E = store(); const q = E.req[d]; if (!q) return false; const D = { ts: new Date().toISOString(), who: by || '조조', slip: String(slip || ''), req: q.ts }; E.done[d] = D; save(true); share('ec2done', d, D); try { if (document.getElementById('ec2')) paint(); } catch (e) {} return true; };
+  window.__ec2Open = open;
+  window.__ec2Std = function () { return { at: EC2_AT, std: STD, sib: SIB }; };
+
+  /* ── 생산실 첫 화면에 들어가는 버튼 ── */
+  function homeBtn() { if (!FLD.open || FLD.step !== 'home') return; const box = document.getElementById('fld'); if (!box || box.querySelector('.ec2-go')) return;
+    const d = fldD(), s = stateOf(d);
+    const tag = s === 'done' ? '<em class="d">입력 완료</em>' : s === 'wait' ? '<em>저장됨</em>' : s === 'chg' ? '<em class="c">다시 저장됨</em>' : '';
+    const html = '<button type="button" class="ec2-go" data-e2go="1"><img src="ecount_logo.png" alt="ECOUNT"><span>ECOUNT 입력 (생산입고Ⅱ)<small>실제로 쓴 원료 양 · K-HACCP와 상관없음</small></span>' + tag + '</button>';
+    const anchor = box.querySelector('.fapp-foot') || box.querySelector('details') ;
+    if (anchor && anchor.parentNode) anchor.insertAdjacentHTML('beforebegin', html); else { const last = box.lastElementChild; (last || box).insertAdjacentHTML('beforeend', html); }
+  }
+  const _r = fieldRender; fieldRender = function () { const r = _r.apply(this, arguments); try { homeBtn(); } catch (e) {} return r; };
+  document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('#fld [data-e2go]'); if (!t) return; e.preventDefault(); e.stopPropagation(); open(fldD()); }, true);
+  try { if (FLD.open) fieldRender(); } catch (e) {}
+})();
