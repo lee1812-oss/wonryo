@@ -1945,3 +1945,35 @@
   document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('#fld [data-e2go]'); if (!t) return; e.preventDefault(); e.stopPropagation(); open(fldD()); }, true);
   try { if (FLD.open) fieldRender(); } catch (e) {}
 })();
+
+
+/* ── 버튼 누름 확인 소리 (2026-11-04, 사용자 요청 「버튼을 누르면 인식했다는 소리」) ──
+   생산실·CCP 일지 화면에서 버튼·누를 수 있는 칸을 누르면 짧은 「띡」 소리 + (진동 되는 기기면) 짧은 진동.
+   소리 파일 없이 브라우저가 직접 만든다. 기록·저장에는 손대지 않는다.
+   끄기: localStorage 'fld_beep' = 'off'. 이 블록을 지우면 예전처럼 소리 없음. */
+(function () {
+  if (!window.FIELD_APP || window.__fldBeep) return; window.__fldBeep = 1;
+  let ac = null, last = 0;
+  const SEL = 'button, a[href], [onclick], [role="button"], summary, select, input[type="checkbox"], input[type="radio"], input[type="button"], input[type="submit"]';
+  function target(el) {
+    if (!el || !el.closest) return null;
+    const t = el.closest(SEL); if (t) return t;
+    for (let n = el, i = 0; n && n.nodeType === 1 && i < 6; n = n.parentElement, i++) { try { if (getComputedStyle(n).cursor === 'pointer') return n; } catch (e) { return null; } }
+    return null;
+  }
+  function beep() {
+    try { if (localStorage.getItem('fld_beep') === 'off') return; } catch (e) {}
+    const now = Date.now(); if (now - last < 90) return; last = now;
+    try {
+      if (!ac) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return; ac = new C(); }
+      if (ac.state === 'suspended') ac.resume();
+      const t0 = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(1320, t0); o.frequency.exponentialRampToValueAtTime(990, t0 + 0.08);
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(0.35, t0 + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.11);
+      o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0 + 0.12);
+    } catch (e) {}
+    try { if (navigator.vibrate) navigator.vibrate(20); } catch (e) {}
+  }
+  window.__fldBeepPlay = beep;
+  window.addEventListener('click', e => { const t = target(e.target); if (!t || t.disabled) return; beep(); }, true);
+})();
