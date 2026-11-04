@@ -1977,3 +1977,40 @@
   window.__fldBeepPlay = beep;
   window.addEventListener('click', e => { const t = target(e.target); if (!t || t.disabled) return; beep(); }, true);
 })();
+
+
+/* ══ 제목줄 날짜 옆에 「오늘」을 크게 (2026-11-04 Aside, 사용자 「생산일지를 터치하면 날짜가 나오는데 상단에 오늘이라는 표시가 날짜와 같이 크게, 지금은 좀 묻혀」) ══
+   - 보는 날짜가 오늘이면 날짜 바로 옆에 노란 「오늘」 배지(날짜와 같은 크기·굵기).
+   - 오늘이 아니면 원래 노란 글자 「오늘 아님」을 빨간 배지로 바꿔 지난 날짜를 보고 있다는 걸 바로 알게 함.
+   - 휴대폰처럼 아주 좁은 화면(400px 이하)은 날짜를 숨기던 자리에 배지만 보여 줌.
+   - 바로 위 블록들(제목줄 fhd)이 만든 글을 바꾸기만 함. 저장·자료는 건드리지 않음. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fhd .fhd-dt{display:inline-flex;align-items:center;gap:10px}'
+    + '#fld .fhd .fhd-dt .fdt-t{font-size:inherit!important;font-weight:800;color:#fff!important;opacity:1!important;margin:0;padding:0;background:none;border:0;display:inline}'
+    + '#fld .fhd .fhd-dt .ftd{display:inline-block;padding:4px 14px;border-radius:10px;font-size:inherit!important;font-weight:900;line-height:1.15;letter-spacing:1px;margin:0}'
+    + '#fld .fhd .fhd-dt .ftd.on{background:#FFD43B;color:#0D1C42;box-shadow:0 0 0 3px rgba(255,212,59,.35)}'
+    + '#fld .fhd .fhd-dt .ftd.off{background:#E03131;color:#fff;letter-spacing:0}'
+    + '#fld .fhd .fhd-dt.is-today{border-color:#FFD43B;background:rgba(255,212,59,.16)}'
+    + '#fld .fhd .fhd-dt.not-today{border-color:#FF8787;background:rgba(224,49,49,.18)}'
+    + '@media (max-width:720px){#fld .fhd .fhd-dt{gap:6px}#fld .fhd .fhd-dt .ftd{padding:3px 8px;border-radius:8px}}'
+    + '@media (max-width:400px){#fld .fhd .fhd-dt{display:inline-flex!important;padding:0;border:0;background:none!important;margin-left:6px}#fld .fhd .fhd-dt .fdt-t{display:none}#fld .fhd .fhd-dt .ftd{font-size:14px}}';
+  document.head.appendChild(st);
+  const _head = fldHead;
+  fldHead = function () {
+    const h = _head.apply(this, arguments);
+    try {
+      return h.replace(/<span class="fhd-dt">([\s\S]*?)<\/span>/, (all, inner) => {
+        const not = /<em>\s*오늘 아님\s*<\/em>/.test(inner);
+        const dt = inner.replace(/\s*<em>[\s\S]*?<\/em>/, '').trim();
+        if (!dt) return all;
+        let isT = !not;
+        try { isT = fldD() === today(); } catch (e) {}
+        return '<span class="fhd-dt ' + (isT ? 'is-today' : 'not-today') + '"><span class="fdt-t">' + dt + '</span>'
+          + (isT ? '<b class="ftd on">오늘</b>' : '<b class="ftd off">오늘 아님</b>') + '</span>';
+      });
+    } catch (e) { return h; }
+  };
+  try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
+})();
