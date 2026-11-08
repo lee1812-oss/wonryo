@@ -33,9 +33,11 @@ window.FIELD_APP = true;
       .catch(function () { return caches.match('./index.html').then(function (r) { if (!r) throw 0; return r.text(); }); });
   }
   Promise.all([get(), fetch('field_patch.js', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.text(); })
-      .catch(function () { return caches.match('./field_patch.js').then(function (r) { if (!r) throw 0; return r.text(); }); })])
+      .catch(function () { return caches.match('./field_patch.js').then(function (r) { if (!r) throw 0; return r.text(); }); }),
+    fetch('field_request.js', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.text(); })
+      .catch(function () { return caches.match('./field_request.js').then(function (r) { return r ? r.text() : ''; }); })])
     .then(function (a) {
-      var t = a[0], patch = a[1];
+      var t = a[0], patch = a[1] + "\n" + a[2];
       var s = t.indexOf('<script type="text/plain" id="app-code">'); var e = s < 0 ? -1 : t.indexOf('</' + 'script>', s);
       if (s < 0 || e < 0) throw 0;
       t = t.slice(0, e) + '\n' + patch + '\n' + t.slice(e);
