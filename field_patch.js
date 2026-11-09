@@ -2014,3 +2014,116 @@
   };
   try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
 })();
+
+
+/* ══ 생산량 담을 때 「소비기한」 입력 (2026-11-09 Aside, 사용자 「예전에 이카운트 생산일지에 소비기한을 입력했으니 키오스크 생산일지에서도 소비기한을 입력할 수 있게」) ══
+   - 생산량 입력 화면(박스·낱개·비상품 칸) 아래에 「📅 소비기한」 칸: 생산일 + 품목별 소비기한 일수로 미리 채움(품목 설정의 소비기한 일수 → 없으면 몽블랑 270·육쪽 360 같은 기본 규칙).
+     「하루 앞으로·하루 뒤로·날짜 고르기·처음 값으로」로 고침. 기본값이 없는 품목(마늘바게트 등)은 직접 고름.
+   - 「담기」를 누르면 담은 줄의 비고(note)에 「소비기한 27.08.05」를 넣음 → 이카운트 생산입고 적요에 그대로 들어감(4~6월에 손으로 적던 모양과 같음).
+     비고에 소비기한이 있으면 기존 자동 규칙(prodExpNote)은 덧붙이지 않으므로 두 번 적히지 않음.
+   - 이카운트로 보낸 뒤에는 그날 생산작업일보의 같은 제품 줄 소비기한도 같은 날짜로 맞춤(PC에서 손으로 고친 줄·승인된 일지는 건드리지 않음).
+   - 담은 품목 목록에도 품목마다 소비기한을 보여 줌. 저장 방식·수량·창고·CCP 측정은 바꾸지 않음. 이 블록을 지우면 예전 모양으로 돌아감. */
+(function () {
+  if (!window.FIELD_APP || window.__fieldExp) return;
+  window.__fieldExp = true;
+  const VER = 'v001', BUILT = '2026-11-09 16:14';
+  const css = document.createElement('style');
+  css.textContent = '#fld .fxe{margin:12px 0;padding:14px 16px;border-radius:16px;border:3px solid #2B8A3E;background:#F1FBF3;color:#1d2a30}'
+    + '#fld .fxe.empty{border-color:#D9480F;background:#FFF4E6}'
+    + '#fld .fxe-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:20px;font-weight:800;color:#1B5E20}'
+    + '#fld .fxe.empty .fxe-hd{color:#B35C00}#fld .fxe-hd small{font-size:15px;font-weight:700;color:#495057}'
+    + '#fld .fxe-v{font-size:40px;font-weight:900;line-height:1.2;margin:6px 0 2px;white-space:nowrap;color:#111}#fld .fxe-v small{font-size:22px;font-weight:800;margin-left:6px;color:#2B8A3E}'
+    + '#fld .fxe.empty .fxe-v{font-size:26px;color:#B35C00}'
+    + '#fld .fxe-s{font-size:17px;color:#343a40;font-weight:600;word-break:keep-all;line-height:1.5}'
+    + '#fld .fxe-b{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}'
+    + '#fld .fxe-b button,#fld .fxe-b label{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;min-height:64px;padding:4px 6px;font-size:19px;font-weight:800;border-radius:14px;border:2px solid #8CC79A;background:#fff;color:#1B5E20;cursor:pointer;word-break:keep-all;line-height:1.25;box-sizing:border-box;overflow:hidden}'
+    + '#fld .fxe-b label input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:20px}'
+    + '#fld .fxe-c{display:block;font-size:15px;font-weight:700;color:#2B8A3E;margin-top:2px}#fld .fxe-c.no{color:#B35C00}'
+    + '@media (max-width:520px){#fld .fxe-b{grid-template-columns:1fr 1fr}#fld .fxe-v{font-size:32px}}';
+  document.head.appendChild(css);
+
+  const pad = n => String(n).padStart(2, '0');
+  const ymdOf = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const addD = (ymd, n) => { const d = new Date(String(ymd) + 'T00:00:00'); if (isNaN(d)) return ''; d.setDate(d.getDate() + n); return ymdOf(d); };
+  const dayDiff = (a, b) => Math.round((Date.parse(a + 'T00:00:00') - Date.parse(b + 'T00:00:00')) / 864e5);
+  const wd = ymd => { const d = new Date(ymd + 'T00:00:00'); return isNaN(d) ? '' : ['일', '월', '화', '수', '목', '금', '토'][d.getDay()]; };
+  const okYmd = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) && !isNaN(Date.parse(v + 'T00:00:00'));
+  const noteTxt = ymd => '소비기한 ' + ymd.slice(2).replace(/-/g, '.');   /* 이카운트 적요: 소비기한 27.08.05 */
+  const EXP_RE = /소비기한\s*(\d{2})\.(\d{2})\.(\d{2})/;
+  const noteExp = note => { const m = EXP_RE.exec(String(note || '')); return m ? '20' + m[1] + '-' + m[2] + '-' + m[3] : ''; };
+  const setNoteExp = (note, ymd) => { let t = String(note || '').replace(/\s*\/?\s*소비기한\s*[\d.\-\/]+/g, '').trim(); if (ymd) t = [t, noteTxt(ymd)].filter(Boolean).join(' / '); return t.slice(0, 180); };
+  const nameOf = it => String((it && it.name) || '');
+  const isSemi = it => /배합|소스|생지/.test(nameOf(it));
+  /* 같은 제품(박스·낱개·비상품) 묶음 */
+  const famOf = code => { const it = prodItem(code) || { code, name: code, unit: '' }; let F = null; try { F = prodFamily(it); } catch (e) {} const us = F ? [F.B, F.E, F.N].filter(Boolean) : [it]; const head = F ? (F.B || F.E || F.N) : it; return { it, F, us, head, codes: us.map(x => x.code) }; };
+  /* 기본 소비기한 일수: 품목 설정(shelf) → 기본 규칙(EXP_DAYS) */
+  const shelfDays = fam => { for (const x of [fam.head].concat(fam.us)) { const v = x && x.shelf; if (v !== '' && v != null && !isNaN(Number(v)) && Number(v) > 0) return { n: Math.round(Number(v)), src: '품목 설정' }; }
+    const nm = nameOf(fam.head) || nameOf(fam.it); if (!nm || isSemi(fam.head) || (/마늘바게트/.test(nm) && !/치즈듬뿍/.test(nm))) return null;   /* 마늘바게트는 180/360일이 섞여 있어 직접 고름 */
+    try { const r = (typeof EXP_DAYS !== 'undefined' ? EXP_DAYS : []).find(x => x[0].test(nm)); if (r) return { n: r[1], src: '기본 규칙' }; } catch (e) {} return null; };
+  const defExp = (fam, D) => { const s = shelfDays(fam); return s ? { v: addD(D, s.n), n: s.n, src: s.src } : { v: '', n: null, src: '' }; };
+  const draftLines = D => { const P = prodS(); return P.draft && P.draft.date === D ? (P.draft.lines || []) : []; };
+
+  /* 화면 상태: 제품 묶음이 바뀔 때마다 다시 읽음 */
+  const initX = () => { const D = fldD(), fam = famOf(FLD.code), key = D + '|' + fam.codes.join('|'); if (FLD.xeKey === key) return fam;
+    FLD.xeKey = key; FLD.xeAsk = 0; const had = draftLines(D).map(l => fam.codes.includes(l.code) ? noteExp(l.note) : '').find(Boolean);
+    FLD.xe = had || defExp(fam, D).v || ''; FLD.xeNone = 0; return fam; };
+
+  const panel = () => { const D = fldD(), fam = initX(), df = defExp(fam, D), v = FLD.xe, semi = isSemi(fam.head) || isSemi(fam.it);
+    const n = v ? dayDiff(v, D) : null;
+    const head = '<div class="fxe-hd"><span>📅 소비기한</span><small>소비기한 입력 ' + VER + '</small></div>';
+    if (!v) return '<div class="fxe empty">' + head + '<div class="fxe-v">' + (semi ? '입력 안 함 (반제품)' : '날짜를 골라 주세요') + '</div>'
+      + '<div class="fxe-s">' + (semi ? '생지·배합·소스는 비워 둬도 됩니다. 필요하면 아래 「날짜 고르기」로 넣으세요.' : '이 품목은 정해진 소비기한 일수가 없습니다. 제품 포장에 찍을 소비기한을 「날짜 고르기」로 넣어 주세요.') + '</div>'
+      + '<div class="fxe-b"><label>📅 날짜 고르기<input type="date" data-fxe-date="1" value=""></label>' + (df.v ? '<button type="button" data-fxe="def">처음 값으로</button>' : '') + '</div></div>';
+    const lab = df.v && v === df.v ? '생산일 + ' + df.n + '일 (' + df.src + ')' : '생산일 + ' + n + '일' + (df.v ? ' · 처음 값 ' + df.v.slice(2).replace(/-/g, '.') + '에서 바꿈' : ' · 직접 고름');
+    return '<div class="fxe' + (n < 0 ? ' empty' : '') + '">' + head
+      + '<div class="fxe-v">' + v.replace(/-/g, '.') + '<small>(' + wd(v) + ')</small></div>'
+      + '<div class="fxe-s">' + esc(lab) + (n < 0 ? ' <b style="color:#C92A2A">⚠ 생산일보다 앞 날짜입니다</b>' : '') + '<br>담으면 이카운트 적요에 「' + noteTxt(v) + '」로 들어갑니다.</div>'
+      + '<div class="fxe-b"><button type="button" data-fxe="-1">◀ 하루 앞으로</button><button type="button" data-fxe="1">하루 뒤로 ▶</button>'
+      + '<label>📅 날짜 고르기<input type="date" data-fxe-date="1" value="' + esc(v) + '"></label>'
+      + (df.v && v !== df.v ? '<button type="button" data-fxe="def">처음 값으로</button>' : '<button type="button" data-fxe="clr">지우기</button>') + '</div></div>'; };
+
+  const _in = fldQtyInHtml;
+  fldQtyInHtml = function () { const h = _in.apply(this, arguments); try { const i = h.lastIndexOf('<div class="fqgo">'); const p = panel(); return i < 0 ? h + p : h.slice(0, i) + p + h.slice(i); } catch (e) { return h; } };
+
+  /* 담기 뒤: 담은 줄의 비고에 소비기한 */
+  const applyDraft = (codes, D, ymd) => { const P = prodS(); if (!P.draft || P.draft.date !== D) return 0; let n = 0;
+    (P.draft.lines || []).forEach(l => { if (!codes.includes(l.code) || !(Number(l.qty) > 0)) return; const t = setNoteExp(l.note, ymd); if (t !== String(l.note || '')) { l.note = t; n++; } });
+    if (n) save(); return n; };
+
+  /* 보낸 생산(이카운트 전표) → 생산작업일보 같은 제품 줄의 소비기한 */
+  const sentExpMap = D => { const m = {}; (prodS().log || []).forEach(en => { if (!en || en.date !== D || en.status === 'cancel') return; (en.lines || []).forEach(l => { const e = noteExp(l.note); if (!e) return; const k = famOf(l.code).head.code; if (!m[k] || e < m[k]) m[k] = e; }); }); return m; };
+  const syncLog = D => { try { const A = ccpS().logs[D + '|prod']; if (!A || A.apAt) return 0; const m = sentExpMap(D); let ch = 0;
+      (A.rows || []).forEach(r => { if (!r || r.del) return; const e = m[r.key]; if (!e || r.exp === e || (r.m && r.m.exp)) return; r.exp = e; ch++; });
+      if (ch) ccpTouch(A); return ch; } catch (e) { return 0; } };
+  /* 새로 생기는 생산작업일보 줄도 보낸 소비기한을 먼저 씀 */
+  try { const _eo = ccpExpOf; ccpExpOf = function (date, it, x) { try { if (!(x && x.exp) && it) { const e = sentExpMap(date)[famOf(it.code).head.code]; if (e) return e; } } catch (er) {} return _eo.apply(this, arguments); }; } catch (e) {}
+
+  window.addEventListener('change', e => { const t = e.target; if (!t || !t.matches || !t.matches('#fld [data-fxe-date]')) return; if (okYmd(t.value)) { FLD.xe = t.value; FLD.xeAsk = 0; fieldRender(); } }, true);
+  window.addEventListener('click', e => { const g = e.target.closest && e.target.closest('#fld [data-f="qtygo"], #fld [data-f="qtyedit"], #fld [data-fxe-date]');
+    if (g) { if (g.dataset.fxeDate) { try { if (g.showPicker) g.showPicker(); } catch (er) {} } else FLD.xeKey = ''; return; }   /* 품목에 들어갈 때마다 새로 읽음 */
+    const t = e.target.closest && e.target.closest('#fld [data-fxe], #fld [data-fqput]'); if (!t || FLD.step !== 'qtyin') return;
+    if (t.dataset.fxe) { e.preventDefault(); e.stopImmediatePropagation(); const D = fldD(), fam = initX(), k = t.dataset.fxe;
+      if (k === 'def') FLD.xe = defExp(fam, D).v || ''; else if (k === 'clr') FLD.xe = ''; else FLD.xe = addD(FLD.xe || D, Number(k));
+      FLD.xeAsk = 0; fieldRender(); return; }
+    /* 「담기」 */
+    const D = fldD(), fam = initX(), v = FLD.xe, semi = isSemi(fam.head) || isSemi(fam.it);
+    const any = fam.codes.some(c => Number((FLD.qx || {})[c]) > 0);
+    if (any && !v && !semi && !FLD.xeAsk) { e.preventDefault(); e.stopImmediatePropagation(); FLD.xeAsk = 1; toast('소비기한이 비어 있어요 — 날짜를 고르거나, 한 번 더 누르면 소비기한 없이 담깁니다', 4500); return; }
+    if (any && v && dayDiff(v, D) < 0) { e.preventDefault(); e.stopImmediatePropagation(); toast('소비기한이 생산일보다 앞입니다 — 날짜를 다시 골라 주세요', 4000); return; }
+    const codes = fam.codes.slice();
+    setTimeout(() => { try { if (applyDraft(codes, D, v) && FLD.step === 'qty') fieldRender(); } catch (er) {} }, 0); }, true);
+
+  /* 담은 품목 목록에 소비기한 + 상단 버전 표시 + 생산작업일보 맞추기 */
+  const paint = () => { try { const root = document.getElementById('fld'); if (!root) return;
+      const sm = root.querySelector('.rqbar small'); if (sm && !sm.querySelector('.fxe-ver')) sm.insertAdjacentHTML('beforeend', '<span class="fxe-ver"> · 소비기한 입력 ' + VER + ' · ' + BUILT + '</span>');
+      if (FLD.step !== 'qty') return; const D = fldD(), ls = draftLines(D);
+      root.querySelectorAll('[data-f="qtyedit"][data-c]').forEach(b => { const row = b.parentElement; if (!row || row.querySelector('.fxe-c')) return; const fam = famOf(b.dataset.c);
+        const e = ls.map(l => fam.codes.includes(l.code) && Number(l.qty) > 0 ? noteExp(l.note) : '').find(Boolean); const sp = row.querySelector('span');
+        const semi = isSemi(fam.head) || isSemi(fam.it); if (sp) sp.insertAdjacentHTML('beforeend', e ? '<small class="fxe-c">소비기한 ' + e.replace(/-/g, '.') + '</small>' : semi ? '' : '<small class="fxe-c no">소비기한 없음 → 「고치기」로 넣기</small>'); });
+    } catch (e) {} };
+  const _r = fieldRender;
+  fieldRender = function () { const r = _r.apply(this, arguments); paint(); return r; };
+  const tick = () => { try { const D = fldD(); if (syncLog(D) && FLD.open) fieldRender(); } catch (e) {} };
+  setInterval(tick, 20000); setTimeout(tick, 3000);
+  try { fieldRender(); } catch (e) {}
+})();
