@@ -1742,6 +1742,7 @@
   /* 낱개·비상품 → [박스 제품, 박스 들이] : 박스 1단위 사용량 ÷ 들이 */
   const SIB = {"DBA2":["DBA22",24],"NP_DBA2":["DBA22",24],"DBA_22":["DBA_29",16],"NP_DBA_22":["DBA_29",16],"DAB4":["DB_585",24],"NP_DB100":["DB114",60],"NP_DBG1_1":["DBG1",60],"DBG1_1":["DBG1",60],"DBA1":["DBA12",36],"DB_03_1":["DB_02",20]};
   const RED = '#C8102E';
+  const XV = 'v001', XB = '2026-11-09 16:54';   /* 소비기한·인쇄 (2026-11-09 Aside, 사용자 「이카운트 생산일지의 베이스인 입력 영역에 소비기한 입력과 인쇄」) */
   const st = document.createElement('style');
   st.textContent = ''
     + '#ec2{position:fixed;inset:0;z-index:99990;background:#16233F;overflow:auto;-webkit-overflow-scrolling:touch;font-family:Pretendard,"Noto Sans KR","Malgun Gothic",sans-serif;font-weight:600;color:#1E2A4A;word-break:keep-all}'
@@ -1784,6 +1785,16 @@
     + '#fld .ec2-go img{height:24px;width:auto;flex:none}#fld .ec2-go span{flex:1}#fld .ec2-go small{display:block;font-size:14px;font-weight:600;color:#44506A}'
     + '#fld .ec2-go em{font-style:normal;font-size:14px;font-weight:800;color:#fff;background:#1D4ED8;border-radius:8px;padding:3px 8px;flex:none}'
     + '#fld .ec2-go em.d{background:#2B8A3E}#fld .ec2-go em.c{background:#E67700}'
+    + '#ec2 .row.hx{flex-wrap:wrap}'
+    + '#ec2 .xp{flex-basis:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:2px;padding:8px 10px;border-radius:10px;background:#EEF8F0;border:1px solid #9BD3A8}'
+    + '#ec2 .xp.no{background:#FFF4E6;border-color:#F0B37E}#ec2 .xp.semi{background:#F4F5F7;border-color:#D5DAE1}'
+    + '#ec2 .xp .xl{font-size:17px;font-weight:800;color:#1B5E20;white-space:nowrap}#ec2 .xp.no .xl{color:#B35C00}#ec2 .xp.semi .xl{color:#44506A}'
+    + '#ec2 .xp .xv{font-size:22px;font-weight:900;color:#111;white-space:nowrap}#ec2 .xp.no .xv{color:#B35C00}'
+    + '#ec2 .xp .xs{flex:1;min-width:150px;font-size:15px;font-weight:700;color:#44506A;line-height:1.35}'
+    + '#ec2 .xp .xb{position:relative;display:inline-flex;align-items:center;justify-content:center;min-height:54px;padding:0 14px;border-radius:10px;border:2px solid #8CC79A;background:#fff;font-size:17px;font-weight:800;color:#1B5E20;cursor:pointer;overflow:hidden;white-space:nowrap;font-family:inherit}'
+    + '#ec2 .row .xb input{position:absolute;inset:0;width:100%;height:100%;min-height:0;opacity:0;cursor:pointer;border:0;padding:0;font-size:16px}'
+    + '#ec2 .bar .pr{flex:none;padding:0 16px;border:2px solid #fff;background:#fff;color:#1E2A4A}'
+    + '#ec2 .st.xw{border-left:8px solid #E67700}'
     + '@media (max-width:520px){#ec2 .top img{height:28px}#ec2 .top .tt b{font-size:24px}#ec2 .top .tt span{font-size:15px}#ec2 .row{flex-wrap:wrap}#ec2 .row .nm{flex-basis:100%}#ec2 .row input{flex:1}}';
   document.head.appendChild(st);
 
@@ -1800,6 +1811,40 @@
   const unitOf = u => u === 'g' ? 'g' : (u > 1 ? '개' : '');
   const toShow = (u, ec) => u === 'g' ? Math.round(ec) : (u > 1 ? Math.round(ec * u * 10) / 10 : r1(ec, 3));
   const toEc = (u, v) => u === 'g' ? Math.round(v) : (u > 1 ? r1(v / u, 4) : r1(v, 4));
+
+  /* ── 소비기한 (2026-11-09 Aside) ──
+     만든 제품: ① 그날 생산량 입력 때 넣은 소비기한 ② 품목 설정 일수 ③ 기본 규칙(EXP_DAYS) — 반제품(생지·배합·소스)은 비워도 됨, 마늘바게트는 직접 고름
+     쓴 원료: ① 이카운트 매입 기록의 「먼저 쓸 입고분」(선입선출) 소비기한 ② 앞 날짜에 저장한 같은 원료 값 ③ 직접 고름
+     저장하면 줄마다 e(소비기한)·es(어디서 온 값)가 같이 저장되고, 조조는 __ec2Queue()의 memo(「소비기한 27.08.02」)를 이카운트 적요에 넣는다. */
+  const okY = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) && !isNaN(Date.parse(v + 'T00:00:00'));
+  const yy = v => okY(v) ? v.slice(2).replace(/-/g, '.') : '';
+  const wdY = v => okY(v) ? '일월화수목금토'[new Date(v + 'T00:00:00').getDay()] : '';
+  const dDiff = (a, b) => Math.round((Date.parse(a + 'T00:00:00') - Date.parse(b + 'T00:00:00')) / 864e5);
+  const noteX = n => { const m = /소비기한\s*(\d{2})\.(\d{2})\.(\d{2})/.exec(String(n || '')); return m ? '20' + m[1] + '-' + m[2] + '-' + m[3] : ''; };
+  const semiP = code => /배합|소스|생지/.test(prodName(code));
+  const famCodes = code => { try { const it = prodItem(code); const F = it && prodFamily(it); if (F) return { head: F.B || F.E || F.N || it, codes: [F.B, F.E, F.N].filter(Boolean).map(x => x.code).concat(code) }; return { head: it || { code, name: prodName(code) }, codes: [code] }; } catch (e) { return { head: { code, name: prodName(code) }, codes: [code] }; } };
+  function pDef(d, code) {
+    const F = famCodes(code);
+    try { const P = prodS(); let best = ''; const take = l => { if (!l || !F.codes.includes(l.code)) return; const e = noteX(l.note); if (e && (!best || e < best)) best = e; };
+      (P.log || []).forEach(en => { if (en && en.date === d && en.status !== 'cancel') (en.lines || []).forEach(take); });
+      if (!best && P.draft && P.draft.date === d) (P.draft.lines || []).forEach(l => { if (Number(l.qty) > 0) take(l); });
+      if (best) return { v: best, src: '생산량 입력 때 넣은 값' }; } catch (e) {}
+    if (semiP(code)) return { v: '', src: '' };
+    const its = [F.head].concat(F.codes.map(c => { try { return prodItem(c); } catch (e) { return null; } })).filter(Boolean);
+    for (const it of its) { const s = it.shelf; if (s !== '' && s != null && !isNaN(Number(s)) && Number(s) > 0) return { v: addDay(d, Math.round(Number(s))), src: '생산일 + ' + Math.round(Number(s)) + '일 (품목 설정)' }; }
+    const nm = String((F.head && F.head.name) || prodName(code));
+    if (/마늘바게트/.test(nm) && !/치즈듬뿍/.test(nm)) return { v: '', src: '마늘바게트는 180일·360일이 섞여 있어 직접 골라 주세요' };
+    try { const r = (typeof EXP_DAYS !== 'undefined' ? EXP_DAYS : []).find(x => x[0].test(nm)); if (r) return { v: addDay(d, r[1]), src: '생산일 + ' + r[1] + '일 (기본 규칙)' }; } catch (e) {}
+    return { v: '', src: '' };
+  }
+  const FIFO = {}; let fifoAt = 0;
+  function loadFifo() { if (fifoAt && Date.now() - fifoAt < 600000) return; fifoAt = Date.now();
+    try { Promise.resolve(facLoad()).then(F => { const rb = F && (F.rawbuy || (F.factory && F.factory.rawbuy)); const L = rb && rb.lots && rb.lots.items; if (!L) return; let n = 0;
+      Object.keys(L).forEach(c => { try { const f = fifoCalc(c, L[c]).first; if (f && f.k === 'exp' && okY(f.ed)) { if (FIFO[c] !== f.ed) { FIFO[c] = f.ed; n++; } } else if (f && f.k === 'mfg' && okY(f.ed)) { if (FIFO['mfg:' + c] !== f.ed) { FIFO['mfg:' + c] = f.ed; n++; } } } catch (e) {} });
+      if (n && document.getElementById('ec2') && !ui.typing) paint(); }).catch(() => {}); } catch (e) {} }
+  function lastSaved(c, d) { const E = store(); let best = null; Object.keys(E.req).forEach(k => { if (k >= d) return; const q = E.req[k]; ((q && q.cons) || []).forEach(z => { if (z.c === c && okY(z.e) && (!best || k > best.k)) best = { k, e: z.e }; }); }); return best; }
+  function mDef(d, c) { if (FIFO[c]) return { v: FIFO[c], src: '먼저 쓸 입고분 (선입선출)' }; const L = lastSaved(c, d); if (L) return { v: L.e, src: (+L.k.slice(5, 7)) + '/' + (+L.k.slice(8)) + '에 넣은 값' };
+    if (FIFO['mfg:' + c]) return { v: '', src: '소비기한 표시가 없는 원료 (제조일 ' + yy(FIFO['mfg:' + c]) + ')', mfg: 1 }; return { v: '', src: '' }; }
 
   const store = () => { S.ec2 = S.ec2 || {}; S.ec2.req = S.ec2.req || {}; S.ec2.done = S.ec2.done || {}; S.ec2.draft = S.ec2.draft || {}; return S.ec2; };
   function stateOf(d) { const E = store(); const q = E.req[d], dn = E.done[d]; if (!q || q.x === 0) return dn ? 'done' : 'none'; if (dn && (dn.ts || '') >= (q.ts || '')) return 'done'; return dn ? 'chg' : 'wait'; }
@@ -1844,6 +1889,76 @@
     }).sort((a, b) => (a.u === 'g') - (b.u === 'g') || (b.usual > 0) - (a.usual > 0) || String(a.n).localeCompare(String(b.n), 'ko'));
   }
 
+  function savedLine(d, k, c) { const dr = draft(d); if (dr && dr.fresh) return null; const q = store().req[d]; if (!q || q.x === 0) return null; return ((k === 'p' ? q.prod : q.cons) || []).find(z => z.c === c) || null; }
+  function xOf(d, k, c) { const dr = draft(d), X = dr && (k === 'p' ? dr.pexp : dr.cexp);
+    if (X && Object.prototype.hasOwnProperty.call(X, c)) return { v: X[c] || '', src: X[c] ? '직접 고름' : '직접 지움', set: 1 };
+    const s = savedLine(d, k, c); if (s && 'e' in s) return { v: s.e || '', src: s.e ? (s.es || '저장한 값') : '비운 채 저장함', saved: 1 };
+    return Object.assign({ def: 1 }, k === 'p' ? pDef(d, c) : mDef(d, c)); }
+  const xSemi = (k, c) => k === 'p' ? semiP(c) : !!FIFO['mfg:' + c];
+  function xpHtml(d, k, c) { const x = xOf(d, k, c), v = x.v, semi = xSemi(k, c), n = v ? dDiff(v, d) : null;
+    const bad = v && n < 0; const cls = v ? (bad ? ' no' : '') : (semi ? ' semi' : ' no');
+    let sub = x.src || '';
+    if (v && k === 'p' && !/^생산일/.test(sub)) sub = '생산일 + ' + n + '일' + (sub ? ' · ' + sub : '');
+    if (!v && !sub) sub = semi ? '반제품은 비워 둬도 돼요' : (k === 'p' ? '날짜를 골라 주세요' : '포장에 적힌 소비기한을 골라 주세요');
+    if (bad) sub = (k === 'p' ? '⚠ 생산일보다 앞 날짜예요' : '⚠ 생산일에 이미 지난 날짜예요') + ' · ' + sub;
+    const A = ' data-k="' + k + '" data-c="' + esc(c) + '"';
+    return '<div class="xp' + cls + '"><span class="xl">📅 소비기한</span><span class="xv">' + (v ? esc(v.replace(/-/g, '.')) + ' (' + wdY(v) + ')' : (semi ? '없음' : '비어 있음')) + '</span><span class="xs">' + esc(sub) + '</span>'
+      + '<label class="xb">날짜 고르기<input type="date" data-e2x="' + k + '" data-c="' + esc(c) + '" value="' + esc(v) + '"></label>'
+      + (x.set ? '<button type="button" class="xb" data-e2="xdef"' + A + '>처음 값으로</button>' : v ? '<button type="button" class="xb" data-e2="xclr"' + A + '>지우기</button>' : '') + '</div>'; }
+  function xMiss(d) { const prod = prodOf(d); let n = 0; Object.entries(prod).forEach(([c, q]) => { if (q > 0 && !xOf(d, 'p', c).v && !semiP(c)) n++; }); rows(d).forEach(r => { if (r.v > 0 && !xOf(d, 'm', r.c).v && !xSemi('m', r.c)) n++; }); return n; }
+  function oldSave(d) { const q = store().req[d], dr = draft(d); if (!q || q.x === 0 || (dr && dr.fresh)) return false; return ![].concat(q.prod || [], q.cons || []).some(z => 'e' in z); }
+
+  /* ── 인쇄: 이정현 과장 「생산·소모 일지」처럼 A4 한 장 (화면에 보이는 값 그대로) ── */
+  function printHtml(d) {
+    const prod = prodOf(d), R = rows(d).filter(r => r.v > 0), E = store(), q = E.req[d], dn = E.done[d], s = stateOf(d), dr = draft(d);
+    const P = Object.entries(prod).filter(([, v]) => v > 0);
+    const edited = !!(dr && (dr.prod || dr.fresh || Object.keys(dr.cons || {}).length || Object.keys(dr.pexp || {}).length || Object.keys(dr.cexp || {}).length));
+    const t = x => { try { const z = new Date(x); return (z.getMonth() + 1) + '/' + z.getDate() + ' ' + String(z.getHours()).padStart(2, '0') + ':' + String(z.getMinutes()).padStart(2, '0'); } catch (e) { return ''; } };
+    const D = new Date(d + 'T00:00:00'); const dl = D.getFullYear() + '. ' + String(D.getMonth() + 1).padStart(2, '0') + '. ' + String(D.getDate()).padStart(2, '0') + '. (' + wdY(d) + ')';
+    const stt = s === 'none' || edited ? ['warn', '⚠ 저장 전 화면 값' + (s !== 'none' ? ' (저장한 뒤 고침)' : '')] : s === 'done' ? ['ok', '✔ 이카운트 입력 완료' + (dn && dn.slip ? ' · 전표 ' + dn.slip : '')] : s === 'chg' ? ['warn', '✎ 다시 저장 · 조조 수정 대기'] : ['info', '● 저장됨 · 조조 입력 대기'];
+    const xCell = (k, c) => { const x = xOf(d, k, c); if (x.v) return '<td class="x">' + esc(yy(x.v)) + '</td>'; return xSemi(k, c) ? '<td class="x semi">해당 없음</td>' : '<td class="x miss">[확인 필요]<br>비어 있음</td>'; };
+    let h = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>생산·소모 일지 ' + d + '</title><style>'
+      + '@page{size:A4 portrait;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+      + 'body{margin:0;font-family:"Malgun Gothic","맑은 고딕","Noto Sans KR",sans-serif;color:#111;word-break:keep-all;overflow-wrap:break-word;line-break:strict}'
+      + '.hd{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;border-bottom:4px solid #0B3A8F;padding-bottom:6px}'
+      + '.hd h1{margin:0;font-size:24pt;font-weight:800;color:#0B3A8F;letter-spacing:-.5px}.hd .sub{font-size:11pt;font-weight:700;color:#333}'
+      + '.ec{font-size:11pt;font-weight:800;color:#C8102E;border:2px solid #C8102E;border-radius:6px;padding:3px 8px;white-space:nowrap}'
+      + 'table{width:100%;border-collapse:collapse;margin-top:8px;table-layout:fixed}th,td{border:1px solid #333;padding:6px 6px;font-size:12pt;vertical-align:middle}'
+      + 'th{background:#DCE6F5;color:#0B2A66;font-weight:800;text-align:center}thead{display:table-header-group}tr{break-inside:avoid}'
+      + '.info th{width:16%}.info td{font-weight:700}.nw{white-space:nowrap}.c{text-align:center}.r{text-align:right;white-space:nowrap}'
+      + '.sec{margin-top:12px;background:#0B3A8F;color:#fff;font-size:14pt;font-weight:800;padding:6px 10px}'
+      + 'td.x{text-align:center;font-weight:900;font-size:13pt;white-space:nowrap;color:#0B3A8F}td.x.miss{color:#B35C00;background:#FFF4E6;font-size:10.5pt;font-weight:800}td.x.semi{color:#555;font-size:10.5pt;font-weight:700}'
+      + '.k{font-weight:800}.k.p{color:#0B3A8F}.k.m{color:#7A2E00}.small{display:block;font-size:9.5pt;font-weight:700;color:#8A4B00}'
+      + '.st{display:inline-block;font-weight:800;padding:2px 8px;border-radius:5px;border:2px solid}.st.ok{color:#1B6E2E;border-color:#1B6E2E;background:#EAF7EC}.st.warn{color:#9A3B00;border-color:#C25B00;background:#FFF1E0}.st.info{color:#0B3A8F;border-color:#0B3A8F;background:#EAF0FA}'
+      + '.foot{display:flex;gap:8px;margin-top:12px;break-inside:avoid}.memo{flex:1;border:1px solid #333;min-height:70px;padding:6px 8px;font-size:11pt}.memo b{color:#0B3A8F}'
+      + '.sign{border-collapse:collapse;margin:0;width:auto}.sign th,.sign td{width:80px;text-align:center}.sign td{height:52px}'
+      + '.meta{margin-top:6px;font-size:9.5pt;color:#333;display:flex;justify-content:space-between;gap:8px}'
+      + '</style></head><body>';
+    h += '<div class="hd"><div><h1>빵을그리다 생산·소모 일지</h1><div class="sub">이카운트 생산입고Ⅱ 입력 자료 · 소비기한 포함</div></div><span class="ec">ECOUNT 생산입고Ⅱ</span></div>';
+    h += '<table class="info"><tr><th>생산일자</th><td class="nw">' + esc(dl) + '</td><th>저장한 사람</th><td>' + esc(q && q.x !== 0 ? (q.who || '') + ' · ' + t(q.ts) : '—') + '</td></tr>'
+      + '<tr><th>상태</th><td colspan="3"><span class="st ' + stt[0] + '">' + esc(stt[1]) + '</span></td></tr></table>';
+    h += '<div class="sec">생산 · 만든 제품 <span style="font-size:10.5pt;font-weight:700">(이카운트 「생산」 칸)</span></div>';
+    h += '<table><colgroup><col style="width:9%"><col style="width:17%"><col><col style="width:13%"><col style="width:17%"></colgroup><thead><tr><th>구분</th><th>품목코드</th><th>품목명</th><th>수량</th><th>소비기한</th></tr></thead><tbody>';
+    if (!P.length) h += '<tr><td colspan="5" class="c">만든 제품이 없습니다</td></tr>';
+    P.forEach(([c, v]) => { h += '<tr><td class="c k p">생산</td><td class="c">' + esc(c) + '</td><td>' + esc(prodName(c)) + '</td><td class="r">' + esc(fmt(v)) + (/배합/.test(prodName(c)) ? ' 배합' : '') + '</td>' + xCell('p', c) + '</tr>'; });
+    h += '</tbody></table>';
+    h += '<div class="sec">소모 · 실제로 쓴 원료 <span style="font-size:10.5pt;font-weight:700">(이카운트 「소모」 칸)</span></div>';
+    h += '<table><colgroup><col style="width:9%"><col style="width:15%"><col><col style="width:14%"><col style="width:13%"><col style="width:15%"></colgroup><thead><tr><th>구분</th><th>품목코드</th><th>품목명</th><th>사용량</th><th>이카운트 수량</th><th>소비기한</th></tr></thead><tbody>';
+    if (!R.length) h += '<tr><td colspan="6" class="c">쓴 원료가 없습니다</td></tr>';
+    R.forEach(r => { const u = unitOf(r.u); const diff = r.usual > 0 && Math.abs(r.v - r.usual) >= Math.max(1, r.usual * 0.005);
+      h += '<tr><td class="c k m">소모</td><td class="c">' + esc(r.c) + '</td><td>' + esc(r.n) + (diff ? '<span class="small">[평소와 다름] 평소 ' + esc(fmt(r.usual)) + esc(u) + ' → ' + (r.v > r.usual ? '+' : '') + esc(fmt(r1(r.v - r.usual, 1))) + esc(u) + '</span>' : '') + '</td><td class="r">' + esc(fmt(r.v)) + ' ' + esc(u) + '</td><td class="r">' + esc(fmt(toEc(r.u, r.v))) + '</td>' + xCell('m', r.c) + '</tr>'; });
+    h += '</tbody></table>';
+    h += '<div class="foot"><div class="memo"><b>특이사항</b></div><table class="sign"><tr><th>작성</th><th>확인</th></tr><tr><td></td><td></td></tr></table></div>';
+    h += '<div class="meta"><span>소비기한은 이카운트 적요에 「소비기한 YY.MM.DD」로 들어갑니다. [확인 필요] 칸은 포장 표시를 보고 적어 주세요.</span><span class="nw">출력 ' + esc(t(new Date().toISOString())) + ' · 소비기한·인쇄 ' + XV + '</span></div>';
+    return h + '</body></html>';
+  }
+  function printDay() { const d = ui.d; const prod = prodOf(d); if (!Object.values(prod).some(v => v > 0)) { toast('인쇄할 생산 자료가 없어요'); return; }
+    const html = printHtml(d); let fr = document.getElementById('ec2pf'); if (fr) fr.remove();
+    fr = document.createElement('iframe'); fr.id = 'ec2pf'; fr.setAttribute('aria-hidden', 'true'); fr.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
+    document.body.appendChild(fr); const w = fr.contentWindow; w.document.open(); w.document.write(html); w.document.close();
+    toast('인쇄 창을 여는 중… 「단면」으로 골라 주세요', 3500);
+    setTimeout(() => { try { w.focus(); w.print(); } catch (e) { toast('인쇄 창을 열지 못했어요'); } }, 400); }
+
   function statusHtml(d) {
     const s = stateOf(d), E = store(), q = E.req[d], dn = E.done[d];
     const t = x => { try { const z = new Date(x); return (z.getMonth() + 1) + '/' + z.getDate() + ' ' + String(z.getHours()).padStart(2, '0') + ':' + String(z.getMinutes()).padStart(2, '0'); } catch (e) { return ''; } };
@@ -1856,14 +1971,16 @@
   function paint() {
     let box = document.getElementById('ec2'); if (!box) return;
     const d = ui.d, prod = prodOf(d), R = rows(d), pc = Object.keys(prod);
-    let h = '<div class="top"><div class="in"><img src="ecount_logo.png" alt="ECOUNT"><div class="tt"><b>ECOUNT 입력 화면</b><span>생산입고Ⅱ · 생산 + 원료 사용량</span></div><button type="button" class="x" data-e2="close">✕ 닫기</button></div></div><div class="w">';
+    let h = '<div class="top"><div class="in"><img src="ecount_logo.png" alt="ECOUNT"><div class="tt"><b>ECOUNT 입력 화면</b><span>생산입고Ⅱ · 생산 + 원료 + 소비기한 · ' + XV + ' · ' + XB + '</span></div><button type="button" class="x" data-e2="close">✕ 닫기</button></div></div><div class="w">';
     h += '<div class="note">이 화면은 <b>이카운트용</b>이에요. K-HACCP 일지와는 상관없어요.<br>실제로 쓴 원료 양을 고쳐서 저장하면 <b>조조가 이카운트 생산입고Ⅱ에 넣어요.</b></div>';
     h += '<div class="day"><button type="button" data-e2="prev">‹</button><b>' + esc(D2(d)) + (d === today() ? ' 오늘' : '') + '</b><button type="button" data-e2="next"' + (d >= today() ? ' disabled style="opacity:.35"' : '') + '>›</button></div>';
     h += statusHtml(d);
+    if (oldSave(d)) h += '<div class="st xw">📅 <b>소비기한 칸이 생기기 전에 저장한 자료예요</b><br>아래에 미리 채운 소비기한을 확인하고 「저장」을 한 번 더 눌러 주세요.</div>';
+    else { const mx = xMiss(d); if (mx) h += '<div class="st xw">📅 <b>소비기한이 빈 줄 ' + mx + '개</b><br>줄마다 「날짜 고르기」로 넣어 주세요. 비운 채로도 저장은 돼요.</div>'; }
     /* 생산 */
     h += '<div class="card"><h3><span class="tag">생산</span> 만든 제품 <small>이카운트 「생산」 칸</small></h3>';
     if (!pc.length) h += '<div class="empty">이 날 이카운트로 보낸 생산량이 없어요.<br>아래 「＋ 제품 넣기」로 고르세요.</div>';
-    pc.forEach(c => { const sd = std(c); h += '<div class="row"><div class="nm">' + esc(short(prodName(c))) + '<small>' + esc(c) + (sd && sd.from ? ' · 박스 기준 ÷ ' + sd.div : '') + '</small></div><input type="text" inputmode="decimal" data-e2p="' + esc(c) + '" value="' + esc(prod[c]) + '"><span class="u">' + (/배합/.test(prodName(c)) ? '배합' : '') + '</span><button type="button" class="del" data-e2="delp" data-c="' + esc(c) + '">빼기</button></div>'; });
+    pc.forEach(c => { const sd = std(c); h += '<div class="row hx"><div class="nm">' + esc(short(prodName(c))) + '<small>' + esc(c) + (sd && sd.from ? ' · 박스 기준 ÷ ' + sd.div : '') + '</small></div><input type="text" inputmode="decimal" data-e2p="' + esc(c) + '" value="' + esc(prod[c]) + '"><span class="u">' + (/배합/.test(prodName(c)) ? '배합' : '') + '</span><button type="button" class="del" data-e2="delp" data-c="' + esc(c) + '">빼기</button>' + xpHtml(d, 'p', c) + '</div>'; });
     h += '<button type="button" class="add" data-e2="pickP">＋ 제품 넣기</button>';
     if (ui.pickP) { h += '<div class="pick">' + Object.keys(STD).concat(Object.keys(SIB)).filter(c => !(c in prod)).sort((a, b) => ((STD[b] || {}).k || 0) - ((STD[a] || {}).k || 0)).map(c => '<button type="button" data-e2="addp" data-c="' + esc(c) + '">' + esc(short(prodName(c))) + '</button>').join('') + '</div>'; }
     h += '</div>';
@@ -1872,22 +1989,22 @@
     if (!R.length) h += '<div class="empty">제품을 넣으면 평소 쓰는 원료가 나와요.</div>';
     R.forEach(r => { const u = unitOf(r.u); const diff = r.usual > 0 && Math.abs(r.v - r.usual) >= Math.max(1, r.usual * 0.005);
       const sub = (r.usual > 0 ? '평소대로면 ' + fmt(r.usual) + (u || '') : r.occ > 0 ? '가끔 쓰는 원료 · 평소 ' + fmt(r.occ) + (u || '') : '직접 넣은 원료') + (r.u > 1 ? ' · 이카운트 ' + fmt(toEc(r.u, r.v)) + ' (' + r.u + '개 들이)' : r.u ? '' : ' · 이카운트 수량');
-      h += '<div class="row' + (r.v ? '' : ' zero') + '"><div class="nm">' + esc(short(r.n)) + '<small' + (diff ? ' class="chg"' : '') + '>' + esc(sub) + (diff ? ' → ' + (r.v > r.usual ? '+' : '') + fmt(r1(r.v - r.usual, 1)) + (u || '') : '') + '</small></div>'
+      h += '<div class="row' + (r.v ? ' hx' : ' zero') + '"><div class="nm">' + esc(short(r.n)) + '<small' + (diff ? ' class="chg"' : '') + '>' + esc(sub) + (diff ? ' → ' + (r.v > r.usual ? '+' : '') + fmt(r1(r.v - r.usual, 1)) + (u || '') : '') + '</small></div>'
         + (r.occ > 0 && !r.v ? '<button type="button" class="use" data-e2="occ" data-c="' + esc(r.c) + '">평소 값 넣기</button>' : '')
         + '<input type="text" inputmode="decimal" data-e2m="' + esc(r.c) + '" value="' + esc(r.v) + '"><span class="u">' + esc(u) + '</span>'
-        + (r.usual > 0 && diff ? '<button type="button" class="del" data-e2="usual" data-c="' + esc(r.c) + '">평소대로</button>' : '') + '</div>'; });
+        + (r.usual > 0 && diff ? '<button type="button" class="del" data-e2="usual" data-c="' + esc(r.c) + '">평소대로</button>' : '') + (r.v > 0 ? xpHtml(d, 'm', r.c) : '') + '</div>'; });
     h += '<button type="button" class="add" data-e2="pickM">＋ 원료 넣기</button>';
     if (ui.pickM) { const have = new Set(R.map(r => r.c)); h += '<div class="pick">' + Object.values(MATS).filter(m => !have.has(m.c)).sort((a, b) => String(a.n).localeCompare(String(b.n), 'ko')).map(m => '<button type="button" data-e2="addm" data-c="' + esc(m.c) + '">' + esc(short(m.n)) + '</button>').join('') + '</div>'; }
     h += '</div>';
     h += '<div class="note">평소 값 = ' + esc(EC2_AT) + '에서 제품 1개(박스·배합)당 쓴 양. 숫자를 고치면 주황 글씨로 평소와 차이가 보여요.</div>';
-    h += '</div><div class="bar"><div class="in"><button type="button" class="cc" data-e2="reset">처음 값으로</button><button type="button" class="sv" data-e2="save">💾 저장 → 조조가 이카운트에 입력</button></div></div>';
+    h += '</div><div class="bar"><div class="in"><button type="button" class="cc" data-e2="reset">처음 값으로</button><button type="button" class="pr" data-e2="print">🖨 인쇄</button><button type="button" class="sv" data-e2="save">💾 저장 → 조조가 이카운트에 입력</button></div></div>';
     const y = box.scrollTop; box.innerHTML = h; box.scrollTop = y;
   }
 
   function open(d) {
     ui.d = d || (typeof fldD === 'function' ? fldD() : today()); ui.pickP = ui.pickM = false;
     let box = document.getElementById('ec2'); if (!box) { box = document.createElement('div'); box.id = 'ec2'; document.body.appendChild(box); bind(box); }
-    box.style.display = ''; paint(); box.scrollTop = 0;
+    box.style.display = ''; paint(); box.scrollTop = 0; loadFifo();
   }
   function close() { const b = document.getElementById('ec2'); if (b) b.remove(); try { if (FLD.open) fieldRender(); } catch (e) {} }
   const num = s => { const v = Number(String(s).replace(/,/g, '').trim()); return isFinite(v) && v >= 0 ? v : null; };
@@ -1898,9 +2015,10 @@
     box.addEventListener('change', e => { const t = e.target, d = ui.d;
       if (t.dataset.e2p) { const v = num(t.value); if (v == null) { toast('숫자로 넣어 주세요'); paint(); return; } setDraft(d, x => { x.prod = Object.assign({}, prodOf(d)); x.prod[t.dataset.e2p] = v; }); }
       else if (t.dataset.e2m) { const v = num(t.value); if (v == null) { toast('숫자로 넣어 주세요'); paint(); return; } setDraft(d, x => { x.cons[t.dataset.e2m] = v; }); }
+      else if (t.dataset.e2x) { if (!okY(t.value)) return; const K = t.dataset.e2x === 'p' ? 'pexp' : 'cexp'; setDraft(d, x => { x[K] = Object.assign({}, x[K] || {}); x[K][t.dataset.c] = t.value; }); ui.typing = false; paint(); }
     });
     box.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('input')) e.target.blur(); });
-    box.addEventListener('click', e => { const b = e.target.closest('[data-e2]'); if (!b) return; const a = b.dataset.e2, c = b.dataset.c, d = ui.d;
+    box.addEventListener('click', e => { const di = e.target.closest('input[data-e2x]'); if (di) { try { if (di.showPicker) di.showPicker(); } catch (x) {} return; } const b = e.target.closest('[data-e2]'); if (!b) return; const a = b.dataset.e2, c = b.dataset.c, d = ui.d;
       if (a === 'close') return close();
       if (a === 'prev' || a === 'next') { const n = addDay(d, a === 'prev' ? -1 : 1); if (n > today()) return; ui.d = n; ui.pickP = ui.pickM = false; paint(); box.scrollTop = 0; return; }
       if (a === 'pickP') { ui.pickP = !ui.pickP; return paint(); }
@@ -1911,24 +2029,34 @@
       if (a === 'occ') { const r = rows(d).find(z => z.c === c); if (r) setDraft(d, x => { x.cons[c] = r.occ; }); return paint(); }
       if (a === 'usual') { setDraft(d, x => { delete x.cons[c]; }); return paint(); }
       if (a === 'reset') { if (!confirm('이 날 고친 값을 지우고 처음 값(이카운트로 보낸 생산량 + 평소 원료 양)으로 돌릴까요?')) return; const E = store(); E.draft[d] = { prod: null, cons: {}, addM: [], fresh: true, ts: new Date().toISOString() }; save(); return paint(); }
+      if (a === 'xdef' || a === 'xclr') { const K = b.dataset.k === 'p' ? 'pexp' : 'cexp'; setDraft(d, x => { x[K] = Object.assign({}, x[K] || {}); if (a === 'xdef') delete x[K][c]; else x[K][c] = ''; }); return paint(); }
+      if (a === 'print') return printDay();
       if (a === 'save') return doSave();
     });
   }
 
   function doSave() {
     const d = ui.d, prod = prodOf(d), R = rows(d);
-    const P = Object.entries(prod).filter(([, q]) => q > 0).map(([c, q]) => ({ c, n: prodName(c), q }));
+    const P = Object.entries(prod).filter(([, q]) => q > 0).map(([c, q]) => { const x = xOf(d, 'p', c); return { c, n: prodName(c), q, e: x.v || '', es: x.v ? x.src || '' : '' }; });
     if (!P.length) { toast('만든 제품을 먼저 넣어 주세요'); return; }
-    const C = R.filter(r => r.v > 0).map(r => ({ c: r.c, n: r.n, u: r.u, v: r.v, q: toEc(r.u, r.v), std: toEc(r.u, r.usual) }));
+    const C = R.filter(r => r.v > 0).map(r => { const x = xOf(d, 'm', r.c); return { c: r.c, n: r.n, u: r.u, v: r.v, q: toEc(r.u, r.v), std: toEc(r.u, r.usual), e: x.v || '', es: x.v ? x.src || '' : '' }; });
+    if (P.some(p => p.e && dDiff(p.e, d) < 0)) { toast('제품 소비기한이 생산일보다 앞이에요 — 날짜를 다시 골라 주세요', 4000); return; }
+    const xm = P.filter(p => !p.e && !semiP(p.c)).length + C.filter(z => !z.e && !xSemi('m', z.c)).length;
     const ch = R.filter(r => r.usual > 0 && Math.abs(r.v - r.usual) >= Math.max(1, r.usual * 0.005)).length;
-    if (!confirm(D2(d) + ' ECOUNT 생산입고Ⅱ 자료를 저장할까요?\n\n제품 ' + P.length + '개 · 원료 ' + C.length + '개' + (ch ? ' (평소와 다른 원료 ' + ch + '개)' : ' (모두 평소대로)') + '\n저장하면 조조가 이카운트에 넣어요.')) return;
-    const Q = { ts: new Date().toISOString(), who: whoNow(), date: d, prod: P, cons: C, n: C.length, ch };
+    if (!confirm(D2(d) + ' ECOUNT 생산입고Ⅱ 자료를 저장할까요?\n\n제품 ' + P.length + '개 · 원료 ' + C.length + '개' + (ch ? ' (평소와 다른 원료 ' + ch + '개)' : ' (모두 평소대로)') + '\n소비기한: ' + (xm ? '빈 줄 ' + xm + '개 (비운 채 저장돼요)' : '모두 들어 있어요') + '\n저장하면 조조가 이카운트에 넣어요.')) return;
+    const Q = { ts: new Date().toISOString(), who: whoNow(), date: d, prod: P, cons: C, n: C.length, ch, xv: XV, xm };
     const E = store(); E.req[d] = Q; delete E.draft[d]; save(true); share('ec2req', d, Q);
     toast('저장했어요 · 조조가 이카운트에 넣을게요'); paint();
   }
 
   /* ── 조조(Aside)용 ── */
-  window.__ec2Queue = function () { const E = store(); return Object.keys(E.req).sort().filter(d => { const s = stateOf(d); return s === 'wait' || s === 'chg'; }).map(d => Object.assign({ date: d, state: stateOf(d), prevSlip: (E.done[d] || {}).slip || '' }, JSON.parse(JSON.stringify(E.req[d])))); };
+  window.__ec2Queue = function () { const E = store(); return Object.keys(E.req).sort().filter(d => { const s = stateOf(d); return s === 'wait' || s === 'chg'; }).map(d => { const o = Object.assign({ date: d, state: stateOf(d), prevSlip: (E.done[d] || {}).slip || '' }, JSON.parse(JSON.stringify(E.req[d])));
+    /* 소비기한: 줄마다 e(날짜)·memo(이카운트 적요 「소비기한 27.08.02」). 소비기한 칸 전에 저장한 자료는 기본값을 채우고 eAuto:1 */
+    (o.prod || []).forEach(p => { if (!('e' in p)) { const f = pDef(d, p.c); p.e = f.v || ''; p.es = f.src || ''; p.eAuto = 1; } p.memo = p.e ? '소비기한 ' + yy(p.e) : ''; });
+    (o.cons || []).forEach(z => { if (!('e' in z)) { const f = mDef(d, z.c); z.e = f.v || ''; z.es = f.src || ''; z.eAuto = 1; } z.memo = z.e ? '소비기한 ' + yy(z.e) : ''; });
+    return o; }); };
+  window.__ec2PrintHtml = d => printHtml(d || ui.d || today());
+  window.__ec2LoadFifo = loadFifo;
   window.__ec2MarkDone = function (d, slip, by) { const E = store(); const q = E.req[d]; if (!q) return false; const D = { ts: new Date().toISOString(), who: by || '조조', slip: String(slip || ''), req: q.ts }; E.done[d] = D; save(true); share('ec2done', d, D); try { if (document.getElementById('ec2')) paint(); } catch (e) {} return true; };
   window.__ec2Open = open;
   window.__ec2Std = function () { return { at: EC2_AT, std: STD, sib: SIB }; };
@@ -1937,11 +2065,13 @@
   function homeBtn() { if (!FLD.open || FLD.step !== 'home') return; const box = document.getElementById('fld'); if (!box || box.querySelector('.ec2-go')) return;
     const d = fldD(), s = stateOf(d);
     const tag = s === 'done' ? '<em class="d">입력 완료</em>' : s === 'wait' ? '<em>저장됨</em>' : s === 'chg' ? '<em class="c">다시 저장됨</em>' : '';
-    const html = '<button type="button" class="ec2-go" data-e2go="1"><img src="ecount_logo.png" alt="ECOUNT"><span>ECOUNT 입력 (생산입고Ⅱ)<small>실제로 쓴 원료 양 · K-HACCP와 상관없음</small></span>' + tag + '</button>';
+    const html = '<button type="button" class="ec2-go" data-e2go="1"><img src="ecount_logo.png" alt="ECOUNT"><span>ECOUNT 입력 (생산입고Ⅱ)<small>실제로 쓴 원료 양 · 소비기한 · 인쇄 · K-HACCP와 상관없음</small></span>' + tag + '</button>';
     const anchor = box.querySelector('.fapp-foot') || box.querySelector('details') ;
     if (anchor && anchor.parentNode) anchor.insertAdjacentHTML('beforebegin', html); else { const last = box.lastElementChild; (last || box).insertAdjacentHTML('beforeend', html); }
   }
-  const _r = fieldRender; fieldRender = function () { const r = _r.apply(this, arguments); try { homeBtn(); } catch (e) {} return r; };
+  function verTag() { const sm = document.querySelector('#fld .rqbar small'); if (sm && !sm.querySelector('.ec2x-ver')) sm.insertAdjacentHTML('beforeend', '<span class="ec2x-ver"> · ECOUNT 소비기한·인쇄 ' + XV + ' · ' + XB + '</span>'); }
+  const _r = fieldRender; fieldRender = function () { const r = _r.apply(this, arguments); try { homeBtn(); } catch (e) {} try { verTag(); setTimeout(verTag, 0); } catch (e) {} return r; };
+  setTimeout(() => { try { loadFifo(); verTag(); } catch (e) {} }, 8000);
   document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('#fld [data-e2go]'); if (!t) return; e.preventDefault(); e.stopPropagation(); open(fldD()); }, true);
   try { if (FLD.open) fieldRender(); } catch (e) {}
 })();
