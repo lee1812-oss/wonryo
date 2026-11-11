@@ -117,7 +117,7 @@
 
   /* ───────── 놓친 통화 ───────── */
   function missed() { try { return JSON.parse(lsGet(K_MISS) || '[]') || []; } catch (e) { return []; } }
-  function addMissed(name) { var a = missed(); a.unshift({ name: name, at: Date.now() }); lsSet(K_MISS, JSON.stringify(a.slice(0, 20))); queueIcon(); if (S.panel) renderPanel(); }
+  function addMissed(name) { var a = missed(); a.unshift({ name: name, at: Date.now() }); lsSet(K_MISS, JSON.stringify(a.slice(0, 20))); refresh(); }
 
   /* ───────── 패널 (기기 목록·설정) ───────── */
   function openPanel() { S.panel = true; S.view = ''; lsSet(K_SEEN, String(Date.now())); queueIcon(); renderPanel(); start(); }
@@ -251,7 +251,9 @@
     if (!S.started || !S.prefix) return;
     if (!S.peer || S.peer.destroyed) return connectMain();
     if (S.peer.disconnected) { try { S.peer.reconnect(); } catch (e) {} return; }
-    if (!S.isHub && (!S.hubConn || Date.now() - S.rosterAt > 65000)) joinHub();
+    var hc = S.hubConn, ice = hc && hc.peerConnection ? hc.peerConnection.iceConnectionState : '';
+    if (!S.isHub && hc && /disconnected|failed|closed/.test(ice)) { closeHubClient(); S.rosterAt = 0; }   /* 안내 기기가 꺼짐 → 바로 다시 찾기 */
+    if (!S.isHub && (!S.hubConn || Date.now() - S.rosterAt > 35000)) joinHub();
     if (S.hubConn && S.hubConn.open) try { S.hubConn.send({ t: 'ping' }); } catch (e) {}
     if (S.isHub) hubSweep();
   }, 15000);
@@ -301,7 +303,7 @@
   }
   function hubSweep() {
     var now = Date.now();
-    Object.keys(S.roster).forEach(function (k) { if (k !== S.me && now - S.roster[k].t > 75000) { delete S.roster[k]; var c = S.hubConns[k]; if (c) { try { c.close(); } catch (e) {} delete S.hubConns[k]; } } });
+    Object.keys(S.roster).forEach(function (k) { if (k !== S.me && now - S.roster[k].t > 45000) { delete S.roster[k]; var c = S.hubConns[k]; if (c) { try { c.close(); } catch (e) {} delete S.hubConns[k]; } } });
     hubPush();
   }
   function helloMsg() { return { t: 'hello', name: myName(), dev: DEV }; }
@@ -519,7 +521,7 @@
     wait.innerHTML = c.role === 'out' ? '📞 ' + E(c.name) + '<small>상대가 「받기」를 누르면 연결돼요</small>' : '연결하는 중…<small>잠시만 기다려 주세요</small>';
     var rv = el.querySelector('.rv'), lv = el.querySelector('.lv');
     if (c.remote && rv.srcObject !== c.remote) { rv.srcObject = c.remote; rv.play().catch(function () { if (!el.querySelector('.dbc-play')) { var b = document.createElement('button'); b.className = 'dbc-play'; b.setAttribute('data-a', 'play'); b.textContent = '🔊 눌러서 소리 켜기'; el.querySelector('.dbc-stage').appendChild(b); } }); }
-    if (c.local && lv.srcObject !== c.local) { lv.srcObject = c.local; lv.play().catch(function () {}); }
+    if (c.local && lv.srcObject !== c.local) { lv.srcObject = c.local; lv.play().catch(function () {}); lv.style.transform = c.local.__fake ? 'none' : ''; }
     lv.style.display = c.local ? '' : 'none';
     el.querySelector('.dbc-bar').innerHTML =
       (mic === null ? '' : '<button data-a="mic" class="' + (mic ? '' : 'off') + '">' + (mic ? '🎤 마이크 끄기' : '🔇 마이크 꺼짐 · 켜기') + '</button>') +
