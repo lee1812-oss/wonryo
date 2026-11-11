@@ -103,8 +103,6 @@
     var tt = lg.parentNode, ic = tt.querySelector('.dbc-ic');
     if (!ic) {
       ic = document.createElement('button'); ic.type = 'button'; ic.className = 'dbc-ic'; ic.title = '영상통화 (공장 안 기기끼리)';
-      ic.addEventListener('click', function (ev) { ev.stopPropagation(); ev.preventDefault(); openPanel(); }, false);
-      ['pointerdown', 'mousedown', 'touchstart'].forEach(function (t) { ic.addEventListener(t, function (ev) { ev.stopPropagation(); }, false); });
       lg.insertAdjacentElement('afterend', ic);
     }
     var h = iconHtml(); if (ic.__h !== h) { ic.innerHTML = h; ic.__h = h; }
@@ -112,6 +110,14 @@
     var sm = document.querySelector('.fld-top .rqbar small');
     if (sm && !sm.querySelector('.dbc-ver')) { var sp = document.createElement('span'); sp.className = 'dbc-ver'; sp.textContent = ' · 영상통화 ' + VER + ' · ' + BUILT; sm.appendChild(sp); }
   }
+  /* 로고 자리는 누르면 「첫 화면」으로 가는 곳이라, 앱보다 먼저(창 단계) 받아서 영상통화만 열고 끝냄 */
+  ['click', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend'].forEach(function (t) {
+    window.addEventListener(t, function (ev) {
+      var ic = ev.target && ev.target.closest && ev.target.closest('.dbc-ic'); if (!ic) return;
+      ev.stopPropagation(); if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
+      if (t === 'click') { ev.preventDefault(); openPanel(); }
+    }, true);
+  });
   var icQueued = false;
   function queueIcon() { if (icQueued) return; icQueued = true; requestAnimationFrame(function () { icQueued = false; ensureIcon(); }); }
 
