@@ -1,4 +1,10 @@
-/* 빵을그리다 영상통화 v001 · 2026-11-11 18:40
+/* 빵을그리다 영상통화 v002 · 2026-11-12 00:16
+   v002: 접속이 됐다 안 됐다 하던 문제 보완
+   - 기기마다 고정 번호(자리 0~2)로 접속 → 「켜진 기기 목록」이 잠깐 비어도 그 기기로 바로 걸 수 있음
+   - 한 번 본 기기는 이 기기에 기억(주소록) → 목록이 비어도 「걸어 보기」 가능
+   - 끊기면 1초 뒤 바로 다시 연결, 인터넷이 돌아오거나 화면이 다시 보이면 즉시 확인, 상태를 글자로 표시
+   - 창을 닫을 때 접속을 깔끔히 정리 → 다른 기기가 목록 담당을 바로 이어받음
+   - 영상통화 창(call.html)은 새 버전이 올라오면 통화 중이 아닐 때 저절로 새로 고침
    - 공장 안 PC·키오스크·태블릿끼리 바로 영상통화 (무료, 슬랙 허들 대신)
    - 「연결 안내」만 PeerJS 무료 안내 서버(0.peerjs.com)를 거치고, 화면·소리는 기기끼리 직접(암호화) 오갑니다. 녹화·저장 없음.
    - 받는 쪽이 「받기」를 눌러야만 연결됩니다(자동 연결 없음).
@@ -7,11 +13,11 @@
 (function () {
   'use strict';
   if (window.__dbCall) return; window.__dbCall = true;
-  var VER = 'v001', BUILT = '2026-11-11 18:40';
+  var VER = 'v002', BUILT = '2026-11-12 00:16';
   var STANDALONE = !!window.DBCALL_STANDALONE;
   var Q = new URLSearchParams(location.search);
   var FAKE = Q.get('callfake') === '1';            /* 시험용: 카메라 대신 그림 화면 */
-  var K_CODE = 'dbcall_code_v1', K_NAME = 'dbcall_name_v1', K_DEV = 'dbcall_dev_v1', K_MISS = 'dbcall_missed_v1', K_SEEN = 'dbcall_seen_v1';
+  var K_CODE = 'dbcall_code_v1', K_NAME = 'dbcall_name_v1', K_DEV = 'dbcall_dev_v1', K_MISS = 'dbcall_missed_v1', K_SEEN = 'dbcall_seen_v1', K_BOOK = 'dbcall_book_v1';
   function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
   function lsSet(k, v) { try { if (v == null || v === '') localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function normCode(c) { return String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
@@ -25,12 +31,12 @@
   (function () { var m = location.hash.match(/[#&]k=([A-Za-z0-9-]{6,24})/); if (m) { lsSet(K_CODE, normCode(m[1])); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} } })();
   var DEV = (Q.get('calldev') || '').replace(/[^a-z0-9]/gi, '').slice(0, 12) || lsGet(K_DEV);
   if (!DEV) { DEV = rand(4); lsSet(K_DEV, DEV); }
-  if (Q.get('calldev')) { K_NAME += '_' + DEV; K_MISS += '_' + DEV; K_SEEN += '_' + DEV; }   /* 시험용: 한 PC에서 기기 여러 대 흉내 */
-  var TAB = rand(2);
+  if (Q.get('calldev')) { K_NAME += '_' + DEV; K_MISS += '_' + DEV; K_SEEN += '_' + DEV; K_BOOK += '_' + DEV; }   /* 시험용: 한 PC에서 기기 여러 대 흉내 */
+  var SLOT = 0, SLOTS = 3;   /* 같은 기기의 창마다 자리 번호 0,1,2 (다른 기기가 이 번호로 바로 걸 수 있음) */
   function myName() { return lsGet(K_NAME) || ''; }
 
   var S = { prefix: '', me: '', peer: null, hubPeer: null, isHub: false, hubConn: null, hubConns: {}, roster: {}, rosterAt: 0,
-            online: false, devices: {}, call: null, ring: null, panel: false, view: '', msg: '', started: false, joining: false };
+            online: false, devices: {}, call: null, ring: null, panel: false, view: '', msg: '', started: false, joining: false, lastOk: 0, downAt: 0, tries: 0 };
   var bc = null; try { bc = new BroadcastChannel('dbcall-' + DEV); } catch (e) {}
 
   /* ───────── 화면 모양 ───────── */
@@ -107,6 +113,7 @@
     }
     var h = iconHtml(); if (ic.__h !== h) { ic.innerHTML = h; ic.__h = h; }
     ic.classList.toggle('on', !!(S.online && S.rosterAt));
+    var tl = '영상통화 · ' + (S.online ? '연결됨' : S.started ? '다시 연결 중' : '설정 필요'); if (ic.title !== tl) ic.title = tl;
     var sm = document.querySelector('.fld-top .rqbar small');
     if (sm && !sm.querySelector('.dbc-ver')) { var sp = document.createElement('span'); sp.className = 'dbc-ver'; sp.textContent = ' · 영상통화 ' + VER + ' · ' + BUILT; sm.appendChild(sp); }
   }
@@ -124,6 +131,17 @@
   /* ───────── 놓친 통화 ───────── */
   function missed() { try { return JSON.parse(lsGet(K_MISS) || '[]') || []; } catch (e) { return []; } }
   function addMissed(name) { var a = missed(); a.unshift({ name: name, at: Date.now() }); lsSet(K_MISS, JSON.stringify(a.slice(0, 20))); refresh(); }
+
+  /* ───────── 주소록 (한 번 본 기기를 이 기기에 기억) ───────── */
+  function book() { try { return JSON.parse(lsGet(K_BOOK) || '{}') || {}; } catch (e) { return {}; } }
+  function saveBook(devs) {
+    var b = book(), now = Date.now(), ch = false;
+    Object.keys(devs).forEach(function (k) { var d = devs[k], o = b[k]; if (!o || o.name !== d.name || now - (o.seen || 0) > 60000) { b[k] = { name: d.name, seen: now }; ch = true; } });
+    Object.keys(b).forEach(function (k) { if (k === DEV || now - (b[k].seen || 0) > 30 * 864e5) { delete b[k]; ch = true; } });
+    if (ch) lsSet(K_BOOK, JSON.stringify(b));
+  }
+  function forget(dev) { var b = book(); delete b[dev]; lsSet(K_BOOK, JSON.stringify(b)); }
+  function devPeers(dev) { var a = []; for (var i = 0; i < SLOTS; i++) a.push(S.prefix + '-' + dev + '-s' + i); return a; }
 
   /* ───────── 패널 (기기 목록·설정) ───────── */
   function openPanel() { S.panel = true; S.view = ''; lsSet(K_SEEN, String(Date.now())); queueIcon(); renderPanel(); start(); }
@@ -149,10 +167,15 @@
         '<div class="dbc-code">' + E(code.slice(0, 4) + '-' + code.slice(4)) + '</div>' +
         '<div class="dbc-btns"><button class="dbc-sub" data-a="copylink">설치 링크 복사 (카톡 나와의 채팅용)</button><button class="dbc-sub" data-a="back">돌아가기</button></div>';
     } else {
-      var devs = Object.keys(S.devices).map(function (k) { return S.devices[k]; }).sort(function (a, b) { return a.name < b.name ? -1 : 1; });
-      var st = !S.online ? '<div class="dbc-st"><i></i>연결 중… (인터넷 확인)</div>' : !S.rosterAt ? '<div class="dbc-st"><i></i>목록 받는 중…</div>' : '<div class="dbc-st on"><i></i>이 기기 「' + E(name) + '」 · 전화 받을 수 있음</div>';
+      var bk = book(), devs = Object.keys(S.devices).map(function (k) { return { dev: k, name: S.devices[k].name, on: true }; });
+      Object.keys(bk).forEach(function (k) { if (k !== DEV && !S.devices[k]) devs.push({ dev: k, name: bk[k].name, on: false, seen: bk[k].seen }); });
+      devs.sort(function (a, b) { return a.on !== b.on ? (a.on ? -1 : 1) : a.name < b.name ? -1 : 1; });
+      var st = !S.online ? '<div class="dbc-st"><span class="dbc-lab lab-red">' + (navigator.onLine === false ? '인터넷 끊김' : '다시 연결 중') + '</span>' + (navigator.onLine === false ? '인터넷이 돌아오면 저절로 다시 연결돼요' : '잠시만 기다려 주세요' + (S.tries > 1 ? ' (' + S.tries + '번째 시도)' : '')) + '</div>'
+        : !S.rosterAt ? '<div class="dbc-st"><span class="dbc-lab lab-grn">연결됨</span>켜진 기기 확인 중… (기억한 기기는 바로 걸 수 있어요)</div>'
+        : '<div class="dbc-st on"><span class="dbc-lab lab-grn">연결됨</span>이 기기 「' + E(name) + '」 · 전화 받을 수 있음</div>';
       h = st + '<div class="dbc-list">' + (devs.length ? devs.map(function (d) {
-        return '<div class="dbc-row"><b>' + E(d.name) + '<small><span class="dbc-lab lab-grn">켜짐</span>지금 받을 수 있어요</small></b><button class="dbc-go" data-a="call" data-dev="' + E(d.dev) + '">📞 영상통화</button></div>';
+        if (d.on) return '<div class="dbc-row"><b>' + E(d.name) + '<small><span class="dbc-lab lab-grn">켜짐</span>지금 받을 수 있어요</small></b><button class="dbc-go" data-a="call" data-dev="' + E(d.dev) + '">📞 영상통화</button></div>';
+        return '<div class="dbc-row" style="background:#fff"><b>' + E(d.name) + '<small style="color:#37474f"><span class="dbc-lab lab-gry">확인 안 됨</span>마지막 확인 ' + E(md(d.seen) + ' ' + hm(d.seen)) + ' · 켜져 있으면 받아요</small></b><button class="dbc-go" data-a="call" data-dev="' + E(d.dev) + '">📞 걸어 보기</button><button class="dbc-sub" data-a="forget" data-dev="' + E(d.dev) + '" title="이 기기를 목록에서 빼기">빼기</button></div>';
       }).join('') : '<div class="dbc-empty">지금 켜져 있는 다른 기기가 없어요.<br>상대 기기에서 <b>생산실 앱</b>이나 <b>영상통화 앱</b>이 켜져 있어야 목록에 나와요.</div>') + '</div>';
       var ms = missed().slice(0, 5);
       if (ms.length) h += '<div class="dbc-sec"><h3>놓친 영상통화</h3><ul class="dbc-miss">' + ms.map(function (m) { return '<li><span class="dbc-lab lab-red">놓침</span>' + E(md(m.at) + ' ' + hm(m.at)) + ' · ' + E(m.name) + '</li>'; }).join('') + '</ul><button class="dbc-sub" data-a="clearmiss">목록 지우기</button></div>';
@@ -202,6 +225,7 @@
     if (a === 'ringtest') { ringOnce(); return toast('벨소리가 들리면 정상이에요. 안 들리면 스피커 소리를 확인해 주세요.'); }
     if (a === 'test') return selfTest();
     if (a === 'call') return placeCall(b.getAttribute('data-dev'));
+    if (a === 'forget') { forget(b.getAttribute('data-dev')); return renderPanel(); }
     if (a === 'accept') return accept();
     if (a === 'reject') return reject();
     if (a === 'hang') return hangUp();
@@ -212,7 +236,7 @@
   }
 
   /* ───────── 연결 (PeerJS) ───────── */
-  var PEER_OPT = { debug: 0, config: { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] } };
+  var PEER_OPT = { debug: 0, config: { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: 'stun:stun.cloudflare.com:3478' }] } };
   function loadLib() {
     if (window.Peer) return Promise.resolve();
     var srcs = ['peerjs.min.js', 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js'], i = 0;
@@ -234,35 +258,47 @@
     S.peer = S.hubPeer = S.hubConn = null; S.isHub = false; S.hubConns = {}; S.roster = {}; S.rosterAt = 0; S.online = false; S.devices = {};
   }
   function restart() { teardown(); S.started = false; refresh(); start(); }
-  function setOnline(v) { S.online = v; refresh(); }
+  function setOnline(v) { if (v) { S.lastOk = Date.now(); S.tries = 0; S.downAt = 0; } else if (!S.downAt) S.downAt = Date.now(); if (S.online !== v) { S.online = v; refresh(); } }
   function refresh() { queueIcon(); if (S.panel || STANDALONE) { if (!(root && root.querySelector('input') && document.activeElement && document.activeElement.tagName === 'INPUT')) renderPanel(); } }
 
   function connectMain() {
     if (S.peer && !S.peer.destroyed) try { S.peer.destroy(); } catch (e) {}
-    S.me = S.prefix + '-' + DEV + '-' + TAB;
-    var p = new window.Peer(S.me, PEER_OPT); S.peer = p;
-    p.on('open', function () { if (p !== S.peer) return; setOnline(true); setTimeout(joinHub, 200 + Math.random() * 1500); });
+    S.me = S.prefix + '-' + DEV + '-s' + SLOT;
+    var p = new window.Peer(S.me, PEER_OPT); S.peer = p; S.tries++;
+    p.on('open', function () { if (p !== S.peer) return; setOnline(true); if (!S.isHub && !(S.hubConn && S.hubConn.open)) setTimeout(joinHub, 200 + Math.random() * 1500); });
     p.on('call', onIncoming);
     p.on('connection', function (c) { c.on('data', function (d) { if (d && d.t === 'direct') onMsg(c.peer, d.msg); setTimeout(function () { try { c.close(); } catch (e) {} }, 1500); }); });
-    p.on('disconnected', function () { if (p !== S.peer) return; setOnline(false); setTimeout(function () { if (p === S.peer && !p.destroyed && p.disconnected) try { p.reconnect(); } catch (e) {} }, 3000); });
+    p.on('disconnected', function () { if (p !== S.peer) return; setOnline(false); setTimeout(function () { if (p === S.peer && !p.destroyed && p.disconnected) { S.tries++; try { p.reconnect(); } catch (e) {} } }, 1000); });
+    p.on('close', function () { if (p !== S.peer) return; setOnline(false); again(1500); });
     p.on('error', function (e) {
       if (p !== S.peer) return;
       if (e.type === 'peer-unavailable') { var m = String(e.message || '').match(/peer (\S+)/); return onPeerUnavailable(m ? m[1] : ''); }
-      if (e.type === 'unavailable-id') { TAB = rand(2); return setTimeout(connectMain, 1500); }
+      if (e.type === 'unavailable-id') { SLOT = (SLOT + 1) % SLOTS; return again(SLOT ? 300 : 4000); }   /* 같은 기기의 다른 창이 쓰는 자리 → 다음 자리 */
       setOnline(false);
+      if (p.destroyed) again(Math.min(15000, 1500 * S.tries));
     });
   }
-  /* 지킴이: 15초마다 연결 상태 확인 */
-  setInterval(function () {
-    if (!S.started || !S.prefix) return;
+  var againTm = null;
+  function again(ms) { clearTimeout(againTm); againTm = setTimeout(function () { againTm = null; if (S.started && S.prefix) connectMain(); }, ms); }
+  /* 지킴이: 8초마다(그리고 인터넷이 돌아오거나 화면이 다시 보일 때 즉시) 연결 상태 확인 */
+  function watch() {
+    if (!S.started || !S.prefix || againTm) return;
     if (!S.peer || S.peer.destroyed) return connectMain();
-    if (S.peer.disconnected) { try { S.peer.reconnect(); } catch (e) {} return; }
+    if (S.peer.disconnected) { S.tries++; try { S.peer.reconnect(); } catch (e) {} if (S.tries > 4) connectMain(); return; }
+    if (S.peer.open) setOnline(true);
     var hc = S.hubConn, ice = hc && hc.peerConnection ? hc.peerConnection.iceConnectionState : '';
-    if (!S.isHub && hc && /disconnected|failed|closed/.test(ice)) { closeHubClient(); S.rosterAt = 0; }   /* 안내 기기가 꺼짐 → 바로 다시 찾기 */
-    if (!S.isHub && (!S.hubConn || Date.now() - S.rosterAt > 35000)) joinHub();
+    if (!S.isHub && hc && /disconnected|failed|closed/.test(ice)) { closeHubClient(); S.rosterAt = 0; refresh(); }   /* 안내 기기가 꺼짐 → 바로 다시 찾기 */
+    if (!S.isHub && (!S.hubConn || Date.now() - S.rosterAt > 25000)) joinHub();
     if (S.hubConn && S.hubConn.open) try { S.hubConn.send({ t: 'ping' }); } catch (e) {}
-    if (S.isHub) hubSweep();
-  }, 15000);
+    if (S.isHub) { if (S.hubPeer && S.hubPeer.disconnected) try { S.hubPeer.reconnect(); } catch (e) {} hubSweep(); }
+  }
+  setInterval(watch, 8000);
+  var kickTm = null;
+  function kick() { clearTimeout(kickTm); kickTm = setTimeout(watch, 300); }
+  window.addEventListener('online', function () { S.tries = 0; kick(); });
+  window.addEventListener('offline', function () { setOnline(false); refresh(); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) kick(); });
+  window.addEventListener('focus', kick);
 
   /* 안내 기기(hub): 켜진 기기 중 하나가 「켜진 기기 목록」을 맡음. 꺼지면 다른 기기가 이어 맡음 */
   function hubId() { return S.prefix + '-hub'; }
@@ -277,7 +313,7 @@
       done(); try { hp.destroy(); } catch (x) {}
       if (e.type === 'unavailable-id') connectHubClient(); else setTimeout(joinHub, 4000 + Math.random() * 4000);
     });
-    setTimeout(function () { if (!settled) { done(); try { hp.destroy(); } catch (e) {} connectHubClient(); } }, 9000);
+    setTimeout(function () { if (!settled) { done(); try { hp.destroy(); } catch (e) {} connectHubClient(); } }, 8000);
   }
   function becomeHub(hp) {
     S.isHub = true; S.hubPeer = hp; S.hubConns = {}; S.roster = {};
@@ -309,7 +345,7 @@
   }
   function hubSweep() {
     var now = Date.now();
-    Object.keys(S.roster).forEach(function (k) { if (k !== S.me && now - S.roster[k].t > 45000) { delete S.roster[k]; var c = S.hubConns[k]; if (c) { try { c.close(); } catch (e) {} delete S.hubConns[k]; } } });
+    Object.keys(S.roster).forEach(function (k) { if (k !== S.me && now - S.roster[k].t > 30000) { delete S.roster[k]; var c = S.hubConns[k]; if (c) { try { c.close(); } catch (e) {} delete S.hubConns[k]; } } });
     hubPush();
   }
   function helloMsg() { return { t: 'hello', name: myName(), dev: DEV }; }
@@ -334,7 +370,7 @@
   function applyRoster() {
     var devs = {};
     Object.keys(S.roster).forEach(function (id) { var r = S.roster[id]; if (!r || !r.dev || r.dev === DEV || !r.name) return; (devs[r.dev] = devs[r.dev] || { dev: r.dev, name: r.name, peers: [] }).peers.push(id); });
-    S.devices = devs; refresh();
+    S.devices = devs; saveBook(devs); refresh();
   }
   function sendTo(to, msg) {
     if (S.isHub) { if (deliver(to, S.me, msg)) return; }
@@ -456,9 +492,11 @@
 
   /* ───────── 전화 걸기 ───────── */
   function placeCall(dev) {
-    var d = S.devices[dev]; if (!d) return toast('상대 기기가 방금 꺼졌어요');
+    var bk = book()[dev], d = S.devices[dev] || (bk ? { name: bk.name, peers: [] } : null); if (!d) return toast('상대 기기가 방금 꺼졌어요');
     if (S.call || S.ring) return;
-    var cid = rand(4), c = S.call = { cid: cid, name: d.name, dev: dev, state: 'calling', role: 'out', mcs: {}, targets: d.peers.slice(), failed: {} };
+    if (!S.peer || !S.peer.open) { kick(); return toast('아직 연결 중이에요. 몇 초 뒤 다시 눌러 주세요.'); }
+    var tg = d.peers.slice(); devPeers(dev).forEach(function (x) { if (tg.indexOf(x) < 0) tg.push(x); });   /* 목록에 없어도 그 기기의 고정 자리로 바로 걸기 */
+    var cid = rand(4), c = S.call = { cid: cid, name: d.name, dev: dev, state: 'calling', role: 'out', mcs: {}, targets: tg, failed: {} };
     renderCall(); startSound(backOnce, 3000);
     getMedia().then(function (s) {
       if (S.call !== c) return stopStream(s);
@@ -573,7 +611,17 @@
     if (STANDALONE) renderPanel();
     else { new MutationObserver(queueIcon).observe(document.body, { childList: true, subtree: true }); queueIcon(); }
     start();   /* 코드·이름이 있으면 바로 연결(전화 받을 준비) */
-    window.addEventListener('pagehide', function () { if (S.call && S.call.peerId) sendTo(S.call.peerId, { t: 'hangup', cid: S.call.cid }); });
+    window.addEventListener('pagehide', function () { if (S.call && S.call.peerId) sendTo(S.call.peerId, { t: 'hangup', cid: S.call.cid }); teardown(); });   /* 창을 닫으면 접속 정리 → 다른 기기가 목록 담당을 바로 이어받음 */
+    window.addEventListener('pageshow', function (ev) { if (ev.persisted) restart(); });
+    if (STANDALONE) setInterval(checkUpdate, 20 * 60000);
+  }
+  /* 영상통화 창(call.html): 새 버전이 올라오면 통화·벨이 없을 때 저절로 새로 고침 (입력하던 글이 있으면 미룸) */
+  function checkUpdate() {
+    fetch('call.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+      var m = t.match(/var VER = '([^']+)', BUILT = '([^']+)'/); if (!m || (m[1] === VER && m[2] === BUILT)) return;
+      var busy = S.call || S.ring || S.testStream || (document.activeElement && document.activeElement.tagName === 'INPUT');
+      if (!busy) location.reload();
+    }).catch(function () {});
   }
   window.DBCALL = { ver: VER, built: BUILT, open: openPanel, state: function () { return { online: S.online, hub: S.isHub, devices: Object.keys(S.devices).map(function (k) { return S.devices[k].name; }), me: myName(), call: S.call && S.call.state, ring: !!S.ring }; } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

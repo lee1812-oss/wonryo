@@ -23,7 +23,7 @@ body{margin:0;background:#eef1f3;font-family:Pretendard,"Pretendard Variable","M
 </style>
 </head>
 <body>
-<div class="top"><img src="brand_logo.png" alt="빵을그리다"><h1>📹 영상통화</h1><span class="ver" id="ver">v001 · 업데이트 확인 중</span><button id="inst" hidden>작업표시줄용으로 설치</button></div>
+<div class="top"><img src="brand_logo.png" alt="빵을그리다"><h1>📹 영상통화</h1><span class="ver" id="ver">v002 · 업데이트 확인 중</span><button id="inst" hidden>작업표시줄용으로 설치</button></div>
 <div class="wrap"><div id="dbcHome"></div>
 <div class="howto"><b>작업표시줄에 두는 법 (PC 한 번만)</b><ol>
 <li>위 「작업표시줄용으로 설치」를 누릅니다. (버튼이 없으면 크롬 오른쪽 위 ⋮ → 「전송, 공유」 또는 「앱」 → 「설치」)</li>
@@ -31,7 +31,7 @@ body{margin:0;background:#eef1f3;font-family:Pretendard,"Pretendard Variable","M
 <li>평소에는 창을 <b>최소화</b>만 해 두세요. 창을 닫으면 전화를 받을 수 없어요.</li>
 <li>생산실 앱(생산일지)이 켜진 기기는 위쪽 빵을그리다 로고 옆 📹 버튼으로도 바로 걸고 받을 수 있어요.</li></ol></div></div>
 <script>window.DBCALL_STANDALONE = true;</script>
-<script src="call.js?v=001"></script>
+<script>document.write('<script src="call.js?t=' + Date.now() + '"><\/script>');</script>
 <script>
 (function () {
   var v = document.getElementById('ver'); if (window.DBCALL) v.textContent = window.DBCALL.ver + ' · ' + window.DBCALL.built + ' 업데이트';
