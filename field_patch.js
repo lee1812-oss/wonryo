@@ -2403,3 +2403,50 @@
       const at = body.querySelector('.frw-edit-note') || body.querySelector('.frw-bar') || body.querySelector('h1'); if (at) at.insertAdjacentHTML('afterend', html); else body.insertAdjacentHTML('afterbegin', html);
       try { fldFit(); } catch (e) {} } catch (e) {} return out; };
 })();
+
+/* ── 2026-11-11 (Aside) 금속검출을 「작업 전 점검 → 작업 후 점검」 두 번만 누르게 (사용자 「작업 전·작업 후만 체크하게, 중간 제품 확인을 누르니 계속 강제 체크됨」) ──
+   ① 가운데 「⏱ 제품 확인」 칸과 품목 고르기를 숨기고, 작업 전 다음에는 작업 후 칸을 켠다.
+   ② 작업 후 점검을 저장할 때, 아직 제품 확인 줄이 없는 품목마다 제품 확인 줄(제품만·FE+제품·STS+제품)을 같은 시각으로 함께 저장한다.
+      값은 화면 아래 「작업 후 점검 때 같이 저장되는 제품 확인 값」 판에 보이는 그대로(바꾸려면 저장 전에 누름). 그 줄에는 src:'post' 표시.
+      K-HACCP 금속검출 일지(D3)는 품목마다 제품 확인 줄이 있어야 올라가므로(루틴 No.24) 줄 자체는 남긴다.
+   ③ 이미 저장된 제품 확인 줄은 그대로(지우지 않음). 이 블록을 지우면 세 칸 방식으로 돌아감. */
+(function () { if (!window.FIELD_APP) return;
+  const live = g => { const D = new Set((g && g.del) || []); return ((g && g.rows) || []).filter(r => !D.has(r.id)); };
+  const full = r => r.kind === 'item' && r.time && r.fe && r.sus && r.p && r.fep && r.susp;
+  const panelVals = () => { const v = { fe: 'O', sus: 'O', p: 'X', fep: 'O', susp: 'O' };
+    document.querySelectorAll('#fld [data-fpv="ox"].on').forEach(b => { if (b.dataset.k in v) v[b.dataset.k] = b.dataset.v; }); return v; };
+  let pv = null;
+  window.addEventListener('pointerdown', ev => { if (ev.target.closest && ev.target.closest('#fld [data-fq3="metal:post"]')) pv = panelVals(); }, true);
+  const _save = fldSave;
+  fldSave = function () {
+    try { if (FLD.type === 'metal' && FLD.mode === 'post' && !FLD.rework) { const g = fldLog('metal'); const D = new Set(g.del || []);
+        const already = (g.rows || []).some(r => r.kind === 'post' && r.time && !D.has(r.id));
+        const t = FLD.vals && FLD.vals.time; const wk = fldWk();
+        if (!already && !wk) { try { toast('먼저 작업자(서명)를 고르세요'); } catch (e) {} FLD.step = 'who'; FLD.back = 'type'; fieldRender(); return; }
+        if (!already && t && wk) { const v = pv || panelVals(); pv = null; const date = fldD(), at = new Date().toISOString(); let n = 0;
+          fldProds('metal').forEach(p => { const rs = live(g); if (rs.some(r => r.code === p.code && full(r))) return;
+            let r = rs.find(x => x.kind === 'item' && x.code === p.code && !x.time);
+            if (!r) { r = { id: 'm:' + p.code + ':' + Date.now().toString(36), kind: 'item', time: '', fe: '', sus: '', p: '', fep: '', susp: '', code: p.code, name: p.name }; g.rows.splice(Math.max(0, g.rows.findIndex(x => x.kind === 'post')), 0, r); }
+            const i = g.rows.indexOf(r);
+            ccpSet(date + '|metal|rows|' + i + '|time', t); ['fe', 'sus', 'p', 'fep', 'susp'].forEach(f => ccpSet(date + '|metal|rows|' + i + '|' + f, v[f]));
+            r.sg = wk; r.at = r.at || at; r.mt = at; r.src = 'post'; n++; });
+          if (n) { try { ccpAutoDev(g); } catch (e) {} ccpTouch(g); } } } } catch (e) {}
+    return _save.apply(this, arguments); };
+  const _r = fieldRender;
+  fieldRender = function () { const out = _r.apply(this, arguments);
+    try { if (!FLD.open || FLD.type !== 'metal' || FLD.step !== 'type') return out;
+      const body = document.querySelector('#fld .fpc-main') || document.querySelector('#fld .fld-body'); if (!body) return out;
+      const it = body.querySelector('[data-fq3="metal:item"]'), pc = body.querySelector('[data-fq3="metal:post"]'), grid = it && it.parentElement; if (!it || !pc) return out;
+      it.style.display = 'none'; const ar = it.previousElementSibling; if (ar && ar.classList.contains('ar')) ar.style.display = 'none';
+      grid.style.gridTemplateColumns = '1fr auto 1fr';
+      body.querySelectorAll('.fnext').forEach(e => e.remove());
+      [...body.querySelectorAll('*')].filter(e => !e.children.length && /^⏰?\s*다음 확인/.test(e.textContent.trim())).forEach(e => { (e.closest('div') || e).style.display = 'none'; });
+      body.querySelectorAll('[data-fpv="mprod"]').forEach(b => { const pk = b.closest('.fpv-pk') || b.parentElement; pk.style.display = 'none'; });
+      const hd = body.querySelector('.fpv-hd b'); if (hd && /제품 확인/.test(hd.textContent)) { hd.textContent = '작업 후 점검 때 같이 저장되는 제품 확인 값'; const s = hd.parentElement.lastChild; if (s && s !== hd && s.nodeType === 3) s.textContent = ''; }
+      const rs = live(fldLog('metal')); const preOk = rs.some(r => r.kind === 'pre' && r.time), postOk = rs.some(r => r.kind === 'post' && r.time);
+      if (preOk && !postOk) { body.querySelectorAll('.fnow').forEach(b => { b.classList.remove('fnow'); const p = b.querySelector('.fpress'); if (p) p.remove(); });
+        pc.classList.add('fnow'); pc.insertAdjacentHTML('beforeend', '<span class="fpress">👆 작업 끝나면 누르세요</span>');
+        const ps = fldProds('metal'); if (ps.length) grid.insertAdjacentHTML('beforebegin', '<div class="fnext" style="margin:6px 0 8px;padding:10px 14px;border-radius:12px;background:#FFF3BF;color:#7A4A00;font-weight:800;font-size:1.05em;word-break:keep-all">🏁 작업 후 점검을 누르면 ' + ps.map(p => esc(fldShort(p.name))).join(', ') + ' 제품 확인도 같이 저장돼요</div>'); }
+      try { fldFit(); } catch (e) {} } catch (e) {} return out; };
+  try { fieldRender(); } catch (e) {}
+})();
