@@ -7,142 +7,195 @@
 <link rel="manifest" href="cost.webmanifest">
 <link rel="icon" href="cost_192.png">
 <link rel="apple-touch-icon" href="cost_apple.png">
-<meta name="theme-color" content="#7A4A23">
+<meta name="theme-color" content="#0D1C42">
 <style>
-:root{--br:#7A4A23;--br2:#A0693A;--brl:#F6EEE6;--bg:#F3F1EE;--ink:#1E1A17;--sub:#55504A;--line:#DED8D1;--red:#C62828;--redl:#FDECEC;--org:#D46A00;--orgl:#FFF3E0;--grn:#2E7D32;--grnl:#E8F5E9;--blu:#1E5AA8;--blul:#E8F0FB}
+:root{--br:#0D1C42;--br2:#22396F;--brl:#EEF2F8;--nv:#0D1C42;--nv2:#22396F;--bg:#F4F5F7;--th:#F1F3F7;--ink:#111827;--sub:#434B58;--line:#D5DAE2;--line2:#A9B3C1;--red:#C62828;--redl:#FDEDED;--org:#B35A00;--orgl:#FFF4E5;--grn:#2E7D32;--grnl:#E8F5E9;--blu:#1E5AA8;--blul:#EAF1FB}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 -apple-system,"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;word-break:keep-all;overflow-wrap:break-word}
-header{background:var(--br);color:#fff;padding:12px 14px 0;position:sticky;top:0;z-index:20}
-.hd{max-width:900px;margin:0 auto}
-header h1{margin:0;font-size:22px;letter-spacing:-.3px}
-header .s{font-size:14px;opacity:.85}
-nav{display:flex;gap:6px;margin-top:10px}
-nav button{flex:1;min-height:52px;border:0;border-radius:12px 12px 0 0;background:rgba(255,255,255,.16);color:#fff;font-size:17px;font-weight:700;cursor:pointer}
-nav button.on{background:var(--bg);color:var(--br)}
-main{max-width:900px;margin:0 auto;padding:14px 12px 90px}
-.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
-.card h2{font-size:19px;margin:0 0 2px;display:flex;align-items:center;gap:8px}
-.card h2 .no{display:inline-flex;width:28px;height:28px;border-radius:50%;background:var(--br);color:#fff;font-size:15px;align-items:center;justify-content:center;flex:none}
-.help{color:var(--sub);font-size:15px;margin:2px 0 12px}
-label.f{display:block;margin:10px 0 4px;font-weight:700;font-size:16px}
-label.f small{font-weight:400;color:var(--sub)}
-input,select{font:inherit;font-size:18px;color:var(--ink);border:1.5px solid #C9C1B8;border-radius:10px;padding:10px 12px;min-height:50px;width:100%;background:#fff}
-input:focus,select:focus{outline:3px solid #E7C9A8;border-color:var(--br)}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",-apple-system,sans-serif;word-break:keep-all;overflow-wrap:break-word;line-break:strict}
+.in{max-width:1000px;margin:0 auto}
+/* 맨 위 줄: 버전·업데이트 시각 */
+.util{background:var(--nv);color:#DCE3EF;font-size:15px}
+.util .in{padding:7px 16px;display:flex;justify-content:space-between;gap:4px 14px;flex-wrap:wrap;align-items:center}
+.util .ver{font-weight:700;color:#fff;white-space:nowrap}
+.util .ver b{display:inline-block;border:1px solid rgba(255,255,255,.7);border-radius:3px;padding:0 7px;margin-right:7px;font-size:14px}
+/* 제목 */
+.hdr{background:#fff;border-bottom:1px solid var(--line)}
+.hdr .in{padding:16px 16px 14px;display:flex;align-items:center;gap:14px}
+.hdr img{width:52px;height:52px;border-radius:8px;flex:none;border:1px solid var(--line)}
+.hdr h1{margin:0;font-size:27px;font-weight:800;color:var(--nv);letter-spacing:-.6px;line-height:1.25}
+.hdr .s{font-size:16px;color:var(--sub)}
+/* 남색 머리띠 메뉴 */
+nav{background:var(--nv2);position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(13,28,66,.25)}
+nav .in{display:flex}
+nav button{flex:1;min-height:58px;border:0;border-bottom:4px solid transparent;border-top:4px solid transparent;background:none;color:#fff;font:inherit;font-size:18px;font-weight:700;cursor:pointer}
+nav button+button{border-left:1px solid rgba(255,255,255,.18)}
+nav button:hover{background:rgba(255,255,255,.08)}
+nav button.on{background:var(--nv);border-bottom-color:#fff}
+main{max-width:1000px;margin:0 auto;padding:0 16px 30px}
+/* 쪽 제목 */
+.ph{padding:22px 0 14px;border-bottom:2px solid var(--nv);margin-bottom:18px}
+.crumb{font-size:15px;color:var(--sub)}
+.ph h2{margin:2px 0 2px;font-size:29px;color:var(--nv);letter-spacing:-.6px;line-height:1.3}
+.ph p{margin:0;color:var(--sub);font-size:16.5px;text-wrap:pretty}
+/* 상자 */
+.card{background:#fff;border:1px solid var(--line);border-top:3px solid var(--nv2);border-radius:4px;padding:18px 20px;margin-bottom:16px}
+.card h2{font-size:20.5px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid var(--line);display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;color:var(--nv);letter-spacing:-.3px}
+.card h2 .no{display:inline-flex;width:30px;height:30px;border-radius:3px;background:var(--nv);color:#fff;font-size:16px;align-items:center;justify-content:center;flex:none}
+.srch{background:var(--th);border:1px solid var(--line);border-radius:4px;padding:14px 16px;margin-bottom:16px}
+.help{color:var(--sub);font-size:16px;margin:0 0 12px;text-wrap:pretty}
+label.f{display:block;margin:12px 0 5px;font-weight:700;font-size:16.5px;color:var(--ink)}
+label.f small{font-weight:400;color:var(--sub);font-size:15px}
+input,select,textarea{font:inherit;font-size:18px;color:var(--ink);border:1px solid var(--line2);border-radius:4px;padding:10px 12px;min-height:52px;width:100%;background:#fff}
+input:focus,select:focus,textarea:focus{outline:3px solid #BFD0EE;border-color:var(--nv2)}
 input.miss{border-color:var(--org);background:var(--orgl)}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.btn{min-height:54px;border:0;border-radius:12px;padding:0 18px;font:inherit;font-size:17px;font-weight:700;cursor:pointer;background:var(--br);color:#fff}
-.btn.g{background:#fff;color:var(--br);border:1.5px solid var(--br)}
-.btn.gr{background:#EEEAE5;color:var(--ink)}
-.btn.sm{min-height:44px;font-size:15px;padding:0 12px}
-.btn.del{background:#fff;color:var(--red);border:1.5px solid #E8B4B4}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 14px}
+.btn{min-height:54px;border:1px solid var(--nv2);border-radius:4px;padding:0 20px;font:inherit;font-size:17px;font-weight:700;cursor:pointer;background:var(--nv2);color:#fff}
+.btn:hover{background:var(--nv);border-color:var(--nv)}
+.btn.g{background:#fff;color:var(--nv2);border-color:var(--nv2)}
+.btn.g:hover{background:var(--brl)}
+.btn.gr{background:#fff;color:var(--ink);border-color:var(--line2)}
+.btn.gr:hover{background:var(--th)}
+.btn.sm{min-height:54px;font-size:16.5px;padding:0 16px}
+.btn.del{background:#fff;color:var(--red);border-color:#E3A9A9}
 .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.bar>select{flex:1;min-width:200px}
-.chip{display:inline-block;font-size:13px;font-weight:700;border-radius:999px;padding:2px 9px;vertical-align:middle}
-.chip.o{background:var(--orgl);color:var(--org)}
-.chip.g{background:var(--grnl);color:var(--grn)}
-.chip.b{background:var(--blul);color:var(--blu)}
-.chip.r{background:var(--redl);color:var(--red)}
+.bar>select{flex:1;min-width:220px}
+.chip{display:inline-block;font-size:14px;font-weight:700;border-radius:3px;padding:1px 8px;vertical-align:middle;border:1px solid}
+.chip.o{background:var(--orgl);color:var(--org);border-color:#F0C48C}
+.chip.g{background:var(--grnl);color:var(--grn);border-color:#A9D3AB}
+.chip.b{background:var(--blul);color:var(--blu);border-color:#AFC6E9}
+.chip.r{background:var(--redl);color:var(--red);border-color:#E9AFAF}
 /* 결과 */
-.res{background:#fff;border:2px solid var(--br);border-radius:18px;padding:16px;margin-bottom:14px}
-.res .lbl{font-size:16px;color:var(--sub);font-weight:700}
-.res .big{font-size:44px;font-weight:800;color:var(--br);line-height:1.15;letter-spacing:-1px}
-.res .big small{font-size:22px}
-.res .cmp{font-size:16px;margin-top:4px}
-.kp{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-.kp div{background:var(--brl);border-radius:12px;padding:10px}
-.kp b{display:block;font-size:21px;white-space:nowrap}
-.kp span{font-size:14px;color:var(--sub)}
-.warn{background:var(--redl);color:var(--red);border-radius:10px;padding:10px 12px;font-weight:700;margin-top:10px}
-.note{background:var(--orgl);color:#8A4500;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:15px}
-.info{background:var(--blul);color:#173F75;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:15px}
-/* 폭포 */
-.wf{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}
-.wf .t{font-size:16px}
-.wf .t small{display:block;color:var(--sub);font-size:13.5px;line-height:1.35}
-.wf .v{font-weight:800;white-space:nowrap;text-align:right;font-size:17px}
-.wf .bk{grid-column:1/3;height:10px;background:#EFEAE4;border-radius:6px;overflow:hidden;margin-bottom:8px;position:relative}
-.wf .bk i{position:absolute;top:0;bottom:0;border-radius:6px}
-.wf .tot{border-top:2px solid var(--ink);padding-top:8px;font-weight:800;font-size:18px}
+.res{background:#fff;border:1px solid var(--line);border-top:4px solid var(--nv);border-radius:4px;padding:20px;margin-bottom:16px}
+.res .lbl{font-size:17px;color:var(--sub);font-weight:700}
+.res .big{font-size:50px;font-weight:800;color:var(--nv);line-height:1.15;letter-spacing:-1px}
+.res .big small{font-size:24px;margin-left:2px}
+.res .cmp{font-size:17px;margin-top:4px}
+.kp{display:grid;grid-template-columns:repeat(3,1fr);margin-top:16px;border-top:2px solid var(--nv);border-left:1px solid var(--line)}
+.kp div{border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column}
+.kp span{background:var(--th);font-size:15px;color:var(--sub);font-weight:700;padding:8px 12px;border-bottom:1px solid var(--line);flex:1}
+.kp b{display:block;font-size:22px;padding:9px 12px;white-space:nowrap}
+.warn,.note,.info{border-radius:4px;padding:12px 14px;margin-top:12px;font-size:16px;border:1px solid;border-left-width:5px}
+.warn::before,.note::before,.info::before{display:inline-block;font-size:13.5px;font-weight:800;color:#fff;border-radius:3px;padding:0 8px;margin-right:8px;vertical-align:1px}
+.warn{background:var(--redl);color:#8E1B1B;border-color:#E6A5A5;border-left-color:var(--red);font-weight:700}
+.warn::before{content:"주의";background:var(--red)}
+.note{background:var(--orgl);color:#7A3D00;border-color:#F0C48C;border-left-color:var(--org)}
+.note::before{content:"확인 필요";background:var(--org)}
+.info{background:var(--blul);color:#163A6B;border-color:#B7CBEA;border-left-color:var(--blu)}
+.info::before{content:"참고";background:var(--blu)}
+/* 원가가 늘어나는 이유 */
+.wf{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center}
+.wf .t{font-size:17px;font-weight:700}
+.wf .t small{display:block;color:var(--sub);font-size:14.5px;line-height:1.4;font-weight:400}
+.wf .v{font-weight:800;white-space:nowrap;text-align:right;font-size:18px}
+.wf .bk{grid-column:1/3;height:10px;background:#E8ECF2;border-radius:2px;overflow:hidden;margin-bottom:10px;position:relative}
+.wf .bk i{position:absolute;top:0;bottom:0;border-radius:2px}
+.wf .tot{border-top:2px solid var(--nv);padding-top:10px;font-weight:800;font-size:19px;color:var(--nv)}
 /* 배합 표 */
-.ing{width:100%;border-collapse:collapse}
-.ing th{font-size:14px;color:var(--sub);text-align:left;font-weight:700;padding:4px 4px}
-.ing td{padding:4px;vertical-align:top}
+.ing{width:100%;border-collapse:collapse;border-top:2px solid var(--nv)}
+.ing th{background:var(--th);font-size:15.5px;color:var(--ink);text-align:left;font-weight:700;padding:10px 6px;border-bottom:1px solid var(--line2)}
+.ing td{padding:7px 6px;vertical-align:top;border-bottom:1px solid var(--line)}
 .ing td.n{width:38%}
 .ing td.g{width:17%}
 .ing td.p{width:21%}
-.ing td.a{width:16%;text-align:right;font-weight:700;padding-top:16px;white-space:nowrap}
-.ing td.x{width:44px}
-.ing .bp{font-size:13px;color:var(--sub);display:block;text-align:right;margin-top:2px}
-.ing .ps{font-size:12.5px;color:var(--sub);display:block;margin-top:2px;line-height:1.3}
-.xb{width:40px;height:50px;border:0;background:none;color:#B33;font-size:24px;cursor:pointer}
-.sum{display:flex;justify-content:space-between;border-top:2px solid var(--ink);margin-top:8px;padding-top:8px;font-weight:800;font-size:18px}
-.presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.presets button{min-height:40px;border:1.5px solid #C9C1B8;background:#fff;border-radius:999px;padding:0 14px;font:inherit;font-size:15px;cursor:pointer}
-.presets button.on{background:var(--br);color:#fff;border-color:var(--br)}
-.loss{border-top:1px dashed var(--line);padding-top:6px;margin-top:10px}
+.ing td.a{width:16%;text-align:right;font-weight:700;padding-top:20px;white-space:nowrap}
+.ing td.x{width:46px}
+.ing .bp{font-size:14px;color:var(--sub);display:block;text-align:right;margin-top:2px}
+.ing .ps{font-size:14px;color:var(--sub);display:block;margin-top:3px;line-height:1.35}
+.xb{width:44px;height:52px;border:0;background:none;color:#B33;font-size:26px;cursor:pointer}
+.sum{display:flex;justify-content:space-between;background:var(--th);border-top:2px solid var(--nv);border-bottom:1px solid var(--line2);margin-top:10px;padding:10px 12px;font-weight:800;font-size:18.5px}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.presets button{min-height:54px;min-width:64px;border:1px solid var(--line2);background:#fff;border-radius:4px;padding:0 14px;font:inherit;font-size:16.5px;font-weight:700;color:var(--ink);cursor:pointer}
+.presets button.on{background:var(--nv2);color:#fff;border-color:var(--nv2)}
+.loss{border-top:1px solid var(--line);padding-top:8px;margin-top:12px}
 .loss:first-of-type{border-top:0}
-.seg{display:flex;gap:8px}
-.seg button{flex:1;min-height:54px;border:1.5px solid #C9C1B8;background:#fff;border-radius:12px;font:inherit;font-size:16px;cursor:pointer;line-height:1.3}
-.seg button.on{background:var(--br);color:#fff;border-color:var(--br);font-weight:700}
+.seg{display:flex;gap:0}
+.seg button{flex:1;min-height:56px;border:1px solid var(--line2);background:#fff;font:inherit;font-size:16.5px;font-weight:700;color:var(--ink);cursor:pointer;line-height:1.3;padding:6px 8px}
+.seg button+button{border-left:0}
+.seg button:first-child{border-radius:4px 0 0 4px}
+.seg button:last-child{border-radius:0 4px 4px 0}
+.seg button small{font-weight:400;font-size:14px}
+.seg button.on{background:var(--nv2);color:#fff;border-color:var(--nv2)}
 /* 목록 */
-.it{display:flex;gap:10px;align-items:center;border-top:1px solid var(--line);padding:12px 0}
-.it:first-child{border-top:0}
+.lh{display:flex;justify-content:space-between;background:var(--th);border-top:2px solid var(--nv);border-bottom:1px solid var(--line2);padding:9px 12px;font-weight:700;font-size:15.5px}
+.it{display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:12px;cursor:pointer}
+.it:hover{background:#F7F9FC}
 .it .m{flex:1;min-width:0}
-.it .m b{display:block;font-size:18px}
-.it .m span{font-size:14px;color:var(--sub)}
-.it .r{text-align:right;white-space:nowrap;font-weight:800;font-size:19px;color:var(--br)}
-.pi{border-top:1px solid var(--line);padding:10px 0}
-.pi:first-child{border-top:0}
+.it .m b{display:block;font-size:18px;color:var(--nv)}
+.it .m span{font-size:15px;color:var(--sub)}
+.it .r{text-align:right;white-space:nowrap;font-weight:800;font-size:20px;color:var(--nv)}
+.pi{border-bottom:1px solid var(--line);padding:12px 4px}
 .pi .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
-.pi .top b{font-size:17px}
-.pi .kg{font-weight:800;white-space:nowrap;color:var(--br)}
-.pi .s{font-size:13.5px;color:var(--sub)}
+.pi .top b{font-size:17.5px}
+.pi .kg{font-weight:800;white-space:nowrap;color:var(--nv)}
+.pi .s{font-size:14.5px;color:var(--sub)}
 .pi .ed{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;margin-top:8px;align-items:end}
-.lk{border:0;background:none;color:var(--blu);font:inherit;font-size:13.5px;font-weight:700;text-decoration:underline;padding:4px 0;cursor:pointer}
-#olBg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px}
-.olBox{background:#fff;border-radius:18px;padding:18px;max-width:640px;width:100%;margin:auto}
-#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#2B2622;color:#fff;padding:10px 18px;border-radius:999px;font-size:15px;opacity:0;transition:.3s;pointer-events:none;z-index:50}
-#toast.on{opacity:.95}
+#plist{border-top:2px solid var(--nv)}
+.lk{border:0;background:none;color:var(--blu);font:inherit;font-size:14.5px;font-weight:700;text-decoration:underline;padding:4px 0;cursor:pointer}
+#olBg{position:fixed;inset:0;background:rgba(13,28,66,.5);z-index:60;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px}
+.olBox{background:#fff;border-radius:6px;border-top:5px solid var(--nv);padding:20px;max-width:660px;width:100%;margin:auto}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--nv);color:#fff;padding:12px 20px;border-radius:4px;font-size:16px;opacity:0;transition:.3s;pointer-events:none;z-index:50}
+#toast.on{opacity:.96}
+footer{background:#E9ECF1;border-top:1px solid var(--line);color:#2F3744;font-size:15.5px}
+footer .in{padding:18px 16px 28px;line-height:1.75}
+footer b{color:var(--nv)}
 .nw{white-space:nowrap}
 @media (max-width:620px){
- .res .big{font-size:38px}
+ .util{font-size:14px}
+ .hdr .in{padding:12px 14px}
+ .hdr img{width:44px;height:44px}
+ .hdr h1{font-size:23px}
+ .hdr .s{font-size:15px}
+ nav button{font-size:17px;min-height:56px}
+ main{padding:0 12px 24px}
+ .ph{padding:16px 0 12px;margin-bottom:14px}
+ .ph h2{font-size:24px}
+ .card{padding:16px 14px}
+ .res{padding:16px 14px}
+ .res .big{font-size:42px}
  .kp{grid-template-columns:1fr 1fr}
+ .kp b{font-size:20px}
  .row3{grid-template-columns:1fr 1fr}
  .ing thead{display:none}
- .ing tr{display:grid;grid-template-columns:1fr 1fr 44px;gap:4px 6px;border-top:1px solid var(--line);padding:8px 0}
- .ing td{padding:0}
+ .ing tr{display:grid;grid-template-columns:1fr 1fr 46px;gap:4px 8px;border-bottom:1px solid var(--line);padding:10px 0}
+ .ing td{padding:0;border:0}
  .ing td.n{grid-column:1/3;width:auto}
  .ing td.x{grid-column:3;grid-row:1}
  .ing td.g,.ing td.p{width:auto}
  .ing td.a{grid-column:1/4;text-align:left;padding-top:0;width:auto}
  .pi .ed{grid-template-columns:1fr 1fr}
+ .seg button{font-size:16px}
 }
 @media print{
- header,nav,.noprint,.xb,.presets,#toast{display:none!important}
+ .util,.hdr,nav,footer,.noprint,.xb,.presets,#toast,.srch{display:none!important}
  body{background:#fff;font-size:13px}
  main{padding:0;max-width:none}
- .card,.res{break-inside:avoid;border-color:#bbb;padding:10px;margin-bottom:8px}
+ .ph{padding:0 0 6px;margin-bottom:8px}
+ .ph p,.crumb{display:none}
+ .card,.res{break-inside:avoid;border-color:#999;padding:10px;margin-bottom:8px}
  input,select{border:0;padding:0;min-height:0;font-size:13px;background:none}
  .res .big{font-size:30px}
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
 </head>
 <body>
-<header><div class="hd">
- <h1>🧮 원가 계산기</h1>
- <div class="s">빵을그리다 생산실 · 로스·인건비까지 넣은 현실 원가</div>
- <nav>
-  <button data-tab="calc">계산하기</button>
-  <button data-tab="list">저장한 제품</button>
-  <button data-tab="price">단가표</button>
- </nav>
+<div class="util"><div class="in"><span>빵을그리다 생산실 업무 시스템</span><span class="ver" id="verTop"></span></div></div>
+<header class="hdr"><div class="in">
+ <img src="cost_192.png" alt="">
+ <div><h1>원가 계산기</h1><div class="s">로스·인건비·포장재까지 넣은 1개 현실 원가</div></div>
 </div></header>
+<nav><div class="in">
+ <button data-tab="calc">계산하기</button>
+ <button data-tab="list">저장한 제품</button>
+ <button data-tab="price">단가표</button>
+</div></nav>
 <main id="app"></main>
+<footer><div class="in" id="foot"></div></footer>
 <div id="toast"></div>
 <script>
-const APP_VER='v002', APP_BUILT='2026-10-29';
+const APP_VER='v003', APP_BUILT='2026-11-11 10:27';
 const LSK='drawbread_cost_key', LSP='drawbread_cost_prices';
 let PD=null, PSTAT='loading';
 try{const c=JSON.parse(localStorage.getItem(LSP)||'null');if(c&&c.data)PD=c.data}catch(e){}
@@ -249,7 +302,11 @@ function calc(r){
 /* 화면 */
 function setTab(t){S.tab=t;save(true);render()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+function pageHead(t,d){return `<div class="ph"><div class="crumb">홈 › 원가 계산기 › ${t}</div><h2>${t}</h2><p>${d}</p></div>`}
+function verText(){const [d,t]=APP_BUILT.split(' ');return `<b>${APP_VER}</b>${d.replace(/-/g,'.')} ${t||''} 업데이트`}
+function renderFoot(){$('#verTop').innerHTML=verText();$('#foot').innerHTML=`<b>빵을그리다 원가 계산기</b> · 프로그램 ${APP_VER} (${esc(APP_BUILT)} 업데이트)<br>단가 자료 기준: ${esc(priceBase())}<br>모든 금액은 부가세 별도예요. 입력한 내용은 이 기기(브라우저)에 자동 저장돼요.`}
 function render(){
+ renderFoot();
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===S.tab));
  if(S.tab==='list')renderList();else if(S.tab==='price')renderPrice();else renderCalc();
  window.scrollTo(0,0);
@@ -261,8 +318,9 @@ function presets(k,vals,v,unit){return `<div class="presets">${vals.map(x=>`<but
 function renderCalc(){
  const r=cur();
  const opts=S.products.map(p=>`<option value="${p.id}" ${p.id===r.id?'selected':''}>${esc(p.name)}</option>`).join('');
- $('#app').innerHTML=priceBanner()+`
- <div class="card noprint" style="padding:12px">
+ $('#app').innerHTML=pageHead('계산하기','제품을 고르고 배합·로스·인건비를 넣으면 1개 현실 원가가 바로 나와요.')+priceBanner()+`
+ <div class="srch noprint">
+  <label class="f" for="pick" style="margin-top:0">제품 선택</label>
   <div class="bar">
    <select id="pick">${opts}</select>
    <button class="btn g sm" id="bNew">+ 새 제품</button>
@@ -331,7 +389,7 @@ function renderCalc(){
  <div class="card"><h2>메모</h2><input data-k="memo" value="${esc(r.memo)}" placeholder="배합 출처, 확인할 것 등">
   <div class="noprint" style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn del sm" id="bDel">이 제품 삭제</button></div>
  </div>
- <p class="help" style="text-align:center">단가 기준: ${esc(priceBase())} · 모든 금액은 부가세 별도 · ${APP_VER}</p>`;
+`;
  bindCalc();update();
 }
 function srcLine(it){
@@ -345,7 +403,7 @@ function srcLine(it){
 }
 function hintHtml(x,i){
  const ak=autoKp(x.n),ov=x.kp!=null&&x.kp!=='',it=ING_MAP.get(x.n);
- const ob=`<button type="button" class="lk noprint" data-online="${i}">🔎 쿠팡·네이버에서 찾기</button>`;
+ const ob=`<button type="button" class="lk noprint" data-online="${i}">쿠팡·네이버에서 찾기</button>`;
  if(x.n&&!it&&!ov)return `<span class="ps" style="color:var(--org)">이카운트에 없는 재료 · ${ob}</span>`;
  if(ov)return `<span class="ps">이번만 직접 넣은 가격${ak!=null?` (단가표 ${num(ak)}원)`:''}</span>`;
  if(it&&it.staleOv)return `<span class="ps">${srcLine(it)} · 고친 값보다 최근이라 매입가를 씀</span>`;
@@ -450,15 +508,15 @@ function update(){
   ${c.pmiss.length?`<div class="note">단가가 없는 포장재: ${c.pmiss.map(esc).join(', ')}</div>`:''}`;
  // 폭포
  const steps=[
-  ['재료비만 (생산실 계산 방식)',`재료비 ${won(c.mat)} ÷ 반죽 전부 나눈 개수 ${num(c.ideal,2)}개`,c.A,'#8D6E63',true],
+  ['재료비만 (생산실 계산 방식)',`재료비 ${won(c.mat)} ÷ 반죽 전부 나눈 개수 ${num(c.ideal,2)}개`,c.A,'#22396F',true],
   ['원료 손실',`보관·계량·유통기한 폐기 ${num(N(r.rawLoss),1)}%`,c.B-c.A,'#E07B00'],
   ['반죽 손실',`믹서·작업대에 남는 반죽 ${num(N(r.doughLoss),1)}% → ${num(c.frac,2)}개`,c.C1-c.B,'#E07B00'],
   ['자투리 반죽',r.scrap==='reuse'?'다음 반죽에 다시 씀 (추가 없음)':`버림 → ${num(c.pcs)}개로 내림`,c.C-c.C1,'#E07B00'],
   ['불량·폐기',`${num(N(r.defect),1)}% → 좋은 제품 ${num(c.good,1)}개`,c.D-c.C,'#C62828'],
-  ['인건비',`${num(N(r.people),1)}명 × ${num(N(r.minutes))}분 × 1시간 ${won(N(r.wage))}${N(r.batches)>1?` ÷ ${num(N(r.batches))}배합`:''} = 1배합 ${won(c.labor)}`,c.E-c.D,'#1E5AA8'],
-  ['전기·가스·수도 등',`재료비의 ${num(N(r.ohPct),1)}% = ${won(c.oh)}`,c.F-c.E,'#1E5AA8'],
-  ['포장재',(r.packs||[]).filter(p=>p.n).length?`${(r.packs||[]).filter(p=>p.n).length}가지`:'없음',c.packPc,'#6A4C93'],
-  ['배송비',N(r.logi)>0?`1봉·1박스 ${won(N(r.logi))} ÷ ${num(c.box)}개`:'없음',c.logiPc,'#6A4C93'],
+  ['인건비',`${num(N(r.people),1)}명 × ${num(N(r.minutes))}분 × 1시간 ${won(N(r.wage))}${N(r.batches)>1?` ÷ ${num(N(r.batches))}배합`:''} = 1배합 ${won(c.labor)}`,c.E-c.D,'#4A6FB0'],
+  ['전기·가스·수도 등',`재료비의 ${num(N(r.ohPct),1)}% = ${won(c.oh)}`,c.F-c.E,'#4A6FB0'],
+  ['포장재',(r.packs||[]).filter(p=>p.n).length?`${(r.packs||[]).filter(p=>p.n).length}가지`:'없음',c.packPc,'#7B8494'],
+  ['배송비',N(r.logi)>0?`1봉·1박스 ${won(N(r.logi))} ÷ ${num(c.box)}개`:'없음',c.logiPc,'#7B8494'],
  ];
  const mx=Math.max(c.total,1);let acc=0;
  $('#wf').innerHTML=`<div class="wf">${steps.map(([t,s,v,col,first])=>{const left=first?0:acc/mx*100,w=Math.max(0,v)/mx*100;acc+=v;
@@ -468,16 +526,16 @@ function update(){
 
 /* 제품 목록 */
 function renderList(){
- const items=S.products.map(p=>{const c=calc(p);return `<div class="it" data-open="${p.id}"><div class="m"><b>${esc(p.name)}</b><span>${num(p.pieceW)}g · 재료만 ${num(c.A)}원 · ${new Date(p.updated||0).toLocaleDateString('ko-KR')} 수정</span></div><div class="r">${num(c.total)}원<br><span style="font-size:13px;color:var(--sub);font-weight:400">1개 현실 원가</span></div></div>`}).join('');
- $('#app').innerHTML=`
- <div class="card"><h2>저장한 제품 (${S.products.length}개)</h2><p class="help">누르면 계산 화면으로 열려요. 고친 내용은 자동 저장돼요.</p>${items}
+ const items=S.products.map(p=>{const c=calc(p);return `<div class="it" data-open="${p.id}"><div class="m"><b>${esc(p.name)}</b><span>${num(p.pieceW)}g · 재료만 ${num(c.A)}원 · ${new Date(p.updated||0).toLocaleDateString('ko-KR')} 수정</span></div><div class="r">${num(c.total)}원<br><span style="font-size:14px;color:var(--sub);font-weight:400">1개 현실 원가</span></div></div>`}).join('');
+ $('#app').innerHTML=pageHead('저장한 제품','이 기기에 저장된 제품 목록이에요. 누르면 계산 화면으로 열리고, 고친 내용은 자동 저장돼요.')+`
+ <div class="card"><h2>제품 목록 <span class="chip b">${S.products.length}개</span></h2><div class="lh"><span>제품명</span><span>1개 현실 원가</span></div>${items}
   <button class="btn" id="lNew" style="width:100%;margin-top:10px">+ 새 제품 만들기</button></div>
  <div class="card"><h2>다른 기기로 옮기기</h2>
   <p class="help">저장 내용은 <b>이 기기(이 브라우저)에만</b> 남아요. 태블릿에서 만든 제품을 PC에서 보려면 파일로 내보낸 뒤 PC에서 가져오기 하세요.</p>
   <div class="bar"><button class="btn g" id="lExp">파일로 내보내기</button><button class="btn g" id="lImp">파일 가져오기</button><input type="file" id="lFile" accept=".json,application/json" style="display:none"></div></div>
  <div class="card"><h2>처음 예시로 되돌리기</h2><p class="help">예시 제품(피자도우, 굴뚝빵)만 다시 넣어요. 내가 만든 제품은 지우지 않아요.</p>
   <button class="btn gr" id="lSample">예시 제품 다시 넣기</button></div>
- <p class="help" style="text-align:center">원가 계산기 ${APP_VER} · ${APP_BUILT}</p>`;
+`;
  document.querySelectorAll('[data-open]').forEach(e=>e.onclick=()=>{S.cur=e.dataset.open;setTab('calc')});
  $('#lNew').onclick=()=>{const p=blank();S.products.push(p);S.cur=p.id;setTab('calc')};
  $('#lSample').onclick=()=>{S.products.push(...samples());save();renderList();toast('예시 제품을 넣었어요')};
@@ -493,18 +551,18 @@ function renderList(){
 let PQ='',PT='ing';
 function renderPrice(){
  const cnt=PD?PD.ing.filter(x=>x.src==='buy').length:0;
- $('#app').innerHTML=priceBanner()+`
- <div class="card"><h2>단가표</h2>
+ $('#app').innerHTML=pageHead('단가표','이카운트 최근 매입가와 이 기기에서 넣은 단가예요. 매일 아침 새 매입가가 자동으로 들어와요.')+priceBanner()+`
+ <div class="card"><h2>품목별 단가</h2>
   <p class="help">${PD?`<b>${esc(priceBase())}</b> · 이카운트 매입가 ${num(cnt)}개 · 포장재 ${num(PD.pack.length)}개. 매일 아침 자동으로 새 매입가가 들어와요.`:'아직 단가표를 받지 않았어요.'}
    모든 값은 공급가(부가세 별도)예요. <span class="chip o">확인 필요</span>는 최근 매입 기록이 없는 품목이에요.</p>
-  <div class="bar noprint" style="margin-bottom:10px"><button class="btn g sm" id="pReload">↻ 단가표 다시 받기</button></div>
+  <div class="bar noprint" style="margin-bottom:10px"><button class="btn g sm" id="pReload">단가표 다시 받기</button></div>
   <div class="seg" style="margin-bottom:10px"><button type="button" data-pt="ing" class="${PT==='ing'?'on':''}">원료</button><button type="button" data-pt="dough" class="${PT==='dough'?'on':''}">생지</button><button type="button" data-pt="pack" class="${PT==='pack'?'on':''}">포장재</button></div>
   <input id="pq" placeholder="찾기 (예: 버터, 소금)" value="${esc(PQ)}">
   <div id="plist" style="margin-top:6px"></div></div>
  <div class="card"><h2>이카운트에 없는 품목 추가</h2>
   <p class="help">쿠팡·네이버쇼핑에서 찾아 고르거나, 아는 가격을 직접 넣으세요.</p>
   <label class="f">이름</label><input id="nN" placeholder="${PT==='pack'?'예: 피자 박스':'예: 엑스트라버진 올리브오일'}">
-  ${PT!=='pack'?'<button class="btn" id="nOnline" style="width:100%;margin-top:10px">🔎 쿠팡·네이버에서 찾아서 추가</button><p class="help" style="margin:10px 0 0">또는 직접 넣기</p>':''}
+  ${PT!=='pack'?'<button class="btn" id="nOnline" style="width:100%;margin-top:10px">쿠팡·네이버에서 찾아서 추가</button><p class="help" style="margin:10px 0 0">또는 직접 넣기</p>':''}
   <div class="row2"><div><label class="f">포장 가격 (원, 부가세 빼고)</label><input id="nP" type="number" inputmode="decimal"></div>
   <div><label class="f">${PT!=='pack'?'포장 무게 (g)':'포장 안 개수'}</label><input id="nG" type="number" inputmode="decimal" placeholder="${PT!=='pack'?'예: 1000':'예: 100'}"></div></div>
   <button class="btn g" id="nAdd" style="width:100%;margin-top:12px">직접 넣어 추가하기</button></div>`;
@@ -533,7 +591,7 @@ function drawP(){
    <div class="s">${pack} · ${sub}</div>${x.staleOv?'<div class="s" style="color:var(--blu)">이 기기에서 고친 값이 있었지만, 그 뒤 이카운트 매입가가 새로 들어와서 매입가를 써요.</div>':''}</div><div class="kg">${unit}</div></div>
    <div class="ed"><div><label class="f" style="font-size:14px">포장 가격(원)</label><input type="number" inputmode="decimal" data-pe="p" value="${esc(x.p)}"></div>
    <div><label class="f" style="font-size:14px">${!isP?'포장 무게(g)':'포장 안 개수'}</label><input type="number" inputmode="decimal" data-pe="${!isP?'g':'k'}" value="${esc(!isP?x.g:(x.k||1))}"></div>
-   <button class="btn sm" data-psave>저장</button>${x.edited||x.custom?`<button class="btn gr sm" data-preset>${x.custom?'삭제':'매입가로'}</button>`:(!isP&&x.src!=='buy'&&x.src!=='fix'?'<button class="btn g sm" data-pon>🔎 찾기</button>':'<span></span>')}</div></div>`}).join('')||'<p class="help">찾는 품목이 없어요. 아래에서 추가하세요.</p>';
+   <button class="btn sm" data-psave>저장</button>${x.edited||x.custom?`<button class="btn gr sm" data-preset>${x.custom?'삭제':'매입가로'}</button>`:(!isP&&x.src!=='buy'&&x.src!=='fix'?'<button class="btn g sm" data-pon>온라인 찾기</button>':'<span></span>')}</div></div>`}).join('')||'<p class="help">찾는 품목이 없어요. 아래에서 추가하세요.</p>';
  $('#plist').onclick=e=>{const b=e.target.closest('button');if(!b)return;const pi=b.closest('[data-pn]'),n=pi.dataset.pn,store=isP?S.packs:S.prices;
   if(b.hasAttribute('data-psave')){const p=N(pi.querySelector('[data-pe=p]').value),qq=N(pi.querySelector(`[data-pe=${!isP?'g':'k'}]`).value);if(!(qq>0)){alert('무게(개수)를 넣어 주세요.');return}
    const o={p,s:'직접 고침',at:new Date().toISOString()};if(!isP)o.g=qq;else o.k=qq;store[n]=o;refreshMaps();save();drawP()}
@@ -564,12 +622,12 @@ function openOnline(name,done){
  const q0=name.replace(/\(.*?\)/g,'').replace(/[_]/g,' ').trim();
  const w=document.createElement('div');w.id='olBg';
  w.innerHTML=`<div class="olBox">
-  <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:20px">🔎 온라인에서 단가 찾기</h2><button class="xb" id="olX" style="color:var(--ink)">×</button></div>
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:20px">온라인에서 단가 찾기</h2><button class="xb" id="olX" style="color:var(--ink)">×</button></div>
   <label class="f">재료 이름 <small>(원가 계산에 쓰는 이름)</small></label><input id="olN" value="${esc(name)}" placeholder="예: 엑스트라버진 올리브오일">
   <label class="f">① 검색어</label><input id="olQ" value="${esc(q0)}">
   <div class="row2" style="margin-top:8px"><button class="btn" id="olC" style="background:#E3242B">쿠팡에서 찾기</button><button class="btn" id="olV" style="background:#03A94D">네이버쇼핑에서 찾기</button></div>
   <p class="help" style="margin-top:8px">새 창에서 상품을 고른 뒤 <b>공유 → 링크 복사</b>(또는 상품명·가격 복사)를 하고, 이 화면으로 돌아와 아래에 붙여 넣으세요.</p>
-  <label class="f">② 고른 상품 붙여넣기</label><textarea id="olT" rows="3" style="width:100%;font:inherit;font-size:16px;border:1.5px solid #C9C1B8;border-radius:10px;padding:10px" placeholder="예: [쿠팡] 코끼리 올리브오일 엑스트라버진 1L x 2개 23,900원 https://link.coupang.com/..."></textarea>
+  <label class="f">② 고른 상품 붙여넣기</label><textarea id="olT" rows="3" style="font-size:16.5px" placeholder="예: [쿠팡] 코끼리 올리브오일 엑스트라버진 1L x 2개 23,900원 https://link.coupang.com/..."></textarea>
   <label class="f">상품명</label><input id="olTi">
   <div class="row2">
    <div><label class="f">판매 가격 <small>(원, 묶음 전체)</small></label><input id="olP" type="number" inputmode="decimal"></div>

@@ -4,8 +4,8 @@
  "start_url": "cost.html",
  "scope": "./",
  "display": "standalone",
- "background_color": "#F3F1EE",
- "theme_color": "#7A4A23",
+ "background_color": "#F4F5F7",
+ "theme_color": "#0D1C42",
  "icons": [
   {
    "src": "cost_192.png",
