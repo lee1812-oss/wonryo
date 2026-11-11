@@ -2283,3 +2283,62 @@
       try { fldFit(); } catch (e) {} } catch (e) {} return r; };
   try { fieldRender(); } catch (e) {}
 })();
+
+/* ── 2026-11-11 (Aside) 금속검출 「작업 전·작업 후 점검」 시각 고치기 창 (사용자 「작업 전 점검을 누르고 제품 확인·작업 후를 진행하면서 작업 전 점검 시각을 고칠 수 있게」) ──
+   저장된 「🟢 작업 전 점검」(또는 「🏁 작업 후 점검」) 칸을 누르면, 다른 화면으로 넘어가지 않고 같은 페이지 위에 시각만 고치는 창이 뜬다.
+   −5분·−1분·+1분·+5분·지금 시각·숫자판(4자리)으로 고치고 「✓ 시각 저장」. Fe·STS 결과는 그대로이고, 고친 내용은 일지 수정 기록(hist)에 남는다.
+   순서 검사: 작업 전 ≤ 제품 확인 ≤ 작업 후. 「Fe·STS 결과까지 고치기」는 예전 고치기 화면을 연다.
+   이 블록을 지우면 예전 동작(칸을 누르면 고치기 화면으로 넘어감). */
+(function () { if (!window.FIELD_APP) return;
+  let tap = null;
+  window.addEventListener('pointerdown', ev => { const b = ev.target.closest && ev.target.closest('#fld .fov3 [data-fq3="metal:pre"], #fld .fov3 [data-fq3="metal:post"]'); tap = b ? { k: b.dataset.fq3.split(':')[1], at: Date.now() } : null; }, true);
+  window.addEventListener('keydown', () => { tap = null; }, true);
+  const live = g => { const D = new Set((g && g.del) || []); return ((g && g.rows) || []).filter(r => !D.has(r.id)); };
+  const mm = t => { const m = /^(\d{2}):(\d{2})$/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : null; };
+  const hm = n => { n = ((n % 1440) + 1440) % 1440; return String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0'); };
+  const say = (m, ms) => { try { toast(m, ms); } catch (e) { alert(m); } };
+  function openPop(kind, fallback) {
+    const type = 'metal', date = fldD(), g = fldLog(type); const row = live(g).find(r => r.kind === kind && r.time); if (!row) return false;
+    const old = row.time, label = kind === 'pre' ? '🟢 작업 전 점검' : '🏁 작업 후 점검'; let v = old, typed = '';
+    const prev = document.querySelector('.fmt-bg'); if (prev) prev.remove();
+    const bg = document.createElement('div'); bg.className = 'fwarn-bg fq2 fmt-bg';
+    const B = 'min-height:58px;font-size:1.25em;font-weight:800;border-radius:12px;border:2px solid #ADB5BD;background:#fff;color:#1F2328';
+    const draw = () => { const shown = typed ? (typed + '____').slice(0, 4).replace(/^(..)(..)$/, '$1:$2') : v;
+      const wide = innerWidth > innerHeight * 1.2, H = wide ? 'min-height:' + Math.max(40, Math.min(56, Math.floor(innerHeight / 13))) + 'px;' : 'min-height:56px;';
+      const B = H + 'font-size:1.2em;font-weight:800;border-radius:12px;border:2px solid #ADB5BD;background:#fff;color:#1F2328';
+      const left = '<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:2px 0 8px"><span style="font-size:1.1em;color:#343A40;font-weight:700">' + esc(old) + ' →</span><span style="font-size:' + (wide ? '2.4em' : '3em') + ';font-weight:900;letter-spacing:1px;color:#0B3D91">' + esc(shown) + '</span></div>'
+        + '<div style="display:grid;grid-template-columns:repeat(' + (wide ? 2 : 4) + ',1fr);gap:8px;margin-bottom:8px">' + [-5, -1, 1, 5].map(d => '<button type="button" data-d="' + d + '" style="' + B + '">' + (d > 0 ? '+' : '−') + Math.abs(d) + '분</button>').join('') + '</div>'
+        + '<button type="button" data-now="1" style="' + B + ';width:100%">지금 시각 ' + esc(fldHM()) + '</button>';
+      const right = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">' + ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map(k => '<button type="button" data-k="' + k + '" style="' + B + '">' + k + '</button>').join('') + '</div>'
+        + '<div style="margin-top:6px;color:#343A40;font-weight:600;font-size:.95em">숫자 4자리로 바로 입력해도 돼요 (예: 0810)</div>';
+      bg.innerHTML = '<div class="fwarn" role="dialog" style="background:#fff;opacity:1;max-width:' + (wide ? '900px' : '560px') + ';width:94vw;max-height:96vh;overflow:auto"><div class="fwarn-hd">' + label + ' 시각 고치기<small>Fe·STS 결과는 그대로</small></div><div class="fwarn-bd">'
+        + (wide ? '<div style="display:grid;grid-template-columns:1fr 1.2fr;gap:14px;align-items:start"><div>' + left + '</div><div>' + right + '</div></div>' : left + '<div style="height:8px"></div>' + right)
+        + '</div><div class="fwarn-bt"><button type="button" class="go">✓ 시각 저장</button><div class="row2"><button type="button" class="alt full" style="border-color:#ADB5BD;color:#1F2328">Fe·STS 결과까지 고치기</button><button type="button" class="alt no" style="border-color:#ADB5BD;color:#495057">취소</button></div></div></div>'; };
+    draw(); (document.getElementById('fld') || document.body).appendChild(bg);
+    bg.addEventListener('click', ev => { ev.stopPropagation(); const b = ev.target.closest('button'); if (!b) return;
+      if (b.dataset.d) { const n = mm(v); if (n != null) v = hm(n + Number(b.dataset.d)); typed = ''; return draw(); }
+      if (b.dataset.now) { v = fldHM(); typed = ''; return draw(); }
+      if (b.dataset.k) { const k = b.dataset.k; if (k === 'C') typed = ''; else if (k === '⌫') typed = typed.slice(0, -1); else if (typed.length < 4) typed += k;
+        if (typed.length === 4) { const h = +typed.slice(0, 2), m = +typed.slice(2); if (h > 23 || m > 59) say('시각을 확인하세요 (예: 0810)'); else v = typed.slice(0, 2) + ':' + typed.slice(2); typed = ''; } return draw(); }
+      if (b.classList.contains('no')) return bg.remove();
+      if (b.classList.contains('full')) { bg.remove(); return fallback(); }
+      if (b.classList.contains('go')) {
+        if (typed) { say('숫자 4자리를 다 넣어 주세요 (예: 0810)'); return; }
+        if (!fldWk()) { say('먼저 작업자(서명)를 고르세요'); return; }
+        if (v === old) { bg.remove(); return; }
+        const g2 = fldLog(type), rs = live(g2), r = rs.find(x => x.id === row.id);
+        if (fldD() !== date || !r || r.time !== old) { bg.remove(); say('기록이 바뀌었습니다. 다시 눌러 주세요'); return; }
+        const it = rs.filter(x => x.kind === 'item' && x.time).map(x => mm(x.time)), pre = rs.find(x => x.kind === 'pre' && x.time), post = rs.find(x => x.kind === 'post' && x.time), n = mm(v);
+        const bad = kind === 'pre' ? (it.some(x => x < n) || (post && mm(post.time) < n)) : (it.some(x => x > n) || (pre && mm(pre.time) > n));
+        if (bad) { say(kind === 'pre' ? '작업 전 점검은 제품 확인·작업 후보다 빨라야 해요' : '작업 후 점검은 작업 전·제품 확인보다 늦어야 해요', 4000); return; }
+        const at = new Date().toISOString(); g2.hist = (g2.hist || []).slice(-99); g2.hist.push({ at, by: fldWk(), f: (kind === 'pre' ? '작업 전' : '작업 후') + ' 점검 시각 수정', from: old, to: v, ap: g2.apBy || '' });
+        ccpSet(date + '|' + type + '|rows|' + g2.rows.indexOf(r) + '|time', v); r.mt = at; try { ccpAutoDev(g2); } catch (e) {} ccpTouch(g2);
+        bg.remove(); fieldRender(); say((kind === 'pre' ? '작업 전' : '작업 후') + ' 점검 시각을 ' + old + ' → ' + v + '로 고쳤어요', 3000); } });
+    return true; }
+  const _sf = fldStartForm;
+  fldStartForm = function (row) { const t = tap; tap = null;
+    try { if (t && Date.now() - t.at < 3000 && FLD.type === 'metal' && row && row.kind === t.k && row.time && !FLD.rework) { const args = arguments, self = this;
+        if (openPop(t.k, () => _sf.apply(self, args))) return; } } catch (e) {}
+    return _sf.apply(this, arguments); };
+  window.__fmtOpen = openPop;
+})();
