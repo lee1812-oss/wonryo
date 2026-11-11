@@ -2568,7 +2568,6 @@
       else { if (!bar) { bar = document.createElement('div'); bar.className = 'fmx-bar'; h2.insertAdjacentElement('afterend', bar); }
         bar.innerHTML = MODE ? '<button type="button" data-fmx="all">' + (PK.size === list.length ? '☐ 모두 풀기' : '☑ 모두 고르기') + '</button><button type="button" class="fmx-go" data-fmx="go"' + (PK.size ? '' : ' disabled') + '>🗑 ' + PK.size + '줄 지우기</button><button type="button" data-fmx="end">끝내기</button>'
           : '<button type="button" class="fmx-st" data-fmx="start">☑ 여러 줄 골라 지우기</button>'; } }
-    const sm = document.querySelector('#fld .rqbar small'); if (sm && !sm.querySelector('.fmx-ver')) { const v = document.createElement('span'); v.className = 'fmx-ver'; v.textContent = ' · ' + TAG; sm.appendChild(v); }
   }
   function delMany(ids) {
     const g = fldLog('metal'); if (!g) return 0; const gone = [];
@@ -2615,6 +2614,8 @@
       const sentN = (P.log || []).filter(en => en.date === D && en.status !== 'cancel').length; return sentN > 0 && !cartN; } catch (e) { return true; } }
   function hl() {
     const root = document.getElementById('fld'); if (!root) return;
+    /* 버전은 첫 화면부터 상단에 (v003) */
+    const sm = root.querySelector('.rqbar small'); if (sm && !sm.querySelector('.fmx-ver')) { const v = document.createElement('span'); v.className = 'fmx-ver'; v.textContent = ' · ' + TAG; sm.appendChild(v); }
     root.querySelectorAll('.fqy').forEach(b => b.classList.remove('fqy')); root.querySelectorAll('.fqy-tag, .fqy-msg').forEach(e => e.remove());
     if (!FLD.open || FLD.step === 'qty' || !metalDone() || qtyDone()) return;
     root.querySelectorAll('button[data-f="qty"], button[data-fgo="qty"]').forEach(b => { b.classList.add('fqy');
