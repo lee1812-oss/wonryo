@@ -594,9 +594,9 @@
   const plan = code => { const g = fldLog('oven'); if (!g) return null; const rs = (g.rows || []).filter(r => r.code === code);
     const s = rs.find(r => r.tag === '시작' && mm(r.time) != null), e = rs.find(r => r.tag === '종료' && mm(r.time) != null); if (!s || !e) return null;
     const S = mm(s.time), E = mm(e.time); if (!(E > S)) return null; const mids = rs.filter(r => r.tag !== '시작' && r.tag !== '종료' && mm(r.time) != null).map(r => mm(r.time));
-    const core = (() => { const a = Number(s.core), b = Number(e.core); return isFinite(a) && isFinite(b) && s.core !== '' && e.core !== '' ? Math.round((a + b) / 2) : (s.core || e.core || ''); })();
+    const core = (() => { const a = Number(s.core), b = Number(e.core); return isFinite(a) && isFinite(b) && s.core !== '' && e.core !== '' ? Math.round((a + b) / 2) : ((s.core && s.core !== '-' ? s.core : '') || e.core || ''); })();
     const slots = []; for (let t = S + 120; t < E - 10; t += 120) { if (!mids.some(m => Math.abs(m - t) <= 30)) slots.push(hm(t)); }
-    return slots.length ? { g, s, e, slots, temp: s.temp, min: s.min, core: String(core), name: s.name } : null; };
+    return slots.length ? { g, s, e, slots, temp: s.temp, min: (s.min && s.min !== '-' ? s.min : e.min), core: String(core), name: s.name } : null; };
   const make = (code, P) => { const D = fldD(), wk = fldWk(); P.slots.forEach(t => { const nr = fldNewRow(P.g, 'oven', code, '중간'); const i = fldIdx(P.g, 'rows', nr.id);
       [['time', t], ['temp', P.temp], ['min', P.min], ['core', P.core]].forEach(([f, v]) => { if (v !== '' && v != null) ccpSet(D + '|oven|rows|' + i + '|' + f, String(v)); });
       nr.sg = wk; nr.mt = new Date().toISOString(); nr.us = { f: { temp: String(P.temp), min: String(P.min), core: String(P.core) }, at: nr.mt, by: wk, src: 'auto2h' }; });
@@ -1220,7 +1220,7 @@
   const metalProd = () => { const ps = fldProds('metal'); if (P && P.mp && ps.some(p => p.code === P.mp)) return ps.find(p => p.code === P.mp); return ps[0] || null; };
   const defv = (type, mode, code, name, row) => { const V = {}; fieldsOf(type, mode, name).forEach(x => { if (x.k === 'time') return; if (x.k === 'ox') { V[x.f] = x.good; return; }
       let v = row && row[x.f] !== '' && row[x.f] != null ? String(row[x.f]) : '';
-      if (!v && type === 'oven') { const last = [...rowsOf('oven', code)].reverse().find(r => r[x.f] !== '' && r[x.f] != null && r.time); if (last) v = String(last[x.f]); }
+      if (!v && type === 'oven') { const last = [...rowsOf('oven', code)].reverse().find(r => r[x.f] !== '' && r[x.f] != null && r[x.f] !== '-' && r.time); if (last) v = String(last[x.f]); }
       if (!v) { try { const a = fldAvg7(type, x.f, name); if (a) v = String(a.v); } catch (e) {} }
       if (x.neg) v = v.replace(/^-/, ''); V[x.f] = v; }); return V; };
   const panelFor = S => { const key = [fldD(), S.type, S.code || '', S.mode].join('|');
@@ -2732,5 +2732,34 @@
       if (setNote(p, DEF)) { fieldRender(); say('특이사항 「' + DEF + '」으로 바꿨어요', 2000); } return; }
     edit(p); }, true);
   window.__fmNote = { VER, BUILT, DEF, noteOf };
+  try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
+})();
+
+
+
+/* ══ 오븐 작업 시작 = 예열 확인 v001 · 2026-11-11 19:55 (2026-11-11 Aside) ══
+   사용자 결정: 「베이토리처럼, 시작 시 가열온도만 적게」(빵류 소규모 HACCP 표준기준서 2025: 작업시작 전·후 확인).
+   - 오븐 「시작」 칸: 가열온도만 입력·저장, 가열시간·품온은 「-」로 저장(제품을 넣기 전이라 잴 수 없는 값).
+   - 2시간 측정·종료(마지막 판 꺼낼 때)는 지금처럼 세 값 모두 기록.
+   - 2시간 자동 줄·종료 기본값은 시작 줄의 「-」를 쓰지 않고 종료 값·최근 평균을 씀(위 본문 3곳 함께 고침).
+   - 판정(ccpRowState)은 「-」를 숫자로 보지 않아 이탈로 잡지 않음. K-HACCP 자동 작성·자동 승인 도구도 시작 줄 「-」를 허용(사무실 PC).
+   - 이 블록을 지우면 예전(시작에도 세 값)으로 돌아감. */
+(function () { if (!window.FIELD_APP) return;
+  const VER = 'v001', BUILT = '2026-11-11 19:55', DASH = '-';
+  const isStart = (type, mode) => type === 'oven' && mode === '시작';
+  const _ff = fldFieldsFor;
+  fldFieldsFor = function (type, mode) { const a = _ff.apply(this, arguments); return isStart(type, mode) && Array.isArray(a) ? a.filter(x => x.f !== 'min' && x.f !== 'core') : a; };
+  const _sv = fldSave;
+  fldSave = function () { const st = isStart(FLD.type, FLD.mode) && FLD.sec !== 'pass', code = FLD.code, D = fldD(), prev = FLD.lastRow;
+    const out = _sv.apply(this, arguments);
+    try { if (st) { const g = fldLog('oven'); const row = FLD.lastRow && FLD.lastRow !== prev ? FLD.lastRow : null;
+        if (g && row && row.tag === '시작' && row.code === code) { const i = fldIdx(g, 'rows', row.id); let ch = false;
+          ['min', 'core'].forEach(f => { if (row[f] !== DASH) { ccpSet(D + '|oven|rows|' + i + '|' + f, DASH); ch = true; } });
+          if (ch) { ccpTouch(g); if (FLD.open && FLD.step !== 'act') fieldRender(); } } } } catch (e) {}
+    return out; };
+  const tag = () => { try { const sm = document.querySelector('#fld .rqbar small'); if (sm && !sm.querySelector('.fos-ver')) sm.insertAdjacentHTML('beforeend', '<span class="fos-ver"> · 오븐 시작=예열 ' + VER + ' · ' + BUILT + '</span>'); } catch (e) {} };
+  const relabel = () => { try { if (typeof FLD === 'undefined' || FLD.type !== 'oven') return; document.querySelectorAll('#fld .fld-body *').forEach(el => { if (el.children.length) return; const t = el.textContent.trim(); if (t === '시작 측정') el.textContent = '시작 · 예열 확인'; else if (t === '설정값 · 시작 측정') el.textContent = '설정값 · 시작(예열) — 가열온도만'; }); } catch (e) {} };
+  const _r = fieldRender; fieldRender = function () { const r = _r.apply(this, arguments); tag(); relabel(); return r; };
+  window.__ovenStart = { VER, BUILT };
   try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
 })();
