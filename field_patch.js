@@ -2343,36 +2343,7 @@
   window.__fmtOpen = openPop;
 })();
 
-/* ── 2026-11-11 (Aside) 금속검출: 품목이 여러 개일 때 「제품 확인」 다음 품목 자동 선택 + 누를 칸 표시 (사용자 「작업 전·제품 확인을 눌렀는데 작업 후 점검이 활성화되지 않아 터치가 안 됨」) ──
-   원인: 제품 확인 품목 고르기가 늘 첫 품목(빅몽블랑)에 머물러, 제품 확인을 두 번 눌러도 같은 품목만 저장되고 두 번째 품목(구운크로와상)은 비어 있었음
-        → 작업 후 저장이 막히고(제품 확인 빠짐 안전장치), 누를 칸 표시도 없어 작업 후 칸이 꺼진 것처럼 보였음.
-   고침: ① 작업 후 전이면 제품 확인 품목을 「아직 확인 안 한 품목」으로 자동으로 바꿈
-        ② 남은 품목이 있으면 제품 확인 칸에 「👆 여기를 누르세요」 + 「다음: ○○ 제품 확인 (n개 중 m개 끝)」 안내
-        ③ 모든 품목이 끝나면 작업 후 점검 칸을 노랗게 켜고 「👆 여기를 누르세요」
-   이 블록을 지우면 예전 동작. */
-(function () { if (!window.FIELD_APP) return;
-  const live = g => { const D = new Set((g && g.del) || []); return ((g && g.rows) || []).filter(r => !D.has(r.id)); };
-  const full = r => r.kind === 'item' && r.time && r.fe && r.sus && r.p && r.fep && r.susp;
-  let busy = false;
-  const _r = fieldRender;
-  fieldRender = function () { const out = _r.apply(this, arguments); if (busy) return out;
-    try { if (!FLD.open || FLD.type !== 'metal' || FLD.step !== 'type') return out;
-      const body = document.querySelector('#fld .fpc-main') || document.querySelector('#fld .fld-body'); if (!body) return out;
-      const it = body.querySelector('[data-fq3="metal:item"]'), pc = body.querySelector('[data-fq3="metal:post"]'); if (!it || !pc) return out;
-      const rs = live(fldLog('metal')); const preOk = rs.some(r => r.kind === 'pre' && r.time), postOk = rs.some(r => r.kind === 'post' && r.time);
-      const ps = fldProds('metal'); const ms = ps.filter(p => !rs.some(r => r.code === p.code && full(r)));
-      if (postOk) return out;
-      if (ms.length) { const on = body.querySelector('[data-fpv="mprod"].on'); const want = body.querySelector('[data-fpv="mprod"][data-c="' + CSS.escape(ms[0].code) + '"]');
-        if (want && (!on || !ms.some(p => p.code === on.dataset.c))) { busy = true; try { want.click(); } finally { busy = false; } return fieldRender.apply(this, arguments); } }
-      if (!preOk) return out;
-      body.querySelectorAll('.fnow').forEach(b => { b.classList.remove('fnow'); const p = b.querySelector('.fpress'); if (p) p.remove(); });
-      const old = body.querySelector('.fnext'); if (old) old.remove();
-      const tgt = ms.length ? it : pc; tgt.classList.add('fnow'); tgt.insertAdjacentHTML('beforeend', '<span class="fpress">👆 여기를 누르세요</span>');
-      const msg = ms.length ? '👉 다음: ' + esc(fldShort(ms[0].name)) + ' 제품 확인' + (ps.length > 1 ? ' (' + ps.length + '개 중 ' + (ps.length - ms.length) + '개 끝)' : '') : '✅ 제품 확인 모두 끝 — 작업이 끝나면 🏁 작업 후 점검을 누르세요';
-      it.parentElement.insertAdjacentHTML('beforebegin', '<div class="fnext" style="margin:6px 0 8px;padding:10px 14px;border-radius:12px;background:' + (ms.length ? '#FFF3BF;color:#7A4A00' : '#D3F9D8;color:#1B5E20') + ';font-weight:800;font-size:1.05em;word-break:keep-all">' + msg + '</div>');
-      try { fldFit(); } catch (e) {} } catch (e) {} return out; };
-  try { fieldRender(); } catch (e) {}
-})();
+
 
 /* ── 2026-11-11 (Aside) 금속검출 시각 고칠 때 다른 점검 시각을 같이 보여 주기 (사용자 「작업 후 점검 시간을 고칠 때 작업 전 점검 시간이 보이면 편하겠다」) ──
    시각 고치기 창(작업 전·작업 후 칸 누르기)과 고치기 화면(시간 수정·Fe·STS 결과까지 고치기) 맨 위에
@@ -2404,49 +2375,132 @@
       try { fldFit(); } catch (e) {} } catch (e) {} return out; };
 })();
 
-/* ── 2026-11-11 (Aside) 금속검출을 「작업 전 점검 → 작업 후 점검」 두 번만 누르게 (사용자 「작업 전·작업 후만 체크하게, 중간 제품 확인을 누르니 계속 강제 체크됨」) ──
-   ① 가운데 「⏱ 제품 확인」 칸과 품목 고르기를 숨기고, 작업 전 다음에는 작업 후 칸을 켠다.
-   ② 작업 후 점검을 저장할 때, 아직 제품 확인 줄이 없는 품목마다 제품 확인 줄(제품만·FE+제품·STS+제품)을 같은 시각으로 함께 저장한다.
-      값은 화면 아래 「작업 후 점검 때 같이 저장되는 제품 확인 값」 판에 보이는 그대로(바꾸려면 저장 전에 누름). 그 줄에는 src:'post' 표시.
-      K-HACCP 금속검출 일지(D3)는 품목마다 제품 확인 줄이 있어야 올라가므로(루틴 No.24) 줄 자체는 남긴다.
-   ③ 이미 저장된 제품 확인 줄은 그대로(지우지 않음). 이 블록을 지우면 세 칸 방식으로 돌아감. */
+/* ══ 2026-11-11 (Aside) 금속검출 = K-HACCP 일지 모양 그대로: 품목마다 「🟢 작업 전 → ⏱ 제품 확인(작업중) → 🏁 작업 후」 ══
+   사용자 요청: 제품 확인(작업중) 다시 보이기, 작업 전·작업 후는 시간만 고르기, 제품 확인은 기존 K-HACCP 일지를 분석해 그대로 반영.
+   K-HACCP [D3] 금속검출 일지 분석 (2026-08-03~11-09, 66일·품목 120장):
+     ① 품목마다 탭이 따로 있고 탭마다 「작업 전 1줄 · 제품 1줄 · 작업 후 1줄」(120장 모두). 품목이 여러 개인 날(32일)은 품목을 차례로 돌리며 품목마다 작업 전·후를 따로 적음.
+     ② 제품 줄 값은 120장 모두 같음: Fe만 O · STS만 O · 제품만 X · Fe+제품 O · STS+제품 O · 판정 O.  작업 전·후는 Fe O · STS O · 판정 O.
+     ③ 제품 확인 시각 = 작업 전 + 3분(가운데 값, 2~6분). 작업 후 = 제품 확인 + 21분(1~61분). 작업 전~후 26분(최대 65분). 서명 이정현 118 · 박태일 2.
+   그래서: 품목 버튼으로 품목을 고르고, 그 품목의 세 칸을 누른다. 누르면 「시각 고르기」 창만 뜨고(값은 위 ②로 자동, 이상 있을 때만 펼쳐서 바꿈),
+   제품 확인은 품목당 1줄(이미 있으면 그 줄의 시각을 고침 — 여러 번 눌러도 줄이 늘지 않음).
+   저장: 품목 C의 작업 전 = kind 'pre' + code C (첫 품목은 원래 'm:pre' 줄을 씀), 작업 후 = kind 'post' + code C, 제품 확인 = kind 'item' + code C.
+   이 블록을 지우면 예전 화면. 앞 블록(두 칸 방식·다음 품목 자동 선택)은 이 블록으로 바뀌어 파일에서 뺐다. */
 (function () { if (!window.FIELD_APP) return;
+  const T = 'metal';
   const live = g => { const D = new Set((g && g.del) || []); return ((g && g.rows) || []).filter(r => !D.has(r.id)); };
-  const full = r => r.kind === 'item' && r.time && r.fe && r.sus && r.p && r.fep && r.susp;
-  const panelVals = () => { const v = { fe: 'O', sus: 'O', p: 'X', fep: 'O', susp: 'O' };
-    document.querySelectorAll('#fld [data-fpv="ox"].on').forEach(b => { if (b.dataset.k in v) v[b.dataset.k] = b.dataset.v; }); return v; };
-  let pv = null;
-  window.addEventListener('pointerdown', ev => { if (ev.target.closest && ev.target.closest('#fld [data-fq3="metal:post"]')) pv = panelVals(); }, true);
-  const _save = fldSave;
-  fldSave = function () {
-    try { if (FLD.type === 'metal' && FLD.mode === 'post' && !FLD.rework) { const g = fldLog('metal'); const D = new Set(g.del || []);
-        const already = (g.rows || []).some(r => r.kind === 'post' && r.time && !D.has(r.id));
-        const t = FLD.vals && FLD.vals.time; const wk = fldWk();
-        if (!already && !wk) { try { toast('먼저 작업자(서명)를 고르세요'); } catch (e) {} FLD.step = 'who'; FLD.back = 'type'; fieldRender(); return; }
-        if (!already && t && wk) { const v = pv || panelVals(); pv = null; const date = fldD(), at = new Date().toISOString(); let n = 0;
-          fldProds('metal').forEach(p => { const rs = live(g); if (rs.some(r => r.code === p.code && full(r))) return;
-            let r = rs.find(x => x.kind === 'item' && x.code === p.code && !x.time);
-            if (!r) { r = { id: 'm:' + p.code + ':' + Date.now().toString(36), kind: 'item', time: '', fe: '', sus: '', p: '', fep: '', susp: '', code: p.code, name: p.name }; g.rows.splice(Math.max(0, g.rows.findIndex(x => x.kind === 'post')), 0, r); }
-            const i = g.rows.indexOf(r);
-            ccpSet(date + '|metal|rows|' + i + '|time', t); ['fe', 'sus', 'p', 'fep', 'susp'].forEach(f => ccpSet(date + '|metal|rows|' + i + '|' + f, v[f]));
-            r.sg = wk; r.at = r.at || at; r.mt = at; r.src = 'post'; n++; });
-          if (n) { try { ccpAutoDev(g); } catch (e) {} ccpTouch(g); } } } } catch (e) {}
-    return _save.apply(this, arguments); };
+  const mm = t => { const m = /^(\d{2}):(\d{2})$/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : null; };
+  const hm = n => { n = ((n % 1440) + 1440) % 1440; return String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0'); };
+  const say = (m, ms) => { try { toast(m, ms); } catch (e) { alert(m); } };
+  const F_TP = [['fe', 'Fe 2.5mm 테스트피스', 'O'], ['sus', 'STS 3.5mm 테스트피스', 'O']];
+  const F_IT = [['fe', 'Fe 테스트피스만', 'O'], ['sus', 'STS 테스트피스만', 'O'], ['p', '제품만 통과', 'X'], ['fep', '제품 + Fe', 'O'], ['susp', '제품 + STS', 'O']];
+  const prods = () => { try { return fldProds(T) || []; } catch (e) { return []; } };
+  /* 품목 C의 세 줄 찾기 (코드 없는 옛 작업 전·후 줄은 첫 품목 것으로 봄) */
+  const rowsFor = (code) => { const g = fldLog(T); const rs = live(g); const ps = prods(); const first = ps[0] && ps[0].code === code;
+    const pick = k => rs.find(r => r.kind === k && r.code === code) || (first ? rs.find(r => r.kind === k && !r.code && r.time) : null);
+    const its = rs.filter(r => r.kind === 'item' && r.code === code);
+    return { g, pre: pick('pre'), post: pick('post'), item: its.find(r => r.time) || null, tmpl: its.find(r => !r.time) || null, extra: its.filter(r => r.time).length }; };
+  const doneOf = code => { const x = rowsFor(code); return !!(x.pre && x.pre.time && x.item && x.post && x.post.time); };
+  let SEL = '';
+  const cur = () => { const ps = prods(); if (!ps.length) return null; let p = ps.find(x => x.code === SEL); if (!p) p = ps.find(x => !doneOf(x.code)) || ps[0]; SEL = p.code; return p; };
+
+  /* 줄 쓰기 (ccpSet = 통합재고관리와 같은 저장 길) */
+  function writeRow(kind, p, time, vals) {
+    const wk = fldWk(); if (!wk) { say('먼저 작업자(서명)를 고르세요'); FLD.back = 'type'; FLD.step = 'who'; fieldRender(); return false; }
+    const date = fldD(), at = new Date().toISOString(); const x = rowsFor(p.code), g = x.g;
+    let r = kind === 'pre' ? x.pre : kind === 'post' ? x.post : (x.item || x.tmpl);
+    if (!r && kind !== 'item') { const fixed = live(g).find(z => z.kind === kind && !z.code && !z.time); if (fixed) { r = fixed; r.code = p.code; } }
+    if (!r) { r = { id: 'm:' + kind + ':' + p.code, kind, code: p.code, name: kind === 'pre' ? '작업 전' : kind === 'post' ? '작업 후' : p.name, time: '', fe: '', sus: '' };
+      if (kind === 'item') Object.assign(r, { id: 'm:' + p.code + ':' + Date.now().toString(36), p: '', fep: '', susp: '' });
+      if ((g.del || []).includes(r.id)) r.id += ':' + Date.now().toString(36);
+      g.rows.push(r); }
+    if (kind !== 'item' && r.code !== p.code) r.code = p.code;
+    const i = g.rows.indexOf(r); const old = r.time;
+    ccpSet(date + '|' + T + '|rows|' + i + '|time', time);
+    Object.keys(vals).forEach(f => ccpSet(date + '|' + T + '|rows|' + i + '|' + f, vals[f]));
+    if (old && old !== time) { g.hist = (g.hist || []).slice(-99); g.hist.push({ at, by: wk, f: fldShort(p.name) + ' ' + (kind === 'pre' ? '작업 전' : kind === 'post' ? '작업 후' : '제품 확인') + ' 시각 수정', from: old, to: time, ap: g.apBy || '' }); }
+    r.sg = wk; r.at = r.at || at; r.mt = at; delete r.src;
+    /* 보기 좋게: 품목 순서대로 작업 전 · 제품 · 작업 후 */
+    try { const order = prods().map(z => z.code); const key = z => { const o = order.indexOf(z.code); const k = z.kind === 'pre' ? 0 : z.kind === 'item' ? 1 : 2; return (o < 0 ? 99 : o) * 10 + k + (z.code ? 0 : 900); };
+      g.rows.sort((a, b) => key(a) - key(b) || (mm(a.time) || 0) - (mm(b.time) || 0)); } catch (e) {}
+    try { ccpAutoDev(g); } catch (e) {} ccpTouch(g); return true; }
+
+  /* 시각 고르기 창 */
+  function pick(o) {
+    const prev = document.querySelector('.fm3-bg'); if (prev) prev.remove();
+    let v = o.time, typed = '', open = Object.keys(o.vals).some(f => o.vals[f] !== (o.fields.find(z => z[0] === f) || [])[2]); const vals = Object.assign({}, o.vals);
+    const bg = document.createElement('div'); bg.className = 'fwarn-bg fq2 fm3-bg';
+    const draw = () => { const wide = innerWidth > innerHeight * 1.2; const H = wide ? 'min-height:' + Math.max(40, Math.min(54, Math.floor(innerHeight / 14))) + 'px;' : 'min-height:54px;';
+      const B = H + 'font-size:1.2em;font-weight:800;border-radius:12px;border:2px solid #ADB5BD;background:#fff;color:#1F2328';
+      const shown = typed ? (typed + '____').slice(0, 4).replace(/^(..)(..)$/, '$1:$2') : v;
+      const okAll = o.fields.every(z => vals[z[0]] === z[2]);
+      const left = (o.ref || '') + '<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:2px 0 8px">' + (o.old ? '<span style="font-size:1.1em;color:#343A40;font-weight:700">' + esc(o.old) + ' →</span>' : '') + '<span style="font-size:' + (wide ? '2.4em' : '3em') + ';font-weight:900;color:#0B3D91">' + esc(shown) + '</span></div>'
+        + '<div style="display:grid;grid-template-columns:repeat(' + (wide ? 2 : 4) + ',1fr);gap:8px;margin-bottom:8px">' + [-5, -1, 1, 5].map(d => '<button type="button" data-d="' + d + '" style="' + B + '">' + (d > 0 ? '+' : '−') + Math.abs(d) + '분</button>').join('') + '</div>'
+        + '<button type="button" data-now="1" style="' + B + ';width:100%">지금 시각 ' + esc(fldHM()) + '</button>'
+        + '<div style="margin-top:10px;padding:8px 12px;border-radius:10px;background:' + (okAll ? '#D3F9D8;color:#1B5E20' : '#FFE3E3;color:#C92A2A') + ';font-weight:800">' + (okAll ? '✓ ' + esc(o.okText) : '⚠ 이상 있음으로 저장돼요') + ' <button type="button" data-open="1" style="margin-left:6px;padding:4px 10px;border-radius:8px;border:1px solid #868E96;background:#fff;font-weight:700">' + (open ? '접기' : '이상 있을 때만 ▾') + '</button></div>'
+        + (open ? '<div style="display:grid;gap:6px;margin-top:6px">' + o.fields.map(z => '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700"><span>' + esc(z[1]) + '</span><span>' + ['O', 'X'].map(k => '<button type="button" data-f="' + z[0] + '" data-v="' + k + '" style="padding:8px 12px;margin-left:4px;border-radius:8px;font-weight:800;border:2px solid ' + (vals[z[0]] === k ? '#1F2328;background:#1F2328;color:#fff' : '#ADB5BD;background:#fff;color:#1F2328') + '">' + (k === 'O' ? '검출됨' : '검출 안 됨') + '</button>').join('') + '</span></div>').join('') + '</div>' : '');
+      const right = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">' + ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map(k => '<button type="button" data-k="' + k + '" style="' + B + '">' + k + '</button>').join('') + '</div><div style="margin-top:6px;color:#343A40;font-weight:600;font-size:.95em">숫자 4자리로 바로 입력해도 돼요 (예: 1530)</div>';
+      bg.innerHTML = '<div class="fwarn" role="dialog" style="background:#fff;max-width:' + (wide ? '900px' : '560px') + ';width:94vw;max-height:96vh;overflow:auto"><div class="fwarn-hd">' + o.title + '<small>' + esc(o.sub) + '</small></div><div class="fwarn-bd">'
+        + (wide ? '<div style="display:grid;grid-template-columns:1fr 1.1fr;gap:14px;align-items:start"><div>' + left + '</div><div>' + right + '</div></div>' : left + '<div style="height:8px"></div>' + right)
+        + '</div><div class="fwarn-bt"><button type="button" class="go">✓ 이 시각으로 저장</button><div class="row2"><button type="button" class="alt no" style="border-color:#ADB5BD;color:#495057">취소</button></div></div></div>'; };
+    draw(); (document.getElementById('fld') || document.body).appendChild(bg);
+    bg.addEventListener('click', ev => { ev.stopPropagation(); const b = ev.target.closest('button'); if (!b) return;
+      if (b.dataset.d) { const n = mm(v); if (n != null) v = hm(n + Number(b.dataset.d)); typed = ''; return draw(); }
+      if (b.dataset.now) { v = fldHM(); typed = ''; return draw(); }
+      if (b.dataset.open) { open = !open; return draw(); }
+      if (b.dataset.f) { vals[b.dataset.f] = b.dataset.v; return draw(); }
+      if (b.dataset.k) { const k = b.dataset.k; if (k === 'C') typed = ''; else if (k === '⌫') typed = typed.slice(0, -1); else if (typed.length < 4) typed += k;
+        if (typed.length === 4) { const h = +typed.slice(0, 2), m2 = +typed.slice(2); if (h > 23 || m2 > 59) say('시각을 확인하세요 (예: 1530)'); else v = typed.slice(0, 2) + ':' + typed.slice(2); typed = ''; } return draw(); }
+      if (b.classList.contains('no')) return bg.remove();
+      if (b.classList.contains('go')) { if (typed) { say('숫자 4자리를 다 넣어 주세요 (예: 1530)'); return; }
+        const why = o.check ? o.check(v) : ''; if (why) { say(why, 4000); return; }
+        if (o.save(v, vals)) { bg.remove(); fieldRender(); say(o.doneText.replace('{t}', v), 2500); } } });
+  }
+
+  function press(kind) { const p = cur(); if (!p) { say('오늘 금속검출 품목이 없습니다 — 먼저 작업 시작'); return; }
+    const x = rowsFor(p.code); const nm = fldShort(p.name);
+    if (kind === 'item' && !(x.pre && x.pre.time)) { say('먼저 🟢 작업 전 점검 시각을 저장하세요'); return; }
+    if (kind === 'post' && !(x.item && x.item.time)) { say('먼저 ⏱ 제품 확인(작업중)을 저장하세요'); return; }
+    const row = kind === 'pre' ? x.pre : kind === 'post' ? x.post : x.item; const has = !!(row && row.time);
+    const fields = kind === 'item' ? F_IT : F_TP; const vals = {}; fields.forEach(z => { vals[z[0]] = has && row[z[0]] ? row[z[0]] : z[2]; });
+    const ttl = kind === 'pre' ? '🟢 작업 전 점검' : kind === 'post' ? '🏁 작업 후 점검' : '⏱ 제품 확인(작업중)';
+    const ref = '<div style="margin:0 0 8px;padding:8px 12px;border-radius:10px;background:#E7F0FF;border:2px solid #A5C8FF;font-weight:700">' + esc(nm) + ' — 🟢 ' + esc((x.pre && x.pre.time) || '—') + ' → ⏱ ' + esc((x.item && x.item.time) || '—') + ' → 🏁 ' + esc((x.post && x.post.time) || '—') + '</div>';
+    let def = has ? row.time : fldHM();
+    pick({ title: ttl + (has ? ' 시각 고치기' : ' 시각'), sub: nm, time: def, old: has ? row.time : '', ref, fields, vals,
+      okText: kind === 'item' ? '정상: Fe·STS 검출 · 제품만 통과 · 제품+Fe·STS 검출 (K-HACCP와 같음)' : '정상: Fe·STS 테스트피스 검출',
+      doneText: nm + ' ' + ttl.replace(/^\S+\s/, '') + ' {t} 저장',
+      check: t => { const n = mm(t), a = x.pre && x.pre.id !== (row && row.id) ? mm(x.pre.time) : null, b = x.item && x.item.id !== (row && row.id) ? mm(x.item.time) : null, c = x.post && x.post.id !== (row && row.id) ? mm(x.post.time) : null;
+        if (kind === 'pre' && ((b != null && n > b) || (c != null && n > c))) return '작업 전 점검은 제품 확인·작업 후보다 빨라야 해요';
+        if (kind === 'item' && ((a != null && n < a) || (c != null && n > c))) return '제품 확인은 작업 전과 작업 후 사이여야 해요';
+        if (kind === 'post' && ((a != null && n < a) || (b != null && n < b))) return '작업 후 점검은 작업 전·제품 확인보다 늦어야 해요'; return ''; },
+      save: (t, v) => writeRow(kind, p, t, v) }); }
+
+  const card = (k, ico, title, tm, sub, on, now, dis) => '<button type="button" class="ft big' + (on ? ' on' : '') + (now ? ' fnow' : '') + '" data-mt3="' + k + '" style="' + (dis ? 'opacity:.55' : '') + '"><i>' + ico + '</i><b>' + title + '</b><span class="tm' + (tm ? '' : ' ph') + '">' + esc(tm || sub) + '</span><span class="vv">' + esc(tm ? '누르면 시각 고치기' : (dis ? '앞 단계 먼저' : '눌러서 시각 선택')) + '</span>' + (now ? '<span class="fpress">👆 여기를 누르세요</span>' : '') + '</button>';
+  function html() { const ps = prods(); const p = cur(); if (!p) return '';
+    const x = rowsFor(p.code); const a = x.pre && x.pre.time, b = x.item && x.item.time, c = x.post && x.post.time;
+    const nxt = !a ? 'pre' : !b ? 'item' : !c ? 'post' : '';
+    let h = '';
+    if (ps.length > 1) h += '<div class="fm3-pk" style="display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 10px">' + ps.map(q => { const d = doneOf(q.code), on = q.code === p.code; return '<button type="button" data-mt3p="' + esc(q.code) + '" style="min-height:50px;padding:6px 14px;border-radius:12px;font-weight:800;font-size:1.05em;border:2px solid ' + (on ? '#1C4FD7;background:#FFE066;color:#1F2328' : '#ADB5BD;background:#F1F3F5;color:#343A40') + '">' + (d ? '✓ ' : '') + esc(fldShort(q.name)) + '</button>'; }).join('') + '</div>';
+    h += '<div class="fld-grid fov3 fm3-grid">' + card('pre', '🟢', '작업 전 점검', a, '시간 선택', !!a, nxt === 'pre', false) + '<span class="ar">→</span>' + card('item', '⏱', '제품 확인(작업중)', b, '시간 선택', !!b, nxt === 'item', !a) + '<span class="ar">→</span>' + card('post', '🏁', '작업 후 점검', c, '작업 끝나고', !!c, nxt === 'post', !b) + '</div>';
+    if (x.extra > 1) h += '<div style="margin:6px 0;padding:8px 12px;border-radius:10px;background:#FFF3BF;color:#7A4A00;font-weight:700">⚠ ' + esc(fldShort(p.name)) + ' 제품 확인 줄이 ' + x.extra + '개 있어요 — K-HACCP는 품목당 1줄. 아래 「오늘 기록」에서 남는 줄을 지워 주세요</div>';
+    if (!nxt && ps.some(q => !doneOf(q.code))) { const q = ps.find(z => !doneOf(z.code)); h += '<div style="margin:6px 0;padding:10px 14px;border-radius:12px;background:#D3F9D8;color:#1B5E20;font-weight:800">✓ ' + esc(fldShort(p.name)) + ' 끝 — 다음 품목 「' + esc(fldShort(q.name)) + '」 버튼을 누르세요</div>'; }
+    return h; }
+
   const _r = fieldRender;
   fieldRender = function () { const out = _r.apply(this, arguments);
-    try { if (!FLD.open || FLD.type !== 'metal' || FLD.step !== 'type') return out;
+    try { if (!FLD.open || FLD.type !== T || FLD.step !== 'type') return out;
       const body = document.querySelector('#fld .fpc-main') || document.querySelector('#fld .fld-body'); if (!body) return out;
-      const it = body.querySelector('[data-fq3="metal:item"]'), pc = body.querySelector('[data-fq3="metal:post"]'), grid = it && it.parentElement; if (!it || !pc) return out;
-      it.style.display = 'none'; const ar = it.previousElementSibling; if (ar && ar.classList.contains('ar')) ar.style.display = 'none';
-      grid.style.gridTemplateColumns = '1fr auto 1fr';
-      body.querySelectorAll('.fnext').forEach(e => e.remove());
-      [...body.querySelectorAll('*')].filter(e => !e.children.length && /^⏰?\s*다음 확인/.test(e.textContent.trim())).forEach(e => { (e.closest('div') || e).style.display = 'none'; });
-      body.querySelectorAll('[data-fpv="mprod"]').forEach(b => { const pk = b.closest('.fpv-pk') || b.parentElement; pk.style.display = 'none'; });
-      const hd = body.querySelector('.fpv-hd b'); if (hd && /제품 확인/.test(hd.textContent)) { hd.textContent = '작업 후 점검 때 같이 저장되는 제품 확인 값'; const s = hd.parentElement.lastChild; if (s && s !== hd && s.nodeType === 3) s.textContent = ''; }
-      const rs = live(fldLog('metal')); const preOk = rs.some(r => r.kind === 'pre' && r.time), postOk = rs.some(r => r.kind === 'post' && r.time);
-      if (preOk && !postOk) { body.querySelectorAll('.fnow').forEach(b => { b.classList.remove('fnow'); const p = b.querySelector('.fpress'); if (p) p.remove(); });
-        pc.classList.add('fnow'); pc.insertAdjacentHTML('beforeend', '<span class="fpress">👆 작업 끝나면 누르세요</span>');
-        const ps = fldProds('metal'); if (ps.length) grid.insertAdjacentHTML('beforebegin', '<div class="fnext" style="margin:6px 0 8px;padding:10px 14px;border-radius:12px;background:#FFF3BF;color:#7A4A00;font-weight:800;font-size:1.05em;word-break:keep-all">🏁 작업 후 점검을 누르면 ' + ps.map(p => esc(fldShort(p.name))).join(', ') + ' 제품 확인도 같이 저장돼요</div>'); }
+      const grid = body.querySelector('.fov3:not(.fm3-grid)') || body.querySelector('.fld-grid.g3'); if (!grid) return out;
+      body.querySelectorAll('.fm3-wrap, .fnext, .fmiss').forEach(e => e.remove());
+      const w = document.createElement('div'); w.className = 'fm3-wrap'; w.innerHTML = html(); grid.replaceWith(w);
+      body.querySelectorAll('.fpv-ox, .fpv-pk').forEach(e => { const box = e.closest('.fpv') || e.parentElement; if (box && !box.querySelector('.fpv-done')) box.style.display = 'none'; else e.style.display = 'none'; });
+      body.querySelectorAll('.fpv-hd').forEach(e => { if (/설정값|제품 확인 값/.test(e.textContent)) e.style.display = 'none'; });
+      [...body.querySelectorAll('p, div, span')].filter(e => !e.children.length && /^⏰?\s*다음 확인/.test(e.textContent.trim())).forEach(e => e.style.display = 'none');
+      const h1 = body.querySelector('h1'); if (h1 && /금속검출/.test(h1.textContent)) h1.textContent = '🧲 금속검출 — 품목마다 작업 전 → 제품 확인 → 작업 후';
       try { fldFit(); } catch (e) {} } catch (e) {} return out; };
+  window.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('#fld [data-mt3], #fld [data-mt3p]'); if (!b || !FLD.open) return;
+    ev.preventDefault(); ev.stopImmediatePropagation();
+    if (b.dataset.mt3p) { SEL = b.dataset.mt3p; return fieldRender(); }
+    press(b.dataset.mt3); }, true);
+  window.__fm3 = { rowsFor, writeRow, press, cur };
   try { fieldRender(); } catch (e) {}
 })();
