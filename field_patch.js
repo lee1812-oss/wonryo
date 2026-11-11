@@ -2664,3 +2664,73 @@
   window.__fldArrow = { VER, BUILT };
   try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
 })();
+
+
+/* ══ 금속검출 특이사항 v001 · 2026-11-11 20:10 (2026-11-11 Aside) ══
+   사용자 요청: 「공란으로 일지가 되어 있으면 안 된다. 금속검출 품명·통과량·검출량 옆 특이사항은 '없음'으로,
+   생산실 일지 화면에서도 기본값 '특이사항 없음' 자동 체크, 직접 입력·수정도 가능하게」.
+   K-HACCP 금속검출 일지 아래 표(품명 | 통과량 | 검출량 | 특이사항)의 특이사항 칸과 같은 것. 품목마다 1개.
+   화면: 「통과량 · 검출량 (품목별)」 바로 아래 품목마다 「☑ 특이사항 없음 / ✏ 직접 입력」, 통과량 카드에도 한 마디.
+   저장: 그 품목의 제품 확인 줄(kind 'item')에 note — 아직 없으면 작업 전 줄에 note (줄마다 mt로 기기 간 병합되는 길 그대로).
+   아무것도 안 고치면 「특이사항 없음」(기본, ✓ 표시)으로 보고 K-HACCP에도 그렇게 적힘(dashboard\khaccp_ccp_write.js).
+   이 블록을 지우면 특이사항 칸만 사라짐. */
+(function () { if (!window.FIELD_APP) return;
+  const VER = 'v001', BUILT = '2026-11-11 20:10', TAG = '금속 특이사항 ' + VER + ' · ' + BUILT;
+  const DEF = '특이사항 없음';
+  const say = (m, ms) => { try { toast(m, ms); } catch (e) { alert(m); } };
+  const noteOf = x => { const r = [x.item, x.pre, x.post].find(z => z && z.note != null && String(z.note).trim()); return r ? String(r.note).trim() : ''; };
+  const holder = x => (x.item && x.item.time ? x.item : null) || (x.pre && x.pre.time ? x.pre : null);
+  const abn = x => { const it = x.item; if (!it || !it.time) return false; return ['fe', 'sus', 'fep', 'susp'].some(f => it[f] === 'X') || it.p === 'O'; };
+  function setNote(p, text) {
+    const x = window.__fm3.rowsFor(p.code); const r = holder(x);
+    if (!r) { say('먼저 🟢 작업 전 점검 시각을 저장하세요'); return false; }
+    const g = x.g; const i = g.rows.indexOf(r); if (i < 0) return false;
+    [x.item, x.pre, x.post].forEach(z => { if (z && z !== r && z.note != null) { const j = g.rows.indexOf(z); if (j >= 0) ccpSet(fldD() + '|metal|rows|' + j + '|note', ''); } });
+    ccpSet(fldD() + '|metal|rows|' + i + '|note', text);
+    r.mt = new Date().toISOString(); try { ccpTouch(g); } catch (e) {} return true; }
+  function edit(p) {
+    const x = window.__fm3.rowsFor(p.code); if (!holder(x)) { say('먼저 🟢 작업 전 점검 시각을 저장하세요'); return; }
+    const cur = noteOf(x); const prev = document.querySelector('.fmn-bg'); if (prev) prev.remove();
+    const bg = document.createElement('div'); bg.className = 'fwarn-bg fq2 fmn-bg';
+    bg.innerHTML = '<div class="fwarn" role="dialog" style="background:#fff;max-width:620px;width:94vw;max-height:96vh;overflow:auto"><div class="fwarn-hd">📝 특이사항 직접 입력<small>' + esc(fldShort(p.name)) + '</small></div><div class="fwarn-bd">'
+      + '<textarea class="fmn-ta" rows="3" style="width:100%;box-sizing:border-box;font-size:1.15em;font-weight:700;color:#1F2328;padding:10px 12px;border:2px solid #868E96;border-radius:12px" placeholder="예: 테스트피스 재점검 후 정상">' + esc(cur && cur !== DEF ? cur : '') + '</textarea>'
+      + '<div style="margin-top:6px;color:#343A40;font-weight:600">비워 두고 저장하면 「' + DEF + '」으로 돌아가요</div></div>'
+      + '<div class="fwarn-bt"><button type="button" class="go">✓ 저장</button><div class="row2"><button type="button" class="alt no" style="border-color:#ADB5BD;color:#495057">취소</button></div></div></div>';
+    (document.getElementById('fld') || document.body).appendChild(bg);
+    setTimeout(() => { try { bg.querySelector('.fmn-ta').focus(); } catch (e) {} }, 50);
+    bg.addEventListener('click', ev => { ev.stopPropagation(); const b = ev.target.closest('button'); if (!b) return;
+      if (b.classList.contains('no')) return bg.remove();
+      if (b.classList.contains('go')) { const t = bg.querySelector('.fmn-ta').value.replace(/\s+/g, ' ').trim().slice(0, 200);
+        if (setNote(p, t || DEF)) { bg.remove(); fieldRender(); say('특이사항 「' + (t || DEF) + '」 저장', 2200); } } });
+  }
+  /* 「통과량 · 검출량 (품목별)」 바로 아래에 품목마다 한 줄: 품명 | ☑ 특이사항 없음 | ✏ 직접 입력 (K-HACCP 아래 표와 같은 순서) */
+  function box() { const ps = (() => { try { return fldProds('metal') || []; } catch (e) { return []; } })(); if (!ps.length) return '';
+    const B = 'min-height:54px;padding:6px 14px;border-radius:12px;font-weight:800;font-size:1.02em;';
+    return '<div class="fmn-box" style="margin:8px 0 6px;padding:10px 14px;border-radius:12px;border:2px solid #CED4DA;background:#F8F9FA">'
+      + '<div style="font-weight:800;color:#1F2328;margin-bottom:6px">📝 특이사항 (품목별) <span style="font-weight:600;color:#343A40">— K-HACCP 일지 아래 칸, 빈칸 안 됨</span></div>'
+      + ps.map(p => { const x = window.__fm3.rowsFor(p.code); const n = noteOf(x); const isDef = !n || n === DEF; const bad = abn(x) && isDef;
+        return '<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:6px 0;border-top:1px solid #DEE2E6">'
+          + '<b style="min-width:150px;color:#1F2328">' + esc(fldShort(p.name)) + '</b>'
+          + '<button type="button" data-mtn="def" data-c="' + esc(p.code) + '" style="' + B + 'border:2px solid ' + (isDef ? '#2B8A3E;background:#D3F9D8;color:#1B5E20' : '#ADB5BD;background:#fff;color:#343A40') + '">' + (isDef ? '☑' : '☐') + ' ' + DEF + '</button>'
+          + '<button type="button" data-mtn="edit" data-c="' + esc(p.code) + '" style="' + B + 'border:2px solid ' + (!isDef ? '#1C4FD7;background:#E7F0FF;color:#0B3D91' : '#ADB5BD;background:#fff;color:#343A40') + '">' + (isDef ? '✏ 직접 입력' : '☑ ' + esc(n) + ' (고치기)') + '</button>'
+          + (bad ? '<span style="color:#C2410C;font-weight:800">[주의] 이상 값 — 직접 입력해 주세요</span>' : '') + '</div>'; }).join('') + '</div>'; }
+  const _r = fieldRender;
+  fieldRender = function () { const out = _r.apply(this, arguments);
+    try { const sm = document.querySelector('#fld .rqbar small'); if (sm && !sm.querySelector('.fmn-ver')) { const v = document.createElement('span'); v.className = 'fmn-ver'; v.textContent = ' · ' + TAG; sm.appendChild(v); } } catch (e) {}
+    try { if (!FLD.open || FLD.type !== 'metal' || FLD.step !== 'type' || !window.__fm3) return out;
+      const body = document.querySelector('#fld .fpc-main') || document.querySelector('#fld .fld-body'); if (!body) return out;
+      body.querySelectorAll('.fmn-box').forEach(e => e.remove());
+      const h2 = [...body.querySelectorAll('h2')].find(e => /통과량/.test(e.textContent)); const at = h2 && h2.nextElementSibling ? h2.nextElementSibling : body.querySelector('.fm3-wrap'); if (!at) return out;
+      at.insertAdjacentHTML('afterend', box());
+      /* 통과량 카드에도 특이사항 한 마디 */
+      body.querySelectorAll('button[data-m="pass"][data-c]').forEach(b => { const s = b.querySelector('small'); if (!s || s.querySelector('.fmn-s')) return; const n = noteOf(window.__fm3.rowsFor(b.dataset.c)) || DEF; const e = document.createElement('span'); e.className = 'fmn-s'; e.textContent = ' · ' + (n === DEF ? '특이사항 없음' : '특이: ' + n); s.appendChild(e); });
+      try { fldFit(); } catch (e) {} } catch (e) {}
+    return out; };
+  window.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('#fld [data-mtn]'); if (!b || !FLD.open) return;
+    ev.preventDefault(); ev.stopImmediatePropagation(); const p = ((() => { try { return fldProds('metal') || []; } catch (e) { return []; } })()).find(z => z.code === b.dataset.c); if (!p || !window.__fm3) return;
+    if (b.dataset.mtn === 'def') { const x = window.__fm3.rowsFor(p.code); if (!noteOf(x) || noteOf(x) === DEF) { if (holder(x) && !noteOf(x)) { setNote(p, DEF); fieldRender(); } say('특이사항 「' + DEF + '」', 1800); return; }
+      if (setNote(p, DEF)) { fieldRender(); say('특이사항 「' + DEF + '」으로 바꿨어요', 2000); } return; }
+    edit(p); }, true);
+  window.__fmNote = { VER, BUILT, DEF, noteOf };
+  try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
+})();
