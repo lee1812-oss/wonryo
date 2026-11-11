@@ -2342,3 +2342,34 @@
     return _sf.apply(this, arguments); };
   window.__fmtOpen = openPop;
 })();
+
+/* ── 2026-11-11 (Aside) 금속검출: 품목이 여러 개일 때 「제품 확인」 다음 품목 자동 선택 + 누를 칸 표시 (사용자 「작업 전·제품 확인을 눌렀는데 작업 후 점검이 활성화되지 않아 터치가 안 됨」) ──
+   원인: 제품 확인 품목 고르기가 늘 첫 품목(빅몽블랑)에 머물러, 제품 확인을 두 번 눌러도 같은 품목만 저장되고 두 번째 품목(구운크로와상)은 비어 있었음
+        → 작업 후 저장이 막히고(제품 확인 빠짐 안전장치), 누를 칸 표시도 없어 작업 후 칸이 꺼진 것처럼 보였음.
+   고침: ① 작업 후 전이면 제품 확인 품목을 「아직 확인 안 한 품목」으로 자동으로 바꿈
+        ② 남은 품목이 있으면 제품 확인 칸에 「👆 여기를 누르세요」 + 「다음: ○○ 제품 확인 (n개 중 m개 끝)」 안내
+        ③ 모든 품목이 끝나면 작업 후 점검 칸을 노랗게 켜고 「👆 여기를 누르세요」
+   이 블록을 지우면 예전 동작. */
+(function () { if (!window.FIELD_APP) return;
+  const live = g => { const D = new Set((g && g.del) || []); return ((g && g.rows) || []).filter(r => !D.has(r.id)); };
+  const full = r => r.kind === 'item' && r.time && r.fe && r.sus && r.p && r.fep && r.susp;
+  let busy = false;
+  const _r = fieldRender;
+  fieldRender = function () { const out = _r.apply(this, arguments); if (busy) return out;
+    try { if (!FLD.open || FLD.type !== 'metal' || FLD.step !== 'type') return out;
+      const body = document.querySelector('#fld .fpc-main') || document.querySelector('#fld .fld-body'); if (!body) return out;
+      const it = body.querySelector('[data-fq3="metal:item"]'), pc = body.querySelector('[data-fq3="metal:post"]'); if (!it || !pc) return out;
+      const rs = live(fldLog('metal')); const preOk = rs.some(r => r.kind === 'pre' && r.time), postOk = rs.some(r => r.kind === 'post' && r.time);
+      const ps = fldProds('metal'); const ms = ps.filter(p => !rs.some(r => r.code === p.code && full(r)));
+      if (postOk) return out;
+      if (ms.length) { const on = body.querySelector('[data-fpv="mprod"].on'); const want = body.querySelector('[data-fpv="mprod"][data-c="' + CSS.escape(ms[0].code) + '"]');
+        if (want && (!on || !ms.some(p => p.code === on.dataset.c))) { busy = true; try { want.click(); } finally { busy = false; } return fieldRender.apply(this, arguments); } }
+      if (!preOk) return out;
+      body.querySelectorAll('.fnow').forEach(b => { b.classList.remove('fnow'); const p = b.querySelector('.fpress'); if (p) p.remove(); });
+      const old = body.querySelector('.fnext'); if (old) old.remove();
+      const tgt = ms.length ? it : pc; tgt.classList.add('fnow'); tgt.insertAdjacentHTML('beforeend', '<span class="fpress">👆 여기를 누르세요</span>');
+      const msg = ms.length ? '👉 다음: ' + esc(fldShort(ms[0].name)) + ' 제품 확인' + (ps.length > 1 ? ' (' + ps.length + '개 중 ' + (ps.length - ms.length) + '개 끝)' : '') : '✅ 제품 확인 모두 끝 — 작업이 끝나면 🏁 작업 후 점검을 누르세요';
+      it.parentElement.insertAdjacentHTML('beforebegin', '<div class="fnext" style="margin:6px 0 8px;padding:10px 14px;border-radius:12px;background:' + (ms.length ? '#FFF3BF;color:#7A4A00' : '#D3F9D8;color:#1B5E20') + ';font-weight:800;font-size:1.05em;word-break:keep-all">' + msg + '</div>');
+      try { fldFit(); } catch (e) {} } catch (e) {} return out; };
+  try { fieldRender(); } catch (e) {}
+})();
