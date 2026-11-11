@@ -2787,7 +2787,7 @@
    - 윗줄: 화면 폭이 좁으면 단계적으로 줄인다(1 여백 → 2 글자 숨김(아이콘만) → 3 글자 작게 → 4 더 작게 → 5 전체 축소). 줄바꿈이 없어질 때까지.
    - 기록·버튼 동작은 건드리지 않는다. 이 블록을 지우면 예전 모양으로 돌아간다. */
 (function () { if (!window.FIELD_APP) return;
-  const FHX_VER = 'v006', FHX_BUILT = '2026-11-11 23:22';
+  const FHX_VER = 'v007', FHX_BUILT = '2026-11-11 23:55';
   const st = document.createElement('style');
   st.textContent = [
     '#fld .fld-top{flex-wrap:wrap;row-gap:4px}',
@@ -2993,4 +2993,84 @@
   let q = 0; const soon = () => { if (q) return; q = requestAnimationFrame(() => { q = 0; paint(); }); };
   try { new MutationObserver(soon).observe(document.body, { childList: true, subtree: true }); } catch (e) {}
   soon();
+})();
+
+
+/* ══ 크림·마늘 배합 「오늘 기록」 지우기 (✕ 한 줄 · 여러 줄 골라 지우기) v001 · 2026-11-11 23:55 (2026-11-11 Aside) ══
+   사용자 「11월 10일 크림배합 오늘 기록 눌러서 고치기 입력한 것 삭제할 수 있게 해줘, 다중 선택 삭제도 가능하게」.
+   - 금속검출 지우기 블록(v002)과 같은 모양·같은 방식: 줄마다 오른쪽 빨간 ✕ → 큰 확인 창 → 「🗑 지우기」.
+     「☑ 여러 줄 골라 지우기」 → 줄을 눌러 고르기(☐/☑) → 「🗑 n줄 지우기」 → 확인 창 → 한 번에 지움.
+   - 날짜를 ‹ › 로 옮긴 날(예: 11/10)의 기록에도 그대로 됨. 급속냉동 「오늘 기록」(같은 목록 모양)에도 같이 붙음.
+   - 지우는 방식은 원래 fldDelRow와 같음: g.del에 표시(다른 기기에서도 지워짐), 승인된 일지면 승인을 풀고 수정 기록(hist)에 남김. 화면은 그 페이지에 그대로 머묾.
+   - 고르기 모드가 아닐 때 ✕ 밖을 누르면 예전처럼 「고치기」 화면. 금속검출 블록의 그림(CSS)을 같이 씀. 이 블록을 지우면 예전으로 돌아감. */
+(function () {
+  if (!window.FIELD_APP || window.__fmzDel) return;
+  const VER = 'v001', BUILT = '2026-11-11 23:55', TAG = '배합·급냉 기록 지우기 ' + VER + ' · ' + BUILT, TYPES = ['mix', 'freeze'];
+  if (!document.getElementById('fmz-css')) { const st = document.createElement('style'); st.id = 'fmz-css';
+    st.textContent = '#fld .fld-rec.fmz-on{position:relative;padding-right:78px !important;min-height:62px}'
+      + '#fld .fld-rec.fmz-pk{padding-left:70px !important;position:relative;min-height:62px}'
+      + '#fld .fld-rec.fmz-picked{background:#FFF5F5 !important;outline:3px solid #C62828;outline-offset:-3px}'
+      + '#fld .fld-rec.fmz-picked .fmx-ck{background:#C62828;border-color:#C62828}';
+    document.head.appendChild(st); }
+  let MODE = false; const PK = new Set();
+  const on = () => FLD.open && TYPES.includes(FLD.type);
+  const recs = () => [...document.querySelectorAll('#fld .fld-recs .fld-rec[data-f="editrow"]')];
+  function paint() {
+    if (!on()) { MODE = false; PK.clear(); return; }
+    const list = recs(); const ids = new Set(list.map(b => b.dataset.id)); [...PK].forEach(id => { if (!ids.has(id)) PK.delete(id); });
+    list.forEach(b => { b.querySelectorAll('.fmx, .fmx-ck').forEach(e => e.remove()); b.classList.remove('fmz-on', 'fmz-pk', 'fmz-picked');
+      if (MODE) { b.classList.add('fmz-pk'); if (PK.has(b.dataset.id)) b.classList.add('fmz-picked');
+        const c = document.createElement('span'); c.className = 'fmx-ck'; c.textContent = PK.has(b.dataset.id) ? '✓' : ''; b.insertBefore(c, b.firstChild); }
+      else { b.classList.add('fmz-on'); const x = document.createElement('span'); x.className = 'fmx fmz-x'; x.setAttribute('role', 'button'); x.setAttribute('aria-label', '이 줄 지우기'); x.title = '이 줄 지우기'; x.textContent = '✕'; b.appendChild(x); } });
+    const h2 = [...document.querySelectorAll('#fld .fld-h2')].find(e => /오늘 기록/.test(e.textContent));
+    if (h2) { h2.textContent = MODE ? '오늘 기록 — 지울 줄을 눌러 고르세요' : '오늘 기록 — 눌러서 고치기 · ✕ 눌러서 지우기';
+      let bar = h2.nextElementSibling && h2.nextElementSibling.classList.contains('fmx-bar') ? h2.nextElementSibling : null;
+      if (!list.length) { if (bar) bar.remove(); }
+      else { if (!bar) { bar = document.createElement('div'); bar.className = 'fmx-bar'; h2.insertAdjacentElement('afterend', bar); }
+        bar.innerHTML = MODE ? '<button type="button" data-fmz="all">' + (PK.size === list.length ? '☐ 모두 풀기' : '☑ 모두 고르기') + '</button><button type="button" class="fmx-go" data-fmz="go"' + (PK.size ? '' : ' disabled') + '>🗑 ' + PK.size + '줄 지우기</button><button type="button" data-fmz="end">끝내기</button>'
+          : '<button type="button" class="fmx-st" data-fmz="start">☑ 여러 줄 골라 지우기</button>'; } }
+  }
+  function delMany(ids) {
+    const g = fldLog(FLD.type); if (!g) return 0; const gone = [];
+    ids.forEach(id => { const i = (g.rows || []).findIndex(r => r.id === id); if (i < 0) return; gone.push(g.rows[i]); g.rows.splice(i, 1); });
+    if (!gone.length) { try { toast('이미 지워진 줄입니다'); } catch (e) {} fieldRender(); return 0; }
+    if (g.apAt) { g.hist = (g.hist || []).slice(-30); g.hist.push({ at: new Date().toISOString(), by: fldWk(), f: gone.map(r => fldShort(r.name) + ' ' + (r.start || r.t1 || '')).join(', ') + ' 줄 삭제', from: '', to: '', ap: g.apBy || '' }); g.apAt = ''; g.apBy = ''; }
+    g.del = (g.del || []).concat(gone.map(r => r.id)).slice(-300);
+    try { ccpAutoDev(g); } catch (e) {}
+    ccpTouch(g); MODE = false; PK.clear(); fieldRender();
+    try { toast('🗑 ' + (gone.length === 1 ? fldShort(gone[0].name) + ' ' + (gone[0].start || gone[0].t1 || '') + ' 줄을' : gone.length + '줄을') + ' 지웠습니다', 2500); } catch (e) {}
+    return gone.length;
+  }
+  function ask(ids) {
+    const list = recs().filter(b => ids.includes(b.dataset.id)); if (!list.length) return;
+    const old = document.querySelector('.fmx-bg'); if (old) old.remove();
+    const bg = document.createElement('div'); bg.className = 'fmx-bg';
+    bg.innerHTML = '<div class="fmx-card" role="dialog" aria-label="기록 지우기"><h3></h3><div class="fmx-list"></div>'
+      + '<div class="fmx-note">잘못 누르거나 두 번 저장된 줄만 지우세요. 지운 줄은 다른 기기와 K-HACCP 일지에서도 빠집니다.</div>'
+      + '<div class="fmx-bt"><button type="button" class="fmx-no">취소</button><button type="button" class="fmx-yes"></button></div></div>';
+    bg.querySelector('h3').textContent = list.length === 1 ? '[삭제] 이 줄을 지울까요?' : '[삭제] ' + list.length + '줄을 한 번에 지울까요?';
+    bg.querySelector('.fmx-yes').textContent = list.length === 1 ? '🗑 지우기' : '🗑 ' + list.length + '줄 지우기';
+    const box = bg.querySelector('.fmx-list');
+    list.forEach(b => { const d = document.createElement('div'); d.className = 'fmx-row'; const nb = document.createElement('b'); nb.textContent = (b.querySelector('b') || {}).textContent || '';
+      const sp = document.createElement('span'); const who = (b.querySelector('em') || {}).textContent || ''; sp.textContent = ((b.querySelector('span:not(.fmx):not(.fmx-ck)') || {}).textContent || '') + (who ? ' · ' + who : '');
+      d.appendChild(nb); d.appendChild(sp); box.appendChild(d); });
+    bg.addEventListener('click', e => { if (e.target === bg || e.target.closest('.fmx-no')) { bg.remove(); return; } if (e.target.closest('.fmx-yes')) { bg.remove(); delMany(list.map(b => b.dataset.id)); } });
+    document.body.appendChild(bg);
+  }
+  window.addEventListener('click', ev => { if (!on() || !ev.target.closest) return;
+    const bt = ev.target.closest('#fld [data-fmz]');
+    if (bt) { ev.preventDefault(); ev.stopImmediatePropagation(); const a = bt.dataset.fmz;
+      if (a === 'start') { MODE = true; PK.clear(); }
+      else if (a === 'end') { MODE = false; PK.clear(); }
+      else if (a === 'all') { const list = recs(); if (PK.size === list.length) PK.clear(); else list.forEach(b => PK.add(b.dataset.id)); }
+      else if (a === 'go') { if (PK.size) ask([...PK]); return; }
+      return paint(); }
+    const x = ev.target.closest('#fld .fmz-x'); if (x && !MODE) { ev.preventDefault(); ev.stopImmediatePropagation(); const b = x.closest('.fld-rec'); if (b) ask([b.dataset.id]); return; }
+    if (MODE) { const b = ev.target.closest('#fld .fld-recs .fld-rec[data-f="editrow"]'); if (!b) return; ev.preventDefault(); ev.stopImmediatePropagation();
+      const id = b.dataset.id; if (PK.has(id)) PK.delete(id); else PK.add(id); paint(); } }, true);
+  function ver() { const sm = document.querySelector('#fld .rqbar small'); if (sm && !sm.querySelector('.fmz-ver')) { const v = document.createElement('span'); v.className = 'fmz-ver'; v.textContent = ' · ' + TAG; sm.appendChild(v); } }
+  const _r = fieldRender;
+  fieldRender = function () { const out = _r.apply(this, arguments); try { paint(); } catch (e) {} try { ver(); } catch (e) {} return out; };
+  window.__fmzDel = { delMany, ask, paint, VER, BUILT, mode: () => MODE };
+  try { paint(); ver(); } catch (e) {}
 })();
