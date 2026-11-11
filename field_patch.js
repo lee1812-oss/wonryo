@@ -2156,7 +2156,7 @@
 (function () {
   if (!window.FIELD_APP || window.__fieldExp) return;
   window.__fieldExp = true;
-  const VER = 'v001', BUILT = '2026-11-09 16:14';
+  const VER = 'v002', BUILT = '2026-11-11 23:15';
   const css = document.createElement('style');
   css.textContent = '#fld .fxe{margin:12px 0;padding:14px 16px;border-radius:16px;border:3px solid #2B8A3E;background:#F1FBF3;color:#1d2a30}'
     + '#fld .fxe.empty{border-color:#D9480F;background:#FFF4E6}'
@@ -2170,6 +2170,7 @@
     + '#fld .fxe-b label input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:20px}'
     + '#fld .fxe-c{display:block;font-size:15px;font-weight:700;color:#2B8A3E;margin-top:2px}#fld .fxe-c.no{color:#B35C00}'
     + '@media (max-width:520px){#fld .fxe-b{grid-template-columns:1fr 1fr}#fld .fxe-v{font-size:32px}}';
+  css.textContent += '#fld .fxe-k{margin:8px 0 4px;padding:10px 12px;border-radius:12px;background:#fff;border:2px dashed #2B8A3E;font-size:19px;font-weight:700;color:#1d2a30;line-height:1.5;word-break:keep-all}#fld .fxe-k b{font-weight:900;color:#1B5E20;white-space:nowrap}#fld .fxe-k span{font-size:16px;color:#343a40}#fld .fxe-k.no{border-color:#D9480F;color:#B35C00}';
   document.head.appendChild(css);
 
   const pad = n => String(n).padStart(2, '0');
@@ -2191,6 +2192,8 @@
     const nm = nameOf(fam.head) || nameOf(fam.it); if (!nm || isSemi(fam.head) || (/마늘바게트/.test(nm) && !/치즈듬뿍/.test(nm))) return null;   /* 마늘바게트는 180/360일이 섞여 있어 직접 고름 */
     try { const r = (typeof EXP_DAYS !== 'undefined' ? EXP_DAYS : []).find(x => x[0].test(nm)); if (r) return { n: r[1], src: '기본 규칙' }; } catch (e) {} return null; };
   const defExp = (fam, D) => { const s = shelfDays(fam); return s ? { v: addD(D, s.n), n: s.n, src: s.src } : { v: '', n: null, src: '' }; };
+  /* v002: 다른 블록(전 제품 기준표·품목 카드)에서 같은 기준을 쓰도록 */
+  window.__fxeDef = (code, D) => { try { const fam = famOf(code); const s = shelfDays(fam); return { head: fam.head, n: s ? s.n : null, src: s ? s.src : '', v: s && D ? addD(D, s.n) : '', semi: isSemi(fam.head) || isSemi(fam.it) }; } catch (e) { return null; } };
   const draftLines = D => { const P = prodS(); return P.draft && P.draft.date === D ? (P.draft.lines || []) : []; };
 
   /* 화면 상태: 제품 묶음이 바뀔 때마다 다시 읽음 */
@@ -2201,11 +2204,15 @@
   const panel = () => { const D = fldD(), fam = initX(), df = defExp(fam, D), v = FLD.xe, semi = isSemi(fam.head) || isSemi(fam.it);
     const n = v ? dayDiff(v, D) : null;
     const head = '<div class="fxe-hd"><span>📅 소비기한</span><small>소비기한 입력 ' + VER + '</small></div>';
-    if (!v) return '<div class="fxe empty">' + head + '<div class="fxe-v">' + (semi ? '입력 안 함 (반제품)' : '날짜를 골라 주세요') + '</div>'
+    /* v002 (2026-11-11 사용자 「설정값이 얼마여서 소비기한이 어떻게 된다는 날짜가 같이 나와야 직원들이 눈으로 알 수 있게」): 기준 일수·생산일·계산 날짜를 한 줄로 크게 */
+    const sd = x => x.slice(2).replace(/-/g, '.');
+    const kline = df.v ? '<div class="fxe-k">📏 기준 <b>' + df.n + '일</b> <span>(약 ' + Math.round(df.n / 30) + '개월 · ' + esc(df.src) + ')</span><br>생산일 <b>' + sd(D) + '</b> + ' + df.n + '일 = <b>' + sd(df.v) + '</b></div>'
+      : (semi ? '' : '<div class="fxe-k no">📏 이 제품은 정해진 소비기한 기준이 없어요 · 포장에 찍을 날짜를 직접 고릅니다</div>');
+    if (!v) return '<div class="fxe empty">' + head + kline + '<div class="fxe-v">' + (semi ? '입력 안 함 (반제품)' : '날짜를 골라 주세요') + '</div>'
       + '<div class="fxe-s">' + (semi ? '생지·배합·소스는 비워 둬도 됩니다. 필요하면 아래 「날짜 고르기」로 넣으세요.' : '이 품목은 정해진 소비기한 일수가 없습니다. 제품 포장에 찍을 소비기한을 「날짜 고르기」로 넣어 주세요.') + '</div>'
       + '<div class="fxe-b"><label>📅 날짜 고르기<input type="date" data-fxe-date="1" value=""></label>' + (df.v ? '<button type="button" data-fxe="def">처음 값으로</button>' : '') + '</div></div>';
-    const lab = df.v && v === df.v ? '생산일 + ' + df.n + '일 (' + df.src + ')' : '생산일 + ' + n + '일' + (df.v ? ' · 처음 값 ' + df.v.slice(2).replace(/-/g, '.') + '에서 바꿈' : ' · 직접 고름');
-    return '<div class="fxe' + (n < 0 ? ' empty' : '') + '">' + head
+    const lab = df.v && v === df.v ? '✓ 기준대로 자동 입력됨' : (df.v ? '⚠ 기준(' + sd(df.v) + ')과 다름 · 생산일 + ' + n + '일로 바꿈' : '생산일 + ' + n + '일 · 직접 고름');
+    return '<div class="fxe' + (n < 0 ? ' empty' : '') + '">' + head + kline
       + '<div class="fxe-v">' + v.replace(/-/g, '.') + '<small>(' + wd(v) + ')</small></div>'
       + '<div class="fxe-s">' + esc(lab) + (n < 0 ? ' <b style="color:#C92A2A">⚠ 생산일보다 앞 날짜입니다</b>' : '') + '<br>담으면 이카운트 적요에 「' + noteTxt(v) + '」로 들어갑니다.</div>'
       + '<div class="fxe-b"><button type="button" data-fxe="-1">◀ 하루 앞으로</button><button type="button" data-fxe="1">하루 뒤로 ▶</button>'
@@ -2774,7 +2781,7 @@
    - 윗줄: 화면 폭이 좁으면 단계적으로 줄인다(1 여백 → 2 글자 숨김(아이콘만) → 3 글자 작게 → 4 더 작게 → 5 전체 축소). 줄바꿈이 없어질 때까지.
    - 기록·버튼 동작은 건드리지 않는다. 이 블록을 지우면 예전 모양으로 돌아간다. */
 (function () { if (!window.FIELD_APP) return;
-  const FHX_VER = 'v004', FHX_BUILT = '2026-11-11 22:43';
+  const FHX_VER = 'v005', FHX_BUILT = '2026-11-11 23:15';
   const st = document.createElement('style');
   st.textContent = [
     '#fld .fld-top{flex-wrap:wrap;row-gap:4px}',
@@ -2931,4 +2938,53 @@
   const _r2 = fieldRender; fieldRender = function () { const r = _r2.apply(this, arguments); tag(); return r; };
   window.__khReq = { VER, BUILT, load, state };
   try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
+})();
+
+
+/* ══ 전 제품 소비기한 기준표 + 생산량 입력 품목 카드에 기준 표시 v001 (2026-11-11 23:15 Aside, 사용자 「전 제품 기본 소비기한 설정을 표기, 설정값이 얼마여서 소비기한이 어떻게 된다는 날짜가 같이 나와야 직원들이 눈으로 보면서 알 수 있게」) ══
+   - 기준은 「소비기한 입력」 블록과 같은 계산(window.__fxeDef: 품목 설정 일수 → 없으면 기본 규칙 EXP_DAYS)을 그대로 씀. 기록·저장은 건드리지 않음.
+   - ④ 생산량 입력의 품목 카드마다 「📅 270일 → 27.08.08」 한 줄, 소비기한 칸과 생산량 화면 위에 「📋 전 제품 소비기한 기준표」 버튼.
+   - 기준표: 제품 · 기준 일수(개월) · 보는 날짜에 생산하면 소비기한. 기준이 없는 제품은 「직접 고름」, 반제품(생지·배합·소스)은 「입력 안 함」.
+   - 이 블록을 지우면 카드 표시와 기준표만 사라짐. */
+(function () { if (!window.FIELD_APP) return;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fxs-c{display:block;margin-top:4px;font-size:15px;font-weight:800;color:#1B5E20;white-space:nowrap}#fld .fxs-c.no{color:#B35C00}'
+    + '#fld .fxs-open{display:inline-flex;align-items:center;justify-content:center;min-height:54px;padding:6px 16px;margin:6px 0;border-radius:14px;border:2px solid #2B8A3E;background:#fff;color:#1B5E20;font-size:18px;font-weight:800;cursor:pointer}'
+    + '.fxs-ov{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto}'
+    + '.fxs-bx{background:#fff;color:#111;border-radius:18px;max-width:900px;width:100%;padding:18px 18px 22px;box-shadow:0 10px 40px rgba(0,0,0,.4);font-size:17px}'
+    + '.fxs-bx h3{margin:0 0 4px;font-size:24px;font-weight:900;color:#1B5E20}.fxs-bx p{margin:0 0 10px;font-size:16px;color:#343a40;word-break:keep-all}'
+    + '.fxs-bx table{width:100%;border-collapse:collapse}.fxs-bx th,.fxs-bx td{border-bottom:1px solid #dee2e6;padding:10px 8px;text-align:left;word-break:keep-all;vertical-align:middle}'
+    + '.fxs-bx th{background:#F1FBF3;font-size:16px;color:#1B5E20}.fxs-bx td b{font-size:19px;white-space:nowrap}.fxs-bx td.no{color:#B35C00;font-weight:800}.fxs-bx td.semi{color:#495057}'
+    + '.fxs-bx .fxs-x{float:right;min-height:54px;min-width:96px;border-radius:14px;border:2px solid #868e96;background:#fff;font-size:18px;font-weight:800;cursor:pointer}';
+  document.head.appendChild(st);
+  const sd = x => String(x || '').slice(2).replace(/-/g, '.');
+  const D = () => { try { return fldD(); } catch (e) { return new Date().toISOString().slice(0, 10); } };
+  const info = code => { try { return window.__fxeDef ? window.__fxeDef(code, D()) : null; } catch (e) { return null; } };
+  const cardTxt = code => { const x = info(code); if (!x) return ''; if (x.semi) return ''; return x.n ? '<span class="fxs-c">📅 ' + x.n + '일 → ' + sd(x.v) + '</span>' : '<span class="fxs-c no">📅 기준 없음 · 직접 고름</span>'; };
+  function table() {
+    let items = []; try { items = (prodS().items || []).filter(it => !it.hide && !/^\[비상품\]/.test(it.name || '')); } catch (e) {}
+    const seen = new Set(), rows = [];
+    items.forEach(it => { const x = info(it.code); if (!x) return; const hk = (x.head && x.head.code) || it.code; if (seen.has(hk)) return; seen.add(hk);
+      const nm = (x.head && x.head.name) || it.name; rows.push({ nm, x }); });
+    rows.sort((a, b) => (a.x.semi - b.x.semi) || ((b.x.n || 0) - (a.x.n || 0)) || a.nm.localeCompare(b.nm, 'ko'));
+    const tr = rows.map(r => '<tr><td>' + esc(r.nm) + '</td>' + (r.x.semi ? '<td class="semi" colspan="2">반제품 · 소비기한 입력 안 함</td>'
+      : r.x.n ? '<td><b>' + r.x.n + '일</b> (약 ' + Math.round(r.x.n / 30) + '개월)</td><td><b>' + sd(r.x.v) + '</b></td>' : '<td class="no" colspan="2">기준 없음 · 포장 날짜 직접 고름</td>') + '</tr>').join('');
+    const ov = document.createElement('div'); ov.className = 'fxs-ov';
+    ov.innerHTML = '<div class="fxs-bx"><button type="button" class="fxs-x">✕ 닫기</button><h3>📋 전 제품 소비기한 기준표</h3><p>생산일 <b>' + sd(D()) + '</b>에 만들면 아래 날짜가 소비기한으로 자동 입력됩니다. 기준과 다르게 찍어야 하면 생산량 입력의 「📅 소비기한」 칸에서 바꾸세요.</p>'
+      + '<table><thead><tr><th>제품</th><th>기준</th><th>이 날 생산 시 소비기한</th></tr></thead><tbody>' + tr + '</tbody></table></div>';
+    ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('.fxs-x')) { e.preventDefault(); e.stopPropagation(); ov.remove(); } });
+    document.body.appendChild(ov);
+  }
+  window.fxsTable = table;
+  function paint() {
+    try {
+      document.querySelectorAll('#fld [data-f="qtygo"]').forEach(b => { if (b.querySelector('.fxs-c')) return; const h = cardTxt(b.dataset.c); if (h) b.insertAdjacentHTML('beforeend', h); });
+      const fxe = document.querySelector('#fld .fxe'); if (fxe && !fxe.querySelector('.fxs-open')) fxe.insertAdjacentHTML('beforeend', '<button type="button" class="fxs-open" data-fxs="1">📋 전 제품 소비기한 기준표</button>');
+      const first = document.querySelector('#fld [data-f="qtygo"]'); if (first && !document.querySelector('#fld .fxs-open.lst')) { const box = first.parentElement; if (box) box.insertAdjacentHTML('beforebegin', '<button type="button" class="fxs-open lst" data-fxs="1">📋 전 제품 소비기한 기준표</button>'); }
+    } catch (e) {}
+  }
+  window.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#fld [data-fxs]'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation(); table(); }, true);
+  let q = 0; const soon = () => { if (q) return; q = requestAnimationFrame(() => { q = 0; paint(); }); };
+  try { new MutationObserver(soon).observe(document.body, { childList: true, subtree: true }); } catch (e) {}
+  soon();
 })();
