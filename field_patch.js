@@ -2772,7 +2772,7 @@
    - 윗줄: 화면 폭이 좁으면 단계적으로 줄인다(1 여백 → 2 글자 숨김(아이콘만) → 3 글자 작게 → 4 더 작게 → 5 전체 축소). 줄바꿈이 없어질 때까지.
    - 기록·버튼 동작은 건드리지 않는다. 이 블록을 지우면 예전 모양으로 돌아간다. */
 (function () { if (!window.FIELD_APP) return;
-  const FHX_VER = 'v001', FHX_BUILT = '2026-11-11 20:13';
+  const FHX_VER = 'v002', FHX_BUILT = '2026-11-11 20:18';
   const st = document.createElement('style');
   st.textContent = [
     '#fld .fld-top{flex-wrap:wrap;row-gap:4px}',
@@ -2854,4 +2854,31 @@
   document.addEventListener('click', e => { const v = e.target.closest && e.target.closest('#fld .rqbar .fhx-v'); if (!v) return; e.preventDefault(); e.stopPropagation(); const rq = v.parentElement; rq.classList.toggle('fhx-open'); verBar(rq.parentElement); }, true);
   setInterval(soon, 3000); soon();
   /* 버전 표시 (다른 블록과 같은 방식) */
+})();
+
+
+
+/* ══ 품목 고른 뒤 바로 빼기 v001 · 2026-11-11 20:18 (2026-11-11 Aside, 사용자 「품목 선택 후 품목 삭제할 수 있게」) ══
+   - 첫 화면 「어떤 품목의 단계를 볼까요?」에서 품목을 고르면 그 옆에 「✕ 이 품목 빼기」.
+   - 오븐·급냉·배합·금속 일지 위 품목 버튼에서 고른 품목 옆에도 「✕ 빼기」.
+   - 누르면 「작업 시작한 품목 빼기」(fldWsDel)와 똑같이 동작: 확인 창(측정 기록 몇 줄이 같이 지워지는지), 생산량을 이미 넣었으면 막음, 다른 기기에도 전달.
+   - 이 블록을 지우면 예전(작업 시작 화면에서만 빼기)으로 돌아감. */
+(function () { if (!window.FIELD_APP) return;
+  const VER = 'v001', BUILT = '2026-11-11 20:18';
+  const st = document.createElement('style');
+  st.textContent = '#fld button.fpk-del,#fld .fsf-pk button.fpk-del,#fld .fpv-pk button.fpk-del{min-height:54px!important;padding:0 16px!important;border-radius:12px!important;border:2px solid #C62828!important;background:#fff!important;color:#C62828!important;font-size:17px!important;font-weight:800!important;cursor:pointer;white-space:nowrap;box-shadow:none!important}';
+  document.head.appendChild(st);
+  const started = () => { try { const P = prodS(), D = fldD(); return new Set(Object.keys(P.pday || {}).filter(k => k.startsWith('ws:' + D + ':')).map(k => k.slice(('ws:' + D + ':').length))); } catch (e) { return new Set(); } };
+  const btn = (code, label) => '<button type="button" class="fpk-del" data-fwsdel="' + esc(code) + '" title="오늘 작업에서 이 품목을 뺍니다">✕ ' + esc(label) + '</button>';
+  const add = () => { try { const ws = started();
+      const a = document.querySelector('#fld .fsf-pk button.on[data-ffocus]'); const c1 = a && a.dataset.ffocus;
+      if (c1 && ws.has(c1) && !document.querySelector('#fld .fsf-pk .fpk-del')) a.insertAdjacentHTML('afterend', btn(c1, '이 품목 빼기'));
+      const b = document.querySelector('#fld .fpv-pk button.on[data-c]'); const c2 = b && b.dataset.c;
+      if (c2 && ws.has(c2) && !document.querySelector('#fld .fpv-pk .fpk-del')) b.insertAdjacentHTML('afterend', btn(c2, '빼기'));
+    } catch (e) {} };
+  const _r = fieldRender; fieldRender = function () { const r = _r.apply(this, arguments); add(); return r; };
+  const tag = () => { try { const sm = document.querySelector('#fld .rqbar small'); if (sm && !sm.querySelector('.fpkd-ver')) sm.insertAdjacentHTML('beforeend', '<span class="fpkd-ver"> · 품목 고른 뒤 빼기 ' + VER + ' · ' + BUILT + '</span>'); } catch (e) {} };
+  const _r2 = fieldRender; fieldRender = function () { const r = _r2.apply(this, arguments); tag(); return r; };
+  window.__fpkDel = { VER, BUILT };
+  try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
 })();
