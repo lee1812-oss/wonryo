@@ -35,8 +35,8 @@
 
   /* ───────── 화면 모양 ───────── */
   var CSS = '' +
-    '.dbc-ic{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:54px;height:54px;padding:0 14px;margin:0 6px;border-radius:14px;border:3px solid #fff;background:#13834A;color:#fff;font:800 19px/1 Pretendard,"Malgun Gothic",sans-serif;cursor:pointer;box-shadow:0 2px 8px #0005;vertical-align:middle;flex:none}' +
-    '.dbc-ic:hover{background:#0f6e3d}.dbc-ic .dbc-i{font-size:26px;line-height:1}.dbc-ic .dbc-dot{position:absolute;right:-5px;bottom:-5px;width:16px;height:16px;border-radius:50%;border:3px solid #fff;background:#9aa3ab}.dbc-ic.on .dbc-dot{background:#2ed36f}' +
+    '.dbc-ic{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:60px;height:62px;padding:0 16px;margin:0 8px;border-radius:16px;border:3px solid #fff;background:#13834A;color:#fff;font:800 22px/1 Pretendard,"Malgun Gothic",sans-serif;cursor:pointer;box-shadow:0 2px 8px #0005;vertical-align:middle;flex:none}' +
+    '.dbc-ic:hover{background:#0f6e3d}.dbc-ic .dbc-i{font-size:30px;line-height:1}.dbc-ic .dbc-dot{position:absolute;right:-5px;bottom:-5px;width:16px;height:16px;border-radius:50%;border:3px solid #fff;background:#9aa3ab}.dbc-ic.on .dbc-dot{background:#2ed36f}' +
     '.dbc-ic .dbc-bd{position:absolute;right:-8px;top:-9px;min-width:24px;height:24px;padding:0 5px;border-radius:12px;background:#d32f2f;color:#fff;font:800 15px/24px sans-serif;border:2px solid #fff}' +
     '@media (max-width:700px){.dbc-ic .dbc-t{display:none}.dbc-ic{padding:0 8px}}' +
     '#dbc,#dbc *{box-sizing:border-box}#dbc{font-family:Pretendard,"Pretendard Variable","Malgun Gothic",sans-serif;color:#15202b;font-size:18px;line-height:1.5;word-break:keep-all}' +

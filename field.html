@@ -35,7 +35,10 @@ window.FIELD_APP = true;
   Promise.all([get(), fetch('field_patch.js', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.text(); })
       .catch(function () { return caches.match('./field_patch.js').then(function (r) { if (!r) throw 0; return r.text(); }); }),
     fetch('field_request.js', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.text(); })
-      .catch(function () { return caches.match('./field_request.js').then(function (r) { return r ? r.text() : ''; }); })])
+      .catch(function () { return caches.match('./field_request.js').then(function (r) { return r ? r.text() : ''; }); }),
+    /* 2026-11-11 영상통화 v001: 상단 로고 옆 📹 버튼 (call.js, 실패해도 생산실 앱은 그대로 열림) */
+    fetch('call.js', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.text(); })
+      .catch(function () { return caches.match('./call.js').then(function (r) { return r ? r.text() : ''; }); }).catch(function () { return ''; })])
     .then(function (a) {
       var t = a[0], patch = a[1] + "\n" + a[2];
       var s = t.indexOf('<script type="text/plain" id="app-code">'); var e = s < 0 ? -1 : t.indexOf('</' + 'script>', s);
@@ -45,6 +48,7 @@ window.FIELD_APP = true;
            .replace(/<title>[^<]*<\/title>/, '<title>빵을그리다 생산실</title>')
            .replace(/(apple-mobile-web-app-title" content=")[^"]*/, '$1생산실')
            .replace(/<head>/i, '<head><script>window.FIELD_APP=true<\/script><link rel="apple-touch-icon" href="field_apple.png">');
+      if (a[3]) { var ci = t.lastIndexOf('</body>'), cs = '<script>' + a[3].replace(/<\/script/gi, '<\\/script') + '<' + '/script>'; t = ci < 0 ? t + cs : t.slice(0, ci) + cs + t.slice(ci); }
       document.open(); document.write(t); document.close();
     }).catch(fail);
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
