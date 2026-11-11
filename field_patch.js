@@ -2763,3 +2763,95 @@
   window.__ovenStart = { VER, BUILT };
   try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
 })();
+
+
+/* ══ 상단 한 줄 정리 v001 (2026-11-11 20:13 Aside, 사용자 「상단이 너무 복잡해, 버전표시와 날짜만, 뒤로·로고·영상통화·날짜·생산실·이름·통합재고관리 다 한 줄에」) ══
+   - 버전 줄: 기능별로 길게 이어 붙던 버전 글(.rqbar small)은 숨기고 「생산실 앱 v001 · 날짜 시각 업데이트」 한 줄만 보인다.
+     날짜는 숨긴 버전 글 안의 가장 늦은 날짜·시각과 이 블록 날짜 중 늦은 것. 버전 글을 누르면 기능별 상세가 펼쳐진다(다시 누르면 접힘).
+     앞으로 블록을 새로 올릴 때는 아래 FHX_VER 숫자를 하나 올린다.
+   - 윗줄: 화면 폭이 좁으면 단계적으로 줄인다(1 여백 → 2 글자 숨김(아이콘만) → 3 글자 작게 → 4 더 작게 → 5 전체 축소). 줄바꿈이 없어질 때까지.
+   - 기록·버튼 동작은 건드리지 않는다. 이 블록을 지우면 예전 모양으로 돌아간다. */
+(function () { if (!window.FIELD_APP) return;
+  const FHX_VER = 'v001', FHX_BUILT = '2026-11-11 20:13';
+  const st = document.createElement('style');
+  st.textContent = [
+    '#fld .fld-top{flex-wrap:wrap;row-gap:4px}',
+    '#fld .fld-top>.fld-tt{flex:1 1 auto;min-width:0;flex-wrap:nowrap!important;white-space:nowrap}',
+    '#fld .fld-top>.fb{white-space:nowrap;flex:0 0 auto}',
+    '#fld .rqbar{padding-top:2px!important;gap:10px!important;justify-content:space-between}',
+    '#fld .rqbar>small{display:none!important}',
+    '#fld .rqbar.fhx-open{flex-wrap:wrap!important}',
+    '#fld .rqbar.fhx-open>small{display:block!important;flex:1 1 100%;order:3;font-size:14px;line-height:1.5;opacity:.95}',
+    '#fld .rqbar .fhx-v{flex:1 1 auto;font-size:16px;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:6px 0}',
+    '#fld .rqbar .fhx-v i{font-style:normal;font-weight:600;opacity:.75;font-size:14px;margin-left:8px}',
+    '#fld .rqbar [data-rq-open]{min-height:54px!important;font-size:18px!important;padding:6px 16px!important;flex:0 0 auto}',
+    /* 1 여백 줄이기 */
+    '#fld .fld-top.fhx1{gap:6px!important;padding-left:8px!important;padding-right:8px!important}',
+    '#fld .fld-top.fhx1>.fb{padding-left:11px!important;padding-right:11px!important}',
+    '#fld .fhx1 .dbc-ic{margin-left:5px!important;margin-right:5px!important;padding:0 10px!important}',
+    '#fld .fhx1 .fhd-ar{margin-left:5px!important}',
+    '#fld .fhx1 .fhd-dt{margin-left:5px!important}',
+    '#fld .fhx1 .fhd-nm{margin-left:8px!important;padding-left:8px!important}',
+    /* 2 글자 숨김 (아이콘만) */
+    '#fld .fhx2 .dbc-t,#fld .fhx2 .fhx-l{display:none!important}',
+    '#fld .fhx2 .fhd-dt{font-size:22px!important;padding:8px 10px!important;gap:6px!important}',
+    '#fld .fhx2 .ftd{font-size:18px!important;padding:3px 8px!important}',
+    '#fld .fhx2 .fhd-nm{font-size:26px!important}',
+    /* 3 글자 작게 */
+    '#fld .fld-top.fhx3{gap:4px!important;padding-left:4px!important;padding-right:4px!important}',
+    '#fld .fld-top.fhx3>.fb{padding-left:8px!important;padding-right:8px!important;font-size:15px!important}',
+    '#fld .fhx3 .fhd-lg{width:48px!important;height:48px!important}',
+    '#fld .fhx3 .fhd-lg img{width:48px!important;height:48px!important}',
+    '#fld .fhx3 .dbc-ic{margin-left:3px!important;margin-right:3px!important;padding:0 8px!important;min-width:48px!important;height:54px!important}',
+    '#fld .fhx3 .dbc-i{font-size:24px!important}',
+    '#fld .fhx3 .fhd-ar{width:42px!important;height:54px!important;font-size:30px!important;margin-left:3px!important}',
+    '#fld .fhx3 .fhd-dt{font-size:18px!important;padding:6px 7px!important;margin-left:3px!important}',
+    '#fld .fhx3 .ftd{font-size:15px!important;padding:2px 6px!important}',
+    '#fld .fhx3 .fhd-nm{font-size:20px!important;margin-left:5px!important;padding-left:5px!important}',
+    /* 4 더 작게 */
+    '#fld .fhx4 .fhx-u,#fld .fhx4 .ftd{display:none!important}',
+    '#fld .fld-top.fhx4>.fb{padding-left:6px!important;padding-right:6px!important;font-size:14px!important}',
+    '#fld .fhx4 .fhx-2l{display:inline-block;white-space:normal;line-height:1.1;max-width:4.6em;text-align:center}',
+    '#fld .fhx4 .fhd-dt{font-size:16px!important;padding:6px 5px!important}',
+    '#fld .fhx4 .fhd-ar{width:36px!important}',
+    '#fld .fhx4 .fhd-nm{font-size:17px!important;border-left:0!important;padding-left:2px!important}'
+  ].join('\n');
+  document.head.appendChild(st);
+
+  /* 버튼 글자를 아이콘 + 글자로 나눠 둔다(좁을 때 글자만 숨기려고) */
+  function split(b, re, mk) { if (!b || b.dataset.fhx) return; const t = (b.textContent || '').trim(); const m = t.match(re); if (!m) return; b.dataset.fhx = '1'; b.innerHTML = mk(m); }
+  function verBar(top) {
+    const rq = top.querySelector('.rqbar'); if (!rq) return; const sm = rq.querySelector(':scope>small'); if (!sm) return;
+    const txt = sm.textContent || ''; let last = FHX_BUILT; (txt.match(/20\d\d-\d\d-\d\d \d\d:\d\d/g) || []).forEach(d => { if (d > last) last = d; });
+    let v = rq.querySelector('.fhx-v'); if (!v) { v = document.createElement('b'); v.className = 'fhx-v'; v.title = '누르면 기능별 상세'; rq.insertBefore(v, rq.firstChild); }
+    const h = '생산실 앱 ' + FHX_VER + ' · ' + last + ' 업데이트<i>' + (rq.classList.contains('fhx-open') ? '▲ 접기' : '▼ 상세') + '</i>';
+    if (v.innerHTML !== h) v.innerHTML = h;
+  }
+  function wraps(top) {
+    const kids = [...top.children].filter(c => !c.classList.contains('rqbar') && getComputedStyle(c).display !== 'none');
+    if (kids.length < 2) return false; const t0 = kids[0].offsetTop; return kids.some(c => c.offsetTop > t0 + 20);
+  }
+  let busy = false;
+  function fit() {
+    const top = document.querySelector('#fld .fld-top'); if (!top || busy) return; busy = true;
+    try {
+      split(top.querySelector('.fb.back'), /^‹\s*(.+)$/, m => '‹<span class="fhx-l"> ' + m[1] + '</span>');
+      split(top.querySelector('.fb.frst'), /^↺\s*(.+)$/, m => '↺<span class="fhx-l"> ' + m[1] + '</span>');
+      split(top.querySelector('.fb.who'), /^👤\s*(.+)$/, m => '<span class="fhx-u">👤 </span>' + m[1]);
+      split(top.querySelector('.fb.fpcb'), /^🏠\s*(.+)$/, m => '<span class="fhx-u">🏠 </span><span class="fhx-2l">' + m[1] + '</span>');
+      verBar(top);
+      const tt = top.querySelector('.fld-tt'); const sig = innerWidth + '|' + top.children.length + '|' + (tt ? tt.children.length : 0) + '|' + top.textContent.length;
+      if (top.dataset.fhxSig === sig) return;
+      [1, 2, 3, 4].forEach(n => top.classList.remove('fhx' + n)); [...top.children].forEach(c => { if (!c.classList.contains('rqbar')) c.style.zoom = ''; });
+      for (let n = 1; n <= 4 && wraps(top); n++) top.classList.add('fhx' + n);
+      for (let z = 0.95; z >= 0.7 && wraps(top); z -= 0.05) [...top.children].forEach(c => { if (!c.classList.contains('rqbar')) c.style.zoom = z.toFixed(2); });
+      top.dataset.fhxSig = sig;
+    } catch (e) {} finally { busy = false; }
+  }
+  let q = 0; const soon = () => { if (q) return; q = requestAnimationFrame(() => { q = 0; fit(); }); };
+  try { new MutationObserver(soon).observe(document.body, { childList: true, subtree: true, characterData: true }); } catch (e) {}
+  addEventListener('resize', soon);
+  document.addEventListener('click', e => { const v = e.target.closest && e.target.closest('#fld .rqbar .fhx-v'); if (!v) return; e.preventDefault(); e.stopPropagation(); const rq = v.parentElement; rq.classList.toggle('fhx-open'); verBar(rq.parentElement); }, true);
+  setInterval(soon, 3000); soon();
+  /* 버전 표시 (다른 블록과 같은 방식) */
+})();
