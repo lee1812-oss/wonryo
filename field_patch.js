@@ -2509,15 +2509,17 @@
   try { fieldRender(); } catch (e) {}
 })();
 
-/* ══ 금속검출 「오늘 기록」 지우기 v002 · 2026-11-11 18:03 (2026-11-11 Aside) ══
+/* ══ 금속검출 「오늘 기록」 지우기 · 생산량 입력 깜빡임 v003 · 2026-11-11 18:18 (2026-11-11 Aside) ══
    v001 (사용자 「오늘 기록 눌러서 고치기 입력된 값 칸칸에 x 만들어서 삭제할 수 있게」): 줄마다 오른쪽에 빨간 ✕ → 큰 확인 창 → 「지우기」.
    v002 (사용자 「다중선택해서 한번에 지우는 것도」): 「☑ 여러 줄 골라 지우기」를 누르면 줄을 눌러 여러 개 고르고(☐/☑), 「🗑 n줄 지우기」 → 확인 창 → 한 번에 지움.
      같은 화면에서 작업 전 → 작업 후를 누르면 제품 확인(작업중)이 작업 전 + 5분으로 자동 저장되는 것은 위 「품목마다 작업 전 → 제품 확인 → 작업 후」 블록(v002 표시)에 있음.
+   v003 (사용자 「금속검출 공정 작업 종료되면 생산량 입력을 할 수 있도록 노랑색으로 깜빡거리면서 강조」): 오늘 금속 품목이 모두 작업 전·제품 확인·작업 후까지 끝났고
+     생산량을 아직 이카운트로 안 보냈으면(첫 화면 ④ 완료 기준과 같음: 보낸 건 0 또는 담아 둔 품목 있음) 첫 화면·PC 왼쪽 「④ 생산량 입력」과 금속 화면 아래 「다음 ④ 생산량 입력」 버튼이 노랑으로 깜빡이고, 금속 화면에 노랑 안내 줄.
    - 지우는 방식은 원래 fldDelRow와 같음: g.del에 표시(다른 기기에서도 지워짐), 승인된 일지면 승인을 풀고 수정 기록(hist)에 남김. 화면은 금속검출 페이지에 그대로 머묾.
    - 고르기 모드가 아닐 때 줄의 ✕ 밖을 누르면 예전처럼 「고치기」 화면. 이 블록을 지우면 예전으로 돌아감. */
 (function () {
   if (!window.FIELD_APP || window.__fmDelX) return;
-  const VER = 'v002', BUILT = '2026-11-11 18:03', TAG = '금속 기록 지우기·제품확인 자동 ' + VER + ' · ' + BUILT;
+  const VER = 'v003', BUILT = '2026-11-11 18:18', TAG = '금속검출 지우기·제품확인 자동·생산량 깜빡 ' + VER + ' · ' + BUILT;
   const st = document.createElement('style');
   st.textContent = '#fld .fld-rec.fmx-on{position:relative;padding-right:78px !important;min-height:62px}'
     + '#fld .fmx{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:60px;height:54px;border-radius:12px;border:2px solid #C62828;background:#fff;color:#C62828;font-size:26px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1;cursor:pointer;z-index:2}'
@@ -2538,7 +2540,16 @@
     + '.fmx-row b{display:block;font-size:19px}'
     + '.fmx-note{font-size:17px;color:#1F2328;margin:12px 0 16px;line-height:1.5}'
     + '.fmx-bt{display:flex;gap:10px}.fmx-bt button{flex:1;min-height:60px;border-radius:12px;font-size:20px;font-weight:900;cursor:pointer}'
-    + '.fmx-yes{background:#C62828;color:#fff;border:0}.fmx-no{background:#fff;color:#1F2328;border:2px solid #ADB5BD}';
+    + '.fmx-yes{background:#C62828;color:#fff;border:0}.fmx-no{background:#fff;color:#1F2328;border:2px solid #ADB5BD}'
+    /* v003 생산량 입력 노랑 깜빡임: 원래 「지금 누를 곳」 갈색 채우기(!important)보다 강하게, 깜빡임은 뒤 판(::before)으로 */
+    + '#fld button.fqy{position:relative!important;isolation:isolate;background:#FFF3BF!important;border:3px solid #F59F00!important;opacity:1!important;box-shadow:0 0 0 4px rgba(250,176,5,.45),0 6px 0 #E67700!important}'
+    + '#fld button.fqy,#fld button.fqy *{color:#1F2328!important}#fld button.fqy .n{background:#E67700!important;color:#fff!important}#fld button.fqy .n *{color:#fff!important}'
+    + '#fld button.fqy::before{content:"";position:absolute;inset:0;border-radius:inherit;background:#FFD43B;z-index:-1;animation:fqyb 1s ease-in-out infinite;pointer-events:none}'
+    + '#fld button.fqy::after{border-color:#F59F00!important}'
+    + '#fld button.fqy .fpress{background:#1F2328!important;color:#FFE066!important}#fld button.fqy .fpress *{color:#FFE066!important}'
+    + '#fld .fqy-tag{display:block;margin-top:6px;font-size:17px;font-weight:900;color:#7A4A00!important}'
+    + '#fld .fqy-msg{margin:10px 0 6px;padding:12px 16px;border-radius:12px;border:3px solid #F59F00;background:#FFF3BF;color:#5C3D00;font-size:18px;font-weight:900;line-height:1.45;animation:fqyb2 1s ease-in-out infinite}'
+    + '@keyframes fqyb{0%,100%{opacity:1}50%{opacity:.15}}@keyframes fqyb2{0%,100%{background:#FFE066}50%{background:#FFF9DB}}';
   document.head.appendChild(st);
   let MODE = false; const PK = new Set();
   const on = () => FLD.open && FLD.type === 'metal' && FLD.step === 'type';
@@ -2597,8 +2608,22 @@
     const x = ev.target.closest('#fld .fmx'); if (x && !MODE) { ev.preventDefault(); ev.stopImmediatePropagation(); const b = x.closest('.fld-rec'); if (b) ask([b.dataset.id]); return; }
     if (MODE) { const b = ev.target.closest('#fld .fld-recs .fld-rec[data-f="editrow"]'); if (!b) return; ev.preventDefault(); ev.stopImmediatePropagation();
       const id = b.dataset.id; if (PK.has(id)) PK.delete(id); else PK.add(id); paint(); } }, true);
+  /* v003: 금속검출이 끝났는데 생산량을 아직 안 보냈으면 「생산량 입력」을 노랑으로 깜빡 */
+  function metalDone() { try { const ps = fldProds('metal') || []; if (!ps.length || !window.__fm3) return false;
+      return ps.every(p => { const x = window.__fm3.rowsFor(p.code); return !!(x.pre && x.pre.time && x.item && x.item.time && x.post && x.post.time); }); } catch (e) { return false; } }
+  function qtyDone() { try { const D = fldD(), P = prodS(); const cartN = (P.draft && P.draft.date === D ? P.draft.lines : []).filter(l => Number(l.qty) > 0).length;
+      const sentN = (P.log || []).filter(en => en.date === D && en.status !== 'cancel').length; return sentN > 0 && !cartN; } catch (e) { return true; } }
+  function hl() {
+    const root = document.getElementById('fld'); if (!root) return;
+    root.querySelectorAll('.fqy').forEach(b => b.classList.remove('fqy')); root.querySelectorAll('.fqy-tag, .fqy-msg').forEach(e => e.remove());
+    if (!FLD.open || FLD.step === 'qty' || !metalDone() || qtyDone()) return;
+    root.querySelectorAll('button[data-f="qty"], button[data-fgo="qty"]').forEach(b => { b.classList.add('fqy');
+      if (b.classList.contains('fsf-c')) { const t = b.querySelector('.t') || b; const s = document.createElement('span'); s.className = 'fqy-tag'; s.textContent = '🧲 금속검출 끝 — 지금 생산량을 입력하세요'; t.appendChild(s); } });
+    if (FLD.type === 'metal' && FLD.step === 'type') { const nx = root.querySelector('button.nx[data-fgo="qty"]');
+      if (nx) { const m = document.createElement('div'); m.className = 'fqy-msg'; m.textContent = '✓ 금속검출 끝! 아래 노랑 「④ 생산량 입력」을 눌러 박스 수를 넣어 주세요'; (nx.parentElement || nx).insertAdjacentElement('beforebegin', m); } }
+  }
   const _r = fieldRender;
-  fieldRender = function () { const out = _r.apply(this, arguments); try { paint(); } catch (e) {} return out; };
-  window.__fmDelX = { delMany, ask, VER, BUILT, mode: () => MODE };
-  try { paint(); } catch (e) {}
+  fieldRender = function () { const out = _r.apply(this, arguments); try { paint(); } catch (e) {} try { hl(); } catch (e) {} return out; };
+  window.__fmDelX = { delMany, ask, VER, BUILT, mode: () => MODE, hl, metalDone, qtyDone };
+  try { paint(); hl(); } catch (e) {}
 })();
