@@ -2772,7 +2772,7 @@
    - 윗줄: 화면 폭이 좁으면 단계적으로 줄인다(1 여백 → 2 글자 숨김(아이콘만) → 3 글자 작게 → 4 더 작게 → 5 전체 축소). 줄바꿈이 없어질 때까지.
    - 기록·버튼 동작은 건드리지 않는다. 이 블록을 지우면 예전 모양으로 돌아간다. */
 (function () { if (!window.FIELD_APP) return;
-  const FHX_VER = 'v002', FHX_BUILT = '2026-11-11 20:18';
+  const FHX_VER = 'v003', FHX_BUILT = '2026-11-11 20:41';
   const st = document.createElement('style');
   st.textContent = [
     '#fld .fld-top{flex-wrap:wrap;row-gap:4px}',
@@ -2880,5 +2880,53 @@
   const tag = () => { try { const sm = document.querySelector('#fld .rqbar small'); if (sm && !sm.querySelector('.fpkd-ver')) sm.insertAdjacentHTML('beforeend', '<span class="fpkd-ver"> · 품목 고른 뒤 빼기 ' + VER + ' · ' + BUILT + '</span>'); } catch (e) {} };
   const _r2 = fieldRender; fieldRender = function () { const r = _r2.apply(this, arguments); tag(); return r; };
   window.__fpkDel = { VER, BUILT };
+  try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
+})();
+
+
+
+/* ══ K-HACCP 수정 반영 요청 v001 · 2026-11-11 20:41 (2026-11-11 Aside, 사용자 「생산일지 입력 화면에서 수정 반영할 수 있게」) ══
+   - 첫 화면 단계 목록 아래 「📤 고친 내용 K-HACCP 반영 요청」 카드(오늘 날짜에서만).
+   - 누르면 공유 저장소에 요청 한 줄(plog, code 「khreq~날짜~시각」)을 남김 → 사무실 PC 조조(No.24 루틴: 12:00 · 15:00 · 17:00 · 18:00 · 20:00 · 22:00)가 보고
+     키오스크 기록과 K-HACCP 일지를 대조해 고친 값을 반영하고, 「반영됨」 줄(code 「khreq~날짜~done~시각」)을 남김.
+   - 카드에 요청 시각·반영 시각·반영 내용을 보여 줌(2분마다 공유 저장소에서 확인). 기록·측정값은 건드리지 않음.
+   - 다른 기기는 이 줄을 생산 기록으로 쓰지 않고 넘김(note에 d·l 없음). 이 블록을 지우면 카드만 사라짐. */
+(function () { if (!window.FIELD_APP) return;
+  const VER = 'v001', BUILT = '2026-11-11 20:41', SLOTS = '12:00 · 15:00 · 17:00 · 18:00 · 20:00 · 22:00';
+  const st = document.createElement('style');
+  st.textContent = '#fld .fkr{display:flex;align-items:center;gap:14px;width:100%;margin:12px 0 4px;padding:14px 16px;min-height:72px;border-radius:16px;border:2px solid #1565C0;background:#E3F2FD;color:#0D2A4A;text-align:left;cursor:pointer;box-sizing:border-box}'
+    + '#fld .fkr .i{font-size:30px}#fld .fkr b{display:block;font-size:19px}#fld .fkr small{display:block;margin-top:4px;font-size:16px;font-weight:600;color:#0D2A4A;line-height:1.4}'
+    + '#fld .fkr.wait{border-color:#E65100;background:#FFF3E0}#fld .fkr.ok{border-color:#2E7D32;background:#E8F5E9}';
+  document.head.appendChild(st);
+  let R = { at: 0, reqs: [], dones: [] }, busy = false;
+  const hm = iso => { try { return new Date(new Date(iso).getTime() + 9 * 3600e3).toISOString().slice(11, 16); } catch (e) { return ''; } };
+  const parse = r => { try { const o = JSON.parse(r.note || '{}'); return JSON.parse(o.n || '{}'); } catch (e) { return {}; } };
+  const load = async force => { if (busy || (!force && Date.now() - R.at < 120000)) return; busy = true;
+    try { const D = fldD(); const since = new Date(new Date(D + 'T00:00:00+09:00').getTime()).toISOString(); const j = await shareApi({ action: 'pull', since });
+      const rows = (j.rows || []).filter(r => r.kind === 'plog' && String(r.code || '').startsWith('khreq~' + D + '~'));
+      R = { at: Date.now(), reqs: rows.filter(r => !/~done~/.test(r.code)).sort((a, b) => a.ts < b.ts ? -1 : 1), dones: rows.filter(r => /~done~/.test(r.code)).sort((a, b) => a.ts < b.ts ? -1 : 1) };
+      paint(); } catch (e) { R.at = Date.now(); } finally { busy = false; } };
+  const mine = () => { try { return JSON.parse(localStorage.getItem('wonryo_khreq') || '[]'); } catch (e) { return []; } };
+  const state = () => { const D = fldD(); const loc = mine().filter(x => x.d === D); const lastReq = [...R.reqs.map(r => ({ ts: r.ts, by: parse(r).by })), ...loc].sort((a, b) => a.ts < b.ts ? -1 : 1).pop();
+    const lastDone = R.dones[R.dones.length - 1]; const dn = lastDone ? parse(lastDone) : null;
+    if (lastReq && (!lastDone || lastDone.ts < lastReq.ts)) return { cls: 'wait', sub: '⏳ ' + hm(lastReq.ts) + ' 요청함' + (lastReq.by ? '(' + lastReq.by + ')' : '') + ' — 조조가 다음 확인(' + SLOTS + ') 때 반영합니다' };
+    if (lastDone) return { cls: 'ok', sub: '✓ ' + hm(lastDone.ts) + ' 반영됨 — ' + (dn && dn.msg ? dn.msg : '차이 없음') + ' · 또 고쳤으면 다시 누르세요' };
+    return { cls: '', sub: '오븐·금속·생산 기록을 고쳤으면 눌러 주세요. 조조가 K-HACCP 일지도 같게 고칩니다' }; };
+  const html = () => { const s = state(); return '<button type="button" class="fkr ' + s.cls + '" data-fkr="1"><span class="i">📤</span><span><b>고친 내용 K-HACCP 반영 요청</b><small>' + esc(s.sub) + '</small></span></button>'; };
+  const paint = () => { try { const old = document.querySelector('#fld .fkr'); if (old) { old.outerHTML = html(); return; }
+      if (fldD() !== today()) return; const at = document.querySelector('#fld .fsf'); if (at) at.insertAdjacentHTML('afterend', html()); } catch (e) {} };
+  const _r = fieldRender; fieldRender = function () { const r = _r.apply(this, arguments); try { if (FLD.open && fldD() === today()) { paint(); load(false); } } catch (e) {} return r; };
+  document.addEventListener('click', async e => { const b = e.target.closest && e.target.closest('#fld [data-fkr]'); if (!b) return; e.preventDefault(); e.stopPropagation();
+    const D = fldD(); if (D !== today()) { toast('지난 날짜는 조조에게 말로 요청해 주세요'); return; }
+    if (!confirm('오늘 고친 오븐·금속·생산 기록을 K-HACCP 일지에 반영해 달라고 조조에게 요청할까요?\n(조조가 ' + SLOTS + ' 중 다음 확인 때 반영합니다)')) return;
+    const ts = new Date().toISOString(); let by = ''; try { by = fldWk() || S.settings.reporter || ''; } catch (x) { by = S.settings.reporter || ''; }
+    const row = { ts, week: '', code: 'khreq~' + D + '~' + ts, name: 'K-HACCP 반영 요청', kind: 'plog', note: JSON.stringify({ x: 'khreq', n: JSON.stringify({ d: D, by }) }) };
+    try { const sh = shareCfg(); await shareApi({ rows: [row], user: S.settings.reporter || '', device: sh.device });
+      const l = mine().filter(x => x.d >= D).concat({ d: D, ts, by }).slice(-20); localStorage.setItem('wonryo_khreq', JSON.stringify(l));
+      toast('📤 요청했어요 — 조조가 다음 확인 때 K-HACCP에 반영합니다', 3500); R.at = 0; paint(); load(true);
+    } catch (x) { alert('요청을 보내지 못했습니다: ' + (x && x.message || x) + '\n인터넷 연결을 확인하고 다시 눌러 주세요.'); } }, true);
+  const tag = () => { try { const sm = document.querySelector('#fld .rqbar small'); if (sm && !sm.querySelector('.fkr-ver')) sm.insertAdjacentHTML('beforeend', '<span class="fkr-ver"> · K-HACCP 반영 요청 ' + VER + ' · ' + BUILT + '</span>'); } catch (e) {} };
+  const _r2 = fieldRender; fieldRender = function () { const r = _r2.apply(this, arguments); tag(); return r; };
+  window.__khReq = { VER, BUILT, load, state };
   try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
 })();
