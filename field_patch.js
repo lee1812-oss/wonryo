@@ -2504,3 +2504,64 @@
   window.__fm3 = { rowsFor, writeRow, press, cur };
   try { fieldRender(); } catch (e) {}
 })();
+
+/* ══ 금속검출 「오늘 기록」 줄마다 ✕ 지우기 v001 · 2026-11-11 17:54 (2026-11-11 Aside, 사용자 「금속검출 오늘 기록 눌러서 고치기 입력된 값 칸칸에 x 만들어서 삭제할 수 있게」) ══
+   - 금속검출 화면 「오늘 기록」의 줄마다 오른쪽에 빨간 ✕ 버튼. 누르면 큰 확인 창(어떤 줄인지 보여 줌) → 「지우기」를 한 번 더 눌러야 지워짐.
+   - 지우는 방식은 원래 fldDelRow와 같음: g.del에 표시(다른 기기에서도 지워짐), 승인된 일지면 승인을 풀고 수정 기록(hist)에 남김. 다만 화면은 금속검출 페이지에 그대로 머묾.
+   - 줄의 ✕ 밖을 누르면 예전처럼 「고치기」 화면. 이 블록을 지우면 예전으로 돌아감. */
+(function () {
+  if (!window.FIELD_APP || window.__fmDelX) return; window.__fmDelX = true;
+  const VER = 'v001', BUILT = '2026-11-11 17:54', TAG = '금속 기록 지우기 ' + VER + ' · ' + BUILT;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fld-rec.fmx-on{position:relative;padding-right:78px !important;min-height:62px}'
+    + '#fld .fmx{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:60px;height:54px;border-radius:12px;border:2px solid #C62828;background:#fff;color:#C62828;font-size:26px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1;cursor:pointer;z-index:2}'
+    + '#fld .fmx:active{background:#FDECEA}'
+    + '.fmx-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px}'
+    + '.fmx-card{background:#fff;border-radius:16px;max-width:480px;width:100%;padding:20px;color:#1F2328;font-size:18px;word-break:keep-all;box-shadow:0 10px 40px rgba(0,0,0,.35)}'
+    + '.fmx-card h3{font-size:23px;margin:0 0 10px;color:#C62828;font-weight:900}'
+    + '.fmx-row{background:#F6F7F9;border:1px solid #D0D7DE;border-radius:10px;padding:12px 14px;margin:8px 0 12px;font-size:18px;line-height:1.5}'
+    + '.fmx-row b{display:block;font-size:20px}'
+    + '.fmx-note{font-size:17px;color:#1F2328;margin-bottom:16px;line-height:1.5}'
+    + '.fmx-bt{display:flex;gap:10px}.fmx-bt button{flex:1;min-height:60px;border-radius:12px;font-size:20px;font-weight:900;cursor:pointer}'
+    + '.fmx-yes{background:#C62828;color:#fff;border:0}.fmx-no{background:#fff;color:#1F2328;border:2px solid #ADB5BD}';
+  document.head.appendChild(st);
+  const on = () => FLD.open && FLD.type === 'metal';
+  function addX() {
+    if (!on()) return;
+    document.querySelectorAll('#fld .fld-recs .fld-rec[data-f="editrow"]').forEach(b => {
+      if (b.querySelector('.fmx')) return;
+      b.classList.add('fmx-on');
+      const x = document.createElement('span'); x.className = 'fmx'; x.setAttribute('role', 'button'); x.setAttribute('aria-label', '이 줄 지우기'); x.title = '이 줄 지우기'; x.textContent = '✕';
+      b.appendChild(x); });
+    const h2 = [...document.querySelectorAll('#fld .fld-h2')].find(e => /오늘 기록/.test(e.textContent));
+    if (h2 && !/✕/.test(h2.textContent)) h2.textContent = '오늘 기록 — 눌러서 고치기 · ✕ 눌러서 지우기';
+    const sm = document.querySelector('#fld .rqbar small'); if (sm && !sm.querySelector('.fmx-ver')) { const v = document.createElement('span'); v.className = 'fmx-ver'; v.textContent = ' · ' + TAG; sm.appendChild(v); }
+  }
+  function del(id) {
+    const g = fldLog('metal'); if (!g) return;
+    const i = (g.rows || []).findIndex(r => r.id === id); if (i < 0) { try { toast('이미 지워진 줄입니다'); } catch (e) {} return fieldRender(); }
+    const r = g.rows[i];
+    if (g.apAt) { g.hist = (g.hist || []).slice(-30); g.hist.push({ at: new Date().toISOString(), by: fldWk(), f: fldShort(r.name) + ' 줄 삭제', from: '', to: '', ap: g.apBy || '' }); g.apAt = ''; g.apBy = ''; }
+    g.del = (g.del || []).concat(r.id).slice(-300); g.rows.splice(i, 1);
+    try { ccpAutoDev(g); } catch (e) {}
+    ccpTouch(g); fieldRender();
+    try { toast('🗑 ' + fldShort(r.name) + ' ' + (r.time || '') + ' 줄을 지웠습니다', 2500); } catch (e) {}
+  }
+  function ask(btn) {
+    const id = btn.dataset.id; const nm = (btn.querySelector('b') || {}).textContent || '', val = (btn.querySelector('span:not(.fmx)') || {}).textContent || '', who = (btn.querySelector('em') || {}).textContent || '';
+    const old = document.querySelector('.fmx-bg'); if (old) old.remove();
+    const bg = document.createElement('div'); bg.className = 'fmx-bg';
+    bg.innerHTML = '<div class="fmx-card" role="dialog" aria-label="기록 지우기"><h3>[삭제] 이 줄을 지울까요?</h3><div class="fmx-row"><b></b><span></span></div>'
+      + '<div class="fmx-note">잘못 누르거나 두 번 저장된 줄만 지우세요. 지운 줄은 다른 기기와 K-HACCP 일지에서도 빠집니다.</div>'
+      + '<div class="fmx-bt"><button type="button" class="fmx-no">취소</button><button type="button" class="fmx-yes">🗑 지우기</button></div></div>';
+    bg.querySelector('.fmx-row b').textContent = nm; bg.querySelector('.fmx-row span').textContent = val + (who ? ' · ' + who : '');
+    bg.addEventListener('click', e => { if (e.target === bg || e.target.closest('.fmx-no')) { bg.remove(); return; } if (e.target.closest('.fmx-yes')) { bg.remove(); del(id); } });
+    document.body.appendChild(bg);
+  }
+  window.addEventListener('click', ev => { const x = ev.target.closest && ev.target.closest('#fld .fmx'); if (!x || !on()) return;
+    ev.preventDefault(); ev.stopImmediatePropagation(); const b = x.closest('.fld-rec'); if (b) ask(b); }, true);
+  const _r = fieldRender;
+  fieldRender = function () { const out = _r.apply(this, arguments); try { addX(); } catch (e) {} return out; };
+  window.__fmDelX = { del, ask, VER, BUILT };
+  try { addX(); } catch (e) {}
+})();
