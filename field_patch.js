@@ -1166,7 +1166,7 @@
     try { fieldRender(); } catch (e) {}
     const box = document.getElementById('fld'); if (box) box.scrollTop = 0; try { window.scrollTo(0, 0); } catch (e) {}
   };
-  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#fld .fbr, #fld .fld-top .fld-tt'); if (!b) return; e.preventDefault(); e.stopPropagation(); fldGoStart(); }, true);
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#fld .fbr, #fld .fld-top .fld-tt'); if (!b || e.target.closest('.fhd-ar')) return; e.preventDefault(); e.stopPropagation(); fldGoStart(); }, true);
 })();
 
 /* ══ 한 일지 = 한 페이지: 위 「시작 · 2시간 · 종료」 3칸, 아래 「설정값」 (2026-10-22 Aside, 사용자 「태블릿 작업영역 페이지가 매 작업마다 넘어가는데, 시작·2시간·종료는 상단, 하단에 설정값, 하나의 일지가 1페이지로」) ══
@@ -1352,7 +1352,7 @@
     window.__fqBack = ''; window.__fq2Back = false; window.__fkAll = false;
     try { fieldRender(); } catch (e) {}
     const box = document.getElementById('fld'); if (box) box.scrollTop = 0; try { window.scrollTo(0, 0); } catch (e) {} };
-  window.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#fld .fld-top .fld-tt'); if (!b) return; e.preventDefault(); e.stopImmediatePropagation(); fldGoHome(); }, true);
+  window.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#fld .fld-top .fld-tt'); if (!b || e.target.closest('.fhd-ar')) return; e.preventDefault(); e.stopImmediatePropagation(); fldGoHome(); }, true);
 })();
 
 /* ══ ① 작업 시작(품목 고르기) 화면: 맨 위 「▶ 지금 만들 품목을 누르세요」 제목과 그 아래 설명 글 빼기 (2026-10-22 Aside, 사용자 「상단 지금 만들 품목을 누르세요, 그 아래 보조 설명도 모두 삭제, 텍스트는 최소화」) ══
@@ -2627,4 +2627,40 @@
   fieldRender = function () { const out = _r.apply(this, arguments); try { paint(); } catch (e) {} try { hl(); } catch (e) {} return out; };
   window.__fmDelX = { delMany, ask, VER, BUILT, mode: () => MODE, hl, metalDone, qtyDone };
   try { paint(); hl(); } catch (e) {}
+})();
+
+
+/* ══ 제목줄 날짜 이동 ‹ › 를 가운데 날짜 양옆으로 (2026-11-11 Aside, 사용자 「날짜 < > 전일·다음날 버튼이 오른쪽에 있는데 중앙 날짜 앞뒤로 배치, 좀 더 직관적이게」)
+   - 「‹ 11/11(수) 오늘 ›」 모양. 오른쪽 끝(이름 옆)의 ‹ › 는 뺀다. 관리자 화면에서만 보이는 것은 그대로(직원 화면 변화 없음).
+   - 버튼 동작은 원래 data-f="day" 그대로. 제목줄을 누르면 첫 화면으로 가는 기능은 화살표만 예외로 둠(위 두 블록의 .fhd-ar 예외).
+   - 저장·자료는 건드리지 않음. 이 블록을 지우면 예전 자리로 돌아감. */
+(function () {
+  if (!window.FIELD_APP) return;
+  const VER = '날짜 화살표 가운데 v001', BUILT = '2026-11-11 18:34', TAG = VER + ' · ' + BUILT;
+  const st = document.createElement('style');
+  st.textContent = '#fld .fhd .fhd-ar{flex:none;display:inline-flex;align-items:center;justify-content:center;width:58px;min-width:58px;height:58px;min-height:58px!important;margin:0 0 0 14px;padding:0 0 4px;border-radius:14px;border:2px solid rgba(255,255,255,.55);background:#fff;color:#0D1C42;font-size:40px!important;font-weight:900;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}'
+    + '#fld .fhd .fhd-ar.nx{margin:0 0 0 8px}#fld .fhd .fhd-ar + .fhd-dt{margin-left:8px}'
+    + '#fld .fhd .fhd-ar:active{transform:scale(.94);background:#FFD43B}#fld .fld-top .fld-tt.fhd:has(.fhd-ar:active){opacity:1}'
+    + '@media (max-height:700px) and (min-width:721px){#fld .fhd .fhd-ar{width:48px;min-width:48px;height:48px;min-height:48px!important;font-size:32px!important}}'
+    + '@media (max-width:720px){#fld .fhd .fhd-ar{width:44px;min-width:44px;height:44px;min-height:44px!important;font-size:28px!important;margin-left:8px;border-radius:10px}#fld .fhd .fhd-ar.nx{margin-left:6px}#fld .fhd .fhd-ar + .fhd-dt{margin-left:6px}}'
+    + '@media (max-width:520px){#fld .fhd .fhd-ar{width:36px;min-width:36px;height:36px;min-height:36px!important;font-size:22px!important;margin-left:4px;padding-bottom:2px}#fld .fhd .fhd-ar.nx{margin-left:4px}#fld .fhd .fhd-ar + .fhd-dt{margin-left:4px}}';
+  document.head.appendChild(st);
+  const PREV = '<button class="fb" data-f="day" data-d="-1">‹</button>', NEXT = '<button class="fb" data-f="day" data-d="1">›</button>';
+  const _head = fldHead;
+  fldHead = function () {
+    const h = _head.apply(this, arguments);
+    try {
+      if (h.indexOf(PREV) < 0 || h.indexOf(NEXT) < 0) return h;
+      const m = /<span class="fhd-dt[^"]*">[\s\S]*?<\/b><\/span>/.exec(h);
+      if (!m) return h;
+      const o = h.replace(PREV, '').replace(NEXT, '');
+      return o.replace(m[0], '<button type="button" class="fhd-ar pv" data-f="day" data-d="-1" title="전날">‹</button>' + m[0] + '<button type="button" class="fhd-ar nx" data-f="day" data-d="1" title="다음날">›</button>');
+    } catch (e) { return h; }
+  };
+  const _r = fieldRender;
+  fieldRender = function () { const out = _r.apply(this, arguments);
+    try { const sm = document.querySelector('#fld .rqbar small'); if (sm && !sm.querySelector('.far-ver')) { const v = document.createElement('span'); v.className = 'far-ver'; v.textContent = ' · ' + TAG; sm.appendChild(v); } } catch (e) {}
+    return out; };
+  window.__fldArrow = { VER, BUILT };
+  try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
 })();
