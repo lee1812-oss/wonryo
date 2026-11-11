@@ -295,7 +295,7 @@ body.v-m.t-calc #toast{bottom:104px}
 <div id="mbar" class="noprint"></div>
 <div id="toast"></div>
 <script>
-const APP_VER='v006', APP_BUILT='2026-11-11 11:00';
+const APP_VER='v007', APP_BUILT='2026-11-11 15:34';
 const LSK='drawbread_cost_key', LSP='drawbread_cost_prices';
 let PD=null, PSTAT='loading';
 try{const c=JSON.parse(localStorage.getItem(LSP)||'null');if(c&&c.data)PD=c.data}catch(e){}
@@ -700,7 +700,8 @@ function renderList(){
    <div class="bar noprint" style="margin-top:12px"><button class="btn g sm" id="bxEdit">보관함 정보 고치기</button><button class="btn g sm" id="bxFile">원본 문서 올리기</button><button class="btn gr sm" id="bxExp">이 보관함 내보내기</button><button class="btn gr sm" id="bxPrint">요약표 인쇄</button><button class="btn del sm" id="bxDel">보관함 지우기</button><input type="file" id="bxFin" style="display:none"></div></div>`:'';
  const title=LB==='all'?'전체 제품':LB==='none'?'일반 제품':'보관함 제품';
  const rows=list.map(p=>{const c=calc(p),b=boxOf(p);return `<tr data-open="${p.id}"><td><b>${esc(p.name)}</b>${LB==='all'&&b?`<small class="bxt">보관함 · ${esc(b.name)}</small>`:''}</td><td class="r hm">${num(p.pieceW)}g</td><td class="r">${num(c.A)}원</td><td class="r big">${num(c.total)}원</td><td class="r hm">${won(c.batch)}</td><td class="r hm">${new Date(p.updated||0).toLocaleDateString('ko-KR')}</td></tr>`}).join('');
- $('#app').innerHTML=pageHead('저장한 제품','제품을 보관함별로 모아 볼 수 있어요. 요청받은 원가 계산은 보관함에 넣어 두면 나중에 찾기 쉬워요.')+`
+ let hasKey=false;try{hasKey=!!localStorage.getItem(LSK)}catch(e){}
+ $('#app').innerHTML=pageHead('저장한 제품','제품을 보관함별로 모아 볼 수 있어요. 요청받은 원가 계산은 보관함에 넣어 두면 나중에 찾기 쉬워요.')+(hasKey?'':`<div class="warn noprint" style="margin:0 0 16px">이 기기(브라우저)는 아직 열쇠가 없어서 공유 보관함(예: 부안)과 단가표를 받지 못해요. 조조가 드린 「원가계산기 열쇠 링크」(QR)로 이 브라우저에서 한 번만 열어 주세요. 그 뒤로는 저절로 들어와요.</div>`)+`
  <div class="listGrid">${nav}<div>
   <div class="srch noprint"><label class="f" for="lq" style="margin-top:0">제품·보관함 찾기</label><input id="lq" value="${esc(LQ)}" placeholder="예: 부안, 휘낭시에"></div>
   ${boxInfo}
@@ -900,7 +901,7 @@ function openOnline(name,done){
 }
 
 /* 시작: 저장된 단가표로 먼저 그리고, 새 단가표를 받으면 다시 그림 */
-loadPrices(false).then(async ch=>{refreshMaps();const sh=await loadShared();if(sh)refreshMaps();if(ch||sh||PSTAT!=='ok')render()});
+loadPrices(false).then(async ch=>{refreshMaps();const sh=await loadShared();if(sh){refreshMaps();setTimeout(()=>toast('공유 보관함을 받았어요'),300)}if(ch||sh||PSTAT!=='ok')render()});
 render();
 </script>
 </body>
