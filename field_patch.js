@@ -2156,7 +2156,7 @@
 (function () {
   if (!window.FIELD_APP || window.__fieldExp) return;
   window.__fieldExp = true;
-  const VER = 'v002', BUILT = '2026-11-11 23:15';
+  const VER = 'v003', BUILT = '2026-11-11 23:22'; const _vOld = '2026-11-11 23:15';
   const css = document.createElement('style');
   css.textContent = '#fld .fxe{margin:12px 0;padding:14px 16px;border-radius:16px;border:3px solid #2B8A3E;background:#F1FBF3;color:#1d2a30}'
     + '#fld .fxe.empty{border-color:#D9480F;background:#FFF4E6}'
@@ -2189,7 +2189,13 @@
   const famOf = code => { const it = prodItem(code) || { code, name: code, unit: '' }; let F = null; try { F = prodFamily(it); } catch (e) {} const us = F ? [F.B, F.E, F.N].filter(Boolean) : [it]; const head = F ? (F.B || F.E || F.N) : it; return { it, F, us, head, codes: us.map(x => x.code) }; };
   /* 기본 소비기한 일수: 품목 설정(shelf) → 기본 규칙(EXP_DAYS) */
   const shelfDays = fam => { for (const x of [fam.head].concat(fam.us)) { const v = x && x.shelf; if (v !== '' && v != null && !isNaN(Number(v)) && Number(v) > 0) return { n: Math.round(Number(v)), src: '품목 설정' }; }
-    const nm = nameOf(fam.head) || nameOf(fam.it); if (!nm || isSemi(fam.head) || (/마늘바게트/.test(nm) && !/치즈듬뿍/.test(nm))) return null;   /* 마늘바게트는 180/360일이 섞여 있어 직접 고름 */
+    const nm = nameOf(fam.head) || nameOf(fam.it); if (!nm) return null;
+    /* v003 (2026-11-11 23:22, 사용자가 카톡으로 보낸 「품목제조보고」 BR-PR-2026-01(작성일 2026.05.27) 사진 기준): 보고서 소비기한 개월 × 30일.
+       몽블랑·빅몽블랑·구운크라상78·현미찰생지 9개월, 빅크로와상·굴뚝빵·마늘바게트 6개월, 육쪽마늘빵·치즈듬뿍 마늘바게트·구운냉동/쌀/통밀 소금빵 12개월.
+       (빵을그리다 K1 6개월은 키오스크 품목과 짝을 못 찾아 넣지 않음.) 생지는 보고서에 있는 굴뚝빵·현미찰생지만, 배합·소스는 넣지 않음. */
+    const REPORT = [[/치즈듬뿍/, 12], [/마늘바게트/, 6], [/빅크로와상/, 6], [/몽블랑/, 9], [/크로와상\s*78|크라상\s*78/, 9], [/육쪽/, 12], [/소금빵/, 12], [/굴뚝빵/, 6, 1], [/현미찰/, 9, 1]];
+    if (!/배합|소스/.test(nm)) { const dough = /생지/.test(nm); const rp = REPORT.find(x => x[0].test(nm) && (!dough || x[2])); if (rp) return { n: rp[1] * 30, src: '품목제조보고 ' + rp[1] + '개월' }; }
+    if (isSemi(fam.head) || (/마늘바게트/.test(nm) && !/치즈듬뿍/.test(nm))) return null;
     try { const r = (typeof EXP_DAYS !== 'undefined' ? EXP_DAYS : []).find(x => x[0].test(nm)); if (r) return { n: r[1], src: '기본 규칙' }; } catch (e) {} return null; };
   const defExp = (fam, D) => { const s = shelfDays(fam); return s ? { v: addD(D, s.n), n: s.n, src: s.src } : { v: '', n: null, src: '' }; };
   /* v002: 다른 블록(전 제품 기준표·품목 카드)에서 같은 기준을 쓰도록 */
@@ -2781,7 +2787,7 @@
    - 윗줄: 화면 폭이 좁으면 단계적으로 줄인다(1 여백 → 2 글자 숨김(아이콘만) → 3 글자 작게 → 4 더 작게 → 5 전체 축소). 줄바꿈이 없어질 때까지.
    - 기록·버튼 동작은 건드리지 않는다. 이 블록을 지우면 예전 모양으로 돌아간다. */
 (function () { if (!window.FIELD_APP) return;
-  const FHX_VER = 'v005', FHX_BUILT = '2026-11-11 23:15';
+  const FHX_VER = 'v006', FHX_BUILT = '2026-11-11 23:22';
   const st = document.createElement('style');
   st.textContent = [
     '#fld .fld-top{flex-wrap:wrap;row-gap:4px}',
@@ -2960,17 +2966,17 @@
   const sd = x => String(x || '').slice(2).replace(/-/g, '.');
   const D = () => { try { return fldD(); } catch (e) { return new Date().toISOString().slice(0, 10); } };
   const info = code => { try { return window.__fxeDef ? window.__fxeDef(code, D()) : null; } catch (e) { return null; } };
-  const cardTxt = code => { const x = info(code); if (!x) return ''; if (x.semi) return ''; return x.n ? '<span class="fxs-c">📅 ' + x.n + '일 → ' + sd(x.v) + '</span>' : '<span class="fxs-c no">📅 기준 없음 · 직접 고름</span>'; };
+  const cardTxt = code => { const x = info(code); if (!x) return ''; if (x.semi && !x.n) return ''; return x.n ? '<span class="fxs-c">📅 ' + x.n + '일 → ' + sd(x.v) + '</span>' : '<span class="fxs-c no">📅 기준 없음 · 직접 고름</span>'; };
   function table() {
     let items = []; try { items = (prodS().items || []).filter(it => !it.hide && !/^\[비상품\]/.test(it.name || '')); } catch (e) {}
     const seen = new Set(), rows = [];
     items.forEach(it => { const x = info(it.code); if (!x) return; const hk = (x.head && x.head.code) || it.code; if (seen.has(hk)) return; seen.add(hk);
       const nm = (x.head && x.head.name) || it.name; rows.push({ nm, x }); });
-    rows.sort((a, b) => (a.x.semi - b.x.semi) || ((b.x.n || 0) - (a.x.n || 0)) || a.nm.localeCompare(b.nm, 'ko'));
-    const tr = rows.map(r => '<tr><td>' + esc(r.nm) + '</td>' + (r.x.semi ? '<td class="semi" colspan="2">반제품 · 소비기한 입력 안 함</td>'
-      : r.x.n ? '<td><b>' + r.x.n + '일</b> (약 ' + Math.round(r.x.n / 30) + '개월)</td><td><b>' + sd(r.x.v) + '</b></td>' : '<td class="no" colspan="2">기준 없음 · 포장 날짜 직접 고름</td>') + '</tr>').join('');
+    rows.sort((a, b) => ((a.x.semi && !a.x.n) - (b.x.semi && !b.x.n)) || ((b.x.n || 0) - (a.x.n || 0)) || a.nm.localeCompare(b.nm, 'ko'));
+    const tr = rows.map(r => '<tr><td>' + esc(r.nm) + '</td>' + (r.x.semi && !r.x.n ? '<td class="semi" colspan="2">반제품 · 소비기한 입력 안 함</td>'
+      : r.x.n ? '<td><b>' + r.x.n + '일</b> (' + esc(r.x.src || ('약 ' + Math.round(r.x.n / 30) + '개월')) + ')</td><td><b>' + sd(r.x.v) + '</b></td>' : '<td class="no" colspan="2">기준 없음 · 포장 날짜 직접 고름</td>') + '</tr>').join('');
     const ov = document.createElement('div'); ov.className = 'fxs-ov';
-    ov.innerHTML = '<div class="fxs-bx"><button type="button" class="fxs-x">✕ 닫기</button><h3>📋 전 제품 소비기한 기준표</h3><p>생산일 <b>' + sd(D()) + '</b>에 만들면 아래 날짜가 소비기한으로 자동 입력됩니다. 기준과 다르게 찍어야 하면 생산량 입력의 「📅 소비기한」 칸에서 바꾸세요.</p>'
+    ov.innerHTML = '<div class="fxs-bx"><button type="button" class="fxs-x">✕ 닫기</button><h3>📋 전 제품 소비기한 기준표</h3><p>근거: 품목제조보고(BR-PR-2026-01, 2026.05.27) 소비기한 개월 × 30일. 생산일 <b>' + sd(D()) + '</b>에 만들면 아래 날짜가 소비기한으로 자동 입력됩니다. 기준과 다르게 찍어야 하면 생산량 입력의 「📅 소비기한」 칸에서 바꾸세요.</p>'
       + '<table><thead><tr><th>제품</th><th>기준</th><th>이 날 생산 시 소비기한</th></tr></thead><tbody>' + tr + '</tbody></table></div>';
     ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('.fxs-x')) { e.preventDefault(); e.stopPropagation(); ov.remove(); } });
     document.body.appendChild(ov);
