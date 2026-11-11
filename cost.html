@@ -295,7 +295,7 @@ body.v-m.t-calc #toast{bottom:104px}
 <div id="mbar" class="noprint"></div>
 <div id="toast"></div>
 <script>
-const APP_VER='v005', APP_BUILT='2026-11-11 10:55';
+const APP_VER='v006', APP_BUILT='2026-11-11 11:00';
 const LSK='drawbread_cost_key', LSP='drawbread_cost_prices';
 let PD=null, PSTAT='loading';
 try{const c=JSON.parse(localStorage.getItem(LSP)||'null');if(c&&c.data)PD=c.data}catch(e){}
@@ -410,6 +410,22 @@ async function loadPrices(force){
   const data=await decryptP(j,key);PD=data;try{localStorage.setItem(LSP,JSON.stringify({updated:j.updated,data}))}catch(e){}
   PSTAT='ok';return true;
  }catch(e){PSTAT=(e&&e.name==='OperationError')?'badkey':(PD?'offline':'fail');return false}
+}
+/* 공유 보관함: 열쇠가 있는 모든 기기에 같은 보관함을 자동으로 넣음 (v006) */
+const LSS='drawbread_cost_shared';
+async function loadShared(){
+ let key=null;try{key=localStorage.getItem(LSK)}catch(e){}
+ if(!key)return false;
+ try{const r=await fetch('cost_boxes.enc.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return false;const j=await r.json();
+  let last=null;try{last=localStorage.getItem(LSS)}catch(e){}
+  if(last&&last===j.updated)return false;
+  const d=await decryptP(j,key);S.boxes=S.boxes||[];let ch=false;
+  (d.boxes||[]).forEach(b=>{const i=S.boxes.findIndex(x=>x.id===b.id);if(i<0){S.boxes.push(b);ch=true}else if((b.updated||0)>(S.boxes[i].updated||0)){S.boxes[i]=b;ch=true}});
+  for(const x of d.files||[]){try{if(!(await FDB.get(x.id)))await FDB.put(x.id,{name:x.name,type:x.type,blob:await urlToBlob(x.data)})}catch(_){}}
+  (d.products||[]).forEach(p=>{const i=S.products.findIndex(x=>x.id===p.id);if(i<0){S.products.push(p);ch=true}else if((p.updated||0)>(S.products[i].updated||0)){S.products[i]=p;ch=true}});
+  save(true);try{localStorage.setItem(LSS,j.updated)}catch(e){}
+  return ch;
+ }catch(e){return false}
 }
 function priceBanner(){
  if(PSTAT==='ok'||PSTAT==='loading')return '';
@@ -686,7 +702,7 @@ function renderList(){
  const rows=list.map(p=>{const c=calc(p),b=boxOf(p);return `<tr data-open="${p.id}"><td><b>${esc(p.name)}</b>${LB==='all'&&b?`<small class="bxt">보관함 · ${esc(b.name)}</small>`:''}</td><td class="r hm">${num(p.pieceW)}g</td><td class="r">${num(c.A)}원</td><td class="r big">${num(c.total)}원</td><td class="r hm">${won(c.batch)}</td><td class="r hm">${new Date(p.updated||0).toLocaleDateString('ko-KR')}</td></tr>`}).join('');
  $('#app').innerHTML=pageHead('저장한 제품','제품을 보관함별로 모아 볼 수 있어요. 요청받은 원가 계산은 보관함에 넣어 두면 나중에 찾기 쉬워요.')+`
  <div class="listGrid">${nav}<div>
-  <div class="srch noprint"><label class="f" for="lq" style="margin-top:0">제품·보관함 찾기</label><input id="lq" value="${esc(LQ)}" placeholder="예: 휘낭시에, 부안, 박태일"></div>
+  <div class="srch noprint"><label class="f" for="lq" style="margin-top:0">제품·보관함 찾기</label><input id="lq" value="${esc(LQ)}" placeholder="예: 부안, 휘낭시에"></div>
   ${boxInfo}
   <div class="card"><h2>${title} <span class="chip b">${list.length}개</span></h2>
    ${list.length?`<table class="pt"><thead><tr><th>제품명</th><th class="r hm">1개 무게</th><th class="r">재료만 1개</th><th class="r">1개 현실 원가</th><th class="r hm">1배합 총원가</th><th class="r hm">수정일</th></tr></thead><tbody>${rows}</tbody></table>`:'<p class="help">찾는 제품이 없어요.</p>'}
@@ -884,7 +900,7 @@ function openOnline(name,done){
 }
 
 /* 시작: 저장된 단가표로 먼저 그리고, 새 단가표를 받으면 다시 그림 */
-loadPrices(false).then(ch=>{refreshMaps();if(ch||PSTAT!=='ok')render()});
+loadPrices(false).then(async ch=>{refreshMaps();const sh=await loadShared();if(sh)refreshMaps();if(ch||sh||PSTAT!=='ok')render()});
 render();
 </script>
 </body>
