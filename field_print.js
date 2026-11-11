@@ -1,11 +1,12 @@
-/* 생산실 일지 출력 v001 · 2026-11-12 00:06
+/* 생산실 일지 출력 v002 · 2026-11-12 00:13 (v002: 「일지 출력」·「말로 개선 요청」 높이 같게, 윗줄 로고·영상통화·날짜·화살표·버튼 높이 통일)
+   이전: v001 · 2026-11-12 00:06
    - 「말로 개선 요청」 왼쪽에 「🖨 일지 출력」 버튼.
    - 고른 날짜의 생산품목(박스·낱개·비상품)과 CCP 입력값(오븐·급냉·배합·금속)만 72mm 영수증(키오스크 kiosk1)으로 출력.
    - 읽기 전용: 일지·CCP·이카운트 자료는 바꾸지 않는다. 이 파일을 지우면 버튼만 사라진다. */
 (function () {
   if (!window.FIELD_APP || window.__fieldPrint) return;
   window.__fieldPrint = true;
-  const VER = 'v001', BUILT = '2026-11-12 00:06';
+  const VER = 'v002', BUILT = '2026-11-12 00:13';
   const E = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const W = ['일', '월', '화', '수', '목', '금', '토'];
   const has = (r, fs) => fs.some(f => r[f] !== '' && r[f] != null && String(r[f]).trim() !== '');
@@ -113,6 +114,16 @@
   let box = null, cur = '';
   const css = document.createElement('style');
   css.textContent = '#fld .rqbar button[data-fp-open]{background:#FFE066;color:#1f1f1f;border:3px solid #1C5DB8}' +
+    '/* v002 높이 맞춤: 일지 출력 = 말로 개선 요청 64px, 윗줄(로고·영상통화·‹ 날짜 ›·이름 등) 같은 높이 */' +
+    '#fld .fld-top .rqbar button[data-fp-open],#fld .fld-top .rqbar button[data-rq-open]{height:64px!important;min-height:64px!important;box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}' +
+    '#fld .fld-top .fld-tt .fhd-lg{width:58px!important;height:58px!important;flex:0 0 58px!important}' +
+    '#fld .fld-top .fld-tt .fhd-lg img{width:79px!important;height:79px!important;max-width:none!important}' +
+    '#fld .fld-top .fld-tt .dbc-ic,#fld .fld-top .fld-tt .fhd-ar,#fld .fld-top .fld-tt .fhd-dt,#fld .fld-top>.fb{height:58px!important;min-height:58px!important;box-sizing:border-box!important}' +
+    '#fld .fld-top .fld-tt .fhd-dt{padding-top:0!important;padding-bottom:0!important;display:inline-flex!important;align-items:center!important}' +
+    '#fld .fld-top.fhx3 .fld-tt .fhd-lg{width:54px!important;height:54px!important;flex:0 0 54px!important}' +
+    '#fld .fld-top.fhx3 .fld-tt .fhd-lg img{width:73px!important;height:73px!important}' +
+    '#fld .fld-top.fhx3 .fld-tt .dbc-ic,#fld .fld-top.fhx3 .fld-tt .fhd-ar,#fld .fld-top.fhx3 .fld-tt .fhd-dt,#fld .fld-top.fhx3>.fb{height:54px!important;min-height:54px!important}' +
+    
     '#fpr{position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:10px;box-sizing:border-box;font-family:inherit;color:#1b1b1b}' +
     '#fpr .fc{background:#fff;border-radius:16px;width:100%;max-width:640px;max-height:calc(100dvh - 20px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px #0005}' +
     '#fpr .ft{padding:14px 16px 10px;border-bottom:2px solid #ddd}#fpr h1{margin:0;font-size:26px;font-weight:900;color:#0D1C42}#fpr .fv{font-size:17px;font-weight:700;color:#333;margin-top:4px}' +
@@ -153,7 +164,7 @@
   fldHead = function () {
     let h = oldHead.apply(this, arguments);
     const tag = '<button type="button" data-rq-open="1">';
-    if (h.includes(tag)) { h = h.replace(tag, BTN + tag).replace(/(<div class="rqbar"><small>[^<]*)(<\/small>)/, '$1 · 일지 출력 ' + VER + ' (' + BUILT.slice(5) + ')$2'); return h; }
+    if (h.includes(tag)) { h = h.replace(tag, BTN + tag).replace(/(<div class="rqbar"><small>[^<]*)(<\/small>)/, '$1 · 일지 출력 ' + VER + ' · ' + BUILT + '$2'); return h; }
     const end = h.lastIndexOf('</div>'); if (end < 0) return h;
     return h.slice(0, end) + '<div class="rqbar"><small>일지 출력 ' + VER + ' · 업데이트 ' + BUILT + '</small>' + BTN + '</div>' + h.slice(end);
   };
