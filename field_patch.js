@@ -2390,6 +2390,8 @@
   const live = g => { const D = new Set((g && g.del) || []); return ((g && g.rows) || []).filter(r => !D.has(r.id)); };
   const mm = t => { const m = /^(\d{2}):(\d{2})$/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : null; };
   const hm = n => { n = ((n % 1440) + 1440) % 1440; return String(Math.floor(n / 60)).padStart(2, '0') + ':' + String(n % 60).padStart(2, '0'); };
+  /* 2026-11-11 v002 (사용자 「작업 전 점검 → 작업 후 점검을 누르면 작업 전 + 5분이 제품 확인(작업중) 시간으로 자동」): 작업 후보다 늦으면 작업 후 시각으로 맞춤 */
+  const autoT = (pre, post) => { const a = mm(pre) + 5, c = post ? mm(post) : null; return hm(c != null && a > c ? c : a); };
   const say = (m, ms) => { try { toast(m, ms); } catch (e) { alert(m); } };
   const F_TP = [['fe', 'Fe 2.5mm 테스트피스', 'O'], ['sus', 'STS 3.5mm 테스트피스', 'O']];
   const F_IT = [['fe', 'Fe 테스트피스만', 'O'], ['sus', 'STS 테스트피스만', 'O'], ['p', '제품만 통과', 'X'], ['fep', '제품 + Fe', 'O'], ['susp', '제품 + STS', 'O']];
@@ -2459,28 +2461,30 @@
   function press(kind) { const p = cur(); if (!p) { say('오늘 금속검출 품목이 없습니다 — 먼저 작업 시작'); return; }
     const x = rowsFor(p.code); const nm = fldShort(p.name);
     if (kind === 'item' && !(x.pre && x.pre.time)) { say('먼저 🟢 작업 전 점검 시각을 저장하세요'); return; }
-    if (kind === 'post' && !(x.item && x.item.time)) { say('먼저 ⏱ 제품 확인(작업중)을 저장하세요'); return; }
+    if (kind === 'post' && !(x.pre && x.pre.time)) { say('먼저 🟢 작업 전 점검 시각을 저장하세요'); return; }
+    const autoItem = kind === 'post' && !(x.item && x.item.time); /* v002: 제품 확인이 아직 없으면 작업 후 저장 때 작업 전 + 5분으로 함께 저장 */
     const row = kind === 'pre' ? x.pre : kind === 'post' ? x.post : x.item; const has = !!(row && row.time);
     const fields = kind === 'item' ? F_IT : F_TP; const vals = {}; fields.forEach(z => { vals[z[0]] = has && row[z[0]] ? row[z[0]] : z[2]; });
     const ttl = kind === 'pre' ? '🟢 작업 전 점검' : kind === 'post' ? '🏁 작업 후 점검' : '⏱ 제품 확인(작업중)';
     const ref = '<div style="margin:0 0 8px;padding:8px 12px;border-radius:10px;background:#E7F0FF;border:2px solid #A5C8FF;font-weight:700">' + esc(nm) + ' — 🟢 ' + esc((x.pre && x.pre.time) || '—') + ' → ⏱ ' + esc((x.item && x.item.time) || '—') + ' → 🏁 ' + esc((x.post && x.post.time) || '—') + '</div>';
+    const ref2 = autoItem ? ref + '<div style="margin:-2px 0 8px;padding:8px 12px;border-radius:10px;background:#D3F9D8;border:2px solid #8CE99A;color:#1B5E20;font-weight:800">⏱ 제품 확인(작업중)은 작업 전 + 5분 「' + esc(autoT(x.pre.time, '')) + '」으로 함께 저장돼요</div>' : ref;
     let def = has ? row.time : fldHM();
-    pick({ title: ttl + (has ? ' 시각 고치기' : ' 시각'), sub: nm, time: def, old: has ? row.time : '', ref, fields, vals,
+    pick({ title: ttl + (has ? ' 시각 고치기' : ' 시각'), sub: nm, time: def, old: has ? row.time : '', ref: ref2, fields, vals,
       okText: kind === 'item' ? '정상: Fe·STS 검출 · 제품만 통과 · 제품+Fe·STS 검출 (K-HACCP와 같음)' : '정상: Fe·STS 테스트피스 검출',
-      doneText: nm + ' ' + ttl.replace(/^\S+\s/, '') + ' {t} 저장',
+      doneText: nm + ' ' + ttl.replace(/^\S+\s/, '') + ' {t} 저장' + (autoItem ? ' · 제품 확인 ' + autoT(x.pre.time, '') + ' 자동 저장' : ''),
       check: t => { const n = mm(t), a = x.pre && x.pre.id !== (row && row.id) ? mm(x.pre.time) : null, b = x.item && x.item.id !== (row && row.id) ? mm(x.item.time) : null, c = x.post && x.post.id !== (row && row.id) ? mm(x.post.time) : null;
         if (kind === 'pre' && ((b != null && n > b) || (c != null && n > c))) return '작업 전 점검은 제품 확인·작업 후보다 빨라야 해요';
         if (kind === 'item' && ((a != null && n < a) || (c != null && n > c))) return '제품 확인은 작업 전과 작업 후 사이여야 해요';
         if (kind === 'post' && ((a != null && n < a) || (b != null && n < b))) return '작업 후 점검은 작업 전·제품 확인보다 늦어야 해요'; return ''; },
-      save: (t, v) => writeRow(kind, p, t, v) }); }
+      save: (t, v) => { if (autoItem) { const iv = {}; F_IT.forEach(z => { iv[z[0]] = z[2]; }); if (!writeRow('item', p, autoT(x.pre.time, t), iv)) return false; } return writeRow(kind, p, t, v); } }); }
 
   const card = (k, ico, title, tm, sub, on, now, dis) => '<button type="button" class="ft big' + (on ? ' on' : '') + (now ? ' fnow' : '') + '" data-mt3="' + k + '" style="' + (dis ? 'opacity:.55' : '') + '"><i>' + ico + '</i><b>' + title + '</b><span class="tm' + (tm ? '' : ' ph') + '">' + esc(tm || sub) + '</span><span class="vv">' + esc(tm ? '누르면 시각 고치기' : (dis ? '앞 단계 먼저' : '눌러서 시각 선택')) + '</span>' + (now ? '<span class="fpress">👆 여기를 누르세요</span>' : '') + '</button>';
   function html() { const ps = prods(); const p = cur(); if (!p) return '';
     const x = rowsFor(p.code); const a = x.pre && x.pre.time, b = x.item && x.item.time, c = x.post && x.post.time;
-    const nxt = !a ? 'pre' : !b ? 'item' : !c ? 'post' : '';
+    const nxt = !a ? 'pre' : !c ? 'post' : !b ? 'item' : '';   /* v002: 작업 전 다음은 작업 후 (제품 확인은 자동) */
     let h = '';
     if (ps.length > 1) h += '<div class="fm3-pk" style="display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 10px">' + ps.map(q => { const d = doneOf(q.code), on = q.code === p.code; return '<button type="button" data-mt3p="' + esc(q.code) + '" style="min-height:50px;padding:6px 14px;border-radius:12px;font-weight:800;font-size:1.05em;border:2px solid ' + (on ? '#1C4FD7;background:#FFE066;color:#1F2328' : '#ADB5BD;background:#F1F3F5;color:#343A40') + '">' + (d ? '✓ ' : '') + esc(fldShort(q.name)) + '</button>'; }).join('') + '</div>';
-    h += '<div class="fld-grid fov3 fm3-grid">' + card('pre', '🟢', '작업 전 점검', a, '시간 선택', !!a, nxt === 'pre', false) + '<span class="ar">→</span>' + card('item', '⏱', '제품 확인(작업중)', b, '시간 선택', !!b, nxt === 'item', !a) + '<span class="ar">→</span>' + card('post', '🏁', '작업 후 점검', c, '작업 끝나고', !!c, nxt === 'post', !b) + '</div>';
+    h += '<div class="fld-grid fov3 fm3-grid">' + card('pre', '🟢', '작업 전 점검', a, '시간 선택', !!a, nxt === 'pre', false) + '<span class="ar">→</span>' + card('item', '⏱', '제품 확인(작업중)', b, a ? '자동 ' + autoT(a, '') : '시간 선택', !!b, nxt === 'item', !a) + '<span class="ar">→</span>' + card('post', '🏁', '작업 후 점검', c, '작업 끝나고', !!c, nxt === 'post', !a) + '</div>';
     if (x.extra > 1) h += '<div style="margin:6px 0;padding:8px 12px;border-radius:10px;background:#FFF3BF;color:#7A4A00;font-weight:700">⚠ ' + esc(fldShort(p.name)) + ' 제품 확인 줄이 ' + x.extra + '개 있어요 — K-HACCP는 품목당 1줄. 아래 「오늘 기록」에서 남는 줄을 지워 주세요</div>';
     if (!nxt && ps.some(q => !doneOf(q.code))) { const q = ps.find(z => !doneOf(z.code)); h += '<div style="margin:6px 0;padding:10px 14px;border-radius:12px;background:#D3F9D8;color:#1B5E20;font-weight:800">✓ ' + esc(fldShort(p.name)) + ' 끝 — 다음 품목 「' + esc(fldShort(q.name)) + '」 버튼을 누르세요</div>'; }
     return h; }
@@ -2505,63 +2509,96 @@
   try { fieldRender(); } catch (e) {}
 })();
 
-/* ══ 금속검출 「오늘 기록」 줄마다 ✕ 지우기 v001 · 2026-11-11 17:54 (2026-11-11 Aside, 사용자 「금속검출 오늘 기록 눌러서 고치기 입력된 값 칸칸에 x 만들어서 삭제할 수 있게」) ══
-   - 금속검출 화면 「오늘 기록」의 줄마다 오른쪽에 빨간 ✕ 버튼. 누르면 큰 확인 창(어떤 줄인지 보여 줌) → 「지우기」를 한 번 더 눌러야 지워짐.
-   - 지우는 방식은 원래 fldDelRow와 같음: g.del에 표시(다른 기기에서도 지워짐), 승인된 일지면 승인을 풀고 수정 기록(hist)에 남김. 다만 화면은 금속검출 페이지에 그대로 머묾.
-   - 줄의 ✕ 밖을 누르면 예전처럼 「고치기」 화면. 이 블록을 지우면 예전으로 돌아감. */
+/* ══ 금속검출 「오늘 기록」 지우기 v002 · 2026-11-11 18:03 (2026-11-11 Aside) ══
+   v001 (사용자 「오늘 기록 눌러서 고치기 입력된 값 칸칸에 x 만들어서 삭제할 수 있게」): 줄마다 오른쪽에 빨간 ✕ → 큰 확인 창 → 「지우기」.
+   v002 (사용자 「다중선택해서 한번에 지우는 것도」): 「☑ 여러 줄 골라 지우기」를 누르면 줄을 눌러 여러 개 고르고(☐/☑), 「🗑 n줄 지우기」 → 확인 창 → 한 번에 지움.
+     같은 화면에서 작업 전 → 작업 후를 누르면 제품 확인(작업중)이 작업 전 + 5분으로 자동 저장되는 것은 위 「품목마다 작업 전 → 제품 확인 → 작업 후」 블록(v002 표시)에 있음.
+   - 지우는 방식은 원래 fldDelRow와 같음: g.del에 표시(다른 기기에서도 지워짐), 승인된 일지면 승인을 풀고 수정 기록(hist)에 남김. 화면은 금속검출 페이지에 그대로 머묾.
+   - 고르기 모드가 아닐 때 줄의 ✕ 밖을 누르면 예전처럼 「고치기」 화면. 이 블록을 지우면 예전으로 돌아감. */
 (function () {
-  if (!window.FIELD_APP || window.__fmDelX) return; window.__fmDelX = true;
-  const VER = 'v001', BUILT = '2026-11-11 17:54', TAG = '금속 기록 지우기 ' + VER + ' · ' + BUILT;
+  if (!window.FIELD_APP || window.__fmDelX) return;
+  const VER = 'v002', BUILT = '2026-11-11 18:03', TAG = '금속 기록 지우기·제품확인 자동 ' + VER + ' · ' + BUILT;
   const st = document.createElement('style');
   st.textContent = '#fld .fld-rec.fmx-on{position:relative;padding-right:78px !important;min-height:62px}'
     + '#fld .fmx{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:60px;height:54px;border-radius:12px;border:2px solid #C62828;background:#fff;color:#C62828;font-size:26px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1;cursor:pointer;z-index:2}'
     + '#fld .fmx:active{background:#FDECEA}'
+    + '#fld .fld-rec.fmx-pk{padding-left:70px !important;position:relative;min-height:62px}'
+    + '#fld .fmx-ck{position:absolute;left:8px;top:50%;transform:translateY(-50%);width:54px;height:54px;border-radius:10px;border:3px solid #868E96;background:#fff;color:#fff;font-size:30px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1}'
+    + '#fld .fld-rec.fmx-picked{background:#FFF5F5 !important;outline:3px solid #C62828;outline-offset:-3px}'
+    + '#fld .fld-rec.fmx-picked .fmx-ck{background:#C62828;border-color:#C62828}'
+    + '#fld .fmx-bar{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 8px}'
+    + '#fld .fmx-bar button{min-height:54px;padding:6px 16px;border-radius:12px;font-size:17px;font-weight:800;border:2px solid #ADB5BD;background:#fff;color:#1F2328;cursor:pointer}'
+    + '#fld .fmx-bar .fmx-go{background:#C62828;border-color:#C62828;color:#fff}'
+    + '#fld .fmx-bar .fmx-go[disabled]{background:#E9ECEF;border-color:#CED4DA;color:#495057}'
+    + '#fld .fmx-bar .fmx-st{border-color:#C62828;color:#C62828}'
     + '.fmx-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px}'
-    + '.fmx-card{background:#fff;border-radius:16px;max-width:480px;width:100%;padding:20px;color:#1F2328;font-size:18px;word-break:keep-all;box-shadow:0 10px 40px rgba(0,0,0,.35)}'
+    + '.fmx-card{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:92vh;overflow:auto;padding:20px;color:#1F2328;font-size:18px;word-break:keep-all;box-shadow:0 10px 40px rgba(0,0,0,.35)}'
     + '.fmx-card h3{font-size:23px;margin:0 0 10px;color:#C62828;font-weight:900}'
-    + '.fmx-row{background:#F6F7F9;border:1px solid #D0D7DE;border-radius:10px;padding:12px 14px;margin:8px 0 12px;font-size:18px;line-height:1.5}'
-    + '.fmx-row b{display:block;font-size:20px}'
-    + '.fmx-note{font-size:17px;color:#1F2328;margin-bottom:16px;line-height:1.5}'
+    + '.fmx-row{background:#F6F7F9;border:1px solid #D0D7DE;border-radius:10px;padding:10px 14px;margin:6px 0;font-size:17px;line-height:1.45}'
+    + '.fmx-row b{display:block;font-size:19px}'
+    + '.fmx-note{font-size:17px;color:#1F2328;margin:12px 0 16px;line-height:1.5}'
     + '.fmx-bt{display:flex;gap:10px}.fmx-bt button{flex:1;min-height:60px;border-radius:12px;font-size:20px;font-weight:900;cursor:pointer}'
     + '.fmx-yes{background:#C62828;color:#fff;border:0}.fmx-no{background:#fff;color:#1F2328;border:2px solid #ADB5BD}';
   document.head.appendChild(st);
-  const on = () => FLD.open && FLD.type === 'metal';
-  function addX() {
-    if (!on()) return;
-    document.querySelectorAll('#fld .fld-recs .fld-rec[data-f="editrow"]').forEach(b => {
-      if (b.querySelector('.fmx')) return;
-      b.classList.add('fmx-on');
-      const x = document.createElement('span'); x.className = 'fmx'; x.setAttribute('role', 'button'); x.setAttribute('aria-label', '이 줄 지우기'); x.title = '이 줄 지우기'; x.textContent = '✕';
-      b.appendChild(x); });
+  let MODE = false; const PK = new Set();
+  const on = () => FLD.open && FLD.type === 'metal' && FLD.step === 'type';
+  const recs = () => [...document.querySelectorAll('#fld .fld-recs .fld-rec[data-f="editrow"]')];
+  function paint() {
+    if (!on()) { MODE = false; PK.clear(); return; }
+    const list = recs(); const ids = new Set(list.map(b => b.dataset.id)); [...PK].forEach(id => { if (!ids.has(id)) PK.delete(id); });
+    list.forEach(b => { b.querySelectorAll('.fmx, .fmx-ck').forEach(e => e.remove()); b.classList.remove('fmx-on', 'fmx-pk', 'fmx-picked');
+      if (MODE) { b.classList.add('fmx-pk'); if (PK.has(b.dataset.id)) b.classList.add('fmx-picked');
+        const c = document.createElement('span'); c.className = 'fmx-ck'; c.textContent = PK.has(b.dataset.id) ? '✓' : ''; b.insertBefore(c, b.firstChild); }
+      else { b.classList.add('fmx-on'); const x = document.createElement('span'); x.className = 'fmx'; x.setAttribute('role', 'button'); x.setAttribute('aria-label', '이 줄 지우기'); x.title = '이 줄 지우기'; x.textContent = '✕'; b.appendChild(x); } });
     const h2 = [...document.querySelectorAll('#fld .fld-h2')].find(e => /오늘 기록/.test(e.textContent));
-    if (h2 && !/✕/.test(h2.textContent)) h2.textContent = '오늘 기록 — 눌러서 고치기 · ✕ 눌러서 지우기';
+    if (h2) { h2.textContent = MODE ? '오늘 기록 — 지울 줄을 눌러 고르세요' : '오늘 기록 — 눌러서 고치기 · ✕ 눌러서 지우기';
+      let bar = h2.nextElementSibling && h2.nextElementSibling.classList.contains('fmx-bar') ? h2.nextElementSibling : null;
+      if (!list.length) { if (bar) bar.remove(); }
+      else { if (!bar) { bar = document.createElement('div'); bar.className = 'fmx-bar'; h2.insertAdjacentElement('afterend', bar); }
+        bar.innerHTML = MODE ? '<button type="button" data-fmx="all">' + (PK.size === list.length ? '☐ 모두 풀기' : '☑ 모두 고르기') + '</button><button type="button" class="fmx-go" data-fmx="go"' + (PK.size ? '' : ' disabled') + '>🗑 ' + PK.size + '줄 지우기</button><button type="button" data-fmx="end">끝내기</button>'
+          : '<button type="button" class="fmx-st" data-fmx="start">☑ 여러 줄 골라 지우기</button>'; } }
     const sm = document.querySelector('#fld .rqbar small'); if (sm && !sm.querySelector('.fmx-ver')) { const v = document.createElement('span'); v.className = 'fmx-ver'; v.textContent = ' · ' + TAG; sm.appendChild(v); }
   }
-  function del(id) {
-    const g = fldLog('metal'); if (!g) return;
-    const i = (g.rows || []).findIndex(r => r.id === id); if (i < 0) { try { toast('이미 지워진 줄입니다'); } catch (e) {} return fieldRender(); }
-    const r = g.rows[i];
-    if (g.apAt) { g.hist = (g.hist || []).slice(-30); g.hist.push({ at: new Date().toISOString(), by: fldWk(), f: fldShort(r.name) + ' 줄 삭제', from: '', to: '', ap: g.apBy || '' }); g.apAt = ''; g.apBy = ''; }
-    g.del = (g.del || []).concat(r.id).slice(-300); g.rows.splice(i, 1);
+  function delMany(ids) {
+    const g = fldLog('metal'); if (!g) return 0; const gone = [];
+    ids.forEach(id => { const i = (g.rows || []).findIndex(r => r.id === id); if (i < 0) return; gone.push(g.rows[i]); g.rows.splice(i, 1); });
+    if (!gone.length) { try { toast('이미 지워진 줄입니다'); } catch (e) {} fieldRender(); return 0; }
+    if (g.apAt) { g.hist = (g.hist || []).slice(-30); g.hist.push({ at: new Date().toISOString(), by: fldWk(), f: gone.map(r => fldShort(r.name)).join(', ') + ' 줄 삭제', from: '', to: '', ap: g.apBy || '' }); g.apAt = ''; g.apBy = ''; }
+    g.del = (g.del || []).concat(gone.map(r => r.id)).slice(-300);
     try { ccpAutoDev(g); } catch (e) {}
-    ccpTouch(g); fieldRender();
-    try { toast('🗑 ' + fldShort(r.name) + ' ' + (r.time || '') + ' 줄을 지웠습니다', 2500); } catch (e) {}
+    ccpTouch(g); MODE = false; PK.clear(); fieldRender();
+    try { toast('🗑 ' + (gone.length === 1 ? fldShort(gone[0].name) + ' ' + (gone[0].time || '') + ' 줄을' : gone.length + '줄을') + ' 지웠습니다', 2500); } catch (e) {}
+    return gone.length;
   }
-  function ask(btn) {
-    const id = btn.dataset.id; const nm = (btn.querySelector('b') || {}).textContent || '', val = (btn.querySelector('span:not(.fmx)') || {}).textContent || '', who = (btn.querySelector('em') || {}).textContent || '';
+  function ask(ids) {
+    const list = recs().filter(b => ids.includes(b.dataset.id)); if (!list.length) return;
     const old = document.querySelector('.fmx-bg'); if (old) old.remove();
     const bg = document.createElement('div'); bg.className = 'fmx-bg';
-    bg.innerHTML = '<div class="fmx-card" role="dialog" aria-label="기록 지우기"><h3>[삭제] 이 줄을 지울까요?</h3><div class="fmx-row"><b></b><span></span></div>'
+    bg.innerHTML = '<div class="fmx-card" role="dialog" aria-label="기록 지우기"><h3></h3><div class="fmx-list"></div>'
       + '<div class="fmx-note">잘못 누르거나 두 번 저장된 줄만 지우세요. 지운 줄은 다른 기기와 K-HACCP 일지에서도 빠집니다.</div>'
-      + '<div class="fmx-bt"><button type="button" class="fmx-no">취소</button><button type="button" class="fmx-yes">🗑 지우기</button></div></div>';
-    bg.querySelector('.fmx-row b').textContent = nm; bg.querySelector('.fmx-row span').textContent = val + (who ? ' · ' + who : '');
-    bg.addEventListener('click', e => { if (e.target === bg || e.target.closest('.fmx-no')) { bg.remove(); return; } if (e.target.closest('.fmx-yes')) { bg.remove(); del(id); } });
+      + '<div class="fmx-bt"><button type="button" class="fmx-no">취소</button><button type="button" class="fmx-yes"></button></div></div>';
+    bg.querySelector('h3').textContent = list.length === 1 ? '[삭제] 이 줄을 지울까요?' : '[삭제] ' + list.length + '줄을 한 번에 지울까요?';
+    bg.querySelector('.fmx-yes').textContent = list.length === 1 ? '🗑 지우기' : '🗑 ' + list.length + '줄 지우기';
+    const box = bg.querySelector('.fmx-list');
+    list.forEach(b => { const d = document.createElement('div'); d.className = 'fmx-row'; const nb = document.createElement('b'); nb.textContent = (b.querySelector('b') || {}).textContent || '';
+      const sp = document.createElement('span'); const who = (b.querySelector('em') || {}).textContent || ''; sp.textContent = ((b.querySelector('span:not(.fmx):not(.fmx-ck)') || {}).textContent || '') + (who ? ' · ' + who : '');
+      d.appendChild(nb); d.appendChild(sp); box.appendChild(d); });
+    bg.addEventListener('click', e => { if (e.target === bg || e.target.closest('.fmx-no')) { bg.remove(); return; } if (e.target.closest('.fmx-yes')) { bg.remove(); delMany(list.map(b => b.dataset.id)); } });
     document.body.appendChild(bg);
   }
-  window.addEventListener('click', ev => { const x = ev.target.closest && ev.target.closest('#fld .fmx'); if (!x || !on()) return;
-    ev.preventDefault(); ev.stopImmediatePropagation(); const b = x.closest('.fld-rec'); if (b) ask(b); }, true);
+  window.addEventListener('click', ev => { if (!on() || !ev.target.closest) return;
+    const bt = ev.target.closest('#fld [data-fmx]');
+    if (bt) { ev.preventDefault(); ev.stopImmediatePropagation(); const a = bt.dataset.fmx;
+      if (a === 'start') { MODE = true; PK.clear(); }
+      else if (a === 'end') { MODE = false; PK.clear(); }
+      else if (a === 'all') { const list = recs(); if (PK.size === list.length) PK.clear(); else list.forEach(b => PK.add(b.dataset.id)); }
+      else if (a === 'go') { if (PK.size) ask([...PK]); return; }
+      return paint(); }
+    const x = ev.target.closest('#fld .fmx'); if (x && !MODE) { ev.preventDefault(); ev.stopImmediatePropagation(); const b = x.closest('.fld-rec'); if (b) ask([b.dataset.id]); return; }
+    if (MODE) { const b = ev.target.closest('#fld .fld-recs .fld-rec[data-f="editrow"]'); if (!b) return; ev.preventDefault(); ev.stopImmediatePropagation();
+      const id = b.dataset.id; if (PK.has(id)) PK.delete(id); else PK.add(id); paint(); } }, true);
   const _r = fieldRender;
-  fieldRender = function () { const out = _r.apply(this, arguments); try { addX(); } catch (e) {} return out; };
-  window.__fmDelX = { del, ask, VER, BUILT };
-  try { addX(); } catch (e) {}
+  fieldRender = function () { const out = _r.apply(this, arguments); try { paint(); } catch (e) {} return out; };
+  window.__fmDelX = { delMany, ask, VER, BUILT, mode: () => MODE };
+  try { paint(); } catch (e) {}
 })();
