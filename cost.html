@@ -8,76 +8,78 @@
 <link rel="icon" href="cost_192.png">
 <link rel="apple-touch-icon" href="cost_apple.png">
 <meta name="theme-color" content="#0D1C42">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
-:root{--br:#0D1C42;--br2:#22396F;--brl:#EEF2F8;--nv:#0D1C42;--nv2:#22396F;--bg:#F4F5F7;--th:#F1F3F7;--ink:#111827;--sub:#434B58;--line:#D5DAE2;--line2:#A9B3C1;--red:#C62828;--redl:#FDEDED;--org:#B35A00;--orgl:#FFF4E5;--grn:#2E7D32;--grnl:#E8F5E9;--blu:#1E5AA8;--blul:#EAF1FB}
+:root{--br:#0D1C42;--br2:#22396F;--brl:#EEF2F8;--nv:#0D1C42;--nv2:#22396F;--bg:#F4F5F7;--th:#F1F3F7;--ink:#0B1220;--sub:#2F3846;--line:#D5DAE2;--line2:#A9B3C1;--red:#C62828;--redl:#FDEDED;--org:#B35A00;--orgl:#FFF4E5;--grn:#2E7D32;--grnl:#E8F5E9;--blu:#1E5AA8;--blul:#EAF1FB}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",-apple-system,sans-serif;word-break:keep-all;overflow-wrap:break-word;line-break:strict}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 18px/1.7 "Pretendard Variable",Pretendard,"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",-apple-system,sans-serif;letter-spacing:-.2px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word;line-break:strict}
 .in{max-width:1000px;margin:0 auto}
 /* 맨 위 줄: 버전·업데이트 시각 */
-.util{background:var(--nv);color:#DCE3EF;font-size:15px}
+.util{background:var(--nv);color:#DCE3EF;font-size:16px}
 .util .in{padding:7px 16px;display:flex;justify-content:space-between;gap:4px 14px;flex-wrap:wrap;align-items:center}
 .util .ver{font-weight:700;color:#fff;white-space:nowrap}
-.util .ver b{display:inline-block;border:1px solid rgba(255,255,255,.7);border-radius:3px;padding:0 7px;margin-right:7px;font-size:14px}
+.util .ver b{display:inline-block;border:1px solid rgba(255,255,255,.7);border-radius:3px;padding:0 7px;margin-right:7px;font-size:15.5px}
 /* 제목 */
 .hdr{background:#fff;border-bottom:1px solid var(--line)}
 .hdr .in{padding:16px 16px 14px;display:flex;align-items:center;gap:14px}
 .hdr img{width:52px;height:52px;border-radius:8px;flex:none;border:1px solid var(--line)}
 .hdr h1{margin:0;font-size:27px;font-weight:800;color:var(--nv);letter-spacing:-.6px;line-height:1.25}
-.hdr .s{font-size:16px;color:var(--sub)}
+.hdr .s{font-size:17px;color:var(--sub)}
 /* 남색 머리띠 메뉴 */
 nav{background:var(--nv2);position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(13,28,66,.25)}
 nav .in{display:flex}
-nav button{flex:1;min-height:58px;border:0;border-bottom:4px solid transparent;border-top:4px solid transparent;background:none;color:#fff;font:inherit;font-size:18px;font-weight:700;cursor:pointer}
+nav button{flex:1;min-height:58px;border:0;border-bottom:4px solid transparent;border-top:4px solid transparent;background:none;color:#fff;font:inherit;font-size:19px;font-weight:700;cursor:pointer}
 nav button+button{border-left:1px solid rgba(255,255,255,.18)}
 nav button:hover{background:rgba(255,255,255,.08)}
 nav button.on{background:var(--nv);border-bottom-color:#fff}
 main{max-width:1000px;margin:0 auto;padding:0 16px 30px}
 /* 쪽 제목 */
 .ph{padding:22px 0 14px;border-bottom:2px solid var(--nv);margin-bottom:18px}
-.crumb{font-size:15px;color:var(--sub)}
-.ph h2{margin:2px 0 2px;font-size:29px;color:var(--nv);letter-spacing:-.6px;line-height:1.3}
-.ph p{margin:0;color:var(--sub);font-size:16.5px;text-wrap:pretty}
+.crumb{font-size:16px;color:var(--sub)}
+.ph h2{margin:2px 0 2px;font-size:31px;font-weight:800;color:var(--nv);letter-spacing:-.6px;line-height:1.3}
+.ph p{margin:0;color:var(--sub);font-size:17.5px;text-wrap:pretty}
 /* 상자 */
 .card{background:#fff;border:1px solid var(--line);border-top:3px solid var(--nv2);border-radius:4px;padding:18px 20px;margin-bottom:16px}
-.card h2{font-size:20.5px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid var(--line);display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;color:var(--nv);letter-spacing:-.3px}
-.card h2 .no{display:inline-flex;width:30px;height:30px;border-radius:3px;background:var(--nv);color:#fff;font-size:16px;align-items:center;justify-content:center;flex:none}
+.card h2{font-size:22px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid var(--line);display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;color:var(--nv);letter-spacing:-.3px}
+.card h2 .no{display:inline-flex;width:30px;height:30px;border-radius:3px;background:var(--nv);color:#fff;font-size:17px;align-items:center;justify-content:center;flex:none}
 .srch{background:var(--th);border:1px solid var(--line);border-radius:4px;padding:14px 16px;margin-bottom:16px}
-.help{color:var(--sub);font-size:16px;margin:0 0 12px;text-wrap:pretty}
-label.f{display:block;margin:12px 0 5px;font-weight:700;font-size:16.5px;color:var(--ink)}
-label.f small{font-weight:400;color:var(--sub);font-size:15px}
-input,select,textarea{font:inherit;font-size:18px;color:var(--ink);border:1px solid var(--line2);border-radius:4px;padding:10px 12px;min-height:52px;width:100%;background:#fff}
+.help{color:var(--sub);line-height:1.7;font-size:17px;margin:0 0 12px;text-wrap:pretty}
+label.f{display:block;margin:12px 0 5px;font-weight:700;font-size:17.5px;color:var(--ink)}
+label.f small{font-weight:500;color:var(--sub);font-size:16px}
+input,select,textarea{font:inherit;font-weight:600;letter-spacing:0;font-size:19px;color:var(--ink);border:1px solid var(--line2);border-radius:4px;padding:10px 12px;min-height:52px;width:100%;background:#fff}
 input:focus,select:focus,textarea:focus{outline:3px solid #BFD0EE;border-color:var(--nv2)}
 input.miss{border-color:var(--org);background:var(--orgl)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 14px}
-.btn{min-height:54px;border:1px solid var(--nv2);border-radius:4px;padding:0 20px;font:inherit;font-size:17px;font-weight:700;cursor:pointer;background:var(--nv2);color:#fff}
+.btn{min-height:54px;border:1px solid var(--nv2);border-radius:4px;padding:0 20px;font:inherit;font-size:18px;font-weight:700;cursor:pointer;background:var(--nv2);color:#fff}
 .btn:hover{background:var(--nv);border-color:var(--nv)}
 .btn.g{background:#fff;color:var(--nv2);border-color:var(--nv2)}
 .btn.g:hover{background:var(--brl)}
 .btn.gr{background:#fff;color:var(--ink);border-color:var(--line2)}
 .btn.gr:hover{background:var(--th)}
-.btn.sm{min-height:54px;font-size:16.5px;padding:0 16px}
+.btn.sm{min-height:54px;font-size:17.5px;padding:0 16px}
 .btn.del{background:#fff;color:var(--red);border-color:#E3A9A9}
 .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .bar>select{flex:1;min-width:220px}
-.chip{display:inline-block;font-size:14px;font-weight:700;border-radius:3px;padding:1px 8px;vertical-align:middle;border:1px solid}
+.chip{display:inline-block;font-size:15.5px;font-weight:700;border-radius:3px;padding:1px 8px;vertical-align:middle;border:1px solid}
 .chip.o{background:var(--orgl);color:var(--org);border-color:#F0C48C}
 .chip.g{background:var(--grnl);color:var(--grn);border-color:#A9D3AB}
 .chip.b{background:var(--blul);color:var(--blu);border-color:#AFC6E9}
 .chip.r{background:var(--redl);color:var(--red);border-color:#E9AFAF}
 /* 결과 */
 .res{background:#fff;border:1px solid var(--line);border-top:4px solid var(--nv);border-radius:4px;padding:20px;margin-bottom:16px}
-.res .lbl{font-size:17px;color:var(--sub);font-weight:700}
+.res .lbl{font-size:18px;color:var(--sub);font-weight:700}
 .res .big{font-size:50px;font-weight:800;color:var(--nv);line-height:1.15;letter-spacing:-1px}
 .res .big small{font-size:24px;margin-left:2px}
-.res .cmp{font-size:17px;margin-top:4px}
+.res .cmp{font-size:18px;margin-top:4px}
 .kp{display:grid;grid-template-columns:repeat(3,1fr);margin-top:16px;border-top:2px solid var(--nv);border-left:1px solid var(--line)}
 .kp div{border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column}
-.kp span{background:var(--th);font-size:15px;color:var(--sub);font-weight:700;padding:8px 12px;border-bottom:1px solid var(--line);flex:1}
-.kp b{display:block;font-size:22px;padding:9px 12px;white-space:nowrap}
-.warn,.note,.info{border-radius:4px;padding:12px 14px;margin-top:12px;font-size:16px;border:1px solid;border-left-width:5px}
-.warn::before,.note::before,.info::before{display:inline-block;font-size:13.5px;font-weight:800;color:#fff;border-radius:3px;padding:0 8px;margin-right:8px;vertical-align:1px}
+.kp span{background:var(--th);line-height:1.4;font-size:16px;color:var(--sub);font-weight:700;padding:8px 12px;border-bottom:1px solid var(--line);flex:1}
+.kp b{display:block;font-weight:800;font-size:22px;padding:9px 12px;white-space:nowrap}
+.warn,.note,.info{border-radius:4px;padding:12px 14px;margin-top:12px;font-size:17px;border:1px solid;border-left-width:5px}
+.warn::before,.note::before,.info::before{display:inline-block;font-size:15px;font-weight:800;color:#fff;border-radius:3px;padding:0 8px;margin-right:8px;vertical-align:1px}
 .warn{background:var(--redl);color:#8E1B1B;border-color:#E6A5A5;border-left-color:var(--red);font-weight:700}
 .warn::before{content:"주의";background:var(--red)}
 .note{background:var(--orgl);color:#7A3D00;border-color:#F0C48C;border-left-color:var(--org)}
@@ -86,68 +88,68 @@ input.miss{border-color:var(--org);background:var(--orgl)}
 .info::before{content:"참고";background:var(--blu)}
 /* 원가가 늘어나는 이유 */
 .wf{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center}
-.wf .t{font-size:17px;font-weight:700}
-.wf .t small{display:block;color:var(--sub);font-size:14.5px;line-height:1.4;font-weight:400}
-.wf .v{font-weight:800;white-space:nowrap;text-align:right;font-size:18px}
+.wf .t{font-size:18px;font-weight:700}
+.wf .t small{display:block;color:var(--sub);font-size:16px;line-height:1.45;font-weight:500;margin-top:1px}
+.wf .v{font-weight:800;white-space:nowrap;text-align:right;font-size:19px}
 .wf .bk{grid-column:1/3;height:10px;background:#E8ECF2;border-radius:2px;overflow:hidden;margin-bottom:10px;position:relative}
 .wf .bk i{position:absolute;top:0;bottom:0;border-radius:2px}
-.wf .tot{border-top:2px solid var(--nv);padding-top:10px;font-weight:800;font-size:19px;color:var(--nv)}
+.wf .tot{border-top:2px solid var(--nv);padding-top:10px;font-weight:800;font-size:20px;color:var(--nv)}
 /* 배합 표 */
 .ing{width:100%;border-collapse:collapse;border-top:2px solid var(--nv)}
-.ing th{background:var(--th);font-size:15.5px;color:var(--ink);text-align:left;font-weight:700;padding:10px 6px;border-bottom:1px solid var(--line2)}
+.ing th{background:var(--th);font-size:16.5px;color:var(--ink);text-align:left;font-weight:700;padding:10px 6px;border-bottom:1px solid var(--line2)}
 .ing td{padding:7px 6px;vertical-align:top;border-bottom:1px solid var(--line)}
 .ing td.n{width:38%}
 .ing td.g{width:17%}
 .ing td.p{width:21%}
 .ing td.a{width:16%;text-align:right;font-weight:700;padding-top:20px;white-space:nowrap}
 .ing td.x{width:46px}
-.ing .bp{font-size:14px;color:var(--sub);display:block;text-align:right;margin-top:2px}
-.ing .ps{font-size:14px;color:var(--sub);display:block;margin-top:3px;line-height:1.35}
+.ing .bp{font-size:15.5px;color:var(--sub);display:block;text-align:right;margin-top:2px}
+.ing .ps{font-weight:500;font-size:15.5px;color:var(--sub);display:block;margin-top:3px;line-height:1.35}
 .xb{width:44px;height:52px;border:0;background:none;color:#B33;font-size:26px;cursor:pointer}
-.sum{display:flex;justify-content:space-between;background:var(--th);border-top:2px solid var(--nv);border-bottom:1px solid var(--line2);margin-top:10px;padding:10px 12px;font-weight:800;font-size:18.5px}
+.sum{display:flex;justify-content:space-between;background:var(--th);border-top:2px solid var(--nv);border-bottom:1px solid var(--line2);margin-top:10px;padding:10px 12px;font-weight:800;font-size:19.5px}
 .presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.presets button{min-height:54px;min-width:64px;border:1px solid var(--line2);background:#fff;border-radius:4px;padding:0 14px;font:inherit;font-size:16.5px;font-weight:700;color:var(--ink);cursor:pointer}
+.presets button{min-height:54px;min-width:64px;border:1px solid var(--line2);background:#fff;border-radius:4px;padding:0 14px;font:inherit;font-size:17.5px;font-weight:700;color:var(--ink);cursor:pointer}
 .presets button.on{background:var(--nv2);color:#fff;border-color:var(--nv2)}
 .loss{border-top:1px solid var(--line);padding-top:8px;margin-top:12px}
 .loss:first-of-type{border-top:0}
 .seg{display:flex;gap:0}
-.seg button{flex:1;min-height:56px;border:1px solid var(--line2);background:#fff;font:inherit;font-size:16.5px;font-weight:700;color:var(--ink);cursor:pointer;line-height:1.3;padding:6px 8px}
+.seg button{flex:1;min-height:56px;border:1px solid var(--line2);background:#fff;font:inherit;font-size:17.5px;font-weight:700;color:var(--ink);cursor:pointer;line-height:1.3;padding:6px 8px}
 .seg button+button{border-left:0}
 .seg button:first-child{border-radius:4px 0 0 4px}
 .seg button:last-child{border-radius:0 4px 4px 0}
-.seg button small{font-weight:400;font-size:14px}
+.seg button small{font-weight:500;font-size:15.5px}
 .seg button.on{background:var(--nv2);color:#fff;border-color:var(--nv2)}
 /* 목록 */
-.lh{display:flex;justify-content:space-between;background:var(--th);border-top:2px solid var(--nv);border-bottom:1px solid var(--line2);padding:9px 12px;font-weight:700;font-size:15.5px}
+.lh{display:flex;justify-content:space-between;background:var(--th);border-top:2px solid var(--nv);border-bottom:1px solid var(--line2);padding:9px 12px;font-weight:700;font-size:16.5px}
 .it{display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:12px;cursor:pointer}
 .it:hover{background:#F7F9FC}
 .it .m{flex:1;min-width:0}
-.it .m b{display:block;font-size:18px;color:var(--nv)}
-.it .m span{font-size:15px;color:var(--sub)}
-.it .r{text-align:right;white-space:nowrap;font-weight:800;font-size:20px;color:var(--nv)}
+.it .m b{display:block;font-size:19px;color:var(--nv)}
+.it .m span{font-size:16px;color:var(--sub)}
+.it .r{text-align:right;white-space:nowrap;font-weight:800;font-size:21px;color:var(--nv)}
 .pi{border-bottom:1px solid var(--line);padding:12px 4px}
 .pi .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
-.pi .top b{font-size:17.5px}
+.pi .top b{font-size:18.5px}
 .pi .kg{font-weight:800;white-space:nowrap;color:var(--nv)}
-.pi .s{font-size:14.5px;color:var(--sub)}
+.pi .s{font-size:16px;color:var(--sub)}
 .pi .ed{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;margin-top:8px;align-items:end}
 #plist{border-top:2px solid var(--nv)}
-.lk{border:0;background:none;color:var(--blu);font:inherit;font-size:14.5px;font-weight:700;text-decoration:underline;padding:4px 0;cursor:pointer}
+.lk{border:0;background:none;color:var(--blu);font:inherit;font-size:16px;font-weight:700;text-decoration:underline;padding:4px 0;cursor:pointer}
 #olBg{position:fixed;inset:0;background:rgba(13,28,66,.5);z-index:60;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px}
 .olBox{background:#fff;border-radius:6px;border-top:5px solid var(--nv);padding:20px;max-width:660px;width:100%;margin:auto}
-#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--nv);color:#fff;padding:12px 20px;border-radius:4px;font-size:16px;opacity:0;transition:.3s;pointer-events:none;z-index:50}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--nv);color:#fff;padding:12px 20px;border-radius:4px;font-size:17px;opacity:0;transition:.3s;pointer-events:none;z-index:50}
 #toast.on{opacity:.96}
-footer{background:#E9ECF1;border-top:1px solid var(--line);color:#2F3744;font-size:15.5px}
+footer{background:#E9ECF1;border-top:1px solid var(--line);color:#2F3744;font-size:16.5px}
 footer .in{padding:18px 16px 28px;line-height:1.75}
 footer b{color:var(--nv)}
 .nw{white-space:nowrap}
 @media (max-width:620px){
- .util{font-size:14px}
+ .util{font-size:15.5px}
  .hdr .in{padding:12px 14px}
  .hdr img{width:44px;height:44px}
  .hdr h1{font-size:23px}
- .hdr .s{font-size:15px}
- nav button{font-size:17px;min-height:56px}
+ .hdr .s{font-size:16px}
+ nav button{font-size:18px;min-height:56px}
  main{padding:0 12px 24px}
  .ph{padding:16px 0 12px;margin-bottom:14px}
  .ph h2{font-size:24px}
@@ -155,7 +157,7 @@ footer b{color:var(--nv)}
  .res{padding:16px 14px}
  .res .big{font-size:42px}
  .kp{grid-template-columns:1fr 1fr}
- .kp b{font-size:20px}
+ .kp b{font-size:21px}
  .row3{grid-template-columns:1fr 1fr}
  .ing thead{display:none}
  .ing tr{display:grid;grid-template-columns:1fr 1fr 46px;gap:4px 8px;border-bottom:1px solid var(--line);padding:10px 0}
@@ -163,9 +165,13 @@ footer b{color:var(--nv)}
  .ing td.n{grid-column:1/3;width:auto}
  .ing td.x{grid-column:3;grid-row:1}
  .ing td.g,.ing td.p{width:auto}
- .ing td.a{grid-column:1/4;text-align:left;padding-top:0;width:auto}
+ .ing td.a{grid-column:1/4;text-align:left;padding-top:0;width:auto;font-size:19px}
+ .ing td.g::before,.ing td.p::before{display:block;font-size:15.5px;font-weight:700;color:var(--sub);margin-bottom:3px}
+ .ing td.g::before{content:"사용량 (g)"}
+ .ing td.p::before{content:"1kg 가격 (원)"}
+ .ing td.a:not(:empty)::before{content:"금액  ";font-size:16px;color:var(--sub)}
  .pi .ed{grid-template-columns:1fr 1fr}
- .seg button{font-size:16px}
+ .seg button{font-size:17px}
 }
 @media print{
  .util,.hdr,nav,footer,.noprint,.xb,.presets,#toast,.srch{display:none!important}
@@ -195,7 +201,7 @@ footer b{color:var(--nv)}
 <footer><div class="in" id="foot"></div></footer>
 <div id="toast"></div>
 <script>
-const APP_VER='v003', APP_BUILT='2026-11-11 10:27';
+const APP_VER='v004', APP_BUILT='2026-11-11 10:37';
 const LSK='drawbread_cost_key', LSP='drawbread_cost_prices';
 let PD=null, PSTAT='loading';
 try{const c=JSON.parse(localStorage.getItem(LSP)||'null');if(c&&c.data)PD=c.data}catch(e){}
@@ -526,7 +532,7 @@ function update(){
 
 /* 제품 목록 */
 function renderList(){
- const items=S.products.map(p=>{const c=calc(p);return `<div class="it" data-open="${p.id}"><div class="m"><b>${esc(p.name)}</b><span>${num(p.pieceW)}g · 재료만 ${num(c.A)}원 · ${new Date(p.updated||0).toLocaleDateString('ko-KR')} 수정</span></div><div class="r">${num(c.total)}원<br><span style="font-size:14px;color:var(--sub);font-weight:400">1개 현실 원가</span></div></div>`}).join('');
+ const items=S.products.map(p=>{const c=calc(p);return `<div class="it" data-open="${p.id}"><div class="m"><b>${esc(p.name)}</b><span>${num(p.pieceW)}g · 재료만 ${num(c.A)}원 · ${new Date(p.updated||0).toLocaleDateString('ko-KR')} 수정</span></div><div class="r">${num(c.total)}원<br><span style="font-size:15.5px;color:var(--sub);font-weight:500">1개 현실 원가</span></div></div>`}).join('');
  $('#app').innerHTML=pageHead('저장한 제품','이 기기에 저장된 제품 목록이에요. 누르면 계산 화면으로 열리고, 고친 내용은 자동 저장돼요.')+`
  <div class="card"><h2>제품 목록 <span class="chip b">${S.products.length}개</span></h2><div class="lh"><span>제품명</span><span>1개 현실 원가</span></div>${items}
   <button class="btn" id="lNew" style="width:100%;margin-top:10px">+ 새 제품 만들기</button></div>
@@ -589,8 +595,8 @@ function drawP(){
   const sub=[srcLine(x),x.cust&&x.src==='buy'?esc(x.cust):'',x.prev&&x.src==='buy'?`직전 ${won(x.prev)}`:'',x.s&&x.src!=='buy'?esc(x.s):'',x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">상품 보기</a>`:''].filter(Boolean).join(' · ');
   return `<div class="pi" data-pn="${esc(x.n)}"><div class="top"><div><b>${esc(x.n)}</b> ${chips}
    <div class="s">${pack} · ${sub}</div>${x.staleOv?'<div class="s" style="color:var(--blu)">이 기기에서 고친 값이 있었지만, 그 뒤 이카운트 매입가가 새로 들어와서 매입가를 써요.</div>':''}</div><div class="kg">${unit}</div></div>
-   <div class="ed"><div><label class="f" style="font-size:14px">포장 가격(원)</label><input type="number" inputmode="decimal" data-pe="p" value="${esc(x.p)}"></div>
-   <div><label class="f" style="font-size:14px">${!isP?'포장 무게(g)':'포장 안 개수'}</label><input type="number" inputmode="decimal" data-pe="${!isP?'g':'k'}" value="${esc(!isP?x.g:(x.k||1))}"></div>
+   <div class="ed"><div><label class="f" style="font-size:15.5px">포장 가격(원)</label><input type="number" inputmode="decimal" data-pe="p" value="${esc(x.p)}"></div>
+   <div><label class="f" style="font-size:15.5px">${!isP?'포장 무게(g)':'포장 안 개수'}</label><input type="number" inputmode="decimal" data-pe="${!isP?'g':'k'}" value="${esc(!isP?x.g:(x.k||1))}"></div>
    <button class="btn sm" data-psave>저장</button>${x.edited||x.custom?`<button class="btn gr sm" data-preset>${x.custom?'삭제':'매입가로'}</button>`:(!isP&&x.src!=='buy'&&x.src!=='fix'?'<button class="btn g sm" data-pon>온라인 찾기</button>':'<span></span>')}</div></div>`}).join('')||'<p class="help">찾는 품목이 없어요. 아래에서 추가하세요.</p>';
  $('#plist').onclick=e=>{const b=e.target.closest('button');if(!b)return;const pi=b.closest('[data-pn]'),n=pi.dataset.pn,store=isP?S.packs:S.prices;
   if(b.hasAttribute('data-psave')){const p=N(pi.querySelector('[data-pe=p]').value),qq=N(pi.querySelector(`[data-pe=${!isP?'g':'k'}]`).value);if(!(qq>0)){alert('무게(개수)를 넣어 주세요.');return}
@@ -622,12 +628,12 @@ function openOnline(name,done){
  const q0=name.replace(/\(.*?\)/g,'').replace(/[_]/g,' ').trim();
  const w=document.createElement('div');w.id='olBg';
  w.innerHTML=`<div class="olBox">
-  <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:20px">온라인에서 단가 찾기</h2><button class="xb" id="olX" style="color:var(--ink)">×</button></div>
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:21px">온라인에서 단가 찾기</h2><button class="xb" id="olX" style="color:var(--ink)">×</button></div>
   <label class="f">재료 이름 <small>(원가 계산에 쓰는 이름)</small></label><input id="olN" value="${esc(name)}" placeholder="예: 엑스트라버진 올리브오일">
   <label class="f">① 검색어</label><input id="olQ" value="${esc(q0)}">
   <div class="row2" style="margin-top:8px"><button class="btn" id="olC" style="background:#E3242B">쿠팡에서 찾기</button><button class="btn" id="olV" style="background:#03A94D">네이버쇼핑에서 찾기</button></div>
   <p class="help" style="margin-top:8px">새 창에서 상품을 고른 뒤 <b>공유 → 링크 복사</b>(또는 상품명·가격 복사)를 하고, 이 화면으로 돌아와 아래에 붙여 넣으세요.</p>
-  <label class="f">② 고른 상품 붙여넣기</label><textarea id="olT" rows="3" style="font-size:16.5px" placeholder="예: [쿠팡] 코끼리 올리브오일 엑스트라버진 1L x 2개 23,900원 https://link.coupang.com/..."></textarea>
+  <label class="f">② 고른 상품 붙여넣기</label><textarea id="olT" rows="3" style="font-size:17.5px" placeholder="예: [쿠팡] 코끼리 올리브오일 엑스트라버진 1L x 2개 23,900원 https://link.coupang.com/..."></textarea>
   <label class="f">상품명</label><input id="olTi">
   <div class="row2">
    <div><label class="f">판매 가격 <small>(원, 묶음 전체)</small></label><input id="olP" type="number" inputmode="decimal"></div>
@@ -635,7 +641,7 @@ function openOnline(name,done){
    <div><label class="f">총 용량 <small>(g, 묶음 전체)</small></label><input id="olG" type="number" inputmode="decimal" placeholder="상품명에서 자동"></div>
    <div><label class="f">링크</label><input id="olU" placeholder="https://"></div>
   </div>
-  <label style="display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:16px"><input type="checkbox" id="olVat" checked style="width:26px;min-height:26px;margin-top:2px"><span>부가세 빼고 계산 (가격 ÷ 1.1)<br><small style="color:var(--sub)">이카운트 매입가와 같은 기준. 밀가루·계란·채소처럼 가공하지 않은 농산물(면세)은 체크를 끄세요.</small></span></label>
+  <label style="display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:17px"><input type="checkbox" id="olVat" checked style="width:26px;min-height:26px;margin-top:2px"><span>부가세 빼고 계산 (가격 ÷ 1.1)<br><small style="color:var(--sub)">이카운트 매입가와 같은 기준. 밀가루·계란·채소처럼 가공하지 않은 농산물(면세)은 체크를 끄세요.</small></span></label>
   <div class="info" id="olR">가격과 용량을 넣으면 1kg 가격이 나와요.</div>
   <button class="btn" id="olOk" style="width:100%;margin-top:12px">이 가격으로 원가에 반영</button>
  </div>`;
