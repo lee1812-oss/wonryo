@@ -2396,9 +2396,9 @@
   const F_TP = [['fe', 'Fe 2.5mm 테스트피스', 'O'], ['sus', 'STS 3.5mm 테스트피스', 'O']];
   const F_IT = [['fe', 'Fe 테스트피스만', 'O'], ['sus', 'STS 테스트피스만', 'O'], ['p', '제품만 통과', 'X'], ['fep', '제품 + Fe', 'O'], ['susp', '제품 + STS', 'O']];
   const prods = () => { try { return fldProds(T) || []; } catch (e) { return []; } };
-  /* 품목 C의 세 줄 찾기 (코드 없는 옛 작업 전·후 줄은 첫 품목 것으로 봄) */
+  /* 품목 C의 세 줄 찾기 (2026-11-11 22:43 고침: 코드 없는 옛 작업 전·후 줄(11/10 이전처럼 한 번만 잰 날)은 모든 품목에 함께 보임 → 지난 날짜도 오늘처럼 품목마다 제품 확인을 넣을 수 있음. 전에는 첫 품목만 보여 둘째 품목은 「앞 단계 먼저」로 막혔음) */
   const rowsFor = (code) => { const g = fldLog(T); const rs = live(g); const ps = prods(); const first = ps[0] && ps[0].code === code;
-    const pick = k => rs.find(r => r.kind === k && r.code === code) || (first ? rs.find(r => r.kind === k && !r.code && r.time) : null);
+    const pick = k => rs.find(r => r.kind === k && r.code === code) || rs.find(r => r.kind === k && !r.code && r.time) || null; void first;
     const its = rs.filter(r => r.kind === 'item' && r.code === code);
     return { g, pre: pick('pre'), post: pick('post'), item: its.find(r => r.time) || null, tmpl: its.find(r => !r.time) || null, extra: its.filter(r => r.time).length }; };
   const doneOf = code => { const x = rowsFor(code); return !!(x.pre && x.pre.time && x.item && x.post && x.post.time); };
@@ -2410,6 +2410,8 @@
     const wk = fldWk(); if (!wk) { say('먼저 작업자(서명)를 고르세요'); FLD.back = 'type'; FLD.step = 'who'; fieldRender(); return false; }
     const date = fldD(), at = new Date().toISOString(); const x = rowsFor(p.code), g = x.g;
     let r = kind === 'pre' ? x.pre : kind === 'post' ? x.post : (x.item || x.tmpl);
+    /* 2026-11-11 옛 날 공용 작업 전·후 줄(코드 없음, 시각 있음)은 모든 품목이 함께 보므로 고칠 때 가져가지 않고 그 품목 줄을 새로 만든다 */
+    if (r && kind !== 'item' && !r.code && r.time) r = null;
     if (!r && kind !== 'item') { const fixed = live(g).find(z => z.kind === kind && !z.code && !z.time); if (fixed) { r = fixed; r.code = p.code; } }
     if (!r) { r = { id: 'm:' + kind + ':' + p.code, kind, code: p.code, name: kind === 'pre' ? '작업 전' : kind === 'post' ? '작업 후' : p.name, time: '', fe: '', sus: '' };
       if (kind === 'item') Object.assign(r, { id: 'm:' + p.code + ':' + Date.now().toString(36), p: '', fep: '', susp: '' });
@@ -2772,7 +2774,7 @@
    - 윗줄: 화면 폭이 좁으면 단계적으로 줄인다(1 여백 → 2 글자 숨김(아이콘만) → 3 글자 작게 → 4 더 작게 → 5 전체 축소). 줄바꿈이 없어질 때까지.
    - 기록·버튼 동작은 건드리지 않는다. 이 블록을 지우면 예전 모양으로 돌아간다. */
 (function () { if (!window.FIELD_APP) return;
-  const FHX_VER = 'v003', FHX_BUILT = '2026-11-11 20:41';
+  const FHX_VER = 'v004', FHX_BUILT = '2026-11-11 22:43';
   const st = document.createElement('style');
   st.textContent = [
     '#fld .fld-top{flex-wrap:wrap;row-gap:4px}',
