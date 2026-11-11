@@ -2306,7 +2306,7 @@
     const draw = () => { const shown = typed ? (typed + '____').slice(0, 4).replace(/^(..)(..)$/, '$1:$2') : v;
       const wide = innerWidth > innerHeight * 1.2, H = wide ? 'min-height:' + Math.max(40, Math.min(56, Math.floor(innerHeight / 13))) + 'px;' : 'min-height:56px;';
       const B = H + 'font-size:1.2em;font-weight:800;border-radius:12px;border:2px solid #ADB5BD;background:#fff;color:#1F2328';
-      const left = '<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:2px 0 8px"><span style="font-size:1.1em;color:#343A40;font-weight:700">' + esc(old) + ' →</span><span style="font-size:' + (wide ? '2.4em' : '3em') + ';font-weight:900;letter-spacing:1px;color:#0B3D91">' + esc(shown) + '</span></div>'
+      const left = (window.__metalRef ? window.__metalRef(row.id, kind) : '') + '<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:2px 0 8px"><span style="font-size:1.1em;color:#343A40;font-weight:700">' + esc(old) + ' →</span><span style="font-size:' + (wide ? '2.4em' : '3em') + ';font-weight:900;letter-spacing:1px;color:#0B3D91">' + esc(shown) + '</span></div>'
         + '<div style="display:grid;grid-template-columns:repeat(' + (wide ? 2 : 4) + ',1fr);gap:8px;margin-bottom:8px">' + [-5, -1, 1, 5].map(d => '<button type="button" data-d="' + d + '" style="' + B + '">' + (d > 0 ? '+' : '−') + Math.abs(d) + '분</button>').join('') + '</div>'
         + '<button type="button" data-now="1" style="' + B + ';width:100%">지금 시각 ' + esc(fldHM()) + '</button>';
       const right = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">' + ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map(k => '<button type="button" data-k="' + k + '" style="' + B + '">' + k + '</button>').join('') + '</div>'
@@ -2372,4 +2372,34 @@
       it.parentElement.insertAdjacentHTML('beforebegin', '<div class="fnext" style="margin:6px 0 8px;padding:10px 14px;border-radius:12px;background:' + (ms.length ? '#FFF3BF;color:#7A4A00' : '#D3F9D8;color:#1B5E20') + ';font-weight:800;font-size:1.05em;word-break:keep-all">' + msg + '</div>');
       try { fldFit(); } catch (e) {} } catch (e) {} return out; };
   try { fieldRender(); } catch (e) {}
+})();
+
+/* ── 2026-11-11 (Aside) 금속검출 시각 고칠 때 다른 점검 시각을 같이 보여 주기 (사용자 「작업 후 점검 시간을 고칠 때 작업 전 점검 시간이 보이면 편하겠다」) ──
+   시각 고치기 창(작업 전·작업 후 칸 누르기)과 고치기 화면(시간 수정·Fe·STS 결과까지 고치기) 맨 위에
+   「🟢 작업 전 16:13 · ⏱ 제품 확인 17:19 · 🏁 작업 후 …」와 「이 시각 이후/이전으로」 안내를 크게 보여 준다. 보기만 하고 저장하는 것은 없음. */
+(function () { if (!window.FIELD_APP) return;
+  const live = g => { const D = new Set((g && g.del) || []); return ((g && g.rows) || []).filter(r => !D.has(r.id)); };
+  const mm = t => { const m = /^(\d{2}):(\d{2})$/.exec(t || ''); return m ? +m[1] * 60 + +m[2] : null; };
+  window.__metalRef = function (exceptId, kind) { try {
+    const rs = live(fldLog('metal')); const pre = rs.find(r => r.kind === 'pre' && r.time), post = rs.find(r => r.kind === 'post' && r.time), its = rs.filter(r => r.kind === 'item' && r.time).sort((a, b) => mm(a.time) - mm(b.time));
+    const line = (ico, lb, v, hi) => '<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0' + (hi ? ';color:#0B3D91' : '') + '"><span>' + ico + ' ' + lb + '</span><b style="font-size:1.25em">' + v + '</b></div>';
+    let h = '';
+    if (pre) h += line('🟢', '작업 전 점검', esc(pre.time) + (pre.id === exceptId ? ' (지금 고치는 중)' : ''), kind === 'post');
+    const grp = {}; its.forEach(r => { (grp[r.code] = grp[r.code] || { n: r.name, t: [] }).t.push(r.time); });
+    Object.values(grp).forEach(x => { const u = [...new Set(x.t)]; h += line('⏱', esc(fldShort(x.n)) + ' 제품 확인' + (x.t.length > 1 ? ' ' + x.t.length + '회' : ''), esc(u.length > 3 ? u[0] + ' ~ ' + u[u.length - 1] : u.join(' · '))); });
+    if (post) h += line('🏁', '작업 후 점검', esc(post.time) + (post.id === exceptId ? ' (지금 고치는 중)' : ''), kind === 'pre');
+    if (!h) return '';
+    const times = its.map(r => mm(r.time)); let rule = '';
+    if (kind === 'post') { const lo = Math.max(...[pre ? mm(pre.time) : -1, ...times]); if (lo >= 0) rule = '작업 후 점검은 <b>' + String(Math.floor(lo / 60)).padStart(2, '0') + ':' + String(lo % 60).padStart(2, '0') + '</b> 이후로'; }
+    if (kind === 'pre') { const hi = Math.min(...[post ? mm(post.time) : 1e9, ...times]); if (hi < 1e9) rule = '작업 전 점검은 <b>' + String(Math.floor(hi / 60)).padStart(2, '0') + ':' + String(hi % 60).padStart(2, '0') + '</b> 이전으로'; }
+    return '<div class="fmref" style="margin:0 0 10px;padding:10px 14px;border-radius:12px;background:#E7F0FF;border:2px solid #A5C8FF;color:#1F2328;font-weight:700;font-size:1.05em;word-break:keep-all">'
+      + '<div style="font-size:.9em;color:#343A40;margin-bottom:2px">오늘 금속검출 기록</div>' + h + (rule ? '<div style="margin-top:4px;color:#7A4A00">👉 ' + rule + '</div>' : '') + '</div>';
+  } catch (e) { return ''; } };
+  const _r = fieldRender;
+  fieldRender = function () { const out = _r.apply(this, arguments);
+    try { if (!FLD.open || FLD.type !== 'metal' || FLD.step !== 'form' || !(FLD.mode === 'pre' || FLD.mode === 'post')) return out;
+      const body = document.querySelector('#fld .fpc-main') || document.querySelector('#fld .fld-body'); if (!body || body.querySelector('.fmref')) return out;
+      const html = window.__metalRef(FLD.rowId || (FLD.mode === 'pre' ? 'm:pre' : 'm:post'), FLD.mode); if (!html) return out;
+      const at = body.querySelector('.frw-edit-note') || body.querySelector('.frw-bar') || body.querySelector('h1'); if (at) at.insertAdjacentHTML('afterend', html); else body.insertAdjacentHTML('afterbegin', html);
+      try { fldFit(); } catch (e) {} } catch (e) {} return out; };
 })();
