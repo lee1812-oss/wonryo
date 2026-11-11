@@ -112,6 +112,12 @@
 
   /* ── 미리보기 창 ── */
   let box = null, cur = '';
+  /* 화면 흔들림 고정 v001 (2026-11-12 00:21): 키오스크에서 세로 스크롤바가 생겼다 없어졌다 하며 화면 폭이 바뀌어 글자·카드가 계속 움직이던 문제.
+     스크롤바를 보이지 않게만 해서 폭이 늘 같게 한다(손가락·마우스 휠로 내리기는 그대로 됨). 이 3줄을 지우면 원래대로. */
+  const SB_VER = 'v001', SB_BUILT = '2026-11-12 00:21';
+  const sbcss = document.createElement('style'); sbcss.id = 'fld-noscrollbar';
+  sbcss.textContent = 'html,body,#fld,#fld *{scrollbar-width:none!important}html::-webkit-scrollbar,body::-webkit-scrollbar,#fld::-webkit-scrollbar,#fld *::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}#fld{overscroll-behavior:none}';
+  document.head.appendChild(sbcss);
   const css = document.createElement('style');
   css.textContent = '#fld .rqbar button[data-fp-open]{background:#FFE066;color:#1f1f1f;border:3px solid #1C5DB8}' +
     '/* v002 높이 맞춤: 일지 출력 = 말로 개선 요청 64px, 윗줄(로고·영상통화·‹ 날짜 ›·이름 등) 같은 높이 */' +
@@ -164,7 +170,7 @@
   fldHead = function () {
     let h = oldHead.apply(this, arguments);
     const tag = '<button type="button" data-rq-open="1">';
-    if (h.includes(tag)) { h = h.replace(tag, BTN + tag).replace(/(<div class="rqbar"><small>[^<]*)(<\/small>)/, '$1 · 일지 출력 ' + VER + ' · ' + BUILT + '$2'); return h; }
+    if (h.includes(tag)) { h = h.replace(tag, BTN + tag).replace(/(<div class="rqbar"><small>[^<]*)(<\/small>)/, '$1 · 일지 출력 ' + VER + ' · ' + BUILT + ' · 화면 흔들림 고정 ' + SB_VER + ' · ' + SB_BUILT + '$2'); return h; }
     const end = h.lastIndexOf('</div>'); if (end < 0) return h;
     return h.slice(0, end) + '<div class="rqbar"><small>일지 출력 ' + VER + ' · 업데이트 ' + BUILT + '</small>' + BTN + '</div>' + h.slice(end);
   };
