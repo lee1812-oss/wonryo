@@ -261,6 +261,38 @@ body.v-m.t-calc #mbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-inde
 body.v-m.t-calc main{padding-bottom:30px}
 body.v-m.t-calc footer{padding-bottom:96px}
 body.v-m.t-calc #toast{bottom:104px}
+/* v008 여백·품질 */
+:root{--bg:#F2F4F8;--line:#DFE4EC;--sh:0 1px 2px rgba(16,24,40,.05),0 2px 8px rgba(16,24,40,.06)}
+body.v-pc .in,body.v-pc main{max-width:1180px}
+.colR{scrollbar-width:thin;scrollbar-color:#C5CCD8 transparent;padding-right:2px}
+body.v-pc .util .in,body.v-pc .hdr .in,body.v-pc nav .in{padding-left:clamp(24px,4vw,64px);padding-right:clamp(24px,4vw,64px);box-sizing:content-box}
+body.v-pc main{padding:0 clamp(24px,4vw,64px) 48px;box-sizing:content-box}
+body.v-pc footer .in{padding:24px clamp(24px,4vw,64px) 36px;box-sizing:content-box}
+body.v-pc nav button{flex:none;min-width:180px;padding:0 28px}
+body.v-pc nav button:last-child{border-right:1px solid rgba(255,255,255,.18)}
+.hdr .in{padding-top:20px;padding-bottom:18px}
+.ph{padding:28px 0 18px;margin-bottom:24px;border-bottom:1px solid var(--line2)}
+.ph h2{margin:4px 0 6px}
+.card{border:1px solid var(--line);border-top:3px solid var(--nv2);border-radius:8px;padding:22px 26px;margin-bottom:20px;box-shadow:var(--sh)}
+.card h2{padding-bottom:12px;margin-bottom:16px}
+.res{border:1px solid var(--line);border-top:4px solid var(--nv);border-radius:8px;padding:24px 26px;margin-bottom:20px;box-shadow:var(--sh)}
+.srch{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px 22px;margin-bottom:22px;box-shadow:var(--sh)}
+.calcGrid,.listGrid,.priceGrid{gap:28px}
+.colR,.boxNav,.priceGrid>.card:last-child{top:84px}
+.boxNav{border-radius:8px;box-shadow:var(--sh);padding:12px}
+.bxn{border-radius:6px}
+input,select,textarea{border-radius:6px}
+.btn,.presets button,.vsw button{border-radius:6px}
+.seg button:first-child{border-radius:6px 0 0 6px}.seg button:last-child{border-radius:0 6px 6px 0}
+.kp{border-radius:6px;overflow:hidden;border:1px solid var(--line);border-top:2px solid var(--nv)}
+.kp div:nth-child(3n){border-right:0}
+body.v-pc .colR .kp div:nth-child(3n){border-right:1px solid var(--line)}
+body.v-pc .colR .kp div:nth-child(2n){border-right:0}
+.warn,.note,.info{border-radius:6px}
+.olBox{border-radius:10px}
+body.v-m main{padding:0 16px 30px}
+body.v-m .card,body.v-m .res{padding:18px 16px;margin-bottom:16px}
+body.v-m .srch{padding:14px 16px}
 @media print{
  #mbar,.boxNav,.vsw,.tgl,.ssum,.srch{display:none!important}
  .calcGrid,.listGrid,.priceGrid,.g2{display:block!important}
@@ -295,7 +327,7 @@ body.v-m.t-calc #toast{bottom:104px}
 <div id="mbar" class="noprint"></div>
 <div id="toast"></div>
 <script>
-const APP_VER='v007', APP_BUILT='2026-11-11 15:34';
+const APP_VER='v008', APP_BUILT='2026-11-12 20:16';
 const LSK='drawbread_cost_key', LSP='drawbread_cost_prices';
 let PD=null, PSTAT='loading';
 try{const c=JSON.parse(localStorage.getItem(LSP)||'null');if(c&&c.data)PD=c.data}catch(e){}
