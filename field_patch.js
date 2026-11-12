@@ -1741,8 +1741,20 @@
   const STD = {"DBA_29":{"n":"DB.빅몽블랑 16EA","k":34,"m":[["SD_01","데니쉬스틱 생지(몽블랑) 200g*20EA",20,0.8,100],["SD_01_01","데니쉬스틱 생지(몽블랑) 25g_분할생지",0,16,53],["CH.1225_0","미로와데코젤","g",8,100]]},"DB114":{"n":"DB.구운 밀소금빵 BOX(60EA*50g)","k":17,"m":[["GK26","G.밀소금빵 생지 BOX (60g*100EA)",100,0.6,100],["CH.B23_0","펄솔트","g",15,100]]},"DB_02":{"n":"Db.데니쉬200몽블랑생지(Mont Blanc) 20EA","k":14,"m":[["SD_01","데니쉬스틱 생지(몽블랑) 200g*20EA",20,1,100]]},"DB001":{"n":"Db.마늘소스(육쪽마늘빵)_기본배합","k":29,"m":[["CH.27_0","파슬리","g",60,100],["CH.05_0","다진마늘","g",800,100],["CH.123_0","생크림(에버휩/비앙코)","g",1080,100],["LH.5_0","연유(건국)","g",1080,100],["SC02_0","냉동전란(에그앤리치)","g",1300,100],["CH.000_0","마요네즈","g",1840,100],["CH.A10_0","하얀설탕","g",3200,100],["LH.2_0","마가린","g",5600,100]]},"DBA12":{"n":"DB.육쪽마늘빵 36EA","k":17,"m":[["BM22","바게트롤(하드롤) 100g*48EA",48,0.751,100]]},"DB002":{"n":"Db.크림소스(육쪽마늘빵)_기본배합","k":25,"m":[["CH.08_0","머스타드","g",500,100],["CH.05_0","다진마늘","g",1600,100],["CH.A10_0","하얀설탕","g",2000,100],["CH.123_0","생크림(에버휩/비앙코)","g",6000,100],["LH.1_0","크림치즈(엘로이/스미스/JHL)","g",10880,100]]},"DBA_12":{"n":"Db.치즈듬뿍 마늘바게트 36EA","k":7,"m":[["BM02","반미바게트 95g*36EA",36,1,100]]},"DBA22":{"n":"DB.몽블랑 24EA","k":43,"m":[["SD_01","데니쉬스틱 생지(몽블랑) 200g*20EA",20,1.2308,100],["CH.1225_0","미로와데코젤","g",8,98]]},"DB_585":{"n":"DB.구운크로와상78 24EA","k":13,"m":[["SD_174","DB.크로와상78생지 100EA",100,0.25,85],["CH.B01_0","우유(수입/건국)","g",100,31]]},"DBA44":{"n":"DB.빅크로와상 36EA","k":7,"m":[["SD17","빅크로와상 생지 90g*24EA",24,1.5,100],["CH.B01_0","우유(수입/건국)","g",75,57],["SC02_0","냉동전란(에그앤리치)","g",5,43]]},"SD50":{"n":"DB.마늘바게트 BOX(36EA)","k":4,"m":[["BM02","반미바게트 95g*36EA",36,1,100]]},"DB100":{"n":"DB.구운 밀소금빵 1EA (50g)","k":5,"m":[["GK26_1","G.밀소금빵 생지 1EA (60g)",1,1,60],["CH.B23_0","펄솔트","g",0.2,40]]},"DB2000":{"n":"DB.현미찰생지 65g*30EA","k":1,"m":[["CH.01_0","꽃소금","g",6,100],["CH.A10_0","하얀설탕","g",17.9,100],["CH.95_0","양조간장","g",23.9,100],["CH.247_0","검정깨 1kg","g",29.9,100],["CH.139_0","식용유","g",53.8,100],["CH.202_0","파인소프트-202","g",119.5,100],["IC01_0","볶은현미가루","g",119.5,100],["CH.30_0","쇼트닝 4500","g",209.1,100],["SC02_0","냉동전란(에그앤리치)","g",298.7,100],["CH.07_0","파인소프트T","g",746.7,100]]},"DBG1":{"n":"DB.구운 골든 통밀소금빵 BOX(60EA)","k":9,"m":[["GM-02","GM.골든 통밀소금빵 생지 BOX(72g*80EA)",80,0.75,100],["CH.B23_0","펄솔트","g",17.5,100]]},"DBA4":{"n":"DB.빅크로와상 1EA","k":1,"m":[["SD17","빅크로와상 생지 90g*24EA",24,0.0417,100]]}};
   /* 낱개·비상품 → [박스 제품, 박스 들이] : 박스 1단위 사용량 ÷ 들이 */
   const SIB = {"DBA2":["DBA22",24],"NP_DBA2":["DBA22",24],"DBA_22":["DBA_29",16],"NP_DBA_22":["DBA_29",16],"DAB4":["DB_585",24],"NP_DB100":["DB114",60],"NP_DBG1_1":["DBG1",60],"DBG1_1":["DBG1",60],"DBA1":["DBA12",36],"DB_03_1":["DB_02",20]};
+  /* ── v002 (2026-11-13 Aside, 사용자 「굴뚝빵 생지·쌀소금빵이 없어. 기존 생산일지를 조회해서 빠진 것이 없도록」) ──
+     이카운트 생산입고/소모 기록 2026/04/01~11/12(525건)과 통합재고관리 생산 품목 목록을 대조해 「＋ 제품 넣기」에 빠진 제품을 모두 넣음.
+     ① 쌀소금빵 BOX(DB111): 생산 기록 2번(4/7·4/9) → 생지 1박스(100개)당 0.6, 펄솔트 15g (같은 규격 밀소금빵 DB114와 같은 비율). 낱개 DB111_1은 ÷60.
+     ② 굴뚝빵 생지(DBS31): 이카운트 생산 기록 없음 → 배합표(2026-10-26 원가 보고, 1배합 3,118g)를 30개×115g으로 환산한 값.
+        미리 채우지 않음(0) — 원료마다 「평소대로」를 눌러야 들어감. 계란은 냉동전란으로, 세미드라이이스트는 드라이이스트(골드)로 잡음(확인 필요).
+     ③ 생산 기록·품목 목록에만 있던 제품(분할생지, 3pk 박스, 미니 몽블랑 등)은 평소 값 없이 고르기만 가능.
+     ④ 그날 생산량 입력으로 보낸 제품은 평소 값이 없어도 「만든 제품」에 들어옴(전에는 평소 값 있는 제품만). */
+  STD.DB111 = { n: 'DB.구운 쌀소금빵 BOX(50g*60ea)', k: 2, m: [['GK24', 'G.쌀소금빵 생지 BOX (60g*100EA)', 100, 0.6, 100], ['CH.B23_0', '펄솔트', 'g', 15, 100]] };
+  STD.DBS31 = { n: 'D.굴뚝빵 생지 115g*30EA', k: 0, src: '배합표 기준 (이카운트 생산 기록 없음)', m: [["CH.A06_0","K블레소레이유","g",1327.8,0],["CH.A01_0","프랑스밀가루T65","g",243.4,0],["BK_01","게랑드 소금","g",33.2,0],["CH.G02-1_0","드라이이스트(골드)","g",22.1,0],["CH.A10_0","하얀설탕","g",110.6,0],["CP_01_0","코코넛슈가","g",33.2,0],["CH.B22_0","S500개량제","g",42,0],["SC02_0","냉동전란(에그앤리치)","g",221.3,0],["CH.139_0","식용유","g",66.4,0],["LH26_0","고메버터(이즈니/엘르엔)","g",464.7,0],["CH.B01_0","우유(수입/건국)","g",885.2,0]] };
+  SIB.DB111_1 = ['DB111', 60];
+  const EXN = {"NP_DBG1_1":"[비상품] DB.구운 골든 통밀소금빵 1EA","DB_03_1":"Db.데니쉬200몽블랑생지(Mont Blanc) 1EA","DB111_1":"DB.구운 쌀소금빵 1EA (50g)","SD_01_01":"데니쉬스틱 생지(몽블랑) 25g_분할생지","DB_03":"Db.데니쉬200몽블랑생지(Mont Blanc) Box(20EA*3pk)","GK100":"G.밀소금빵 생지 BOX (60g*100EA)","556SD":"S크로와상55 생지 55g*40EA","DBAS24":"DB.미니 몽블랑빵 BOX(80G*60EA)"};
+  const pickCodes = () => { const s = new Set(Object.keys(STD).concat(Object.keys(SIB), Object.keys(EXN))); try { (prodS().items || []).forEach(it => { if (it && it.code && it.on !== false) s.add(it.code); }); } catch (e) {} return [...s]; };
   const RED = '#C8102E';
-  const XV = 'v001', XB = '2026-11-09 16:54';   /* 소비기한·인쇄 (2026-11-09 Aside, 사용자 「이카운트 생산일지의 베이스인 입력 영역에 소비기한 입력과 인쇄」) */
+  const XV = 'v002', XB = '2026-11-13 07:50';   /* 소비기한·인쇄 (2026-11-09 Aside, 사용자 「이카운트 생산일지의 베이스인 입력 영역에 소비기한 입력과 인쇄」) */
   const st = document.createElement('style');
   st.textContent = ''
     + '#ec2{position:fixed;inset:0;z-index:99990;background:#16233F;overflow:auto;-webkit-overflow-scrolling:touch;font-family:Pretendard,"Noto Sans KR","Malgun Gothic",sans-serif;font-weight:600;color:#1E2A4A;word-break:keep-all}'
@@ -1804,9 +1816,11 @@
   const short = n => String(n || '').replace(/^(\[비상품\]\s*)?(D|DB|Db|G|GM|SD)\.\s*/, '$1').replace(/_gg\d+$/, '').trim();
   const whoNow = () => { try { return fldWk() || (S.settings && S.settings.reporter) || ''; } catch (e) { return ''; } };
   const std = code => { if (STD[code]) return { m: STD[code].m, div: 1, from: '' }; const s = SIB[code]; if (s && STD[s[0]]) return { m: STD[s[0]].m, div: s[1], from: s[0] }; return null; };
-  const prodName = code => { try { const it = prodItem(code); if (it && it.name) return it.name; } catch (e) {} return (STD[code] && STD[code].n) || code; };
+  const prodName = code => { try { const it = prodItem(code); if (it && it.name) return it.name; } catch (e) {} return (STD[code] && STD[code].n) || EXN[code] || code; };
   /* 원료 목록(추가용): 표준 자료에 나온 모든 원료 */
   const MATS = {}; Object.values(STD).forEach(p => p.m.forEach(m => { if (!MATS[m[0]]) MATS[m[0]] = { c: m[0], n: m[1], u: m[2] }; }));
+  /* v002: 원료 넣기 목록에 생산실 원재료 이름표(2026-10-29 이카운트 g 품목)와 생산 기록에 나온 g 원료를 더함 */
+  [["CH.A12_0","강력밀가루(코끼리)","g"],["CH.A13_0","중력밀가루(곰표)","g"],["MS24_0","박력밀가루","g"],["CH.A01_0","프랑스밀가루T65","g"],["CH.A06_0","K블레소레이유","g"],["CH.28_0","아몬드분말","g"],["CH.A10_0","하얀설탕","g"],["CP_01_0","코코넛슈가","g"],["GNFS69_0","벌꿀(잡화/사양)","g"],["CH.01_0","꽃소금","g"],["BK_01","게랑드 소금","g"],["CH.B2_01","탈지분유(서울)","g"],["CH.B01_0","우유(수입/건국)","g"],["LH26_0","고메버터(이즈니/엘르엔)","g"],["LH25_1","앵커버터(엔지그래스)","g"],["LH.2_0","마가린","g"],["SC02_0","냉동전란(에그앤리치)","g"],["CH.G02-1_0","드라이이스트(골드)","g"],["CH.B22_0","S500개량제","g"],["CH.25_1","몰트엑기스(액상,선인)","g"],["CH.139_0","식용유","g"],["GFS09_0","올리브유","g"],["CH.B23_0","펄솔트","g"],["AL01_0","특란","g"],["CH.95_0","양조간장","g"],["CH.247_0","검정깨","g"],["CH.202_0","파인소프트-202","g"],["IC01_0","볶은현미가루","g"],["CH.30_0","쇼트닝 4500","g"],["CH.07_0","파인소프트T","g"]].forEach(m => { if (!MATS[m[0]]) MATS[m[0]] = { c: m[0], n: m[1], u: m[2] }; });
   /* 화면 단위: g → g, 포장 들이를 알면 「개」(이카운트 수량 = 개 ÷ 들이), 모르면 이카운트 수량 그대로 */
   const unitOf = u => u === 'g' ? 'g' : (u > 1 ? '개' : '');
   const toShow = (u, ec) => u === 'g' ? Math.round(ec) : (u > 1 ? Math.round(ec * u * 10) / 10 : r1(ec, 3));
@@ -1869,13 +1883,13 @@
   function prodOf(d) {
     const dr = draft(d); if (dr && dr.prod) return dr.prod;
     const q = store().req[d]; if (q && q.prod && q.x !== 0 && !(dr && dr.fresh)) { const o = {}; q.prod.forEach(p => { o[p.c] = p.q; }); return o; }
-    const o = {}; try { const by = ccpProdByDate()[d] || {}; Object.values(by).forEach(x => { if (x.ec > 0 && std(x.code)) o[x.code] = r1(x.ec, 3); }); } catch (e) {} return o;
+    const o = {}; try { const by = ccpProdByDate()[d] || {}; Object.values(by).forEach(x => { if (x.ec > 0 && x.code) o[x.code] = r1(x.ec, 3); }); } catch (e) {} return o;
   }
   /* 평소대로 계산한 원료 사용량(이카운트 수량): 자주 쓰는 것(≥60%)과 가끔 쓰는 것 */
   function calc(prod) {
     const out = {};
     Object.entries(prod).forEach(([code, q]) => { const s = std(code); if (!s || !(q > 0)) return;
-      s.m.forEach(m => { const o = out[m[0]] || (out[m[0]] = { c: m[0], n: m[1], u: m[2], ec: 0, occ: 0, by: [] }); const v = q * m[3] / s.div; if (m[4] >= 60) { o.ec += v; o.by.push(short(prodName(code))); } else o.occ += v; }); });
+      s.m.forEach(m => { const o = out[m[0]] || (out[m[0]] = { c: m[0], n: m[1], u: m[2], ec: 0, occ: 0, by: [] }); const v = q * m[3] / s.div; if (m[4] >= 60) { o.ec += v; o.by.push(short(prodName(code))); } else { o.occ += v; if (STD[code] && STD[code].src) o.rcp = 1; } }); });
     return out;
   }
   function rows(d) {
@@ -1885,7 +1899,7 @@
     return [...codes].map(c => { const k = C[c] || { c, n: (MATS[c] || saved[c] || {}).n || c, u: (MATS[c] || saved[c] || {}).u ?? 0, ec: 0, occ: 0, by: [] };
       const usual = toShow(k.u, k.ec), occ = toShow(k.u, k.occ);
       let v = dr.cons && dr.cons[c] != null ? dr.cons[c] : (saved[c] ? saved[c].v : usual);
-      return { c, n: k.n, u: k.u, usual, occ, v: Number(v) || 0, by: k.by, added: !C[c] || (!k.ec && !k.occ) };
+      return { c, n: k.n, u: k.u, usual, occ, v: Number(v) || 0, by: k.by, rcp: k.rcp, added: !C[c] || (!k.ec && !k.occ) };
     }).sort((a, b) => (a.u === 'g') - (b.u === 'g') || (b.usual > 0) - (a.usual > 0) || String(a.n).localeCompare(String(b.n), 'ko'));
   }
 
@@ -1980,15 +1994,15 @@
     /* 생산 */
     h += '<div class="card"><h3><span class="tag">생산</span> 만든 제품 <small>이카운트 「생산」 칸</small></h3>';
     if (!pc.length) h += '<div class="empty">이 날 이카운트로 보낸 생산량이 없어요.<br>아래 「＋ 제품 넣기」로 고르세요.</div>';
-    pc.forEach(c => { const sd = std(c); h += '<div class="row hx"><div class="nm">' + esc(short(prodName(c))) + '<small>' + esc(c) + (sd && sd.from ? ' · 박스 기준 ÷ ' + sd.div : '') + '</small></div><input type="text" inputmode="decimal" data-e2p="' + esc(c) + '" value="' + esc(prod[c]) + '"><span class="u">' + (/배합/.test(prodName(c)) ? '배합' : '') + '</span><button type="button" class="del" data-e2="delp" data-c="' + esc(c) + '">빼기</button>' + xpHtml(d, 'p', c) + '</div>'; });
+    pc.forEach(c => { const sd = std(c); h += '<div class="row hx"><div class="nm">' + esc(short(prodName(c))) + '<small>' + esc(c) + (sd && sd.from ? ' · 박스 기준 ÷ ' + sd.div : '') + (STD[c] && STD[c].src ? ' · 평소 값: ' + STD[c].src : (sd ? '' : ' · 평소 값 없음 → 「＋ 원료 넣기」로')) + '</small></div><input type="text" inputmode="decimal" data-e2p="' + esc(c) + '" value="' + esc(prod[c]) + '"><span class="u">' + (/배합/.test(prodName(c)) ? '배합' : '') + '</span><button type="button" class="del" data-e2="delp" data-c="' + esc(c) + '">빼기</button>' + xpHtml(d, 'p', c) + '</div>'; });
     h += '<button type="button" class="add" data-e2="pickP">＋ 제품 넣기</button>';
-    if (ui.pickP) { h += '<div class="pick">' + Object.keys(STD).concat(Object.keys(SIB)).filter(c => !(c in prod)).sort((a, b) => ((STD[b] || {}).k || 0) - ((STD[a] || {}).k || 0)).map(c => '<button type="button" data-e2="addp" data-c="' + esc(c) + '">' + esc(short(prodName(c))) + '</button>').join('') + '</div>'; }
+    if (ui.pickP) { h += '<div class="pick">' + pickCodes().filter(c => !(c in prod)).sort((a, b) => ((STD[b] || {}).k || 0) - ((STD[a] || {}).k || 0)).map(c => '<button type="button" data-e2="addp" data-c="' + esc(c) + '">' + esc(short(prodName(c))) + '</button>').join('') + '</div>'; }
     h += '</div>';
     /* 소모 */
     h += '<div class="card"><h3><span class="tag">소모</span> 실제로 쓴 원료 <small>이카운트 「소모」 칸 · 평소 값이 미리 들어 있어요</small></h3>';
     if (!R.length) h += '<div class="empty">제품을 넣으면 평소 쓰는 원료가 나와요.</div>';
     R.forEach(r => { const u = unitOf(r.u); const diff = r.usual > 0 && Math.abs(r.v - r.usual) >= Math.max(1, r.usual * 0.005);
-      const sub = (r.usual > 0 ? '평소대로면 ' + fmt(r.usual) + (u || '') : r.occ > 0 ? '가끔 쓰는 원료 · 평소 ' + fmt(r.occ) + (u || '') : '직접 넣은 원료') + (r.u > 1 ? ' · 이카운트 ' + fmt(toEc(r.u, r.v)) + ' (' + r.u + '개 들이)' : r.u ? '' : ' · 이카운트 수량');
+      const sub = (r.usual > 0 ? '평소대로면 ' + fmt(r.usual) + (u || '') : r.occ > 0 ? (r.rcp ? '배합표 값 ' : '가끔 쓰는 원료 · 평소 ') + fmt(r.occ) + (u || '') : '직접 넣은 원료') + (r.u > 1 ? ' · 이카운트 ' + fmt(toEc(r.u, r.v)) + ' (' + r.u + '개 들이)' : r.u ? '' : ' · 이카운트 수량');
       h += '<div class="row' + (r.v ? ' hx' : ' zero') + '"><div class="nm">' + esc(short(r.n)) + '<small' + (diff ? ' class="chg"' : '') + '>' + esc(sub) + (diff ? ' → ' + (r.v > r.usual ? '+' : '') + fmt(r1(r.v - r.usual, 1)) + (u || '') : '') + '</small></div>'
         + (r.occ > 0 && !r.v ? '<button type="button" class="use" data-e2="occ" data-c="' + esc(r.c) + '">평소 값 넣기</button>' : '')
         + '<input type="text" inputmode="decimal" data-e2m="' + esc(r.c) + '" value="' + esc(r.v) + '"><span class="u">' + esc(u) + '</span>'
@@ -2787,7 +2801,7 @@
    - 윗줄: 화면 폭이 좁으면 단계적으로 줄인다(1 여백 → 2 글자 숨김(아이콘만) → 3 글자 작게 → 4 더 작게 → 5 전체 축소). 줄바꿈이 없어질 때까지.
    - 기록·버튼 동작은 건드리지 않는다. 이 블록을 지우면 예전 모양으로 돌아간다. */
 (function () { if (!window.FIELD_APP) return;
-  const FHX_VER = 'v010', FHX_BUILT = '2026-11-12 01:12';
+  const FHX_VER = 'v011', FHX_BUILT = '2026-11-13 07:50';   /* v011 (2026-11-13): ECOUNT 입력 제품 목록에 굴뚝빵 생지·쌀소금빵 등 빠진 제품 추가 */
   const st = document.createElement('style');
   st.textContent = [
     '#fld .fld-top{flex-wrap:wrap;row-gap:4px}',
