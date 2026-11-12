@@ -1754,7 +1754,7 @@
   const EXN = {"NP_DBG1_1":"[비상품] DB.구운 골든 통밀소금빵 1EA","DB_03_1":"Db.데니쉬200몽블랑생지(Mont Blanc) 1EA","DB111_1":"DB.구운 쌀소금빵 1EA (50g)","SD_01_01":"데니쉬스틱 생지(몽블랑) 25g_분할생지","DB_03":"Db.데니쉬200몽블랑생지(Mont Blanc) Box(20EA*3pk)","GK100":"G.밀소금빵 생지 BOX (60g*100EA)","556SD":"S크로와상55 생지 55g*40EA","DBAS24":"DB.미니 몽블랑빵 BOX(80G*60EA)"};
   const pickCodes = () => { const s = new Set(Object.keys(STD).concat(Object.keys(SIB), Object.keys(EXN))); try { (prodS().items || []).forEach(it => { if (it && it.code && it.on !== false) s.add(it.code); }); } catch (e) {} return [...s]; };
   const RED = '#C8102E';
-  const XV = 'v002', XB = '2026-11-13 07:50';   /* 소비기한·인쇄 (2026-11-09 Aside, 사용자 「이카운트 생산일지의 베이스인 입력 영역에 소비기한 입력과 인쇄」) */
+  const XV = 'v003', XB = '2026-11-13 08:30';   /* 소비기한·인쇄 (2026-11-09 Aside, 사용자 「이카운트 생산일지의 베이스인 입력 영역에 소비기한 입력과 인쇄」) */
   const st = document.createElement('style');
   st.textContent = ''
     + '#ec2{position:fixed;inset:0;z-index:99990;background:#16233F;overflow:auto;-webkit-overflow-scrolling:touch;font-family:Pretendard,"Noto Sans KR","Malgun Gothic",sans-serif;font-weight:600;color:#1E2A4A;word-break:keep-all}'
@@ -1973,6 +1973,51 @@
     toast('인쇄 창을 여는 중… 「단면」으로 골라 주세요', 3500);
     setTimeout(() => { try { w.focus(); w.print(); } catch (e) { toast('인쇄 창을 열지 못했어요'); } }, 400); }
 
+
+  /* ── 키오스크 영수증(72mm) 인쇄 v003 (2026-11-13 08:30, 사용자 「생산·CCP 출력은 선명한데 생산·소모 일지는 흐리게 나와」) ──
+     원인: A4 세로 양식을 72mm 감열 프린터로 보내 크롬이 약 1/3로 줄여 찍고, 회색·파란 배경이 점무늬로 번졌음.
+     그래서 「🖨 인쇄」는 「일지 출력」과 같은 72mm 흑백 영수증으로 바꿈(배경색 없음, 글자 13px 이상). A4는 「A4」 버튼으로 남김. */
+  function receiptHtml(d) {
+    const prod = prodOf(d), R = rows(d).filter(r => r.v > 0), E = store(), q = E.req[d], dn = E.done[d], s = stateOf(d), dr = draft(d);
+    const P = Object.entries(prod).filter(([, v]) => v > 0);
+    const edited = !!(dr && (dr.prod || dr.fresh || Object.keys(dr.cons || {}).length || Object.keys(dr.pexp || {}).length || Object.keys(dr.cexp || {}).length));
+    const t = x => { try { const z = new Date(x); return (z.getMonth() + 1) + '/' + z.getDate() + ' ' + String(z.getHours()).padStart(2, '0') + ':' + String(z.getMinutes()).padStart(2, '0'); } catch (e) { return ''; } };
+    const D = new Date(d + 'T00:00:00');
+    const stt = s === 'none' || edited ? '⚠ 저장 전 화면 값' + (s !== 'none' ? ' (저장 뒤 고침)' : '') : s === 'done' ? '✔ 이카운트 입력 완료' + (dn && dn.slip ? ' · 전표 ' + dn.slip : '') : s === 'chg' ? '✎ 다시 저장 · 조조 수정 대기' : '● 저장됨 · 조조 입력 대기';
+    const xc = (k, c) => { const x = xOf(d, k, c); if (x.v) return '<td class="x">' + esc(yy(x.v)) + '</td>'; return xSemi(k, c) ? '<td class="x sm">해당 없음</td>' : '<td class="x"><span class="miss">확인 필요</span></td>'; };
+    const css = '*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#000}body{width:72mm;padding:1mm 1.5mm 4mm;font-family:"Malgun Gothic","맑은 고딕","Noto Sans KR",sans-serif;font-size:13px;line-height:1.3;font-weight:700;word-break:keep-all}'
+      + '.hd{text-align:center;border-bottom:2px solid #000;padding-bottom:1.5mm;margin-bottom:1mm}.hd .t{font-size:17px;font-weight:900}.hd .d{font-size:19px;font-weight:900;margin-top:.5mm}.hd .s{font-size:11px}'
+      + '.stt{border:1.5px solid #000;padding:.6mm 1mm;font-size:12px;font-weight:900;margin:1mm 0}.who{font-size:11px;text-align:right}'
+      + '.sh{border-top:2px solid #000;border-bottom:1.5px solid #000;padding:.6mm .5mm;font-size:15px;font-weight:900;margin-top:1.5mm;display:flex;justify-content:space-between;align-items:baseline}.sh span{font-size:11px}'
+      + 'table{width:100%;border-collapse:collapse;table-layout:fixed}th{font-size:11px;font-weight:700;border-bottom:1px solid #000;padding:.3mm .2mm;text-align:center}'
+      + 'td{padding:.6mm .3mm;border-bottom:1px dotted #000;font-variant-numeric:tabular-nums;font-size:13px;vertical-align:middle;text-align:center}'
+      + 'td.l{text-align:left;font-size:13px;font-weight:800}td.l small{display:block;font-size:11px;font-weight:700}td.q{text-align:right;white-space:nowrap}td.x{white-space:nowrap;font-weight:900}td.x.sm{font-size:11px;font-weight:700}'
+      + '.miss{border:1.5px solid #000;padding:0 .8mm;font-size:11px}.df{display:block;font-size:11px;font-weight:900}'
+      + '.memo{border:1.5px solid #000;min-height:14mm;padding:.6mm 1mm;margin-top:2mm;font-size:12px}.sign{display:flex;gap:2mm;margin-top:1.5mm}.sign div{flex:1;border:1.5px solid #000;height:11mm;font-size:11px;padding:.3mm 1mm}'
+      + '.ft{font-size:10.5px;margin-top:1.5mm}.ft2{font-size:10px;text-align:center;margin-top:1mm}';
+    let h = '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>생산·소모 ' + d + '</title><style id="pg">@page{size:72mm 200mm;margin:0}</style><style>' + css + '</style></head><body>';
+    h += '<div class="hd"><div class="t">빵을그리다 생산·소모 일지</div><div class="d">' + D.getFullYear() + '년 ' + (D.getMonth() + 1) + '월 ' + D.getDate() + '일 (' + esc(wdY(d)) + ')</div><div class="s">이카운트 생산입고Ⅱ · 출력 ' + esc(t(new Date().toISOString())) + '</div></div>';
+    h += '<div class="stt">' + esc(stt) + '</div>' + (q && q.x !== 0 && q.who ? '<div class="who">저장 ' + esc(q.who) + ' · ' + esc(t(q.ts)) + '</div>' : '');
+    h += '<div class="sh">생산 · 만든 제품 <span>' + P.length + '개</span></div><table><colgroup><col style="width:50%"><col style="width:20%"><col style="width:30%"></colgroup><tr><th style="text-align:left">품목</th><th>수량</th><th>소비기한</th></tr>';
+    if (!P.length) h += '<tr><td colspan="3">만든 제품이 없습니다</td></tr>';
+    P.forEach(([c, v]) => { h += '<tr><td class="l">' + esc(prodName(c)) + '<small>' + esc(c) + '</small></td><td class="q">' + esc(fmt(v)) + (/배합/.test(prodName(c)) ? ' 배합' : '') + '</td>' + xc('p', c) + '</tr>'; });
+    h += '</table>';
+    h += '<div class="sh">소모 · 쓴 원료 <span>' + R.length + '개</span></div><table><colgroup><col style="width:50%"><col style="width:20%"><col style="width:30%"></colgroup><tr><th style="text-align:left">원료</th><th>사용량</th><th>소비기한</th></tr>';
+    if (!R.length) h += '<tr><td colspan="3">쓴 원료가 없습니다</td></tr>';
+    R.forEach(r => { const u = unitOf(r.u); const diff = r.usual > 0 && Math.abs(r.v - r.usual) >= Math.max(1, r.usual * 0.005);
+      h += '<tr><td class="l">' + esc(r.n) + '<small>' + esc(r.c) + ' · 이카운트 ' + esc(fmt(toEc(r.u, r.v))) + '</small>' + (diff ? '<span class="df">[평소와 다름] 평소 ' + esc(fmt(r.usual)) + esc(u) + '</span>' : '') + '</td><td class="q">' + esc(fmt(r.v)) + esc(u) + '</td>' + xc('m', r.c) + '</tr>'; });
+    h += '</table>';
+    h += '<div class="memo">특이사항</div><div class="sign"><div>작성</div><div>확인</div></div>';
+    h += '<div class="ft">소비기한은 이카운트 적요에 「소비기한 YY.MM.DD」로 들어갑니다. 「확인 필요」는 포장 표시를 보고 적어 주세요.</div><div class="ft2">생산·소모 일지 영수증 ' + XV + '</div>';
+    return h + '</body></html>';
+  }
+  function printReceipt() { const d = ui.d; const prod = prodOf(d); if (!Object.values(prod).some(v => v > 0)) { toast('인쇄할 생산 자료가 없어요'); return; }
+    let f = document.getElementById('ec2pf'); if (f) f.remove();
+    f = document.createElement('iframe'); f.id = 'ec2pf'; f.setAttribute('aria-hidden', 'true'); f.style.cssText = 'position:fixed;right:0;bottom:0;width:80mm;height:10px;border:0;opacity:0;pointer-events:none';
+    document.body.appendChild(f); const doc = f.contentDocument; doc.open(); doc.write(receiptHtml(d)); doc.close();
+    toast('인쇄 창을 여는 중…', 2500);
+    setTimeout(() => { try { const hh = Math.ceil(doc.body.scrollHeight * 25.4 / 96) + 6; doc.getElementById('pg').textContent = '@page{size:72mm ' + Math.max(60, hh) + 'mm;margin:0}'; f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { toast('인쇄 창을 열지 못했어요'); } }, 400); }
+
   function statusHtml(d) {
     const s = stateOf(d), E = store(), q = E.req[d], dn = E.done[d];
     const t = x => { try { const z = new Date(x); return (z.getMonth() + 1) + '/' + z.getDate() + ' ' + String(z.getHours()).padStart(2, '0') + ':' + String(z.getMinutes()).padStart(2, '0'); } catch (e) { return ''; } };
@@ -2011,7 +2056,7 @@
     if (ui.pickM) { const have = new Set(R.map(r => r.c)); h += '<div class="pick">' + Object.values(MATS).filter(m => !have.has(m.c)).sort((a, b) => String(a.n).localeCompare(String(b.n), 'ko')).map(m => '<button type="button" data-e2="addm" data-c="' + esc(m.c) + '">' + esc(short(m.n)) + '</button>').join('') + '</div>'; }
     h += '</div>';
     h += '<div class="note">평소 값 = ' + esc(EC2_AT) + '에서 제품 1개(박스·배합)당 쓴 양. 숫자를 고치면 주황 글씨로 평소와 차이가 보여요.</div>';
-    h += '</div><div class="bar"><div class="in"><button type="button" class="cc" data-e2="reset">처음 값으로</button><button type="button" class="pr" data-e2="print">🖨 인쇄</button><button type="button" class="sv" data-e2="save">💾 저장 → 조조가 이카운트에 입력</button></div></div>';
+    h += '</div><div class="bar"><div class="in"><button type="button" class="cc" data-e2="reset">처음 값으로</button><button type="button" class="pr" data-e2="print">🖨 인쇄</button><button type="button" class="cc a4" data-e2="printA4">A4</button><button type="button" class="sv" data-e2="save">💾 저장 → 조조가 이카운트에 입력</button></div></div>';
     const y = box.scrollTop; box.innerHTML = h; box.scrollTop = y;
   }
 
@@ -2044,7 +2089,8 @@
       if (a === 'usual') { setDraft(d, x => { delete x.cons[c]; }); return paint(); }
       if (a === 'reset') { if (!confirm('이 날 고친 값을 지우고 처음 값(이카운트로 보낸 생산량 + 평소 원료 양)으로 돌릴까요?')) return; const E = store(); E.draft[d] = { prod: null, cons: {}, addM: [], fresh: true, ts: new Date().toISOString() }; save(); return paint(); }
       if (a === 'xdef' || a === 'xclr') { const K = b.dataset.k === 'p' ? 'pexp' : 'cexp'; setDraft(d, x => { x[K] = Object.assign({}, x[K] || {}); if (a === 'xdef') delete x[K][c]; else x[K][c] = ''; }); return paint(); }
-      if (a === 'print') return printDay();
+      if (a === 'print') return printReceipt();
+      if (a === 'printA4') return printDay();
       if (a === 'save') return doSave();
     });
   }
@@ -2070,6 +2116,7 @@
     (o.cons || []).forEach(z => { if (!('e' in z)) { const f = mDef(d, z.c); z.e = f.v || ''; z.es = f.src || ''; z.eAuto = 1; } z.memo = z.e ? '소비기한 ' + yy(z.e) : ''; });
     return o; }); };
   window.__ec2PrintHtml = d => printHtml(d || ui.d || today());
+  window.__ec2ReceiptHtml = d => receiptHtml(d || ui.d || today());
   window.__ec2LoadFifo = loadFifo;
   window.__ec2MarkDone = function (d, slip, by) { const E = store(); const q = E.req[d]; if (!q) return false; const D = { ts: new Date().toISOString(), who: by || '조조', slip: String(slip || ''), req: q.ts }; E.done[d] = D; save(true); share('ec2done', d, D); try { if (document.getElementById('ec2')) paint(); } catch (e) {} return true; };
   window.__ec2Open = open;
