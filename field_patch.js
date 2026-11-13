@@ -580,7 +580,7 @@
 })();
 
 /* ══ 오븐: 시작·종료를 저장하면 그 사이 2시간 측정 줄을 자동으로 만들어 줌 (2026-10-22 Aside, 사용자 「K-HACCP처럼 시작·종료 사이 2시간 단위 자동 생성」) ══
-   - 「종료 측정」을 저장하면(시작 측정이 있을 때) 시작 + 2시간, + 4시간 … (종료 10분 전까지) 칸 중 「중간」 기록이 없는 시각만 골라 확인 창을 띄움.
+   - 「종료 측정」을 저장하면(시작 측정이 있을 때) 시작 + 2시간, + 4시간 … (종료 시각 전까지 — 2026-11-13 수정: 예전 「종료 10분 전까지」 규칙 때문에 11/6 몽블랑 시작 08:10·종료 10:18에서 10:10 줄이 빠졌음. 2시간 지점이 종료보다 앞이면 1분 차이라도 만든다) 칸 중 「중간」 기록이 없는 시각만 골라 확인 창을 띄움.
      예) 시작 07:58 · 종료 13:09 → 09:58, 11:58 두 줄.
    - 값: 가열온도·가열시간 = 시작 측정 값(오븐 설정), 품온 = 시작·종료 품온 평균. 「✓ N줄 만들기」를 눌러야 들어감(자동 저장 없음), 만든 줄은 r.us src:'auto2h' 표시 → PC에서 구분.
    - 이미 손으로 넣은 2시간 측정(±30분 안)이 있으면 그 칸은 건너뜀. 만든 뒤 「오늘 기록」에서 줄을 눌러 고칠 수 있음. */
@@ -595,7 +595,7 @@
     const s = rs.find(r => r.tag === '시작' && mm(r.time) != null), e = rs.find(r => r.tag === '종료' && mm(r.time) != null); if (!s || !e) return null;
     const S = mm(s.time), E = mm(e.time); if (!(E > S)) return null; const mids = rs.filter(r => r.tag !== '시작' && r.tag !== '종료' && mm(r.time) != null).map(r => mm(r.time));
     const core = (() => { const a = Number(s.core), b = Number(e.core); return isFinite(a) && isFinite(b) && s.core !== '' && e.core !== '' ? Math.round((a + b) / 2) : ((s.core && s.core !== '-' ? s.core : '') || e.core || ''); })();
-    const slots = []; for (let t = S + 120; t < E - 10; t += 120) { if (!mids.some(m => Math.abs(m - t) <= 30)) slots.push(hm(t)); }
+    const slots = []; for (let t = S + 120; t < E; t += 120) { if (!mids.some(m => Math.abs(m - t) <= 30)) slots.push(hm(t)); }
     return slots.length ? { g, s, e, slots, temp: s.temp, min: (s.min && s.min !== '-' ? s.min : e.min), core: String(core), name: s.name } : null; };
   const make = (code, P) => { const D = fldD(), wk = fldWk(); P.slots.forEach(t => { const nr = fldNewRow(P.g, 'oven', code, '중간'); const i = fldIdx(P.g, 'rows', nr.id);
       [['time', t], ['temp', P.temp], ['min', P.min], ['core', P.core]].forEach(([f, v]) => { if (v !== '' && v != null) ccpSet(D + '|oven|rows|' + i + '|' + f, String(v)); });
@@ -663,7 +663,7 @@
   /* 시작·종료 빠른 저장 창 */
   const sheet = tag => { const code = FLD.code, name = FLD.name, rs = rowsOf(code), row = rs.find(r => r.tag === tag); const V = valsFor(code, name, row); const now = fldHM();
     let mids = []; if (tag === '종료') { const s = rs.find(r => r.tag === '시작' && r.time); if (s) { const m = t => { const x = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return x ? +x[1] * 60 + +x[2] : null; }; const S = m(s.time), E = m(now), have = rs.filter(r => r.tag !== '시작' && r.tag !== '종료' && r.time).map(r => m(r.time));
-        for (let t = S + 120; E != null && t < E - 10; t += 120) if (!have.some(h => Math.abs(h - t) <= 30)) mids.push(String(Math.floor(t / 60) % 24).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0')); } }
+        for (let t = S + 120; E != null && t < E; t += 120) if (!have.some(h => Math.abs(h - t) <= 30)) mids.push(String(Math.floor(t / 60) % 24).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0')); } }
     const old = document.querySelector('.fwarn-bg'); if (old) old.remove(); const bg = document.createElement('div'); bg.className = 'fwarn-bg fq2';
     bg.innerHTML = '<div class="fwarn" role="dialog"><div class="fwarn-hd">' + (tag === '시작' ? '🟢' : '🏁') + ' ' + tag + ' 측정<small>' + esc(fldShort(name)) + '</small></div><div class="fwarn-bd">'
       + '<div class="tmbox"><span class="tmlab">측정 시각</span><span class="tmbig">' + esc(now) + '</span><span class="tmlab">지금</span></div>'
@@ -1252,7 +1252,7 @@
       const bad = badOf(S.type, S.mode, name, x, V, extra), v = V[x.f];
       return '<div class="fpv-f' + (bad ? ' bad' : '') + '"><small>' + esc(x.lb) + '</small><span class="v" data-fpv="kp" data-k="' + x.f + '">' + (x.neg && v ? '−' : '') + esc(v || '—') + '<i>' + esc(x.u || '') + '</i></span><div class="fpv-r"><button type="button" data-fpv="dn" data-k="' + x.f + '">−</button><button type="button" data-fpv="up" data-k="' + x.f + '">＋</button></div>' + (x.lim ? '<span class="l">기준 ' + esc(x.lim) + '</span>' : '') + '</div>'; };
     let h2 = ''; if (S.type === 'oven' && S.mode === '종료' && S.s) { const sM = mm(S.s.time), eM = mm(fldHM()), have = rowsOf('oven', S.code).filter(r => r.tag !== '시작' && r.tag !== '종료' && r.time).map(r => mm(r.time)), sl = [];
-      for (let t = sM + 120; eM != null && sM != null && t < eM - 10; t += 120) if (!have.some(q => Math.abs(q - t) <= 30)) sl.push(hm(t));
+      for (let t = sM + 120; eM != null && sM != null && t < eM; t += 120) if (!have.some(q => Math.abs(q - t) <= 30)) sl.push(hm(t));
       h2 = '<label class="fpv-2h"><input type="checkbox" data-fpv="c2h"' + (Pn.c2h ? ' checked' : '') + '> 사이 2시간 측정 줄 자동으로 만들기' + (sl.length ? ' (' + esc(sl.join(' · ')) + ')' : ' (지금 종료하면 해당 없음)') + '</label>'; }
     const n = fs.length ? Math.min(fs.length, fs.some(x => x.k === 'ox') ? (fs.length > 3 ? 3 : fs.length) : fs.length > 3 ? 2 : fs.length) : 1;
     return '<div class="fpv"><div class="fpv-hd"><b>설정값 · ' + esc((S.again ? '다음 배치 ' : '') + TITLE[S.mode]) + '</b><span>' + (fs.length ? (fs.some(x => x.k === 'num') ? '다르면 − ＋ 로 맞추고 위 칸을 누르세요' : '다르면 바꾸고 위 칸을 누르세요') : '위 칸을 누르면 지금 시각으로 저장') + '</span></div>'
@@ -2848,7 +2848,7 @@
    - 윗줄: 화면 폭이 좁으면 단계적으로 줄인다(1 여백 → 2 글자 숨김(아이콘만) → 3 글자 작게 → 4 더 작게 → 5 전체 축소). 줄바꿈이 없어질 때까지.
    - 기록·버튼 동작은 건드리지 않는다. 이 블록을 지우면 예전 모양으로 돌아간다. */
 (function () { if (!window.FIELD_APP) return;
-  const FHX_VER = 'v011', FHX_BUILT = '2026-11-13 07:50';   /* v011 (2026-11-13): ECOUNT 입력 제품 목록에 굴뚝빵 생지·쌀소금빵 등 빠진 제품 추가 */
+  const FHX_VER = 'v012', FHX_BUILT = '2026-11-13 10:01';   /* v012 (2026-11-13): 오븐 2시간 측정 줄 — 종료가 2시간 지점 뒤 10분 안이어도 2시간 줄을 만듦(11/6 누락 재발 방지) */   /* v011 (2026-11-13): ECOUNT 입력 제품 목록에 굴뚝빵 생지·쌀소금빵 등 빠진 제품 추가 */
   const st = document.createElement('style');
   st.textContent = [
     '#fld .fld-top{flex-wrap:wrap;row-gap:4px}',
