@@ -168,7 +168,7 @@ body.v-m .ing td.g,body.v-m .ing td.p{width:auto}
 body.v-m .ing td.a{grid-column:1/4;text-align:left;padding-top:0;width:auto;font-size:19px}
 body.v-m .ing td.g::before,body.v-m .ing td.p::before{display:block;font-size:15.5px;font-weight:700;color:var(--sub);margin-bottom:3px}
 body.v-m .ing td.g::before{content:"사용량 (g)"}
-body.v-m .ing td.p::before{content:"1kg 가격 (원)"}
+body.v-m .ing td.p::before{content:"1g 가격 (원)"}
 body.v-m .ing td.a:not(:empty)::before{content:"금액  ";font-size:16px;color:var(--sub)}
 body.v-m .pi .ed{grid-template-columns:1fr 1fr}
 body.v-m .seg button{font-size:17px}
@@ -327,7 +327,7 @@ body.v-m .srch{padding:14px 16px}
 <div id="mbar" class="noprint"></div>
 <div id="toast"></div>
 <script>
-const APP_VER='v008', APP_BUILT='2026-11-12 20:16';
+const APP_VER='v009', APP_BUILT='2026-11-15 12:01';
 const LSK='drawbread_cost_key', LSP='drawbread_cost_prices';
 let PD=null, PSTAT='loading';
 try{const c=JSON.parse(localStorage.getItem(LSP)||'null');if(c&&c.data)PD=c.data}catch(e){}
@@ -468,6 +468,7 @@ function priceBanner(){
 }
 refreshMaps();
 const autoKp=n=>{const x=ING_MAP.get(n);return x&&N(x.g)>0?N(x.p)/N(x.g)*1000:null};
+const gIn=k=>Math.round(N(k)/10)/100, gTx=k=>num(N(k)/1000,2);
 const kpOf=r=>(r.kp!=null&&r.kp!=='')?N(r.kp):autoKp(r.n);
 const autoUp=n=>{const x=PACK_MAP.get(n);return x?N(x.p)/(N(x.k)||1):null};
 const upOf=p=>(p.up!=null&&p.up!=='')?N(p.up):autoUp(p.n);
@@ -540,8 +541,8 @@ function renderCalc(){
   <label class="f">목표 원가율 <small>(판매가에서 원가가 차지할 비율)</small></label>
   <div class="pin">${numIn('target',r.target,'35')}${presets('target',[30,35,40,45],r.target,'%')}</div>`)}
  ${secCard('ing',2,'배합 (1배합에 넣는 재료)','',`
-  <p class="help">재료 이름을 쓰면 단가표에서 1kg 가격이 자동으로 들어가요. 이번만 다른 가격이면 가격 칸을 고치세요. 회색 작은 글씨는 밀가루 대비 비율(베이커스%)이에요.</p>
-  <table class="ing"><thead><tr><th>재료</th><th>사용량(g)</th><th>1kg 가격(원)</th><th style="text-align:right">금액</th><th></th></tr></thead>
+  <p class="help">재료 이름을 쓰면 단가표에서 1g 가격이 자동으로 들어가요. 이번만 다른 가격이면 가격 칸을 고치세요. 회색 작은 글씨는 밀가루 대비 비율(베이커스%)이에요.</p>
+  <table class="ing"><thead><tr><th>재료</th><th>사용량(g)</th><th>1g 가격(원)</th><th style="text-align:right">금액</th><th></th></tr></thead>
   <tbody>${r.rows.map((x,i)=>ingRow(x,i)).join('')}</tbody></table>
   <button class="btn g sm noprint" id="bAddRow" style="margin-top:8px">+ 재료 추가</button>
   <div class="sum"><span>합계 <span id="sDough" class="nw"></span></span><span id="sMat"></span></div>
@@ -590,7 +591,7 @@ function hintHtml(x,i){
  const ak=autoKp(x.n),ov=x.kp!=null&&x.kp!=='',it=ING_MAP.get(x.n);
  const ob=`<button type="button" class="lk noprint" data-online="${i}">쿠팡·네이버에서 찾기</button>`;
  if(x.n&&!it&&!ov)return `<span class="ps" style="color:var(--org)">이카운트에 없는 재료 · ${ob}</span>`;
- if(ov)return `<span class="ps">이번만 직접 넣은 가격${ak!=null?` (단가표 ${num(ak)}원)`:''}</span>`;
+ if(ov)return `<span class="ps">이번만 직접 넣은 가격${ak!=null?` (단가표 1g ${gTx(ak)}원)`:''}</span>`;
  if(it&&it.staleOv)return `<span class="ps">${srcLine(it)} · 고친 값보다 최근이라 매입가를 씀</span>`;
  if(it&&it.chk&&it.src!=='online'&&!it.edited)return `<span class="ps" style="color:var(--org)">${srcLine(it)} · 확인 필요 · ${ob}</span>`;
  if(it)return `<span class="ps">${srcLine(it)}</span>`;
@@ -602,7 +603,7 @@ function ingRow(x,i){
  return `<tr data-row="${i}">
   <td class="n"><input list="dlIng" data-f="n" value="${esc(x.n)}" placeholder="재료 이름">${ps}</td>
   <td class="g"><input type="number" inputmode="decimal" data-f="g" value="${esc(x.g)}" placeholder="g"><span class="bp" data-bp="${i}"></span></td>
-  <td class="p"><input type="number" inputmode="decimal" data-f="kp" value="${esc(k!=null?Math.round(k):'')}" class="${x.n&&k==null?'miss':''}" placeholder="1kg 가격"></td>
+  <td class="p"><input type="number" inputmode="decimal" data-f="kp" value="${esc(k!=null?gIn(k):'')}" class="${x.n&&k==null?'miss':''}" placeholder="1g 가격"></td>
   <td class="a" data-amt="${i}"></td>
   <td class="x"><button class="xb" data-delrow="${i}" title="빼기">×</button></td></tr>`;
 }
@@ -631,9 +632,9 @@ function bindCalc(){
   if(t.dataset.k){r[t.dataset.k]=t.type==='number'?t.value:t.value;if(t.dataset.k==='name')refreshPick();syncPresets(t.dataset.k);touch();update();return}
   const tr=t.closest('[data-row]');
   if(tr&&t.dataset.f){const x=r.rows[+tr.dataset.row];
-   if(t.dataset.f==='kp'){const ak=autoKp(x.n);x.kp=(t.value===''||(ak!=null&&Math.abs(N(t.value)-ak)<0.5))?null:t.value;rowHint(tr,x)}
+   if(t.dataset.f==='kp'){const ak=autoKp(x.n);x.kp=(t.value===''||(ak!=null&&Math.abs(N(t.value)-gIn(ak))<0.005))?null:String(N(t.value)*1000);rowHint(tr,x)}
    else x[t.dataset.f]=t.value;
-   if(t.dataset.f==='n'){x.kp=null;const it0=ING_MAP.get(x.n);x.c=it0&&it0.c||undefined;const k=autoKp(x.n);const pin=tr.querySelector('[data-f=kp]');pin.value=k!=null?Math.round(k):'';pin.classList.toggle('miss',!!x.n&&k==null)}
+   if(t.dataset.f==='n'){x.kp=null;const it0=ING_MAP.get(x.n);x.c=it0&&it0.c||undefined;const k=autoKp(x.n);const pin=tr.querySelector('[data-f=kp]');pin.value=k!=null?gIn(k):'';pin.classList.toggle('miss',!!x.n&&k==null)}
    touch();update();return}
   const pi=t.closest('[data-pack]');
   if(pi&&t.dataset.pf){const p=r.packs[+pi.dataset.pack];
@@ -691,7 +692,7 @@ function update(){
   </div>
   ${price>0?`<div class="info">판매가 ${won(price)} − 원가 ${won(c.boxCost)} = ${boxLbl} 남는 돈 <b class="nw">${won(price-c.boxCost)}</b> (1개 ${won((price-c.boxCost)/c.box)})</div>`:''}
   ${warn?`<div class="warn">${warn}</div>`:''}
-  ${c.miss.length?`<div class="note">단가가 없는 재료: ${c.miss.map(esc).join(', ')} → 0원으로 계산됨. 1kg 가격을 넣어 주세요.</div>`:''}
+  ${c.miss.length?`<div class="note">단가가 없는 재료: ${c.miss.map(esc).join(', ')} → 0원으로 계산됨. 1g 가격을 넣어 주세요.</div>`:''}
   ${c.pmiss.length?`<div class="note">단가가 없는 포장재: ${c.pmiss.map(esc).join(', ')}</div>`:''}`;
  // 폭포
  const steps=[
@@ -856,8 +857,8 @@ function drawP(){
  const q=PQ.trim();if(q)list=list.filter(x=>x.n.includes(q)||(x.n0||'').includes(q)||(x.c||'').includes(q));
  list.sort((a,b)=>(a.src==='fix')-(b.src==='fix')||a.n.localeCompare(b.n,'ko'));
  const shown=list.slice(0,q?200:80);
- $('#plist').innerHTML='<div class="plh"><span>품목</span><span style="text-align:right">1kg 단가</span><span>포장 가격(원)</span><span>포장 무게·개수</span><span></span><span></span></div>'+(list.length>shown.length?`<p class="help">${num(list.length)}개 중 ${shown.length}개만 보여요. 찾기 칸에 이름을 넣으세요.</p>`:'')+shown.map(x=>{
-  const unit=!isP?(N(x.g)>0?`1kg ${num(N(x.p)/N(x.g)*1000)}원`:'-'):`1개 ${num(N(x.p)/(N(x.k)||1),1)}원`;
+ $('#plist').innerHTML='<div class="plh"><span>품목</span><span style="text-align:right">1g 단가</span><span>포장 가격(원)</span><span>포장 무게·개수</span><span></span><span></span></div>'+(list.length>shown.length?`<p class="help">${num(list.length)}개 중 ${shown.length}개만 보여요. 찾기 칸에 이름을 넣으세요.</p>`:'')+shown.map(x=>{
+  const unit=!isP?(N(x.g)>0?`1g ${gTx(N(x.p)/N(x.g)*1000)}원`:'-'):`1개 ${num(N(x.p)/(N(x.k)||1),1)}원`;
   const pack=!isP?`${num(x.g)}g ${won(x.p)}`:`${num(x.k||1)}개 ${won(x.p)}`;
   const chips=(x.chk&&!x.edited&&x.src!=='online'?'<span class="chip o">확인 필요</span> ':'')+(x.src==='online'?'<span class="chip b">온라인</span> ':'')+(x.edited&&x.src!=='online'?'<span class="chip g">고침</span> ':'')+(x.custom&&x.src!=='online'?'<span class="chip b">추가</span> ':'');
   const sub=[srcLine(x),x.cust&&x.src==='buy'?esc(x.cust):'',x.prev&&x.src==='buy'?`직전 ${won(x.prev)}`:'',x.s&&x.src!=='buy'?esc(x.s):'',x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">상품 보기</a>`:''].filter(Boolean).join(' · ');
@@ -910,13 +911,13 @@ function openOnline(name,done){
    <div><label class="f">링크</label><input id="olU" placeholder="https://"></div>
   </div>
   <label style="display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:17px"><input type="checkbox" id="olVat" checked style="width:26px;min-height:26px;margin-top:2px"><span>부가세 빼고 계산 (가격 ÷ 1.1)<br><small style="color:var(--sub)">이카운트 매입가와 같은 기준. 밀가루·계란·채소처럼 가공하지 않은 농산물(면세)은 체크를 끄세요.</small></span></label>
-  <div class="info" id="olR">가격과 용량을 넣으면 1kg 가격이 나와요.</div>
+  <div class="info" id="olR">가격과 용량을 넣으면 1g 가격이 나와요.</div>
   <button class="btn" id="olOk" style="width:100%;margin-top:12px">이 가격으로 원가에 반영</button>
  </div>`;
  document.body.appendChild(w);
  const g=id=>w.querySelector('#'+id);
  const calcR=()=>{const p=N(g('olP').value)+N(g('olS').value),gg=N(g('olG').value),v=g('olVat').checked;
-  if(p>0&&gg>0){const pp=v?p/1.1:p;g('olR').innerHTML=`포장 가격 <b>${won(pp)}</b>${v?' (부가세 뺀 값)':''} · 용량 ${num(gg)}g → <b>1kg ${num(pp/gg*1000)}원</b>`}else g('olR').textContent='가격과 용량을 넣으면 1kg 가격이 나와요.'};
+  if(p>0&&gg>0){const pp=v?p/1.1:p;g('olR').innerHTML=`포장 가격 <b>${won(pp)}</b>${v?' (부가세 뺀 값)':''} · 용량 ${num(gg)}g → <b>1g ${gTx(pp/gg*1000)}원</b>`}else g('olR').textContent='가격과 용량을 넣으면 1g 가격이 나와요.'};
  const close=()=>w.remove();
  g('olX').onclick=close;w.onclick=e=>{if(e.target===w)close()};
  g('olC').onclick=()=>window.open('https://www.coupang.com/np/search?q='+encodeURIComponent(g('olQ').value),'_blank');
