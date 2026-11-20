@@ -1,4 +1,4 @@
-/* ══ 생산 주문 현황 v001 · 2026-11-20 17:47 (2026-11-20 Aside 사무실 PC, 사용자 요청
+/* ══ 생산 주문 현황 v001 · 2026-11-20 17:49 (2026-11-20 Aside 사무실 PC, 사용자 요청
    「키오스크 생산일지 화면에서 『주문현황 알려줘』라고 말하면 상무님 생산 주문 현황이 나오게, 우측 상단 버튼으로도 조회」) ══
    - 상단 오른쪽(작업자 이름 왼쪽)에 「📋 주문현황」 버튼. 누르면 박태일 상무님 생산 주문표와 같은 자료를 큰 글씨로 보여 줌.
    - 자료 = 업무 대시보드 직원용 자료(drawbread/factory.enc.json 의 factory.orders9, 이카운트 판매 전표 · 출고일 기준, 단가·금액·연락처 없음).
@@ -10,7 +10,7 @@
 (function () {
   if (!window.FIELD_APP || window.__fieldOrders) return;
   window.__fieldOrders = true;
-  const VER = 'v001', BUILT = '2026-11-20 17:47';
+  const VER = 'v001', BUILT = '2026-11-20 17:49';
   const ORIGIN = 'https://lee1812-oss.github.io';
   const DATA_URL = ORIGIN + '/drawbread/factory.enc.json', DASH_URL = ORIGIN + '/drawbread/dash.html';
   const LS_VOICE = 'fld_ord_voice_v1';
@@ -67,7 +67,7 @@
     '#ford .fo-foot button{min-height:58px;padding:6px 18px;font-size:19px;font-weight:900;background:#fff;color:#111;border:2px solid #8a93a3;border-radius:12px}',
     '#ford .fo-foot .ver{margin-left:auto}',
     '#ford .fo-load{font-size:26px;font-weight:900;text-align:center;padding:60px 0;color:#0D1C42}',
-    '@media(min-width:1180px){#ford .fo-tiles{grid-template-columns:repeat(9,1fr)}#ford .fo-tile{padding:10px 8px}#ford .fo-tile .n{font-size:36px}}',
+    '@media(min-width:1000px){#ford .fo-tiles{grid-template-columns:repeat(9,minmax(0,1fr))}#ford .fo-tile{padding:10px 8px}#ford .fo-tile .n{font-size:36px}}',
     '@media(max-width:700px){#ford .fo-head h1{font-size:24px}#ford .fo-x{min-width:110px;font-size:21px}#ford .fo-rows{grid-template-columns:1fr}#ford .fo-tile .n{font-size:32px}}'
   ].join('\n');
   document.head.appendChild(css);
