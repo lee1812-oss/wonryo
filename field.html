@@ -44,9 +44,12 @@ window.FIELD_APP = true;
       .catch(function () { return caches.match('./field_print.js').then(function (r) { return r ? r.text() : ''; }); }).catch(function () { return ''; }),
     /* 2026-11-12 수기 일지(B) v001: 생산일지 형식 A(단계 입력) / B(K-HACCP 일지와 같은 양식, 직원이 칸을 눌러 직접 입력) (field_khform.js, 실패해도 A는 그대로 열림) */
     fetch('field_khform.js', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.text(); })
-      .catch(function () { return caches.match('./field_khform.js').then(function (r) { return r ? r.text() : ''; }); }).catch(function () { return ''; })])
+      .catch(function () { return caches.match('./field_khform.js').then(function (r) { return r ? r.text() : ''; }); }).catch(function () { return ''; }),
+    /* 2026-11-20 생산 주문 현황 v001: 상단 오른쪽 「📋 주문현황」 버튼 + 「주문현황 알려줘」 말로 열기 (field_orders.js, 실패해도 앱은 그대로 열림) */
+    fetch('field_orders.js', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.text(); })
+      .catch(function () { return caches.match('./field_orders.js').then(function (r) { return r ? r.text() : ''; }); }).catch(function () { return ''; })])
     .then(function (a) {
-      var t = a[0], patch = a[1] + "\n" + a[2] + "\n" + (a[4] || '') + "\n" + (a[5] || '');
+      var t = a[0], patch = a[1] + "\n" + a[2] + "\n" + (a[4] || '') + "\n" + (a[5] || '') + "\n" + (a[6] || '');
       var s = t.indexOf('<script type="text/plain" id="app-code">'); var e = s < 0 ? -1 : t.indexOf('</' + 'script>', s);
       if (s < 0 || e < 0) throw 0;
       t = t.slice(0, e) + '\n' + patch + '\n' + t.slice(e);
