@@ -7,11 +7,11 @@
 <link rel="manifest" href="cost.webmanifest">
 <link rel="icon" href="cost_192.png">
 <link rel="apple-touch-icon" href="cost_apple.png">
-<meta name="theme-color" content="#0D1C42">
+<meta name="theme-color" content="#5A341A">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
-:root{--br:#0D1C42;--br2:#22396F;--brl:#EEF2F8;--nv:#0D1C42;--nv2:#22396F;--bg:#F4F5F7;--th:#F1F3F7;--ink:#0B1220;--sub:#2F3846;--line:#D5DAE2;--line2:#A9B3C1;--red:#C62828;--redl:#FDEDED;--org:#B35A00;--orgl:#FFF4E5;--grn:#2E7D32;--grnl:#E8F5E9;--blu:#1E5AA8;--blul:#EAF1FB}
+:root{--br:#3E2414;--br2:#6E3F1C;--brl:#F7F0E9;--nv:#3E2414;--nv2:#6E3F1C;--bg:#F4F5F7;--th:#F4F2EF;--ink:#0B1220;--sub:#2F3846;--line:#D5DAE2;--line2:#A9B3C1;--red:#C62828;--redl:#FDEDED;--org:#B35A00;--orgl:#FFF4E5;--grn:#2E7D32;--grnl:#E8F5E9;--blu:#1E5AA8;--blul:#EAF1FB}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:500 18px/1.7 "Pretendard Variable",Pretendard,"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",-apple-system,sans-serif;letter-spacing:-.2px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word;line-break:strict}
@@ -28,7 +28,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:500 18px/1.7 "Pretendar
 .hdr h1{margin:0;font-size:27px;font-weight:800;color:var(--nv);letter-spacing:-.6px;line-height:1.25}
 .hdr .s{font-size:17px;color:var(--sub)}
 /* 남색 머리띠 메뉴 */
-nav{background:var(--nv2);position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(13,28,66,.25)}
+nav{background:var(--nv2);position:sticky;top:0;z-index:20;box-shadow:0 2px 6px rgba(62,36,20,.25)}
 nav .in{display:flex}
 nav button{flex:1;min-height:58px;border:0;border-bottom:4px solid transparent;border-top:4px solid transparent;background:none;color:#fff;font:inherit;font-size:19px;font-weight:700;cursor:pointer}
 nav button+button{border-left:1px solid rgba(255,255,255,.18)}
@@ -49,7 +49,7 @@ main{max-width:1000px;margin:0 auto;padding:0 16px 30px}
 label.f{display:block;margin:12px 0 5px;font-weight:700;font-size:17.5px;color:var(--ink)}
 label.f small{font-weight:500;color:var(--sub);font-size:16px}
 input,select,textarea{font:inherit;font-weight:600;letter-spacing:0;font-size:19px;color:var(--ink);border:1px solid var(--line2);border-radius:4px;padding:10px 12px;min-height:52px;width:100%;background:#fff}
-input:focus,select:focus,textarea:focus{outline:3px solid #BFD0EE;border-color:var(--nv2)}
+input:focus,select:focus,textarea:focus{outline:3px solid #E6D2BF;border-color:var(--nv2)}
 input.miss{border-color:var(--org);background:var(--orgl)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 14px}
@@ -135,7 +135,7 @@ input.miss{border-color:var(--org);background:var(--orgl)}
 .pi .ed{display:grid;grid-template-columns:1fr 1fr auto auto;gap:8px;margin-top:8px;align-items:end}
 #plist{border-top:2px solid var(--nv)}
 .lk{border:0;background:none;color:var(--blu);font:inherit;font-size:16px;font-weight:700;text-decoration:underline;padding:4px 0;cursor:pointer}
-#olBg{position:fixed;inset:0;background:rgba(13,28,66,.5);z-index:60;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px}
+#olBg{position:fixed;inset:0;background:rgba(40,24,12,.5);z-index:60;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px}
 .olBox{background:#fff;border-radius:6px;border-top:5px solid var(--nv);padding:20px;max-width:660px;width:100%;margin:auto}
 #toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--nv);color:#fff;padding:12px 20px;border-radius:4px;font-size:17px;opacity:0;transition:.3s;pointer-events:none;z-index:50}
 #toast.on{opacity:.96}
@@ -309,17 +309,92 @@ body.v-m .srch{padding:14px 16px}
  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
+<style>
+/* v010 머리 통일(로고 + 빵을그리다 주식회사 · 버전 · 업데이트 + 화면 이름 28px/800) · 브라운 테마 · 제품별 원가표 */
+.hdr .in{align-items:center}
+.hdr .brand{display:flex;align-items:center;gap:12px;margin-right:auto;min-width:0}
+.hdr .brand .lg{height:44px;width:auto;border:0;border-radius:0;flex:none}
+.hdr .co{font-size:15px;font-weight:800;color:#6E3F1C;line-height:1.2;letter-spacing:-.2px}
+.hdr .co .vtop{font-size:13px;font-weight:600;color:#7a828e}
+.hdr h1{font-size:28px;font-weight:800;color:#3E2414;line-height:1.2;margin:2px 0 0;letter-spacing:-.6px}
+body.v-m .hdr h1{font-size:25px}
+body.v-m nav button{font-size:16.5px;padding:0 2px;line-height:1.25}
+.calcv{min-height:52px;display:flex;align-items:center;padding:8px 12px;background:var(--th);border:1px solid var(--line);border-radius:6px;font-weight:800;font-size:18px;line-height:1.4}
+.mr{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#FCFBFA}
+.mr1{display:flex;gap:8px;align-items:center}
+.mr1 input{flex:1;min-width:0;font-weight:700}
+.mr1 input.grp{flex:none;width:150px;font-weight:600}
+.mr1.sl input[type=number]{flex:none;width:170px}
+.mr2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1.6fr) minmax(0,.85fr);gap:0 10px}
+.mr2.two{grid-template-columns:1.4fr 1fr}
+.mr2 label.f{margin:10px 0 4px;font-size:16.5px}
+.pr{display:flex;gap:6px}.pr select{width:auto;flex:none;padding:10px 4px;font-size:17px}.pr input{flex:1;min-width:0;padding:10px 8px}
+.mo{margin-top:8px;font-size:17px;color:var(--sub);line-height:1.55}
+.mo b{color:var(--ink);font-weight:800}
+.mo .cmpl{display:block;font-size:17px}
+.up{color:var(--red);font-weight:800}.dn{color:var(--grn);font-weight:800}
+.ct{width:100%;border-collapse:collapse;margin-top:14px;border-top:2px solid var(--nv)}
+.ct th,.ct td{padding:8px 10px;border-bottom:1px solid var(--line);font-size:17px;line-height:1.4}
+.ct thead th{background:var(--th);text-align:right;font-weight:700}
+.ct thead th:first-child{text-align:left}
+.ct tbody th{text-align:left;font-weight:600}
+.ct td{text-align:right;white-space:nowrap;font-weight:700}
+.ct tr.sub th,.ct tr.sub td{background:#FAF6F1;font-weight:800}
+.ct tr.tot th,.ct tr.tot td{background:var(--nv2);color:#fff;font-weight:800;font-size:18px}
+.bsw{margin:14px 0 2px}
+.cardsGrid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.pcard{background:#fff;border:1px solid var(--line);border-top:4px solid var(--nv2);border-radius:8px;padding:18px 20px;box-shadow:var(--sh);break-inside:avoid;cursor:pointer}
+.pcard:hover{border-color:var(--line2)}
+.pch{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:10px}
+.pch b{display:block;font-size:22px;color:var(--nv);line-height:1.3}
+.pch small{display:block;font-size:17px;color:var(--sub)}
+.pcb{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.pbig{background:var(--th);border-radius:6px;padding:8px 12px}
+.pbig span{display:block;font-size:16px;color:var(--sub);font-weight:700}
+.pbig b{font-size:26px;font-weight:800;color:var(--nv);white-space:nowrap}
+.pbig b small{font-size:17px}
+.pcs{margin-top:10px;font-size:17px;line-height:1.6}
+.chooser .chs{display:block;width:100%;text-align:left;min-height:84px;margin-top:12px;border:1px solid var(--line2);border-left:6px solid var(--nv2);border-radius:8px;background:#fff;padding:12px 16px;font:inherit;cursor:pointer}
+.chooser .chs:hover{background:var(--brl)}
+.chooser .chs b{display:block;font-size:20px;color:var(--nv)}
+.chooser .chs span{display:block;font-size:17px;color:var(--sub)}
+.pt small{font-weight:500}
+.pt td.dif{font-size:17px}
+.bp2{display:grid;grid-template-columns:1fr 130px 150px 44px;gap:8px;align-items:center;border-bottom:1px solid var(--line);padding:8px 0}
+.bp2 .v{text-align:right;font-weight:800;white-space:nowrap}
+.bsum{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 14px;background:var(--th);border-top:2px solid var(--nv);padding:10px 12px;margin-top:10px;font-weight:800;font-size:18px}
+body.v-m .cardsGrid{grid-template-columns:1fr}
+body.v-m .mr2,body.v-m .mr2.two{grid-template-columns:1fr}
+body.v-m .mr1{flex-wrap:wrap}body.v-m .mr1 input.grp{order:3;width:100%;flex:none;min-height:46px;font-size:17px}
+body.v-m .ct .cb{display:none}body.v-m .ct th,body.v-m .ct td{padding:7px 6px}
+body.v-m .mr1.sl input[type=number]{width:130px}
+body.v-m .pcb{grid-template-columns:1fr 1fr}
+body.v-m .bp2{grid-template-columns:1fr 110px 44px}
+body.v-m .bp2 .v{grid-column:1/3;text-align:left}
+@media print{
+ .cardsGrid{display:grid!important;grid-template-columns:1fr 1fr;gap:8px}
+ .pcard{padding:8px 10px;box-shadow:none;border-color:#999}
+ .pbig b{font-size:18px}.pch b{font-size:16px}.pch small,.pcs{font-size:12px}
+ .ct th,.ct td{font-size:12px;padding:3px 6px}
+ .mr{padding:6px;break-inside:avoid}.mo,.mo .cmpl{font-size:12px}
+ .seg.bsw{display:none}
+ .pt th,.pt td{font-size:12px;padding:4px 5px}
+ .pt td b{font-size:13px}.bxt,.pt small{font-size:10.5px}.pt td.big{font-size:14px}.pt td.dif{font-size:12px}
+ div[style*="overflow-x"]{overflow:visible!important}
+ .card h2{font-size:16px}
+}
+</style>
 </head>
 <body>
-<div class="util"><div class="in"><span>빵을그리다 생산실 업무 시스템</span><span class="ver" id="verTop"></span></div></div>
 <header class="hdr"><div class="in">
- <img src="cost_192.png" alt="">
- <div><h1>원가 계산기</h1><div class="s">로스·인건비·포장재까지 넣은 1개 현실 원가</div></div>
+ <div class="brand"><img class="lg" src="brand_logo.png" alt="빵을그리다"><div><div class="co">빵을그리다 주식회사<span class="vtop" id="verTop"></span></div><h1>원가 계산기</h1></div></div>
  <div class="vsw noprint" id="vsw"></div>
 </div></header>
 <nav><div class="in">
  <button data-tab="calc">계산하기</button>
+ <button data-tab="card">원가 카드</button>
  <button data-tab="list">저장한 제품</button>
+ <button data-tab="base">공통 비용</button>
  <button data-tab="price">단가표</button>
 </div></nav>
 <main id="app"></main>
@@ -327,7 +402,7 @@ body.v-m .srch{padding:14px 16px}
 <div id="mbar" class="noprint"></div>
 <div id="toast"></div>
 <script>
-const APP_VER='v009', APP_BUILT='2026-11-15 12:01';
+const APP_VER='v010', APP_BUILT='2026-11-22 17:30';
 const LSK='drawbread_cost_key', LSP='drawbread_cost_prices';
 let PD=null, PSTAT='loading';
 try{const c=JSON.parse(localStorage.getItem(LSP)||'null');if(c&&c.data)PD=c.data}catch(e){}
@@ -352,8 +427,8 @@ function samples(){
   memo:'10/26 원가보고 배합. 판매가는 이카운트 DBS31 30개 39,000원. 인건비 1명 60분은 예시 값'});
  return [a,b];
 }
-function load(){try{const s=JSON.parse(localStorage.getItem(LS));if(s&&Array.isArray(s.products)&&s.products.length){s.prices=s.prices||{};s.packs=s.packs||{};s.boxes=s.boxes||[];return s}}catch(e){}
- const p=samples();return {products:p,prices:{},packs:{},boxes:[],cur:p[0].id,tab:'calc'}}
+function load(){try{const s=JSON.parse(localStorage.getItem(LS));if(s&&Array.isArray(s.products)&&s.products.length){s.prices=s.prices||{};s.packs=s.packs||{};s.boxes=s.boxes||[];if(!s.base||!Array.isArray(s.base.items))s.base=BASE0();return s}}catch(e){}
+ const p=samples();return {products:p,prices:{},packs:{},boxes:[],base:BASE0(),cur:p[0].id,tab:'calc'}}
 let S=load();
 /* 화면 종류: PC / 휴대폰 / 자동 (v005) */
 const LSV='drawbread_cost_view';
@@ -364,7 +439,7 @@ const calcView=()=>VPREF==='pc'||VPREF==='m'?VPREF:(window.innerWidth>=1000?'pc'
 function applyView(){VIEW=calcView();const b=document.body.classList;b.toggle('v-pc',VIEW==='pc');b.toggle('v-m',VIEW==='m');b.toggle('t-calc',(S.tab||'calc')==='calc')}
 function setView(v){VPREF=v;try{localStorage.setItem(LSV,v)}catch(e){}render();toast(v==='pc'?'PC 화면으로 바꿨어요':v==='m'?'휴대폰 화면으로 바꿨어요':'화면 크기에 맞게 자동으로 바꿔요')}
 let rzT=null;window.addEventListener('resize',()=>{clearTimeout(rzT);rzT=setTimeout(()=>{if(VPREF==='auto'&&calcView()!==VIEW)render()},250)});
-const OPEN=new Set(['ing']);
+const OPEN=new Set(['ing','smat']);
 function secCard(id,no,title,chip,body){
  const m=VIEW==='m',shut=m&&!OPEN.has(id);
  const head=`${no?`<span class="no">${no}</span>`:''}<span class="tt">${title}${chip||''}</span>`;
@@ -424,7 +499,8 @@ let ING_MAP,PACK_MAP,CODE_MAP;
 function refreshMaps(){ING_MAP=new Map(ingAll().map(x=>[x.n,x]));PACK_MAP=new Map(packAll().map(x=>[x.n,x]));
  CODE_MAP=new Map();((PD&&PD.ing)||[]).forEach(x=>{if(x.c)CODE_MAP.set(x.c,x.n)});((PD&&PD.pack)||[]).forEach(x=>{if(x.c)CODE_MAP.set('P:'+x.c,x.n)});
  migrate()}
-function migrate(){(S.products||[]).forEach(p=>{(p.rows||[]).forEach(x=>{if(x.c&&CODE_MAP.has(x.c))x.n=CODE_MAP.get(x.c);else if(x.n){const it=ING_MAP.get(x.n);if(it&&it.c)x.c=it.c}});
+function migrate(){(S.products||[]).forEach(p=>{(p.mats||[]).forEach(x=>{if(x.c&&CODE_MAP.has(x.c))x.n=CODE_MAP.get(x.c);else if(x.n){const it=ING_MAP.get(x.n);if(it&&it.c)x.c=it.c}});
+ (p.pk||[]).forEach(x=>{if(x.c&&CODE_MAP.has('P:'+x.c))x.n=CODE_MAP.get('P:'+x.c);else if(x.n){const it=PACK_MAP.get(x.n);if(it&&it.c)x.c=it.c}});(p.rows||[]).forEach(x=>{if(x.c&&CODE_MAP.has(x.c))x.n=CODE_MAP.get(x.c);else if(x.n){const it=ING_MAP.get(x.n);if(it&&it.c)x.c=it.c}});
  (p.packs||[]).forEach(x=>{if(x.c&&CODE_MAP.has('P:'+x.c))x.n=CODE_MAP.get('P:'+x.c);else if(x.n){const it=PACK_MAP.get(x.n);if(it&&it.c)x.c=it.c}})})}
 async function decryptP(j,pw){
  const ub=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
@@ -455,6 +531,7 @@ async function loadShared(){
   (d.boxes||[]).forEach(b=>{const i=S.boxes.findIndex(x=>x.id===b.id);if(i<0){S.boxes.push(b);ch=true}else if((b.updated||0)>(S.boxes[i].updated||0)){S.boxes[i]=b;ch=true}});
   for(const x of d.files||[]){try{if(!(await FDB.get(x.id)))await FDB.put(x.id,{name:x.name,type:x.type,blob:await urlToBlob(x.data)})}catch(_){}}
   (d.products||[]).forEach(p=>{const i=S.products.findIndex(x=>x.id===p.id);if(i<0){S.products.push(p);ch=true}else if((p.updated||0)>(S.products[i].updated||0)){S.products[i]=p;ch=true}});
+  if(d.base&&Array.isArray(d.base.items)&&(!S.base||(d.base.updated||0)>(S.base.updated||0))){S.base=d.base;ch=true}
   save(true);try{localStorage.setItem(LSS,j.updated)}catch(e){}
   return ch;
  }catch(e){return false}
@@ -500,20 +577,21 @@ function calc(r){
 function setTab(t){S.tab=t;save(true);render()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 function pageHead(t,d){return `<div class="ph"><div class="crumb">홈 › 원가 계산기 › ${t}</div><h2>${t}</h2><p>${d}</p></div>`}
-function verText(){const [d,t]=APP_BUILT.split(' ');return `<b>${APP_VER}</b>${d.replace(/-/g,'.')} ${t||''} 업데이트`}
+function verText(){const [d,t]=APP_BUILT.split(' ');return ` · ${APP_VER} · ${d.replace(/-/g,'.')} ${t||''} 업데이트`}
 function vswHtml(){return `<span>화면</span>${[['pc','PC'],['m','휴대폰'],['auto','자동']].map(([v,l])=>`<button type="button" data-view="${v}" class="${VPREF===v?'on':''}">${l}</button>`).join('')}`}
 function renderFoot(){$('#verTop').innerHTML=verText();$('#vsw').innerHTML=vswHtml();$('#foot').innerHTML=`<div class="vsw noprint" style="margin:0 0 12px">${vswHtml()}</div><b>빵을그리다 원가 계산기</b> · 프로그램 ${APP_VER} (${esc(APP_BUILT)} 업데이트) · 지금 ${VIEW==='pc'?'PC':'휴대폰'} 화면<br>PC 화면 주소: cost.html?view=pc · 휴대폰 화면 주소: cost.html?view=m<br>단가 자료 기준: ${esc(priceBase())}<br>모든 금액은 부가세 별도예요. 입력한 내용은 이 기기(브라우저)에 자동 저장돼요.`;document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view))}
 function render(){
  applyView();renderFoot();
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===S.tab));
- if(S.tab==='list')renderList();else if(S.tab==='price')renderPrice();else renderCalc();
+ if(S.tab==='list')renderList();else if(S.tab==='price')renderPrice();else if(S.tab==='card')renderCards();else if(S.tab==='base')renderBase();else renderCalc();
  window.scrollTo(0,0);
 }
 
 function numIn(k,v,ph,step){return `<input type="number" inputmode="decimal" step="${step||'any'}" data-k="${k}" value="${esc(v)}" placeholder="${esc(ph||'')}">`}
 function presets(k,vals,v,unit){return `<div class="presets">${vals.map(x=>`<button type="button" data-pre="${k}" data-v="${x}" class="${N(v)===x?'on':''}">${x}${unit}</button>`).join('')}</div>`}
 
-function renderCalc(){
+function renderCalc(){if(cur().kind==='sheet')return renderSheet();return renderCalcOld()}
+function renderCalcOld(){
  const r=cur(),bx=boxOf(r);
  const opt=p=>`<option value="${p.id}" ${p.id===r.id?'selected':''}>${esc(p.name)}</option>`;
  const boxSel=`<select data-k="bxId"><option value="">일반 제품 (보관함 없음)</option>${(S.boxes||[]).map(b=>`<option value="${b.id}" ${r.bxId===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select>`;
@@ -621,7 +699,7 @@ function packRow(p,i){
 function bindCalc(){
  const r=cur(),app=$('#app');
  $('#pick').onchange=e=>{S.cur=e.target.value;save(true);renderCalc()};
- $('#bNew').onclick=()=>{const p=blank();S.products.push(p);S.cur=p.id;save();renderCalc()};
+ $('#bNew').onclick=()=>newChooser(r.bxId||'');
  $('#bCopy').onclick=()=>{const p=JSON.parse(JSON.stringify(r));p.id=uid();p.name=r.name+' (복사)';p.updated=Date.now();S.products.push(p);S.cur=p.id;save();renderCalc();toast('복사했어요')};
  $('#bPrint').onclick=()=>window.print();
  $('#bDel').onclick=()=>{if(!confirm(`「${r.name}」을(를) 삭제할까요?`))return;S.products=S.products.filter(x=>x.id!==r.id);if(!S.products.length)S.products.push(blank());S.cur=S.products[0].id;save();renderCalc()};
@@ -696,7 +774,7 @@ function update(){
   ${c.pmiss.length?`<div class="note">단가가 없는 포장재: ${c.pmiss.map(esc).join(', ')}</div>`:''}`;
  // 폭포
  const steps=[
-  ['재료비만 (생산실 계산 방식)',`재료비 ${won(c.mat)} ÷ 반죽 전부 나눈 개수 ${num(c.ideal,2)}개`,c.A,'#22396F',true],
+  ['재료비만 (생산실 계산 방식)',`재료비 ${won(c.mat)} ÷ 반죽 전부 나눈 개수 ${num(c.ideal,2)}개`,c.A,'#6E3F1C',true],
   ['원료 손실',`보관·계량·유통기한 폐기 ${num(N(r.rawLoss),1)}%`,c.B-c.A,'#E07B00'],
   ['반죽 손실',`믹서·작업대에 남는 반죽 ${num(N(r.doughLoss),1)}% → ${num(c.frac,2)}개`,c.C1-c.B,'#E07B00'],
   ['자투리 반죽',r.scrap==='reuse'?'다음 반죽에 다시 씀 (추가 없음)':`버림 → ${num(c.pcs)}개로 내림`,c.C-c.C1,'#E07B00'],
@@ -732,14 +810,14 @@ function renderList(){
    <tr><th>메모</th><td class="pre">${esc(B.memo||'-')}</td></tr></table>
    <div class="bar noprint" style="margin-top:12px"><button class="btn g sm" id="bxEdit">보관함 정보 고치기</button><button class="btn g sm" id="bxFile">원본 문서 올리기</button><button class="btn gr sm" id="bxExp">이 보관함 내보내기</button><button class="btn gr sm" id="bxPrint">요약표 인쇄</button><button class="btn del sm" id="bxDel">보관함 지우기</button><input type="file" id="bxFin" style="display:none"></div></div>`:'';
  const title=LB==='all'?'전체 제품':LB==='none'?'일반 제품':'보관함 제품';
- const rows=list.map(p=>{const c=calc(p),b=boxOf(p);return `<tr data-open="${p.id}"><td><b>${esc(p.name)}</b>${LB==='all'&&b?`<small class="bxt">보관함 · ${esc(b.name)}</small>`:''}</td><td class="r hm">${num(p.pieceW)}g</td><td class="r">${num(c.A)}원</td><td class="r big">${num(c.total)}원</td><td class="r hm">${won(c.batch)}</td><td class="r hm">${new Date(p.updated||0).toLocaleDateString('ko-KR')}</td></tr>`}).join('');
+ const rows=list.map(p=>{const b=boxOf(p);if(p.kind==='sheet'){const c=sCalc(p);return `<tr data-open="${p.id}"><td><b>${esc(p.name)}</b><small class="bxt">제품별 원가표${LB==='all'&&b?` · 보관함 ${esc(b.name)}`:''}</small></td><td class="r hm">${num(p.pieceW)}g</td><td class="r">${num(c.direct,1)}원</td><td class="r big">${num(c.total,1)}원</td><td class="r hm">1박스 ${won(c.total*c.box)}</td><td class="r hm">${new Date(p.updated||0).toLocaleDateString('ko-KR')}</td></tr>`}const c=calc(p);return `<tr data-open="${p.id}"><td><b>${esc(p.name)}</b>${LB==='all'&&b?`<small class="bxt">보관함 · ${esc(b.name)}</small>`:''}</td><td class="r hm">${num(p.pieceW)}g</td><td class="r">${num(c.A)}원</td><td class="r big">${num(c.total)}원</td><td class="r hm">${won(c.batch)}</td><td class="r hm">${new Date(p.updated||0).toLocaleDateString('ko-KR')}</td></tr>`}).join('');
  let hasKey=false;try{hasKey=!!localStorage.getItem(LSK)}catch(e){}
  $('#app').innerHTML=pageHead('저장한 제품','제품을 보관함별로 모아 볼 수 있어요. 요청받은 원가 계산은 보관함에 넣어 두면 나중에 찾기 쉬워요.')+(hasKey?'':`<div class="warn noprint" style="margin:0 0 16px">이 기기(브라우저)는 아직 열쇠가 없어서 공유 보관함(예: 부안)과 단가표를 받지 못해요. 조조가 드린 「원가계산기 열쇠 링크」(QR)로 이 브라우저에서 한 번만 열어 주세요. 그 뒤로는 저절로 들어와요.</div>`)+`
  <div class="listGrid">${nav}<div>
   <div class="srch noprint"><label class="f" for="lq" style="margin-top:0">제품·보관함 찾기</label><input id="lq" value="${esc(LQ)}" placeholder="예: 부안, 휘낭시에"></div>
   ${boxInfo}
   <div class="card"><h2>${title} <span class="chip b">${list.length}개</span></h2>
-   ${list.length?`<table class="pt"><thead><tr><th>제품명</th><th class="r hm">1개 무게</th><th class="r">재료만 1개</th><th class="r">1개 현실 원가</th><th class="r hm">1배합 총원가</th><th class="r hm">수정일</th></tr></thead><tbody>${rows}</tbody></table>`:'<p class="help">찾는 제품이 없어요.</p>'}
+   ${list.length?`<table class="pt"><thead><tr><th>제품명</th><th class="r hm">1개 무게</th><th class="r">재료만 1개<br><small>(원가표: 재료+포장)</small></th><th class="r">1개 원가</th><th class="r hm">1배합·1박스</th><th class="r hm">수정일</th></tr></thead><tbody>${rows}</tbody></table>`:'<p class="help">찾는 제품이 없어요.</p>'}
    <button class="btn noprint" id="lNew" style="width:100%;margin-top:12px">+ 새 제품 만들기${B?' (이 보관함에)':''}</button></div>
   <div class="g2 noprint">
    <div class="card"><h2>다른 기기로 옮기기</h2><p class="help">저장 내용은 <b>이 기기(이 브라우저)에만</b> 남아요. 다른 기기에서 보려면 파일로 내보낸 뒤 그 기기에서 가져오기 하세요. 보관함과 원본 문서도 함께 옮겨져요.</p>
@@ -752,7 +830,7 @@ function bindList(B){
  document.querySelectorAll('[data-lb]').forEach(e=>e.onclick=()=>{LB=e.dataset.lb;renderList()});
  $('#lq').oninput=e=>{LQ=e.target.value;clearTimeout(window._lqT);window._lqT=setTimeout(()=>{const y=scrollY;renderList();window.scrollTo(0,y);const i=$('#lq');i.focus();i.setSelectionRange(i.value.length,i.value.length)},350)};
  document.querySelectorAll('[data-open]').forEach(e=>e.onclick=()=>{S.cur=e.dataset.open;setTab('calc')});
- $('#lNew').onclick=()=>{const p=blank();if(B)p.bxId=B.id;S.products.push(p);S.cur=p.id;setTab('calc')};
+ $('#lNew').onclick=()=>newChooser(B?B.id:'');
  $('#bxNew').onclick=()=>editBox(null);
  $('#lSample').onclick=()=>{S.products.push(...samples());save();renderList();toast('예시 제품을 넣었어요')};
  $('#lExp').onclick=()=>exportData(null);
@@ -803,7 +881,7 @@ function editBox(B){
 async function exportData(B){
  const boxes=B?[B]:(S.boxes||[]),products=B?S.products.filter(p=>p.bxId===B.id):S.products,files=[];
  for(const b of boxes)for(const f of b.files||[]){try{const v=await FDB.get(f.id);if(v)files.push({id:f.id,name:v.name,type:v.type,data:await blobToUrl(v.blob)})}catch(_){}}
- const blob=new Blob([JSON.stringify({app:'drawbread_cost',ver:APP_VER,at:new Date().toISOString(),products,prices:S.prices,packs:S.packs,boxes,files},null,1)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify({app:'drawbread_cost',ver:APP_VER,at:new Date().toISOString(),products,prices:S.prices,packs:S.packs,boxes,files,base:S.base},null,1)],{type:'application/json'});
  const d=new Date(),ds=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
  a.download=B?`원가계산기_보관함_${B.name.replace(/[\\/:*?"<>|]/g,'')}_${ds}.json`:`원가계산기_${ds}.json`;
@@ -816,6 +894,7 @@ async function importFile(f){
   (j.boxes||[]).forEach(b=>{const i=S.boxes.findIndex(x=>x.id===b.id);if(i<0){S.boxes.push(b);bx++}else if((b.updated||0)>=(S.boxes[i].updated||0)){S.boxes[i]=b;bx++}});
   for(const x of j.files||[]){try{await FDB.put(x.id,{name:x.name,type:x.type,blob:await urlToBlob(x.data)})}catch(_){}}
   j.products.forEach(p=>{const i=S.products.findIndex(x=>x.id===p.id);if(i<0){S.products.push(p);add++}else if((p.updated||0)>(S.products[i].updated||0)){S.products[i]=p;upd++}});
+  if(j.base&&Array.isArray(j.base.items)&&(!S.base||(j.base.updated||0)>(S.base.updated||0)))S.base=j.base;
   Object.assign(S.prices,j.prices||{});Object.assign(S.packs,j.packs||{});refreshMaps();save(true);
   if(j.boxes&&j.boxes.length===1)LB=j.boxes[0].id;
   renderList();toast(`새 제품 ${add}개, 최신으로 바뀐 제품 ${upd}개${bx?`, 보관함 ${bx}개`:''}`)}
@@ -931,6 +1010,369 @@ function openOnline(name,done){
   S.prices[n]={p:Math.round((v?p/1.1:p)*100)/100,g:gg,src:'online',mall,title:g('olTi').value.trim(),url,vat:v,at:new Date().toISOString(),s:`${mall} ${g('olTi').value.trim()}`.slice(0,90)};
   refreshMaps();save();close();toast('원가에 반영했어요');if(done)done(n)};
  setTimeout(()=>g(name?'olQ':'olN').focus(),50);
+}
+
+/* ===== v010 제품별 원가표 (하루 생산량 기준, 전무님 엑셀 방식) =====
+   제품 kind:'sheet' — 재료(mats)·포장재(pk)·하루 비용(oh)·거래처 판매가(sales). 단가 기준 pb: 'ecount'(이카운트 최신) / 'excel'(엑셀 단가)
+   공통 비용 S.base — 인건비(시급×시간×(1+보험%), 1,000원 미만 버림)·전기(연간÷365)·임차(월÷30). 값은 암호 파일(공유 보관함)로만 들어옴 */
+function BASE0(){return {updated:0,items:[
+ {id:'labor',n:'생산 인건비 (하루)',type:'people',hours:8,ins:10,people:[]},
+ {id:'office',n:'사무·관리 인건비 (하루)',type:'people',hours:8,ins:10,people:[]},
+ {id:'power',n:'공장 전기요금 (하루)',type:'year',total:'',days:365,fix:''},
+ {id:'rent',n:'공장 임차료 (하루)',type:'month',total:'',days:30,fix:''}]}}
+function baseOf(){if(!S.base||!Array.isArray(S.base.items))S.base=BASE0();return S.base}
+function perDay(it,x){return Math.floor(N(x.w)*(N(it.hours)||8)*(1+N(it.ins)/100)/1000+1e-9)*1000}
+function baseCalc(it){
+ if(it.type==='people')return (it.people||[]).reduce((s,x)=>s+perDay(it,x),0);
+ if(it.type==='year'||it.type==='month')return N(it.days)>0?N(it.total)/N(it.days):0;
+ return N(it.amt);
+}
+function baseAmt(it){return it.fix!=null&&it.fix!==''?N(it.fix):baseCalc(it)}
+const baseItem=id=>baseOf().items.find(x=>x.id===id);
+function ohAmt(o){if(o.ref&&(o.amt===''||o.amt==null)){const it=baseItem(o.ref);return it?baseAmt(it):0}return N(o.amt)}
+function sheetBlank(){return {id:uid(),kind:'sheet',name:'새 제품',pieceW:100,perBag:1,bags:1,boxes:10,bmode:'box',batches:1,price:'',sales:[],target:30,loss:0,defect:0,pb:'ecount',
+ mats:[{grp:'',xn:'',n:'',g:'',per:'batch'}],pk:[],oh:[{n:'생산 인건비 (하루)',ref:'labor',amt:''},{n:'공장 전기요금 (하루)',ref:'power',amt:''},{n:'공장 임차료 (하루)',ref:'rent',amt:''}],memo:'',updated:Date.now()}}
+const hasV=v=>v!=null&&v!=='';
+function mUnit(x,basis){
+ const xl=N(x.xg)>0&&hasV(x.xp)?N(x.xp)/N(x.xg):null;
+ const it=x.n?ING_MAP.get(x.n):null,ec=it&&N(it.g)>0?N(it.p)/N(it.g):null;
+ if(hasV(x.kp))return {u:N(x.kp)/1000,src:'manual',ec,xl,it};
+ if(basis==='excel'&&xl!=null)return {u:xl,src:'excel',ec,xl,it};
+ if(ec!=null)return {u:ec,src:'ecount',ec,xl,it};
+ if(xl!=null)return {u:xl,src:'excel0',ec,xl,it};
+ return {u:null,src:'none',ec,xl,it};
+}
+function kUnit(k,basis){
+ const xl=hasV(k.xp)?N(k.xp):null;
+ const it=k.n?PACK_MAP.get(k.n):null,ec=it?N(it.p)/(N(it.k)||1):null;
+ if(hasV(k.up))return {u:N(k.up),src:'manual',ec,xl,it};
+ if(basis==='excel'&&xl!=null)return {u:xl,src:'excel',ec,xl,it};
+ if(ec!=null)return {u:ec,src:'ecount',ec,xl,it};
+ if(xl!=null)return {u:xl,src:'excel0',ec,xl,it};
+ return {u:null,src:'none',ec,xl,it};
+}
+function sCalc(p,basis){
+ basis=basis||p.pb||'ecount';
+ const perBag=Math.max(0,N(p.perBag)),box=perBag*Math.max(0,N(p.bags)),day=box*Math.max(0,N(p.boxes));
+ const bat=p.bmode==='box'?Math.max(0,N(p.boxes)):Math.max(0,N(p.batches));
+ let mat=0;const miss=[],mr=[];
+ (p.mats||[]).forEach(x=>{const g=N(x.g),dg=x.per==='pc'?g*day:g*bat,u=mUnit(x,basis),a=u.u==null?0:dg*u.u;if((x.xn||x.n)&&g>0&&u.u==null)miss.push(x.xn||x.n);mat+=a;mr.push({dg,u,a})});
+ const lossA=mat*N(p.loss)/100,dfc=Math.min(99,Math.max(0,N(p.defect))),good=day*(1-dfc/100);
+ let pkPc=0;const kr=[];
+ (p.pk||[]).forEach(k=>{const u=kUnit(k,basis),q=N(k.q),per=k.per==='bag'?(perBag>0?q/perBag:0):k.per==='pc'?q:(box>0?q/box:0),a=u.u==null?0:u.u*per;if((k.xn||k.n)&&q>0&&u.u==null)miss.push(k.xn||k.n);pkPc+=a;kr.push({u,a,per})});
+ let ohDay=0;const orr=[];
+ (p.oh||[]).forEach(o=>{const a=ohAmt(o);ohDay+=a;orr.push({day:a,pc:good>0?a/good:0})});
+ const dv=(a,b)=>b>0?a/b:0,matPc=dv(mat+lossA,good),ohPc=dv(ohDay,good),direct=matPc+pkPc,total=direct+ohPc,price=N(p.price);
+ return {basis,perBag,box,day,good,bat,mat,lossA,matPc,matOnlyPc:dv(mat,good),lossPc:dv(lossA,good),pkPc,ohDay,ohPc,direct,total,mr,kr,or:orr,miss,price,
+  rate:price>0?total/price*100:null,margin:price>0?price-total:null};
+}
+const BASIS_T={ecount:'이카운트 최신 단가',excel:'전무님 엑셀 단가'};
+const n1=v=>num(v,1),n2=v=>num(v,2);
+function rateCol(rate,tgt){if(rate==null)return 'var(--sub)';const lim=100-(N(tgt)||30);return rate>lim+5?'var(--red)':rate>lim?'var(--org)':'var(--grn)'}
+function difTx(a,b){if(a==null||b==null||!(b>0))return '';const d=(a/b-1)*100;if(Math.abs(d)<0.05)return '<span class="dn">같음</span>';return `<span class="${d>0?'up':'dn'}">${d>0?'▲':'▼'}${num(Math.abs(d),Math.abs(d)<10?1:0)}%</span>`}
+function wonDif(a,b){const d=a-b;if(Math.abs(d)<0.05)return '<span class="dn">같음</span>';return `<span class="${d>0?'up':'dn'}">${d>0?'+':'−'}${n1(Math.abs(d))}원</span>`}
+function ecTx(it){if(!it)return '';if(it.src==='buy')return `${esc((it.d||'').slice(2).replace(/-/g,'.'))} 매입`;if(it.src==='online')return '온라인';if(it.src==='stock')return '재고 단가';if(it.edited||it.custom)return '이 기기에서 고침';return ''}
+function bindTop(r,rerender){
+ $('#pick').onchange=e=>{S.cur=e.target.value;save(true);renderCalc()};
+ $('#bNew').onclick=()=>newChooser(r.bxId||'');
+ $('#bCopy').onclick=()=>{const p=JSON.parse(JSON.stringify(r));p.id=uid();p.name=r.name+' (복사)';p.updated=Date.now();delete p.xl;S.products.push(p);S.cur=p.id;save();renderCalc();toast('복사했어요. 이름과 값을 고치세요')};
+ $('#bPrint').onclick=()=>window.print();
+ $('#bDel').onclick=()=>{if(!confirm(`「${r.name}」을(를) 삭제할까요?`))return;S.products=S.products.filter(x=>x.id!==r.id);if(!S.products.length)S.products.push(sheetBlank());S.cur=S.products[0].id;save();renderCalc()};
+}
+function newChooser(bxId){
+ const w=document.createElement('div');w.id='olBg';
+ const opt=p=>`<option value="${p.id}" ${p.id===S.cur?'selected':''}>${esc(p.name)}</option>`;
+ w.innerHTML=`<div class="olBox chooser"><div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:22px;color:var(--nv)">새 제품 만들기</h2><button class="xb" id="chX" style="color:var(--ink)">×</button></div>
+  <button type="button" class="chs" id="chSheet"><b>제품별 원가표</b><span>하루 생산량 기준 · 재료·포장·인건비·전기·임차료를 1개·1봉·1박스로 (전무님 엑셀 방식)</span></button>
+  <button type="button" class="chs" id="chOld"><b>현실 원가 계산</b><span>1배합 기준 · 반죽 손실·자투리·불량·작업 시간까지 (기존 방식)</span></button>
+  <label class="f" style="margin-top:18px">또는 있는 제품을 복사해서 만들기</label>
+  <div class="bar"><select id="chSrc">${grpOpts(opt)}</select><button class="btn g" id="chCopy">복사해서 만들기</button></div></div>`;
+ document.body.appendChild(w);
+ const g=id=>w.querySelector('#'+id),close=()=>w.remove();
+ const go=p=>{if(bxId&&!p.bxId)p.bxId=bxId;S.products.push(p);S.cur=p.id;save();close();S.tab='calc';render()};
+ g('chX').onclick=close;w.onclick=e=>{if(e.target===w)close()};
+ g('chSheet').onclick=()=>go(sheetBlank());
+ g('chOld').onclick=()=>go(blank());
+ g('chCopy').onclick=()=>{const src=S.products.find(x=>x.id===g('chSrc').value);if(!src)return;const p=JSON.parse(JSON.stringify(src));p.id=uid();p.name=src.name+' (복사)';p.updated=Date.now();delete p.xl;go(p);toast('복사했어요. 이름과 값을 고치세요')};
+}
+function matRow(x,i){
+ return `<div class="mr" data-m="${i}">
+  <div class="mr1"><input data-mf="grp" class="grp" value="${esc(x.grp||'')}" placeholder="구분 (예: 소스)"><input data-mf="xn" value="${esc(x.xn||'')}" placeholder="재료 이름"><button class="xb" data-mdel="${i}" title="빼기">×</button></div>
+  <div class="mr2">
+   <div><label class="f">이카운트 품목 <small>(단가 연결)</small></label><input list="dlIng" data-mf="n" value="${esc(x.n||'')}" placeholder="이름 일부를 쓰면 목록이 떠요"></div>
+   <div><label class="f">넣는 양 <small>(g)</small></label><div class="pr"><select data-mf="per"><option value="batch" ${x.per!=='pc'?'selected':''}>1배합에</option><option value="pc" ${x.per==='pc'?'selected':''}>1개에</option></select><input type="number" inputmode="decimal" data-mf="g" value="${esc(x.g)}" placeholder="g"></div></div>
+   <div><label class="f">1g 가격 <small>(직접)</small></label><input type="number" inputmode="decimal" data-mf="kp" value="${hasV(x.kp)?esc(gIn(N(x.kp))):''}" placeholder="자동"></div>
+  </div>
+  <div class="mo" data-mo="${i}"></div></div>`;
+}
+function pkRow(k,i){
+ const o=(v,l)=>`<option value="${v}" ${(k.per||'box')===v?'selected':''}>${l}</option>`;
+ return `<div class="mr" data-pkr="${i}">
+  <div class="mr1"><input data-kf="xn" value="${esc(k.xn||'')}" placeholder="포장재 이름 (예: 종이박스)"><button class="xb" data-kdel="${i}" title="빼기">×</button></div>
+  <div class="mr2">
+   <div><label class="f">이카운트 포장재</label><input list="dlPack" data-kf="n" value="${esc(k.n||'')}" placeholder="이름 일부를 쓰면 목록이 떠요"></div>
+   <div><label class="f">쓰는 수량</label><div class="pr"><select data-kf="per">${o('box','1박스에')}${o('bag','1봉에')}${o('pc','1개에')}</select><input type="number" inputmode="decimal" data-kf="q" value="${esc(k.q)}" placeholder="개수"></div></div>
+   <div><label class="f">1개 단가 <small>(직접)</small></label><input type="number" inputmode="decimal" data-kf="up" value="${esc(hasV(k.up)?k.up:'')}" placeholder="자동"></div>
+  </div>
+  <div class="mo" data-ko="${i}"></div></div>`;
+}
+function ohRow(o,i){
+ const items=baseOf().items;
+ return `<div class="mr" data-ohr="${i}">
+  <div class="mr1"><input data-of="n" value="${esc(o.n||'')}" placeholder="비용 이름 (예: 가스요금)"><button class="xb" data-odel="${i}" title="빼기">×</button></div>
+  <div class="mr2 two">
+   <div><label class="f">금액 가져오기</label><select data-of="ref"><option value="">직접 넣기</option>${items.map(it=>`<option value="${it.id}" ${o.ref===it.id?'selected':''}>공통 비용 · ${esc(it.n)}</option>`).join('')}</select></div>
+   <div><label class="f">하루 금액 <small>(원)</small></label><input type="number" inputmode="decimal" data-of="amt" value="${esc(hasV(o.amt)?o.amt:'')}" placeholder="${o.ref?'공통 비용 금액 사용':'예: 30000'}"></div>
+  </div>
+  <div class="mo" data-oo="${i}"></div></div>`;
+}
+function saleRow(s,i){
+ return `<div class="mr" data-slr="${i}"><div class="mr1 sl"><input data-sf="n" value="${esc(s.n||'')}" placeholder="거래처 이름"><input type="number" inputmode="decimal" data-sf="p" value="${esc(s.p)}" placeholder="1개 판매가"><button class="xb" data-sdel="${i}" title="빼기">×</button></div><div class="mo" data-so="${i}"></div></div>`;
+}
+function renderSheet(){
+ const r=cur(),bx=boxOf(r);
+ r.mats=r.mats||[];r.pk=r.pk||[];r.oh=r.oh||[];r.sales=r.sales||[];
+ const opt=p=>`<option value="${p.id}" ${p.id===r.id?'selected':''}>${esc(p.name)}</option>`;
+ const boxSel=`<select data-k="bxId"><option value="">일반 제품 (보관함 없음)</option>${(S.boxes||[]).map(b=>`<option value="${b.id}" ${r.bxId===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select>`;
+ $('#app').innerHTML=pageHead('계산하기','제품별 원가표예요. 하루 생산량을 기준으로 재료비·포장비·인건비·전기·임차료를 1개·1봉·1박스 원가로 나눠 보여 드려요.')+priceBanner()+`
+ <div class="srch noprint">
+  <label class="f" for="pick" style="margin-top:0">제품 선택${bx?` <span class="chip b">보관함 · ${esc(bx.name)}</span>`:''} <span class="chip g">제품별 원가표</span></label>
+  <div class="bar"><select id="pick">${grpOpts(opt)}</select>
+   <button class="btn g sm" id="bNew">+ 새 제품</button><button class="btn gr sm" id="bCopy">복사</button><button class="btn gr sm" id="bPrint">인쇄</button></div>
+ </div>
+ <div class="calcGrid">
+ <div class="colR"><div class="res" id="res"></div></div>
+ <div class="colL">
+ ${secCard('sinfo',1,'제품 정보와 하루 생산량','',`
+  <div class="gInfo">
+   <div class="sp2"><label class="f">제품 이름</label><input data-k="name" value="${esc(r.name)}"></div>
+   <div><label class="f">1개 무게 <small>(g)</small></label>${numIn('pieceW',r.pieceW,'예: 90')}</div>
+   <div><label class="f">1봉 개수</label>${numIn('perBag',r.perBag,'예: 6')}</div>
+   <div><label class="f">1박스 봉 수</label>${numIn('bags',r.bags,'예: 4')}</div>
+   <div><label class="f">하루 박스 수</label>${numIn('boxes',r.boxes,'예: 50')}</div>
+   <div class="sp2"><label class="f">하루 생산량 <small>(자동 계산)</small></label><div class="calcv" id="sQty"></div></div>
+   <div class="sp2"><label class="f">기준 판매가 <small>(1개, 부가세 빼고)</small></label>${numIn('price',r.price,'모르면 비워 두기')}</div>
+   <div class="sp2"><label class="f">보관함</label>${boxSel}</div>
+  </div>
+  <label class="f">목표 마진율 <small>(판매가에서 남길 비율 → 권장 판매가)</small></label>
+  <div class="pin">${numIn('target',r.target,'30')}${presets('target',[20,30,40,50],r.target,'%')}</div>`)}
+ ${secCard('smat',2,'재료비','',`
+  <p class="help">재료마다 1배합(또는 1개)에 들어가는 양을 넣으세요. 「이카운트 품목」을 고르면 최근 매입가가 자동으로 들어가고, 전무님 엑셀 단가와 나란히 보여 드려요.</p>
+  <label class="f" style="margin-top:0">배합 기준</label>
+  <div class="seg"><button type="button" data-bmode="box" class="${r.bmode==='box'?'on':''}">1배합 = 1박스<br><small>하루 배합 수 = 하루 박스 수</small></button><button type="button" data-bmode="num" class="${r.bmode!=='box'?'on':''}">하루 배합 수 직접 넣기<br><small>예: 하루 10배합</small></button></div>
+  ${r.bmode!=='box'?`<label class="f">하루 배합 수</label>${numIn('batches',r.batches,'예: 10')}`:''}
+  <div style="margin-top:14px">${r.mats.map((x,i)=>matRow(x,i)).join('')}</div>
+  <button class="btn g sm noprint" id="sAddMat">+ 재료 추가</button>
+  <div class="bsum"><span>하루 재료비</span><span id="sMatSum"></span></div>
+  <div class="g2" style="margin-top:6px">
+   <div><label class="f">재료 로스율 <small>(버려지는 재료)</small></label><div class="pin">${numIn('loss',r.loss,'0')}${presets('loss',[0,1,2,3,5],r.loss,'%')}</div></div>
+   <div><label class="f">불량·폐기율 <small>(못 파는 제품)</small></label><div class="pin">${numIn('defect',r.defect,'0')}${presets('defect',[0,1,2,3,5],r.defect,'%')}</div></div>
+  </div>
+  <datalist id="dlIng">${[...ING_MAP.keys()].map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`)}
+ ${secCard('spk',3,'포장재·경비','',`
+  <p class="help">1박스에, 1봉에, 1개에 중 하나를 고르고 몇 개 쓰는지 넣으세요.</p>
+  <div>${r.pk.map((k,i)=>pkRow(k,i)).join('')||'<p class="help">아직 포장재가 없어요.</p>'}</div>
+  <button class="btn g sm noprint" id="sAddPk">+ 포장재 추가</button>
+  <div class="bsum"><span>포장재·경비</span><span id="sPkSum"></span></div>
+  <datalist id="dlPack">${[...PACK_MAP.keys()].map(n=>`<option value="${esc(n)}">`).join('')}</datalist>`)}
+ ${secCard('soh',4,'인건비·전기·임차료 (하루 비용)','',`
+  <p class="help">하루에 드는 비용을 하루 생산량으로 나눠 1개 원가에 넣어요. 「공통 비용」에 연결하면 공통 비용에서 한 번 고칠 때 모든 제품에 같이 반영돼요.</p>
+  <div>${r.oh.map((o,i)=>ohRow(o,i)).join('')||'<p class="help">아직 없어요.</p>'}</div>
+  <div class="bar noprint"><button class="btn g sm" id="sAddOh">+ 비용 추가</button><button class="btn gr sm" id="sGoBase">공통 비용 고치기</button></div>
+  <div class="bsum"><span>하루 비용 합계</span><span id="sOhSum"></span></div>`)}
+ ${secCard('ssale',5,'거래처별 판매가','',`
+  <p class="help">거래처마다 판매가가 다르면 넣으세요. 원가율과 남는 돈이 같이 나와요.</p>
+  <div>${r.sales.map((s,i)=>saleRow(s,i)).join('')||'<p class="help">아직 없어요.</p>'}</div>
+  <button class="btn g sm noprint" id="sAddSale">+ 거래처 추가</button>`)}
+ ${secCard('smemo',0,'메모','',`<textarea data-k="memo" rows="${Math.min(8,Math.max(2,String(r.memo||'').split('\n').length+1))}" placeholder="자료 출처, 확인할 것 등">${esc(r.memo)}</textarea>
+  <div class="noprint" style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn del sm" id="bDel">이 제품 삭제</button></div>`)}
+ </div></div>`;
+ bindSheet();sUpdate();
+}
+function renderSheetKeep(){const y=window.scrollY;renderSheet();window.scrollTo(0,y)}
+function bindSheet(){
+ const r=cur(),app=$('#app');
+ bindTop(r);
+ $('#sAddMat').onclick=()=>{r.mats.push({grp:'',xn:'',n:'',g:'',per:'batch'});touch();renderSheetKeep()};
+ $('#sAddPk').onclick=()=>{r.pk.push({xn:'',n:'',per:'box',q:1});touch();renderSheetKeep()};
+ $('#sAddOh').onclick=()=>{r.oh.push({n:'',ref:'',amt:''});touch();renderSheetKeep()};
+ $('#sAddSale').onclick=()=>{r.sales.push({n:'',p:''});touch();renderSheetKeep()};
+ $('#sGoBase').onclick=()=>setTab('base');
+ app.oninput=e=>{const t=e.target;let w;
+  if(t.dataset.k){r[t.dataset.k]=t.value;if(t.dataset.k==='name')refreshPick();syncPresets(t.dataset.k);touch();sUpdate();return}
+  if((w=t.closest('[data-m]'))&&t.dataset.mf){const x=r.mats[+w.dataset.m],f=t.dataset.mf;
+   if(f==='kp')x.kp=t.value===''?null:String(N(t.value)*1000);else{x[f]=t.value;if(f==='n'){const it=ING_MAP.get(x.n);x.c=it&&it.c||undefined}}
+   touch();sUpdate();return}
+  if((w=t.closest('[data-pkr]'))&&t.dataset.kf){const k=r.pk[+w.dataset.pkr],f=t.dataset.kf;
+   if(f==='up')k.up=t.value===''?null:t.value;else{k[f]=t.value;if(f==='n'){const it=PACK_MAP.get(k.n);k.c=it&&it.c||undefined}}
+   touch();sUpdate();return}
+  if((w=t.closest('[data-ohr]'))&&t.dataset.of){r.oh[+w.dataset.ohr][t.dataset.of]=t.value;touch();sUpdate();return}
+  if((w=t.closest('[data-slr]'))&&t.dataset.sf){r.sales[+w.dataset.slr][t.dataset.sf]=t.value;touch();sUpdate();return}
+ };
+ app.onchange=e=>{const t=e.target;if(t.dataset.k==='bxId'||t.dataset.of==='ref')renderSheetKeep()};
+ app.onclick=e=>{const t=e.target.closest('button');if(!t)return;
+  if(t.dataset.pre){r[t.dataset.pre]=+t.dataset.v;const inp=app.querySelector(`[data-k="${t.dataset.pre}"]`);if(inp)inp.value=t.dataset.v;syncPresets(t.dataset.pre);touch();sUpdate()}
+  else if(t.dataset.bmode){r.bmode=t.dataset.bmode;if(r.bmode==='num'&&!(N(r.batches)>0))r.batches=1;touch();renderSheetKeep()}
+  else if(t.dataset.pb){r.pb=t.dataset.pb;touch();sUpdate()}
+  else if(t.dataset.mdel!=null){r.mats.splice(+t.dataset.mdel,1);touch();renderSheetKeep()}
+  else if(t.dataset.kdel!=null){r.pk.splice(+t.dataset.kdel,1);touch();renderSheetKeep()}
+  else if(t.dataset.odel!=null){r.oh.splice(+t.dataset.odel,1);touch();renderSheetKeep()}
+  else if(t.dataset.sdel!=null){r.sales.splice(+t.dataset.sdel,1);touch();renderSheetKeep()}
+  else if(t.dataset.sec)toggleSec(t.dataset.sec);
+ };
+}
+function cmpLine(u){
+ const parts=[];
+ parts.push(u.ec!=null?`이카운트 1g ${n2(u.ec)}원${u.it?` (${ecTx(u.it)})`:''}`:'<span style="color:var(--org)">이카운트 연결 안 됨</span>');
+ if(u.xl!=null)parts.push(`엑셀 1g ${n2(u.xl)}원`);
+ if(u.ec!=null&&u.xl!=null)parts.push(`엑셀 대비 ${difTx(u.ec,u.xl)}`);
+ return parts.join(' · ');
+}
+const SRC_T={manual:'직접 넣은 가격',ecount:'이카운트',excel:'엑셀',excel0:'엑셀 (이카운트 없음)',none:'단가 없음'};
+function sUpdate(){
+ const r=cur();if(r.kind!=='sheet')return;
+ const c=sCalc(r),B=c.basis,oth=sCalc(r,B==='excel'?'ecount':'excel'),tgt=N(r.target)||30;
+ const q=$('#sQty');if(q)q.textContent=`1봉 ${num(c.perBag)}개 · 1박스 ${num(c.box)}개 · 하루 ${num(c.day)}개${r.bmode!=='box'?` · ${num(c.bat)}배합`:` · ${num(c.bat)}배합(박스)`}`;
+ r.mats.forEach((x,i)=>{const e=document.querySelector(`[data-mo="${i}"]`);if(!e)return;const m=c.mr[i];if(!(N(x.g)>0)){e.innerHTML=x.xn||x.n?'<span style="color:var(--org)">넣는 양을 써 주세요</span>':'';return}
+  e.innerHTML=`하루 ${num(m.dg)}g × 1g ${m.u.u!=null?n2(m.u.u):'?'}원 <small>(${SRC_T[m.u.src]})</small> = <b>${m.u.u!=null?won(m.a):'단가 없음'}</b> · 1개 ${n1(c.good>0?m.a/c.good:0)}원<span class="cmpl">${cmpLine(m.u)}</span>`});
+ r.pk.forEach((k,i)=>{const e=document.querySelector(`[data-ko="${i}"]`);if(!e)return;const m=c.kr[i];const pl={box:'1박스에',bag:'1봉에',pc:'1개에'}[k.per||'box'];
+  e.innerHTML=N(k.q)>0?`${pl} ${num(N(k.q),2)}개 × ${m.u.u!=null?n2(m.u.u):'?'}원 <small>(${SRC_T[m.u.src]})</small> → 1개 <b>${n2(m.a)}원</b> · 1박스 ${won(m.a*c.box)}<span class="cmpl">${m.u.ec!=null?`이카운트 ${n2(m.u.ec)}원${m.u.it?` (${ecTx(m.u.it)})`:''}`:'<span style="color:var(--org)">이카운트 연결 안 됨</span>'}${m.u.xl!=null?` · 엑셀 ${n2(m.u.xl)}원`:''}${m.u.ec!=null&&m.u.xl!=null?` · 엑셀 대비 ${difTx(m.u.ec,m.u.xl)}`:''}</span>`:''});
+ r.oh.forEach((o,i)=>{const e=document.querySelector(`[data-oo="${i}"]`);if(!e)return;const m=c.or[i];const it=o.ref?baseItem(o.ref):null;
+  e.innerHTML=`하루 <b>${won(m.day)}</b>${it&&!hasV(o.amt)?' <small>(공통 비용)</small>':''} ÷ ${num(c.good)}개 = 1개 <b>${n1(m.pc)}원</b>${it&&!hasV(o.amt)&&!(m.day>0)?' <span style="color:var(--org)">공통 비용 금액이 비어 있어요</span>':''}`});
+ r.sales.forEach((s,i)=>{const e=document.querySelector(`[data-so="${i}"]`);if(!e)return;const p=N(s.p);e.innerHTML=p>0?`원가율 <b style="color:${rateCol(c.total/p*100,tgt)}">${n1(c.total/p*100)}%</b> · 1개 남는 돈 <b>${n1(p-c.total)}원</b> · 1박스 ${won((p-c.total)*c.box)}`:''});
+ const ms=$('#sMatSum');if(ms)ms.textContent=`${won(c.mat)}${c.lossA>0?` + 로스 ${won(c.lossA)}`:''} → 1개 ${n1(c.matPc)}원`;
+ const ps=$('#sPkSum');if(ps)ps.textContent=`1개 ${n2(c.pkPc)}원 · 1박스 ${won(c.pkPc*c.box)}`;
+ const os=$('#sOhSum');if(os)os.textContent=`${won(c.ohDay)} → 1개 ${n1(c.ohPc)}원`;
+ const row=(t,v,cls)=>`<tr class="${cls||''}"><th>${t}</th><td>${n1(v)}</td><td class="cb">${num(v*c.perBag)}</td><td>${num(v*c.box)}</td></tr>`;
+ const sales=[{n:'기준 판매가',p:N(r.price)},...r.sales.map(s=>({n:s.n||'거래처',p:N(s.p)}))].filter(s=>s.p>0);
+ const rec=tgt<100?c.total/(1-tgt/100):0;
+ let xlb='';
+ if(r.xl){const ex=sCalc(r,'excel'),d=ex.total-r.xl.total,same=Math.abs(d)<0.05;
+  xlb=`<div class="${same?'info':'note'}">전무님 엑셀 계산값 (「${esc(r.xl.sheet)}」): 1개 직접비 ${n1(r.xl.direct)}원 · 간접비 ${n1(r.xl.indirect)}원 · <b class="nw">전체 ${n1(r.xl.total)}원</b><br>이 화면을 엑셀 단가로 계산하면 <b class="nw">${n1(ex.total)}원</b> → ${same?'<b style="color:var(--grn)">엑셀과 같아요</b>':`차이 ${n1(d)}원 (엑셀 이후에 양·비용을 고친 것 같아요)`}</div>`}
+ $('#res').innerHTML=`
+  <div class="lbl">${esc(r.name)} · 1개 원가 (전체)</div>
+  <div class="big">${n1(c.total)}<small>원</small></div>
+  <div class="cmp">${BASIS_T[oth.basis]}로 계산하면 <b class="nw">${n1(oth.total)}원</b> ${difTx(c.total,oth.total)}</div>
+  <div class="seg bsw noprint"><button type="button" data-pb="ecount" class="${B==='ecount'?'on':''}">이카운트 최신 단가</button><button type="button" data-pb="excel" class="${B==='excel'?'on':''}">전무님 엑셀 단가</button></div>
+  <div class="kp">
+   <div><span>1봉 (${num(c.perBag)}개) 원가</span><b>${won(c.total*c.perBag)}</b></div>
+   <div><span>1박스 (${num(c.box)}개) 원가</span><b>${won(c.total*c.box)}</b></div>
+   <div><span>재료+포장 (1개)</span><b>${n1(c.direct)}원</b></div>
+   <div><span>인건비·전기·임차 (1개)</span><b>${n1(c.ohPc)}원</b></div>
+   <div><span>기준 판매가 원가율</span><b style="color:${rateCol(c.rate,tgt)}">${c.rate==null?'판매가 없음':n1(c.rate)+'%'}</b></div>
+   <div><span>권장 판매가 (마진 ${num(tgt)}%)</span><b>${won(rec)}</b></div>
+  </div>
+  <table class="ct"><thead><tr><th>원가 구성</th><th>1개</th><th class="cb">1봉</th><th>1박스</th></tr></thead><tbody>
+   ${row('재료비',c.matOnlyPc)}${c.lossA>0?row(`재료 로스 ${num(N(r.loss),1)}%`,c.lossPc):''}${row('포장재·경비',c.pkPc)}
+   ${row('직접비 합계 (재료+포장)',c.direct,'sub')}
+   ${r.oh.map((o,i)=>row(esc(o.n||'비용'),c.or[i].pc)).join('')}
+   ${row('간접비 합계',c.ohPc,'sub')}
+   ${row('전체 원가',c.total,'tot')}
+  </tbody></table>
+  ${sales.length?`<table class="ct"><thead><tr><th>판매가 (1개)</th><th>원가율</th><th>1개 남는 돈</th><th class="cb">1박스 남는 돈</th></tr></thead><tbody>${sales.map(s=>`<tr><th>${esc(s.n)} <small class="nw">${won(s.p)}</small></th><td style="color:${rateCol(c.total/s.p*100,tgt)}">${n1(c.total/s.p*100)}%</td><td>${n1(s.p-c.total)}원</td><td class="cb">${won((s.p-c.total)*c.box)}</td></tr>`).join('')}</tbody></table>
+   <p class="help" style="margin:8px 0 0">엑셀 「참고자료」는 재료+포장(직접비)만 빼서 판매이익을 계산해요. 이 표는 인건비·전기·임차료까지 뺀 금액이에요.</p>`:''}
+  ${xlb}
+  ${c.miss.length?`<div class="note">단가가 없는 항목: ${c.miss.map(esc).join(', ')} → 0원으로 계산됨. 이카운트 품목을 고르거나 가격을 직접 넣어 주세요.</div>`:''}
+  ${!(c.day>0)?'<div class="warn">1봉 개수·1박스 봉 수·하루 박스 수를 넣어 주세요.</div>':''}`;
+ const mb=$('#mbar');
+ if(mb){mb.innerHTML=`<div><span>1개 원가</span><b>${n1(c.total)}원</b></div><div><span>${c.rate!=null?'판매가 원가율':'1박스 원가'}</span><b>${c.rate!=null?n1(c.rate)+'%':won(c.total*c.box)}</b></div><button type="button" class="btn sm" id="mTop">결과 보기</button>`;
+  $('#mTop').onclick=()=>{const e=$('#res');if(e)window.scrollTo({top:e.getBoundingClientRect().top+scrollY-74,behavior:'smooth'})}}
+ const set=(id,t)=>{const e=document.getElementById('sum_'+id);if(e)e.textContent=t};
+ set('sinfo',`${num(N(r.pieceW))}g · 1박스 ${num(c.box)}개 · 하루 ${num(c.day)}개 · 판매가 ${c.price>0?won(c.price):'없음'}`);
+ set('smat',`재료 ${r.mats.filter(x=>N(x.g)>0).length}가지 · 하루 ${won(c.mat)} · 1개 ${n1(c.matPc)}원`);
+ set('spk',`${r.pk.length}가지 · 1개 ${n2(c.pkPc)}원`);
+ set('soh',`하루 ${won(c.ohDay)} · 1개 ${n1(c.ohPc)}원`);
+ set('ssale',`${r.sales.length}곳`);
+ set('smemo',(r.memo||'').replace(/\s+/g,' ').slice(0,60)||'메모 없음');
+}
+
+/* 원가 카드: 제품별 한눈에 보기 + 인쇄 */
+let CB=null,CPB='ecount';
+function sumOf(p,basis){
+ if(p.kind==='sheet'){const c=sCalc(p,basis);return {sheet:1,c,pc:c.total,direct:c.direct,oh:c.ohPc,box:c.total*c.box,boxN:c.box,price:c.price}}
+ const c=calc(p),pr=N(p.price)>0&&c.box>0?N(p.price)/c.box:0,dir=c.D+c.packPc+c.logiPc;
+ return {sheet:0,c,pc:c.total,direct:dir,oh:c.total-dir,box:c.boxCost,boxN:c.box,price:pr};
+}
+function renderCards(){
+ const boxes=S.boxes||[];
+ if(CB==null)CB=boxes.find(b=>b.id==='bxl2602')?'bxl2602':'all';
+ if(CB!=='all'&&CB!=='none'&&!boxes.find(b=>b.id===CB))CB='all';
+ const inB=p=>CB==='all'?true:CB==='none'?!boxOf(p):p.bxId===CB;
+ const list=S.products.filter(inB),sh=list.filter(p=>p.kind==='sheet');
+ const oth=CPB==='excel'?'ecount':'excel';
+ const tr=list.map(p=>{const s=sumOf(p,CPB),o=p.kind==='sheet'?sumOf(p,oth):null,rate=s.price>0?s.pc/s.price*100:null,tg=p.kind==='sheet'?N(p.target)||30:100-(N(p.target)||35);
+  return `<tr data-open="${p.id}"><td><b>${esc(p.name)}</b><small class="bxt">${p.kind==='sheet'?`${num(N(p.pieceW))}g · 1박스 ${num(s.boxN)}개`:'현실 원가 방식'}</small></td><td class="r hm">${n1(s.direct)}</td><td class="r hm">${n1(s.oh)}</td><td class="r big">${n1(s.pc)}</td><td class="r">${won(s.box)}</td><td class="r hm">${s.price>0?won(s.price):'-'}</td><td class="r" style="font-weight:800;color:${rateCol(rate,tg)}">${rate==null?'-':n1(rate)+'%'}</td><td class="r hm">${s.price>0?n1(s.price-s.pc):'-'}</td><td class="r hm dif">${o?`${n1(o.pc)}<br><small>지금 기준과 ${wonDif(s.pc,o.pc)}</small>`:'-'}</td></tr>`}).join('');
+ const cards=sh.map(p=>{const c=sCalc(p,CPB),tg=N(p.target)||30;const rw=(t,v,cls)=>`<tr class="${cls||''}"><th>${t}</th><td>${n1(v)}</td><td class="cb">${num(v*c.perBag)}</td><td>${num(v*c.box)}</td></tr>`;
+  const ss=[{n:'기준',p:c.price},...(p.sales||[]).map(s=>({n:s.n,p:N(s.p)}))].filter(s=>s.p>0);
+  return `<div class="pcard" data-open="${p.id}"><div class="pch"><div><b>${esc(p.name)}</b><small>${num(N(p.pieceW))}g · 1봉 ${num(c.perBag)}개 · 1박스 ${num(c.box)}개 · 하루 ${num(c.day)}개</small></div><span class="chip ${CPB==='excel'?'o':'b'}">${BASIS_T[CPB]}</span></div>
+   <div class="pcb"><div class="pbig"><span>1개 원가</span><b>${n1(c.total)}<small>원</small></b></div><div class="pbig"><span>1박스 원가</span><b>${num(c.total*c.box)}<small>원</small></b></div><div class="pbig"><span>원가율</span><b style="color:${rateCol(c.rate,tg)}">${c.rate==null?'-':n1(c.rate)+'<small>%</small>'}</b></div></div>
+   <table class="ct"><thead><tr><th>구분</th><th>1개</th><th class="cb">1봉</th><th>1박스</th></tr></thead><tbody>${rw('재료비',c.matPc)}${rw('포장재·경비',c.pkPc)}${rw('직접비 합계',c.direct,'sub')}${rw('간접비 (인건비·전기·임차)',c.ohPc)}${rw('전체 원가',c.total,'tot')}</tbody></table>
+   <div class="pcs">${ss.length?ss.map(s=>`${esc(s.n)} ${won(s.p)} → 원가율 <b style="color:${rateCol(c.total/s.p*100,tg)}">${n1(c.total/s.p*100)}%</b>, 1개 <b>${n1(s.p-c.total)}원</b> 남음`).join('<br>'):'판매가를 넣으면 원가율과 마진이 나와요.'}</div></div>`}).join('');
+ // 단가 차이 큰 재료
+ const seen=new Map();
+ sh.forEach(p=>(p.mats||[]).forEach(x=>{const u=mUnit(x,'ecount');if(u.ec==null||u.xl==null)return;const d=(u.ec/u.xl-1)*100;const k=(x.xn||x.n);if(!seen.has(k))seen.set(k,{n:k,en:x.n,ec:u.ec,xl:u.xl,d,it:u.it,ps:[p.name]});else if(!seen.get(k).ps.includes(p.name))seen.get(k).ps.push(p.name)}));
+ const big=[...seen.values()].filter(x=>Math.abs(x.d)>=10).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d));
+ $('#app').innerHTML=pageHead('원가 카드','제품별 1개·1박스 원가, 원가율, 남는 돈을 한눈에 봐요. 줄을 누르면 그 제품 계산 화면이 열려요.')+priceBanner()+`
+ <div class="srch noprint"><div class="g2"><div><label class="f" style="margin-top:0">보기</label><select id="cbSel"><option value="all">전체 제품</option><option value="none" ${CB==='none'?'selected':''}>일반 제품</option>${boxes.map(b=>`<option value="${b.id}" ${CB===b.id?'selected':''}>보관함 · ${esc(b.name)}</option>`).join('')}</select></div>
+  <div><label class="f" style="margin-top:0">단가 기준</label><div class="seg"><button type="button" data-cpb="ecount" class="${CPB==='ecount'?'on':''}">이카운트 최신</button><button type="button" data-cpb="excel" class="${CPB==='excel'?'on':''}">전무님 엑셀</button></div></div></div>
+  <div class="bar" style="margin-top:12px"><button class="btn g sm" id="cNew">+ 새 제품</button><button class="btn gr sm" id="cPrint">인쇄 · PDF로 저장</button></div></div>
+ <div class="card"><h2>제품별 원가 한눈에 <span class="chip ${CPB==='excel'?'o':'b'}">${BASIS_T[CPB]}</span> <span class="chip g">${list.length}개</span></h2>
+  ${list.length?`<div style="overflow-x:auto"><table class="pt"><thead><tr><th>제품</th><th class="r hm">재료+포장<br><small>1개</small></th><th class="r hm">간접비<br><small>1개</small></th><th class="r">1개 원가<br><small>(원)</small></th><th class="r">1박스 원가</th><th class="r hm">판매가<br><small>1개</small></th><th class="r">원가율</th><th class="r hm">1개 남는 돈</th><th class="r hm">${CPB==='excel'?'이카운트 최신으로':'엑셀 단가로'}<br><small>1개 원가</small></th></tr></thead><tbody>${tr}</tbody></table></div>`:'<p class="help">제품이 없어요.</p>'}
+  <p class="help" style="margin:10px 0 0">모든 금액은 부가세 별도예요. 원가율 색: 초록 = 목표 안, 주황 = 목표를 조금 넘음, 빨강 = 목표를 많이 넘음.</p></div>
+ ${big.length?`<div class="card"><h2>엑셀 단가와 이카운트 단가 차이가 큰 재료 <span class="chip o">10% 이상 ${big.length}개</span></h2>
+  <div style="overflow-x:auto"><table class="pt"><thead><tr><th>재료</th><th class="r">엑셀 1g</th><th class="r">이카운트 1g</th><th class="r">차이</th><th class="hm">쓰는 제품</th></tr></thead><tbody>${big.map(x=>`<tr style="cursor:default"><td><b>${esc(x.n)}</b><small class="bxt">${esc(x.en||'')}${x.it?` · ${ecTx(x.it)}`:''}</small></td><td class="r">${n2(x.xl)}원</td><td class="r">${n2(x.ec)}원</td><td class="r">${difTx(x.ec,x.xl)}</td><td class="hm">${x.ps.map(esc).join(', ')}</td></tr>`).join('')}</tbody></table></div>
+  <p class="help" style="margin:10px 0 0">포장 단위나 가격이 달라져 차이가 난 재료예요. 엑셀 값이 맞는지 전무님께 한 번 확인해 주세요.</p></div>`:''}
+ ${cards?`<div class="cardsGrid">${cards}</div>`:''}`;
+ $('#cbSel').onchange=e=>{CB=e.target.value;renderCards()};
+ document.querySelectorAll('[data-cpb]').forEach(b=>b.onclick=()=>{CPB=b.dataset.cpb;const y=scrollY;renderCards();window.scrollTo(0,y)});
+ document.querySelectorAll('[data-open]').forEach(e=>e.onclick=()=>{S.cur=e.dataset.open;setTab('calc')});
+ $('#cNew').onclick=()=>newChooser(CB!=='all'&&CB!=='none'?CB:'');
+ $('#cPrint').onclick=()=>window.print();
+}
+
+/* 공통 비용 (기초자료): 인건비·전기·임차료를 한 곳에서 고치면 연결된 모든 제품에 반영 */
+function renderBase(){
+ const B=baseOf();
+ const used=id=>S.products.filter(p=>p.kind==='sheet'&&(p.oh||[]).some(o=>o.ref===id&&!hasV(o.amt))).length;
+ const empty=B.items.every(it=>!(baseCalc(it)>0)&&!hasV(it.fix));
+ const inp=(i,f,v,ph)=>`<input type="number" inputmode="decimal" data-bi="${i}" data-bf="${f}" value="${esc(hasV(v)?v:'')}" placeholder="${ph||''}">`;
+ const card=(it,i)=>{
+  let body='';
+  if(it.type==='people'){body=`<div class="g2"><div><label class="f">하루 근무 시간</label>${inp(i,'hours',it.hours,'8')}</div><div><label class="f">4대보험 등 더하기 <small>(%)</small></label>${inp(i,'ins',it.ins,'10')}</div></div>
+   <label class="f">사람별 시급 <small>(하루 금액 = 시급 × 시간 × (1 + 보험%), 1,000원 미만 버림)</small></label>
+   ${(it.people||[]).map((x,j)=>`<div class="bp2"><input data-bi="${i}" data-bpj="${j}" data-bpf="n" value="${esc(x.n||'')}" placeholder="구분 (예: A)"><input type="number" inputmode="decimal" data-bi="${i}" data-bpj="${j}" data-bpf="w" value="${esc(x.w)}" placeholder="시급"><span class="v" data-bpv="${i}_${j}"></span><button class="xb" data-bpdel="${i}_${j}">×</button></div>`).join('')||'<p class="help">아직 사람이 없어요.</p>'}
+   <button class="btn g sm noprint" data-bpadd="${i}" style="margin-top:8px">+ 사람 추가</button>`}
+  else if(it.type==='year'||it.type==='month'){body=`<div class="g2"><div><label class="f">${it.type==='year'?'1년 요금':'1달 금액'} <small>(원)</small></label>${inp(i,'total',it.total,'')}</div><div><label class="f">나눌 날수</label>${inp(i,'days',it.days,it.type==='year'?'365':'30')}</div></div>`}
+  else body=`<label class="f">하루 금액 <small>(원)</small></label>${inp(i,'amt',it.amt,'')}`;
+  return `<div class="card"><h2><input data-bi="${i}" data-bf="n" value="${esc(it.n)}" style="flex:1;font-size:20px;font-weight:800"> <span class="chip b">연결된 제품 ${used(it.id)}개</span></h2>${body}
+   <div class="g2"><div><label class="f">계산된 하루 금액</label><div class="calcv" data-bcv="${i}"></div></div><div><label class="f">실제 적용 금액 <small>(비우면 계산된 금액)</small></label>${inp(i,'fix',it.fix,'예: 50000')}</div></div>
+   <div class="bar noprint" style="margin-top:12px;justify-content:flex-end"><button class="btn del sm" data-bdel="${i}">이 비용 지우기</button></div></div>`};
+ $('#app').innerHTML=pageHead('공통 비용','인건비·전기요금·임차료처럼 여러 제품이 함께 쓰는 하루 비용이에요. 여기서 고치면 연결된 모든 제품 원가가 같이 바뀌어요.')+
+  (empty?'<div class="note noprint" style="margin:0 0 16px">아직 공통 비용 값이 없어요. 조조가 드린 「원가계산기 열쇠 링크」로 연 기기에는 회사 값이 저절로 들어와요. 직접 넣어도 돼요.</div>':'')+
+  `<div class="g2"><div>${B.items.filter((_,i)=>i%2===0).map(it=>card(it,B.items.indexOf(it))).join('')}</div><div>${B.items.filter((_,i)=>i%2===1).map(it=>card(it,B.items.indexOf(it))).join('')}</div></div>
+  <div class="bar noprint" style="margin-bottom:20px"><button class="btn g" id="bAddBase">+ 공통 비용 추가</button></div>
+  <div class="card"><h2>리터 → 무게 환산 기준 <span class="chip b">참고</span></h2>
+   <table class="pt"><thead><tr><th>재료</th><th class="r">1L 무게</th><th>메모</th></tr></thead><tbody style="cursor:default">${[['물','1,000g',''],['우유','1,030g','밀도 1.03'],['식용유','920g','밀도 0.92'],['양조간장','1,160g','밀도 1.16'],['생크림','950g','밀도 0.95'],['특란 1개','56g','껍질 뺀 무게']].map(x=>`<tr style="cursor:default"><td><b>${x[0]}</b></td><td class="r">${x[1]}</td><td>${x[2]}</td></tr>`).join('')}</tbody></table>
+   <p class="help" style="margin:10px 0 0">전무님 엑셀 「기초자료」 시트의 환산표예요. 리터로 사는 재료는 이 무게로 바꿔 1g 가격을 내요.</p></div>`;
+ bindBase();baseRefresh();
+}
+function baseRefresh(){
+ const B=baseOf();
+ B.items.forEach((it,i)=>{const e=document.querySelector(`[data-bcv="${i}"]`);if(e)e.textContent=won(baseCalc(it))+(hasV(it.fix)?` → 적용 ${won(N(it.fix))}`:'');
+  (it.people||[]).forEach((x,j)=>{const v=document.querySelector(`[data-bpv="${i}_${j}"]`);if(v)v.textContent='하루 '+won(perDay(it,x))})});
+}
+function bindBase(){
+ const B=baseOf(),app=$('#app');
+ const ch=()=>{B.updated=Date.now();saveSoon();baseRefresh()};
+ app.oninput=e=>{const t=e.target;if(t.dataset.bi==null)return;const it=B.items[+t.dataset.bi];
+  if(t.dataset.bpf){it.people[+t.dataset.bpj][t.dataset.bpf]=t.value}else if(t.dataset.bf){it[t.dataset.bf]=t.value}ch()};
+ app.onchange=null;
+ app.onclick=e=>{const t=e.target.closest('button');if(!t)return;
+  if(t.dataset.bpadd!=null){const it=B.items[+t.dataset.bpadd];it.people=it.people||[];it.people.push({n:'',w:''});B.updated=Date.now();save(true);const y=scrollY;renderBase();window.scrollTo(0,y)}
+  else if(t.dataset.bpdel){const [i,j]=t.dataset.bpdel.split('_').map(Number);B.items[i].people.splice(j,1);B.updated=Date.now();save(true);const y=scrollY;renderBase();window.scrollTo(0,y)}
+  else if(t.dataset.bdel!=null){const it=B.items[+t.dataset.bdel];if(!confirm(`「${it.n}」을(를) 지울까요?\n연결된 제품은 이 비용이 0원으로 계산돼요.`))return;B.items.splice(+t.dataset.bdel,1);B.updated=Date.now();save();renderBase()}
+  else if(t.id==='bAddBase'){B.items.push({id:'c'+uid().slice(1),n:'새 비용 (하루)',type:'fixed',amt:'',fix:''});B.updated=Date.now();save();const y=scrollY;renderBase();window.scrollTo(0,y)}
+ };
 }
 
 /* 시작: 저장된 단가표로 먼저 그리고, 새 단가표를 받으면 다시 그림 */
