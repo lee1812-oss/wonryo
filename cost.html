@@ -402,10 +402,14 @@ body.v-m .bp2 .v{grid-column:1/3;text-align:left}
 <div id="mbar" class="noprint"></div>
 <div id="toast"></div>
 <script>
-const APP_VER='v011', APP_BUILT='2026-11-22 15:56';
+const APP_VER='v012', APP_BUILT='2026-11-22 16:01';
 const LSK='drawbread_cost_key', LSP='drawbread_cost_prices';
 let PD=null, PSTAT='loading';
 try{const c=JSON.parse(localStorage.getItem(LSP)||'null');if(c&&c.data)PD=c.data}catch(e){}
+/* v012 관리자 열쇠(#a=): 사람별 시급이 든 관리자용 암호 파일(cost_admin.enc.json)을 여는 번호. 일반 열쇠(#k=)만 있으면 시급은 이 기기에 남기지 않음 */
+const LSA='drawbread_cost_admin',LSS2='drawbread_cost_admin_shared';
+(function(){const m=location.hash.match(/[#&]a=([A-Za-z0-9_-]{10,})/);if(m){try{localStorage.setItem(LSA,m[1])}catch(e){}if(!/[#&]k=/.test(location.hash))history.replaceState(null,'',location.pathname+location.search)}})();
+function isAdmin(){try{return !!localStorage.getItem(LSA)}catch(e){return false}}
 (function(){const m=location.hash.match(/[#&]k=([A-Za-z0-9_-]{10,})/);if(m){try{localStorage.setItem(LSK,m[1])}catch(e){}history.replaceState(null,'',location.pathname+location.search)}})();
 const priceBase=()=>PD?`이카운트 최근 매입가 (${PD.snap} 06:30 자료)`:'단가표 없음';
 const LS='drawbread_cost_v1';
@@ -430,6 +434,7 @@ function samples(){
 function load(){try{const s=JSON.parse(localStorage.getItem(LS));if(s&&Array.isArray(s.products)&&s.products.length){s.prices=s.prices||{};s.packs=s.packs||{};s.boxes=s.boxes||[];if(!s.base||!Array.isArray(s.base.items))s.base=BASE0();return s}}catch(e){}
  const p=samples();return {products:p,prices:{},packs:{},boxes:[],base:BASE0(),cur:p[0].id,tab:'calc'}}
 let S=load();
+if(!isAdmin()&&S.base&&Array.isArray(S.base.items))S.base.items.forEach(it=>{if(it.type==='people'&&(it.people||[]).length){if(it.fix==null||it.fix==='')it.fix=it.people.reduce((s,x)=>s+perDay(it,x),0);it.people=[];it.locked=1}});
 /* 화면 종류: PC / 휴대폰 / 자동 (v005) */
 const LSV='drawbread_cost_view';
 let VPREF='auto';try{VPREF=localStorage.getItem(LSV)||'auto'}catch(e){}
@@ -521,18 +526,19 @@ async function loadPrices(force){
 }
 /* 공유 보관함: 열쇠가 있는 모든 기기에 같은 보관함을 자동으로 넣음 (v006) */
 const LSS='drawbread_cost_shared';
-async function loadShared(){
- let key=null;try{key=localStorage.getItem(LSK)}catch(e){}
+async function loadShared(file,kName,sName){
+ file=file||'cost_boxes.enc.json';kName=kName||LSK;sName=sName||LSS;
+ let key=null;try{key=localStorage.getItem(kName)}catch(e){}
  if(!key)return false;
- try{const r=await fetch('cost_boxes.enc.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return false;const j=await r.json();
-  let last=null;try{last=localStorage.getItem(LSS)}catch(e){}
+ try{const r=await fetch(file+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return false;const j=await r.json();
+  let last=null;try{last=localStorage.getItem(sName)}catch(e){}
   if(last&&last===j.updated)return false;
   const d=await decryptP(j,key);S.boxes=S.boxes||[];let ch=false;
   (d.boxes||[]).forEach(b=>{const i=S.boxes.findIndex(x=>x.id===b.id);if(i<0){S.boxes.push(b);ch=true}else if((b.updated||0)>(S.boxes[i].updated||0)){S.boxes[i]=b;ch=true}});
   for(const x of d.files||[]){try{if(!(await FDB.get(x.id)))await FDB.put(x.id,{name:x.name,type:x.type,blob:await urlToBlob(x.data)})}catch(_){}}
   (d.products||[]).forEach(p=>{const i=S.products.findIndex(x=>x.id===p.id);if(i<0){S.products.push(p);ch=true}else if((p.updated||0)>(S.products[i].updated||0)){S.products[i]=p;ch=true}});
   if(d.base&&Array.isArray(d.base.items)&&(!S.base||(d.base.updated||0)>(S.base.updated||0))){S.base=d.base;ch=true}
-  save(true);try{localStorage.setItem(LSS,j.updated)}catch(e){}
+  save(true);try{localStorage.setItem(sName,j.updated)}catch(e){}
   return ch;
  }catch(e){return false}
 }
@@ -577,7 +583,7 @@ function calc(r){
 function setTab(t){S.tab=t;save(true);render()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
 function pageHead(t,d){return `<div class="ph"><div class="crumb">홈 › 원가 계산기 › ${t}</div><h2>${t}</h2><p>${d}</p></div>`}
-function verText(){const [d,t]=APP_BUILT.split(' ');return ` · ${APP_VER} · ${d.replace(/-/g,'.')} ${t||''} 업데이트`}
+function verText(){const [d,t]=APP_BUILT.split(' ');return ` · ${APP_VER} · ${d.replace(/-/g,'.')} ${t||''} 업데이트${isAdmin()?' · 관리자':''}`}
 function vswHtml(){return `<span>화면</span>${[['pc','PC'],['m','휴대폰'],['auto','자동']].map(([v,l])=>`<button type="button" data-view="${v}" class="${VPREF===v?'on':''}">${l}</button>`).join('')}`}
 function renderFoot(){$('#verTop').innerHTML=verText();$('#vsw').innerHTML=vswHtml();$('#foot').innerHTML=`<div class="vsw noprint" style="margin:0 0 12px">${vswHtml()}</div><b>빵을그리다 원가 계산기</b> · 프로그램 ${APP_VER} (${esc(APP_BUILT)} 업데이트) · 지금 ${VIEW==='pc'?'PC':'휴대폰'} 화면<br>PC 화면 주소: cost.html?view=pc · 휴대폰 화면 주소: cost.html?view=m<br>단가 자료 기준: ${esc(priceBase())}<br>모든 금액은 부가세 별도예요. 입력한 내용은 이 기기(브라우저)에 자동 저장돼요.`;document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view))}
 function render(){
@@ -1331,7 +1337,24 @@ function renderCards(){
 }
 
 /* 공통 비용 (기초자료): 인건비·전기·임차료를 한 곳에서 고치면 연결된 모든 제품에 반영 */
+/* 일반 열쇠 기기: 사람별 시급·관리자 전용 문서를 이 기기에서 지움(하루 합계만 남김) */
+const ADMIN_FILES=['fxl2602'];
+async function guardGeneral(){
+ if(isAdmin())return false;let ch=false;const B=baseOf();
+ B.items.forEach(it=>{if(it.type==='people'&&(it.people||[]).length){it.fix=hasV(it.fix)?it.fix:baseCalc(it);it.people=[];it.locked=1;ch=true}});
+ (S.boxes||[]).forEach(b=>{const n=(b.files||[]).length;b.files=(b.files||[]).filter(f=>!ADMIN_FILES.includes(f.id));if(b.files.length!==n)ch=true});
+ for(const id of ADMIN_FILES){try{if(await FDB.get(id)){await FDB.del(id);ch=true}}catch(_){}}
+ if(ch)save(true);return ch;
+}
+function renderBaseView(){
+ const B=baseOf();
+ const used=id=>S.products.filter(p=>p.kind==='sheet'&&(p.oh||[]).some(o=>o.ref===id&&!hasV(o.amt))).length;
+ $('#app').innerHTML=pageHead('공통 비용','인건비·전기요금·임차료처럼 여러 제품이 함께 쓰는 하루 비용이에요. 제품 원가에 이 금액이 들어가요.')+
+  `<div class="info noprint" style="margin:0 0 16px">하루 합계 금액만 보여 드려요. 사람별 시급과 금액 고치기는 관리자 열쇠로 연 기기에서만 할 수 있어요.</div>
+  <div class="card"><h2>하루 공통 비용</h2><table class="pt"><thead><tr><th>비용</th><th class="r">하루 금액</th><th class="r">연결된 제품</th></tr></thead><tbody>${B.items.map(it=>`<tr style="cursor:default"><td><b>${esc(it.n)}</b></td><td class="r big">${won(baseAmt(it))}</td><td class="r">${used(it.id)}개</td></tr>`).join('')}</tbody></table></div>`;
+}
 function renderBase(){
+ if(!isAdmin())return renderBaseView();
  const B=baseOf();
  const used=id=>S.products.filter(p=>p.kind==='sheet'&&(p.oh||[]).some(o=>o.ref===id&&!hasV(o.amt))).length;
  const empty=B.items.every(it=>!(baseCalc(it)>0)&&!hasV(it.fix));
@@ -1376,7 +1399,7 @@ function bindBase(){
 }
 
 /* 시작: 저장된 단가표로 먼저 그리고, 새 단가표를 받으면 다시 그림 */
-loadPrices(false).then(async ch=>{refreshMaps();const sh=await loadShared();if(sh){refreshMaps();setTimeout(()=>toast('공유 보관함을 받았어요'),300)}if(ch||sh||PSTAT!=='ok')render()});
+loadPrices(false).then(async ch=>{refreshMaps();let sh=await loadShared();if(isAdmin()){if(await loadShared('cost_admin.enc.json',LSA,LSS2))sh=true}else if(await guardGeneral())sh=true;if(sh){refreshMaps();setTimeout(()=>toast('공유 보관함을 받았어요'),300)}if(ch||sh||PSTAT!=='ok')render()});
 render();
 </script>
 </body>
