@@ -2848,7 +2848,7 @@
    - 윗줄: 화면 폭이 좁으면 단계적으로 줄인다(1 여백 → 2 글자 숨김(아이콘만) → 3 글자 작게 → 4 더 작게 → 5 전체 축소). 줄바꿈이 없어질 때까지.
    - 기록·버튼 동작은 건드리지 않는다. 이 블록을 지우면 예전 모양으로 돌아간다. */
 (function () { if (!window.FIELD_APP) return;
-  const FHX_VER = 'v012', FHX_BUILT = '2026-11-13 10:01';   /* v012 (2026-11-13): 오븐 2시간 측정 줄 — 종료가 2시간 지점 뒤 10분 안이어도 2시간 줄을 만듦(11/6 누락 재발 방지) */   /* v011 (2026-11-13): ECOUNT 입력 제품 목록에 굴뚝빵 생지·쌀소금빵 등 빠진 제품 추가 */
+  const FHX_VER = 'v013', FHX_BUILT = '2026-11-23 15:45';   /* v013 (2026-11-23): 모든 공정 「오늘 기록」 줄마다 수정·삭제, 줄 사이 삽입, 변경 이력(누가·언제·원래 값) */   /* v012 (2026-11-13): 오븐 2시간 측정 줄 — 종료가 2시간 지점 뒤 10분 안이어도 2시간 줄을 만듦(11/6 누락 재발 방지) */   /* v011 (2026-11-13): ECOUNT 입력 제품 목록에 굴뚝빵 생지·쌀소금빵 등 빠진 제품 추가 */
   const st = document.createElement('style');
   st.textContent = [
     '#fld .fld-top{flex-wrap:wrap;row-gap:4px}',
@@ -3134,4 +3134,253 @@
   fieldRender = function () { const out = _r.apply(this, arguments); try { paint(); } catch (e) {} try { ver(); } catch (e) {} return out; };
   window.__fmzDel = { delMany, ask, paint, VER, BUILT, mode: () => MODE };
   try { paint(); ver(); } catch (e) {}
+})();
+
+
+/* ══ 기록 줄 수정·삭제·삽입 + 변경 이력 v001 · 2026-11-23 (2026-11-23 Aside 사무실 PC, 사용자 「모든 공정에서 시작·종료 사이 자동으로 생긴 2시간 줄이 잘못 들어가면
+      각 줄 옆 「삭제」「삽입」「수정」으로 고칠 수 있게. 예: 빅몽블랑 오븐 09:12 시작 → 11:12·13:12·14:12 → 14:15 종료에서 14:12 줄을 빼고 싶음」) ══
+   - 모든 공정(오븐 가열·급속냉동·크림/마늘 배합·금속검출)의 「오늘 기록」을 같은 모양으로 바꾼다:
+     줄마다 오른쪽에 큰 버튼 「✎ 수정」「🗑 삭제」(높이 56px), 줄 사이에 「＋ 이 사이에 삽입」(높이 54px).
+     · 수정 = 원래 「고치기」 입력 화면 그대로(시각·온도 등). 저장 뒤 같은 공정 화면으로 돌아온다.
+     · 삭제 = 큰 확인 창 「이 줄을 지울까요?」 한 번 → 지움. 시작·종료 줄(오븐 시작·종료, 금속 작업 전·작업 후)은 지울 수 없고 수정만 된다(🔒).
+     · 삽입 = 입력 화면이 열리고 시각 칸이 먼저 선택된다(앞뒤 줄 가운데 시각을 미리 넣음, 값은 앞 줄 값). 오븐은 시작~종료 사이 시각만 저장된다.
+       금속검출은 K-HACCP가 품목당 「제품 확인」 1줄이라 그 품목에 제품 확인 줄이 없을 때만 삽입 버튼이 보인다.
+     · 「☑ 여러 줄 골라 지우기」도 그대로 있다(11/11 금속·배합·급냉 지우기 기능을 이 목록으로 옮김).
+   - HACCP 기록 원칙(조용히 지우지 않음): 지우거나 고치면 일지(g.chg)와 서버(공유 기록 plog 'ccpchg~날짜~번호')에
+     「삭제됨/수정됨/삽입됨 · 누가(작업자) · 어느 기기 · 언제 · 바꾸기 전 값(→ 바꾼 값)」을 남긴다. 화면과 K-HACCP 자동 작성 자료는
+     지운 줄이 빠지고(g.del, 예전과 같은 방식) 고친 값으로 보인다. 고친 줄에는 「✎ 고침」, 넣은 줄에는 「＋ 삽입」 작은 표시.
+   - 변경 이력 보기: 각 공정 기록 아래 「📝 고친 기록 n건」, 첫 화면 「⚙ 설정」 안 「📝 줄 고친 기록(관리자)」 → 최근 14일 목록(서버 기록 포함).
+   - 기록 방식: ccpTouch 앞에서 직전 화면의 줄과 비교해 「값이 있던 칸이 바뀜 = 수정」, 「g.del에 새로 들어간 줄 = 삭제」를 찾는다.
+     그래서 이 목록 버튼뿐 아니라 원래 고치기 화면·종료 취소·시간 수정 등 모든 길에서 고친 것이 남는다. 빈 칸을 처음 채우는 것은 기록하지 않는다.
+     다른 기기에서 받아 온 변경(ccpApplyRow)은 이 기기 변경으로 적지 않는다. ccpMerge는 양쪽 g.chg를 합친다.
+   - K-HACCP 자동 작성(khaccp_ccp_write.js kcKiosk)은 g.rows·g.del만 읽으므로 g.chg·r.fx가 늘어도 영향 없음. 이 블록을 지우면 예전 목록으로 돌아간다. */
+(function () {
+  if (!window.FIELD_APP || window.__fxRow) return;
+  const VER = 'v001', BUILT = '2026-11-23 15:45', TAG = '줄 수정·삭제·삽입 ' + VER + ' · ' + BUILT;
+  const st = document.createElement('style'); st.id = 'fxr-css';
+  st.textContent = '#fld .fxr-h2{font-size:19px;font-weight:800;color:#fff;margin:20px 0 8px}#fld .fxr-h{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}'
+    + '#fld .fxr-h .fxr-ms{min-height:54px;padding:6px 14px;border-radius:12px;border:2px solid #C62828;background:#fff;color:#C62828;font-size:16px;font-weight:800;cursor:pointer}'
+    + '#fld .fxr-list{display:flex;flex-direction:column;gap:0;margin:4px 0 12px}'
+    + '#fld .fxr-row{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #DEE2E6;border-radius:14px;padding:8px 8px 8px 12px;color:#1F2328;box-shadow:0 2px 0 rgba(0,0,0,.12)}'
+    + '#fld .fxr-row.bad{background:#FFF5F5;border-color:#FFA8A8}#fld .fxr-row.pk{outline:3px solid #C62828;outline-offset:-3px;background:#FFF5F5}'
+    + '#fld .fxr-tx{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;word-break:keep-all}'
+    + '#fld .fxr-t1{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}#fld .fxr-lb{font-size:16px;font-weight:800;color:#495057;white-space:nowrap}'
+    + '#fld .fxr-tm{font-size:26px;font-weight:900;letter-spacing:.5px;white-space:nowrap}#fld .fxr-nm{font-size:15px;font-weight:700;color:#495057}'
+    + '#fld .fxr-v{font-size:16px;font-weight:700;color:#1F2328;line-height:1.35}#fld .fxr-bad{font-size:14px;font-weight:800;color:#C92A2A}'
+    + '#fld .fxr-tag{display:inline-block;font-size:13px;font-weight:800;border-radius:8px;padding:1px 7px;margin-left:4px;white-space:nowrap}'
+    + '#fld .fxr-tag.ed{background:#FFF3BF;color:#7A4A00}#fld .fxr-tag.in{background:#E7F5FF;color:#1864AB}#fld .fxr-tag.sg{background:#F1F3F5;color:#495057}'
+    + '#fld .fxr-bt{display:flex;gap:6px;flex:0 0 auto}'
+    + '#fld .fxr-bt button{min-height:56px;min-width:76px;padding:4px 10px;border-radius:12px;font-size:17px;font-weight:900;cursor:pointer;line-height:1.1;background:#fff}'
+    + '#fld .fxr-bt .e{border:2px solid #495057;color:#1F2328}#fld .fxr-bt .d{border:2px solid #C62828;color:#C62828}'
+    + '#fld .fxr-bt .lk{border:2px dashed #ADB5BD;color:#868E96;font-size:14px;font-weight:800}'
+    + '#fld .fxr-bt .ck{min-width:64px;border:3px solid #868E96;font-size:26px;color:#fff}#fld .fxr-row.pk .fxr-bt .ck{background:#C62828;border-color:#C62828}'
+    + '#fld .fxr-ins{display:block;margin:6px auto;min-height:54px;width:72%;border-radius:12px;border:2px dashed #74C0FC;background:rgba(231,245,255,.92);color:#1864AB;font-size:17px;font-weight:800;cursor:pointer}'
+    + '#fld .fxr-gap{height:8px}'
+    + '#fld .fxr-bar{position:sticky;bottom:0;display:flex;gap:8px;padding:8px 0;background:transparent}#fld .fxr-bar button{flex:1;min-height:58px;border-radius:12px;font-size:18px;font-weight:900;cursor:pointer}'
+    + '#fld .fxr-bar .go{background:#C62828;color:#fff;border:0}#fld .fxr-bar .go[disabled]{background:#E9ECEF;color:#868E96}#fld .fxr-bar .no{background:#fff;border:2px solid #ADB5BD;color:#1F2328}'
+    + '#fld .fxr-hist{display:block;width:100%;min-height:54px;margin:2px 0 12px;border-radius:12px;border:2px solid #CED4DA;background:#F8F9FA;color:#1F2328;font-size:16px;font-weight:800;cursor:pointer}'
+    + '#fld .fxr-insnote{margin:0 0 10px;padding:10px 14px;border-radius:12px;background:#E7F5FF;border:2px solid #74C0FC;color:#1864AB;font-size:17px;font-weight:800;line-height:1.4;word-break:keep-all}'
+    + '@media (max-width:420px){#fld .fxr-bt button{min-width:64px;font-size:15px}#fld .fxr-tm{font-size:22px}}'
+    + '.fxr-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px}'
+    + '.fxr-card{background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:92vh;overflow:auto;padding:20px;color:#1F2328;font-size:18px;word-break:keep-all;box-shadow:0 10px 40px rgba(0,0,0,.35)}'
+    + '.fxr-card h3{font-size:24px;margin:0 0 10px;font-weight:900;color:#C62828}.fxr-card h3.n{color:#1F2328}'
+    + '.fxr-one{background:#F6F7F9;border:1px solid #D0D7DE;border-radius:10px;padding:10px 14px;margin:6px 0;font-size:17px;line-height:1.45}.fxr-one b{display:block;font-size:19px}'
+    + '.fxr-note{font-size:16px;color:#495057;margin:12px 0 16px;line-height:1.5}'
+    + '.fxr-bts{display:flex;gap:10px}.fxr-bts button{flex:1;min-height:60px;border-radius:12px;font-size:20px;font-weight:900;cursor:pointer}'
+    + '.fxr-yes{background:#C62828;color:#fff;border:0}.fxr-no{background:#fff;color:#1F2328;border:2px solid #ADB5BD}'
+    + '.fxr-tbl{width:100%;border-collapse:collapse;font-size:15px}.fxr-tbl th{background:#495057;color:#fff;padding:6px;font-weight:800;text-align:left;white-space:nowrap}'
+    + '.fxr-tbl td{border-top:1px solid #DEE2E6;padding:7px 6px;vertical-align:top;line-height:1.4}.fxr-tbl .a{font-weight:900;white-space:nowrap}.fxr-tbl .a.del{color:#C62828}.fxr-tbl .a.ed{color:#E67700}.fxr-tbl .a.in{color:#1864AB}'
+    + '.fxr-tbl .o{color:#868E96;text-decoration:line-through}.fxr-tbl small{color:#868E96}';
+  document.head.appendChild(st);
+
+  const mm = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || '')); return m ? (+m[1]) * 60 + (+m[2]) : null; };
+  const hm = n => String(Math.floor(n / 60) % 24).padStart(2, '0') + ':' + String(((n % 60) + 60) % 60).padStart(2, '0');
+  const sh = n => { try { return fldShort(n || ''); } catch (e) { return String(n || ''); } };
+  const nowIso = () => new Date().toISOString();
+  const TYPES = ['oven', 'freeze', 'mix', 'metal'];
+  const FLB = { time: '시각', temp: '온도', min: '가열시간', core: '품온', t1: '넣은 시각', v1: '넣을 때 품온', t2: '꺼낸 시각', v2: '꺼낼 때 품온', start: '배합 시작', kg: '배합량', room: '작업장 온도', end: '소진 시각', fe: 'Fe', sus: 'STS', p: '제품', fep: '제품+Fe', susp: '제품+STS', tag: '구분', jd: '판정', name: '품목', code: '품목코드', kind: '구분' };
+  const fLab = (type, f) => type === 'oven' && f === 'temp' ? '가열온도' : type === 'mix' && f === 'temp' ? '품온' : (FLB[f] || f);
+  const SKIP = new Set(['id', 'mt', 'at', 'us', 'sg', 'fx', 'm', 'pe', 'nv', 'ord']);
+  const DATA = ['time', 'temp', 'min', 'core', 't1', 'v1', 't2', 'v2', 'start', 'kg', 'room', 'end', 'fe', 'sus', 'p', 'fep', 'susp', 'jd', 'tag', 'kind'];
+  const keyOf = g => { try { return ccpKey(g); } catch (e) { return g.date + '|' + g.type; } };
+  const tOf = g => g && g.type;
+  const prot = (type, r) => !!r && ((type === 'oven' && (r.tag === '시작' || r.tag === '종료')) || (type === 'metal' && (r.kind === 'pre' || r.kind === 'post')));
+  const kindLb = (type, r) => type === 'oven' ? (r.tag === '시작' ? '🟢 시작' : r.tag === '종료' ? '🏁 종료' : '⏱ 2시간') : type === 'metal' ? (r.kind === 'pre' ? '🟢 작업 전' : r.kind === 'post' ? '🏁 작업 후' : '⏱ 제품 확인') : type === 'freeze' ? '❄ 급냉' : '🥣 배합';
+  const tmOf = (type, r) => type === 'freeze' ? (r.t1 || '') : type === 'mix' ? (r.start || '') : (r.time || '');
+  const valTx = (type, r) => type === 'oven' ? (r.temp || '—') + '℃ · ' + (r.min || '—') + '분 · 품온 ' + (r.core || '—') + '℃'
+    : type === 'freeze' ? '넣음 ' + (r.v1 || '—') + '℃ → 꺼냄 ' + (r.t2 || '--:--') + ' ' + (r.v2 || '—') + '℃'
+    : type === 'mix' ? (r.kg || '—') + 'kg · 품온 ' + (r.temp || '—') + '℃ · 작업장 ' + (r.room || '—') + '℃ → 소진 ' + (r.end || '--:--')
+    : 'Fe ' + (r.fe || '—') + ' · STS ' + (r.sus || '—') + (r.kind === 'item' ? ' · 제품 ' + (r.p || '—') + ' · 제품+Fe ' + (r.fep || '—') + ' · 제품+STS ' + (r.susp || '—') : '');
+  const labOf = (type, r) => kindLb(type, r).replace(/^\S+\s/, '') + ' ' + (tmOf(type, r) || '--:--');
+  const devName = () => { let a = ''; try { a = (S.settings && S.settings.reporter) || ''; } catch (e) {} let d = ''; try { d = shareCfg().device || ''; } catch (e) {} return (a ? a + ' ' : '') + (d ? '(' + d + ')' : '') || '생산실 앱'; };
+  const who = () => { let w = ''; try { w = fldWk(); } catch (e) {} return w || '(작업자 미선택)'; };
+  const pick = r => { const o = {}; DATA.concat(['name', 'code']).forEach(f => { if (r && r[f] !== undefined && r[f] !== '') o[f] = r[f]; }); return o; };
+
+  /* ── 변경 이력 기록 ── */
+  const C = {}; let inApply = false;
+  const snap = g => { if (!g || !TYPES.includes(g.type)) return; const rows = {}; (g.rows || []).forEach(r => { if (r && r.id) rows[r.id] = JSON.stringify(r); }); C[keyOf(g)] = { rows, del: new Set(g.del || []) }; };
+  const snapDay = () => { try { const D = fldD(); TYPES.forEach(t => { const g = ccpGet(D + '|' + t); if (g) snap(g); }); } catch (e) {} };
+  const sendSrv = (g, e) => { try { if (typeof shareOn === 'function' && shareOn()) nbQueue({ ts: e.at, week: '', code: 'ccpchg~' + g.date + '~' + e.u, name: 'CCP 줄 ' + e.act, kind: 'plog', note: JSON.stringify({ x: 'ccpchg', e }) }); } catch (er) {} };
+  const addChg = (g, e) => { e.u = e.u || (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)); e.at = e.at || nowIso(); e.d = g.date; e.type = g.type; e.by = e.by || who(); e.dev = e.dev || devName();
+    g.chg = (g.chg || []).concat(e).slice(-300); sendSrv(g, e); return e; };
+  const diff = g => { if (!g || !TYPES.includes(g.type) || inApply) return; const c = C[keyOf(g)]; if (!c) return;
+    const cur = {}; (g.rows || []).forEach(r => { if (r && r.id) cur[r.id] = r; }); const del = new Set(g.del || []);
+    Object.keys(c.rows).forEach(id => { if (cur[id] || !del.has(id) || c.del.has(id)) return; let b = {}; try { b = JSON.parse(c.rows[id]); } catch (e) {}
+      addChg(g, { act: '삭제', id, nm: sh(b.name), lab: labOf(g.type, b), before: pick(b), prot: prot(g.type, b) ? 1 : 0 }); });
+    Object.values(cur).forEach(r => { const o = c.rows[r.id]; if (!o) return; let b = {}; try { b = JSON.parse(o); } catch (e) { return; } const ch = {};
+      Object.keys(b).forEach(f => { if (SKIP.has(f)) return; const bv = b[f]; if (bv === '' || bv == null || typeof bv === 'object') return; const nv = r[f] == null ? '' : r[f]; if (String(nv) !== String(bv)) ch[f] = [String(bv), String(nv)]; });
+      if (!Object.keys(ch).length) return; const L = g.chg || []; const last = L[L.length - 1];
+      if (last && last.act === '수정' && last.id === r.id && last.by === who() && Date.now() - Date.parse(last.at) < 8000) { Object.keys(ch).forEach(f => { last.f[f] = last.f[f] ? [last.f[f][0], ch[f][1]] : ch[f]; }); last.lab = labOf(g.type, r); sendSrv(g, last); r.fx = Object.assign({}, r.fx || {}, { n: (r.fx && r.fx.n) || 1, at: nowIso() }); }
+      else { addChg(g, { act: '수정', id: r.id, nm: sh(r.name), lab: labOf(g.type, r), f: ch, before: pick(b) }); r.fx = Object.assign({}, r.fx || {}, { n: ((r.fx && r.fx.n) || 0) + 1, at: nowIso() }); } });
+  };
+  const _touch = ccpTouch;
+  ccpTouch = function (g) { try { diff(g); } catch (e) {} const r = _touch.apply(this, arguments); try { snap(g); } catch (e) {} return r; };
+  const _apply = ccpApplyRow;
+  ccpApplyRow = function (row) { inApply = true; let r; try { r = _apply.apply(this, arguments); } finally { inApply = false; } try { if (r && row && row.code) { const g = ccpGet(row.code); if (g && C[keyOf(g)]) snap(g); } } catch (e) {} return r; };
+  const _merge = ccpMerge;
+  ccpMerge = function (a, b) { const out = _merge.apply(this, arguments); try { const m = new Map(); [...((a && a.chg) || []), ...((b && b.chg) || [])].forEach(e => { if (e && e.u) m.set(e.u, Object.assign({}, m.get(e.u) || {}, e)); });
+      if (m.size) out.chg = [...m.values()].sort((x, y) => String(x.at).localeCompare(String(y.at))).slice(-300); } catch (e) {} return out; };
+
+  /* ── 목록 ── */
+  let MS = false; const PK = new Set();
+  const sortRows = (type, rows) => { const ko = r => type === 'oven' ? (r.tag === '시작' ? 0 : r.tag === '종료' ? 2 : 1) : type === 'metal' ? (r.kind === 'pre' ? 0 : r.kind === 'post' ? 2 : 1) : 1;
+    return rows.slice().sort((a, b) => String(a.code || a.name || '').localeCompare(String(b.code || b.name || '')) || ko(a) - ko(b) || (mm(tmOf(type, a)) ?? 9999) - (mm(tmOf(type, b)) ?? 9999)); };
+  const visRows = (g, key) => { const type = g.type; return sortRows(type, (g.rows || []).filter(r => !key || (type === 'mix' ? r.name === key : r.code === key || (type === 'metal' && !r.code)))
+    .filter(r => { try { return fldAny(r, ['time', 'temp', 't1', 't2', 'start', 'kg', 'end', 'fe']); } catch (e) { return true; } })); };
+  const insSlot = (type, a, b, rows) => { /* a 뒤, b 앞에 삽입 버튼을 둘지 */
+    if (type === 'oven') { if (!a || a.tag === '종료') return false; const hasS = rows.some(r => r.code === a.code && r.tag === '시작' && r.time), hasE = rows.some(r => r.code === a.code && r.tag === '종료' && r.time);
+      if (!hasS) return false; if (b && b.code === a.code) return true; return !hasE; }
+    if (type === 'metal') { if (!a || a.kind !== 'pre' || !a.code) return false; const has = rows.some(r => r.kind === 'item' && r.code === a.code && r.time); return !has && (!b || b.code === a.code); }
+    if (!a) return false; if (b && (b.code || b.name) !== (a.code || a.name)) return true; return true; };
+  const rowHtml = (g, r, D) => { const type = g.type; let bad = []; try { bad = ccpRowState(type, 'rows', r, D).bad || []; } catch (e) {} const P = prot(type, r);
+    const tags = (r.fx && r.fx.n ? '<span class="fxr-tag ed">✎ 고침' + (r.fx.n > 1 ? ' ' + r.fx.n : '') + '</span>' : '') + (r.fx && r.fx.ins ? '<span class="fxr-tag in">＋ 삽입</span>' : '') + (r.sg ? '<span class="fxr-tag sg">' + esc(r.sg) + '</span>' : '');
+    const bt = MS ? (P ? '<button type="button" class="lk" data-fx="lock" data-id="' + esc(r.id) + '">🔒</button>' : '<button type="button" class="ck" data-fx="pk" data-id="' + esc(r.id) + '">' + (PK.has(r.id) ? '✓' : '') + '</button>')
+      : '<button type="button" class="e" data-fx="ed" data-id="' + esc(r.id) + '">✎ 수정</button>' + (P ? '<button type="button" class="lk" data-fx="lock" data-id="' + esc(r.id) + '">🔒 삭제<br>불가</button>' : '<button type="button" class="d" data-fx="del" data-id="' + esc(r.id) + '">🗑 삭제</button>');
+    return '<div class="fxr-row' + (bad.length ? ' bad' : '') + (MS && PK.has(r.id) ? ' pk' : '') + '" data-id="' + esc(r.id) + '"><div class="fxr-tx"><div class="fxr-t1"><span class="fxr-lb">' + esc(kindLb(type, r)) + '</span><span class="fxr-tm">' + esc(tmOf(type, r) || '--:--') + '</span>'
+      + '<span class="fxr-nm">' + esc(sh(r.name)) + '</span></div><div class="fxr-v">' + esc(valTx(type, r)) + tags + '</div>' + (bad.length ? '<div class="fxr-bad">⚠ 기준 벗어남 — ' + esc(bad.join(', ')) + '</div>' : '') + '</div><div class="fxr-bt">' + bt + '</div></div>'; };
+  const _rec = fldRecHtml;
+  fldRecHtml = function (g, key) {
+    if (!g || !TYPES.includes(g.type)) return _rec.apply(this, arguments);
+    try { const D = fldD(), type = g.type, rows = visRows(g, key); const all = g.rows || [];
+      const hist = (g.chg || []).length ? '<button type="button" class="fxr-hist" data-fx="hist" data-t="' + esc(type) + '">📝 이 공정 고친 기록 ' + (g.chg || []).length + '건 보기</button>' : '';
+      if (!rows.length) return hist;
+      let h = '';
+      rows.forEach((r, i) => { h += rowHtml(g, r, D); const b = rows[i + 1]; if (!MS && insSlot(type, r, b, all)) h += '<button type="button" class="fxr-ins" data-fx="ins" data-a="' + esc(r.id) + '" data-b="' + esc(b && (b.code || b.name) === (r.code || r.name) ? b.id : '') + '">' + (b && (b.code || b.name) === (r.code || r.name) ? '＋ 이 사이에 삽입' : '＋ 아래에 줄 삽입') + '</button>'; else h += '<div class="fxr-gap"></div>'; });
+      const canMs = rows.some(r => !prot(type, r));
+      const head = '<div class="fxr-h"><h2 class="fxr-h2">' + (MS ? '지울 줄을 눌러 고르세요' : '오늘 기록 — 수정·삭제·삽입') + '</h2>' + (!MS && canMs && rows.length > 1 ? '<button type="button" class="fxr-ms" data-fx="ms">☑ 여러 줄 골라 지우기</button>' : '') + '</div>';
+      const bar = MS ? '<div class="fxr-bar"><button type="button" class="no" data-fx="msno">취소</button><button type="button" class="go" data-fx="msgo"' + (PK.size ? '' : ' disabled') + '>🗑 ' + PK.size + '줄 지우기</button></div>' : '';
+      return head + '<div class="fxr-list" data-t="' + esc(type) + '">' + h + '</div>' + bar + hist;
+    } catch (e) { return _rec.apply(this, arguments); } };
+
+  /* ── 삭제 ── */
+  const logNow = () => fldLog(FLD.type);
+  const delRows = ids => { const g = logNow(); if (!g) return 0; const gone = [];
+    ids.forEach(id => { const i = (g.rows || []).findIndex(r => r.id === id); if (i < 0) return; if (prot(g.type, g.rows[i])) return; gone.push(g.rows[i]); g.rows.splice(i, 1); });
+    if (!gone.length) { toast('이미 지워졌거나 지울 수 없는 줄입니다'); fieldRender(); return 0; }
+    if (g.apAt) { g.hist = (g.hist || []).slice(-99); g.hist.push({ at: nowIso(), by: who(), f: gone.map(r => sh(r.name) + ' ' + labOf(g.type, r)).join(', ') + ' 줄 삭제', from: '', to: '', ap: g.apBy || '' }); g.apAt = ''; g.apBy = ''; }
+    g.del = (g.del || []).concat(gone.map(r => r.id)).slice(-300); try { ccpAutoDev(g); } catch (e) {}
+    ccpTouch(g); try { save(); } catch (e) {} MS = false; PK.clear(); fieldRender();
+    toast('🗑 ' + (gone.length === 1 ? sh(gone[0].name) + ' ' + labOf(g.type, gone[0]) + ' 줄을' : gone.length + '줄을') + ' 지웠습니다 (지운 기록은 남습니다)'); return gone.length; };
+  const askDel = ids => { const g = logNow(); if (!g) return; const rs = ids.map(id => (g.rows || []).find(r => r.id === id)).filter(Boolean).filter(r => !prot(g.type, r)); if (!rs.length) return;
+    const old = document.querySelector('.fxr-bg'); if (old) old.remove(); const bg = document.createElement('div'); bg.className = 'fxr-bg';
+    bg.innerHTML = '<div class="fxr-card" role="dialog"><h3>' + (rs.length === 1 ? '이 줄을 지울까요?' : rs.length + '줄을 지울까요?') + '</h3>'
+      + rs.map(r => '<div class="fxr-one"><b>' + esc(sh(r.name)) + ' · ' + esc(labOf(g.type, r)) + '</b>' + esc(valTx(g.type, r)) + (r.sg ? ' · ' + esc(r.sg) : '') + '</div>').join('')
+      + '<div class="fxr-note">지운 줄은 화면과 K-HACCP 일지에서 빠집니다. 누가·언제·원래 값은 변경 기록으로 남습니다.</div>'
+      + '<div class="fxr-bts"><button type="button" class="fxr-no">취소</button><button type="button" class="fxr-yes">🗑 지우기</button></div></div>';
+    bg.addEventListener('click', e => { e.stopPropagation(); if (e.target === bg || e.target.closest('.fxr-no')) { bg.remove(); return; } if (e.target.closest('.fxr-yes')) { bg.remove(); delRows(rs.map(r => r.id)); } });
+    document.body.appendChild(bg); };
+  /* 고치기 화면의 원래 「지우기」 버튼도 같은 확인 창·같은 기록으로 (시작·종료는 막음) */
+  const _delRow = fldDelRow;
+  fldDelRow = function (id) { try { const g = logNow(); const r = g && (g.rows || []).find(x => x.id === id); if (!r) return _delRow.apply(this, arguments);
+      if (prot(g.type, r)) { toast('🔒 시작·종료(작업 전·후) 줄은 지울 수 없습니다 — 값·시각은 「수정」으로 고치세요'); return; }
+      FLD.step = g.type === 'metal' ? 'type' : 'mode'; fieldRender(); askDel([id]); } catch (e) { return _delRow.apply(this, arguments); } };
+
+  /* ── 삽입 ── */
+  let INS = null;
+  const startIns = (aId, bId) => { const g = logNow(); if (!g) return; const type = g.type; const a = (g.rows || []).find(r => r.id === aId), b = bId ? (g.rows || []).find(r => r.id === bId) : null; if (!a) return;
+    const ta = mm(tmOf(type, a)), tb = b ? mm(tmOf(type, b)) : null; const D = fldD(); let nowM = null; try { if (D === today()) nowM = mm(fldHM()); } catch (e) {}
+    const ta2 = type === 'freeze' ? mm(a.t2) : type === 'mix' ? mm(a.end) : null;
+    let sug = ta2 != null && tb == null ? ta2 + 10 : ta != null && tb != null ? Math.floor((ta + tb) / 2) : ta != null ? ta + (type === 'oven' || type === 'metal' ? 120 : 30) : (nowM != null ? nowM : 600); if (nowM != null && sug > nowM) sug = nowM; if (ta != null && sug <= ta) sug = ta + 1;
+    FLD.code = type === 'mix' ? a.name : (a.code || a.kind); FLD.name = a.name;
+    const mode = type === 'oven' ? '중간' : type === 'metal' ? 'item' : 'in';
+    if (type === 'metal') { FLD.code = a.code; }
+    FLD.mode = mode === 'in' && type === 'mix' ? 'start' : mode; FLD.rowId = '';
+    fldStartForm(null, 'rows');
+    if (type === 'freeze') { FLD.fields = FLD.fields.concat(fldFieldsFor('freeze', 'out')); }
+    if (type === 'mix') { FLD.fields = FLD.fields.concat(fldFieldsFor('mix', 'end')); }
+    FLD.fields.forEach(x => { if (!(x.f in FLD.vals)) FLD.vals[x.f] = ''; if (x.k === 'time') return; const v = a[x.f]; if ((FLD.vals[x.f] === '' || FLD.vals[x.f] == null) && v !== '' && v != null) FLD.vals[x.f] = x.neg ? String(v).replace(/^-/, '') : String(v); });
+    const tf = FLD.fields.find(x => x.k === 'time'); if (tf) { FLD.vals[tf.f] = hm(sug); if (FLD.fresh) delete FLD.fresh[tf.f]; FLD.fi = FLD.fields.indexOf(tf); }
+    if (type === 'freeze') { const t2 = FLD.fields.find(x => x.f === 't2'); if (t2) FLD.vals.t2 = ''; }
+    if (type === 'mix') { if ('end' in FLD.vals) FLD.vals.end = ''; }
+    INS = { type, code: FLD.code, lo: ta, hi: tb, loT: tmOf(type, a), hiT: b ? tmOf(type, b) : '', at: Date.now() };
+    FLD.edit = false; fieldRender(); };
+  const _save = fldSave;
+  fldSave = function () {
+    if (INS && FLD.step === 'form' && !FLD.rowId) { const tf = FLD.fields.find(x => x.k === 'time'); const t = tf ? mm(FLD.vals[tf.f]) : null;
+      if (INS.type === 'oven' && t != null && ((INS.lo != null && t <= INS.lo) || (INS.hi != null && t >= INS.hi))) { toast('넣을 시각은 ' + INS.loT + (INS.hiT ? '~' + INS.hiT : ' 뒤') + ' 사이여야 합니다'); FLD.fi = FLD.fields.indexOf(tf); fieldRender(); return; } }
+    const ins = INS && FLD.step === 'form' && !FLD.rowId ? INS : null; const g0 = fldLog(FLD.type); const before = new Set(((g0 && g0.rows) || []).map(r => r.id));
+    const res = _save.apply(this, arguments);
+    try { if (ins) { const g = fldLog(ins.type); const nr = g && (g.rows || []).find(r => !before.has(r.id)); if (nr) { INS = null; nr.fx = Object.assign({}, nr.fx || {}, { ins: 1, at: nowIso() }); addChg(g, { act: '삽입', id: nr.id, nm: sh(nr.name), lab: labOf(g.type, nr), row: pick(nr) }); ccpTouch(g); try { save(); } catch (e) {}
+          if (FLD.step === 'type' && g.type !== 'metal') { FLD.step = 'mode'; fieldRender(); } } } } catch (e) {}
+    return res; };
+
+  /* ── 버튼 ── */
+  let BACK = null;
+  window.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('#fld [data-fx]'); if (!b) return; ev.preventDefault(); ev.stopImmediatePropagation();
+    try { if (window.fldBeep) window.fldBeep(); } catch (e) {}
+    const a = b.dataset.fx, id = b.dataset.id;
+    if (a === 'ed') { BACK = { step: FLD.step, type: FLD.type, code: FLD.code, name: FLD.name }; const tmp = document.createElement('button'); tmp.dataset.f = 'editrow'; tmp.dataset.id = id; tmp.style.display = 'none'; (document.querySelector('#fld .fld-body') || document.getElementById('fld')).appendChild(tmp); tmp.click(); tmp.remove(); return; }
+    if (a === 'del') return askDel([id]);
+    if (a === 'lock') { toast('🔒 시작·종료(작업 전·후) 줄은 지울 수 없습니다 — 「✎ 수정」으로 고치세요'); return; }
+    if (a === 'ins') { BACK = { step: FLD.step, type: FLD.type, code: FLD.code, name: FLD.name }; return startIns(b.dataset.a, b.dataset.b); }
+    if (a === 'ms') { MS = true; PK.clear(); return fieldRender(); }
+    if (a === 'msno') { MS = false; PK.clear(); return fieldRender(); }
+    if (a === 'pk') { if (PK.has(id)) PK.delete(id); else PK.add(id); return fieldRender(); }
+    if (a === 'msgo') { if (PK.size) askDel([...PK]); return; }
+    if (a === 'hist') return showHist(b.dataset.t || '');
+    if (a === 'histall') return showHist('');
+  }, true);
+
+  /* ── 변경 기록 보기 (관리자) ── */
+  const TN = { oven: '오븐 가열', freeze: '급속냉동', mix: '배합', metal: '금속검출' };
+  const showHist = async (onlyType) => {
+    const old = document.querySelector('.fxr-bg'); if (old) old.remove(); const bg = document.createElement('div'); bg.className = 'fxr-bg';
+    const D = fldD(); const from = new Date(Date.parse(D) - 14 * 864e5).toISOString().slice(0, 10); const M = new Map();
+    try { Object.values(ccpS().logs || {}).forEach(g => { if (!g || !TYPES.includes(g.type) || g.date < from) return; if (onlyType && (g.type !== onlyType || g.date !== D)) return; (g.chg || []).forEach(e => { if (e && e.u) M.set(e.u, e); }); }); } catch (e) {}
+    const draw = (srvNote) => { const L = [...M.values()].sort((x, y) => String(y.at).localeCompare(String(x.at)));
+      const fmtAt = s => { const d = new Date(s); return isNaN(d) ? '' : (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+      const what = e => e.act === '수정' ? Object.entries(e.f || {}).map(([f, v]) => esc(fLab(e.type, f)) + ' <span class="o">' + esc(v[0] || '빈칸') + '</span> → <b>' + esc(v[1] || '빈칸') + '</b>').join('<br>')
+        : e.act === '삭제' ? '지운 줄 값: ' + esc(Object.entries(e.before || {}).filter(([f]) => f !== 'name' && f !== 'code').map(([f, v]) => fLab(e.type, f) + ' ' + v).join(' · '))
+        : '넣은 줄 값: ' + esc(Object.entries(e.row || {}).filter(([f]) => f !== 'name' && f !== 'code').map(([f, v]) => fLab(e.type, f) + ' ' + v).join(' · '));
+      bg.innerHTML = '<div class="fxr-card" role="dialog" style="max-width:760px"><h3 class="n">📝 줄 고친 기록 ' + (onlyType ? '— ' + esc(TN[onlyType] || onlyType) + ' · ' + esc(D.slice(5).replace('-', '/')) : '— 최근 14일') + '</h3>'
+        + '<div class="fxr-note" style="margin-top:0">지우거나 고친 줄은 화면·K-HACCP 자료에서 빠지거나 고친 값으로 보이고, 여기에는 원래 값이 남습니다.' + (srvNote ? '<br><small>' + esc(srvNote) + '</small>' : '') + '</div>'
+        + (L.length ? '<table class="fxr-tbl"><thead><tr><th>일지</th><th>무엇</th><th>바뀐 내용</th><th>누가·언제</th></tr></thead><tbody>' + L.map(e => '<tr><td>' + esc(String(e.d || '').slice(5).replace('-', '/')) + '<br><small>' + esc(TN[e.type] || e.type) + '</small></td>'
+          + '<td class="a ' + (e.act === '삭제' ? 'del' : e.act === '수정' ? 'ed' : 'in') + '">' + esc(e.act) + '됨<br><small>' + esc((e.nm || '') + ' ' + (e.lab || '')) + '</small></td><td>' + what(e) + '</td><td>' + esc(e.by || '') + '<br><small>' + esc(fmtAt(e.at)) + '<br>' + esc(e.dev || '') + '</small></td></tr>').join('') + '</tbody></table>'
+          : '<div class="fxr-one">고친 기록이 없습니다.</div>')
+        + '<div class="fxr-bts" style="margin-top:14px"><button type="button" class="fxr-no">닫기</button></div></div>'; };
+    draw('서버 기록 확인 중…'); bg.addEventListener('click', e => { e.stopPropagation(); if (e.target === bg || e.target.closest('.fxr-no')) bg.remove(); }); document.body.appendChild(bg);
+    try { const j = await shareApi({ action: 'pull', since: new Date(Date.parse(from)).toISOString() }); let n = 0;
+      (j.rows || []).filter(r => String(r.code || '').startsWith('ccpchg~')).forEach(r => { try { const e = (JSON.parse(r.note || '{}') || {}).e; if (!e || !e.u) return; if (onlyType && (e.type !== onlyType || e.d !== D)) return; if (!M.has(e.u)) n++; M.set(e.u, Object.assign({}, e, M.get(e.u) || {})); } catch (er) {} });
+      if (document.body.contains(bg)) draw('서버 기록까지 확인함' + (n ? ' (이 기기에 없던 ' + n + '건 포함)' : '')); }
+    catch (e) { if (document.body.contains(bg)) draw('서버에 연결하지 못해 이 기기에 있는 기록만 보여 줍니다'); } };
+  window.fxShowHist = showHist;
+
+  /* ── 그리기 뒤: 기준 사진 찍기 · 삽입 안내 · 수정 뒤 돌아오기 · 설정에 기록 보기 · 큰 버튼 유지(줄이지 않음) · 버전 ── */
+  const _r = fieldRender;
+  fieldRender = function () {
+    if (BACK && FLD.step === 'type' && BACK.type === FLD.type && BACK.step === 'mode') { FLD.step = 'mode'; FLD.code = BACK.code; FLD.name = BACK.name; BACK = null; }
+    else if (BACK && FLD.step !== 'form' && FLD.step !== 'act' && FLD.step !== 'who') BACK = null;
+    if (INS && FLD.step !== 'form' && FLD.step !== 'who' && FLD.step !== 'act') INS = null;
+    if (MS && (FLD.step !== 'mode' && FLD.step !== 'type')) { MS = false; PK.clear(); }
+    const res = _r.apply(this, arguments);
+    try { snapDay(); } catch (e) {}
+    try { if (FLD.step === 'form') { const g = fldLog(FLD.type); const r = g && FLD.rowId && (g.rows || []).find(x => x.id === FLD.rowId); if (r && prot(g.type, r)) document.querySelectorAll('#fld [data-f="delrow"]').forEach(b => { b.style.display = 'none'; });
+        if (INS && !FLD.rowId) { const body = document.querySelector('#fld .fld-body'); if (body && !body.querySelector('.fxr-insnote')) body.insertAdjacentHTML('afterbegin', '<div class="fxr-insnote">＋ 줄 삽입 — ' + (INS.type === 'oven' ? esc(INS.loT) + (INS.hiT ? ' ~ ' + esc(INS.hiT) + ' 사이' : ' 뒤') + ' 시각을 넣고' : '시각을 확인하고') + ' 값을 확인한 뒤 저장하세요.<br>미리 채운 값이 실제 잰 값과 다르면 그 칸을 눌러 고치세요.</div>'); } } } catch (e) {}
+    try { const row = document.querySelector('#fld .fapp-row'); if (row && !row.querySelector('.fxr-adm')) { const b = document.createElement('button'); b.type = 'button'; b.className = 'fxr-adm'; b.dataset.fx = 'histall'; b.textContent = '📝 줄 고친 기록(관리자)'; row.appendChild(b); } } catch (e) {}
+    try { const sm = document.querySelector('#fld .rqbar small'); if (sm && !sm.querySelector('.fxr-ver')) { const v = document.createElement('span'); v.className = 'fxr-ver'; v.textContent = ' · ' + TAG; sm.appendChild(v); } } catch (e) {}
+    return res; };
+  const _fit = window.fldFit;
+  window.fldFit = function () { const r = _fit && _fit.apply(this, arguments); try { const body = document.querySelector('#fld .fld-body'); if (body && body.querySelector('.fxr-list') && body.style.zoom && Number(body.style.zoom) < 1) body.style.zoom = ''; } catch (e) {} return r; };
+  window.__fxRow = { VER, BUILT, diff, snap, C, delRows, askDel, startIns, showHist, prot };
+  try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
 })();
