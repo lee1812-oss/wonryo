@@ -2848,7 +2848,7 @@
    - 윗줄: 화면 폭이 좁으면 단계적으로 줄인다(1 여백 → 2 글자 숨김(아이콘만) → 3 글자 작게 → 4 더 작게 → 5 전체 축소). 줄바꿈이 없어질 때까지.
    - 기록·버튼 동작은 건드리지 않는다. 이 블록을 지우면 예전 모양으로 돌아간다. */
 (function () { if (!window.FIELD_APP) return;
-  const FHX_VER = 'v013', FHX_BUILT = '2026-11-23 15:45';   /* v013 (2026-11-23): 모든 공정 「오늘 기록」 줄마다 수정·삭제, 줄 사이 삽입, 변경 이력(누가·언제·원래 값) */   /* v012 (2026-11-13): 오븐 2시간 측정 줄 — 종료가 2시간 지점 뒤 10분 안이어도 2시간 줄을 만듦(11/6 누락 재발 방지) */   /* v011 (2026-11-13): ECOUNT 입력 제품 목록에 굴뚝빵 생지·쌀소금빵 등 빠진 제품 추가 */
+  const FHX_VER = 'v014', FHX_BUILT = '2026-11-23 16:20';   /* v014 (2026-11-23): 오븐 가열에 몽블랑·빅몽블랑 낱개(1EA) 고르기 */   /* v013 (2026-11-23): 모든 공정 기록 줄 수정·삭제·삽입 + 변경 이력 */   /* v013 (2026-11-23): 모든 공정 「오늘 기록」 줄마다 수정·삭제, 줄 사이 삽입, 변경 이력(누가·언제·원래 값) */   /* v012 (2026-11-13): 오븐 2시간 측정 줄 — 종료가 2시간 지점 뒤 10분 안이어도 2시간 줄을 만듦(11/6 누락 재발 방지) */   /* v011 (2026-11-13): ECOUNT 입력 제품 목록에 굴뚝빵 생지·쌀소금빵 등 빠진 제품 추가 */
   const st = document.createElement('style');
   st.textContent = [
     '#fld .fld-top{flex-wrap:wrap;row-gap:4px}',
@@ -3382,5 +3382,65 @@
   const _fit = window.fldFit;
   window.fldFit = function () { const r = _fit && _fit.apply(this, arguments); try { const body = document.querySelector('#fld .fld-body'); if (body && body.querySelector('.fxr-list') && body.style.zoom && Number(body.style.zoom) < 1) body.style.zoom = ''; } catch (e) {} return r; };
   window.__fxRow = { VER, BUILT, diff, snap, C, delRows, askDel, startIns, showHist, prot };
+  try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
+})();
+
+
+/* ══ 오븐 가열: 몽블랑·빅몽블랑 낱개(1EA)도 고르기 v001 · 2026-11-23 (2026-11-23 Aside 사무실 PC, 사용자 「오븐 가열 공정 제품 선택에 몽블랑 낱개·빅몽블랑 낱개도
+      고를 수 있게 — 낱개도 가열 시간·온도를 따로 기록」) ══
+   - 대상(이카운트 품목 이름·코드 그대로): DBA2 「DB.몽블랑빵 1EA」(박스 DBA22 몽블랑 24EA의 낱개), DBA_22 「DB.빅몽블랑 1 EA」(박스 DBA_29 빅몽블랑 16EA의 낱개).
+   - 예전(v250): 박스 품목이 있는 묶음의 낱개는 CCP 줄을 만들지 않음(박스 기록에 포함). 이 규칙은 그대로 두고,
+     위 두 낱개만 「① 작업 시작」 목록에 🔥 오븐으로 보이게 하고, 그날 작업 시작에서 낱개를 고른 경우에만 오븐 가열 일지에 그 낱개 줄이 생기게 한다.
+     (생산량만 넣은 날에는 낱개 오븐 줄이 생기지 않음 → 빈 줄·「측정 없음」 경고가 생기지 않음.) 급냉·금속·배합은 그대로 박스 품목 기록.
+   - 오븐 가열 화면(품목 고르기·측정 화면 아래)에도 「＋ 몽블랑 낱개」「＋ 빅몽블랑 낱개」 버튼: 누르면 작업 시작과 같이 그날 일지에 넣고 바로 그 낱개의 시작·2시간·종료 화면으로 간다.
+   - 한계기준: 앱 기준표(ccpOvenLimit)는 이름의 「몽블랑」으로 찾으므로 낱개도 박스와 같은 기준(가열온도 155±3℃ · 가열시간 27±3분 · 품온 85~99℃).
+   - K-HACCP 자동 작성: K-HACCP 「CCP 제품 선택」에 코드 DBA2·DBA_22 품목이 없어(2026-11-23 확인: 옛 「몽블랑 1EA」 코드 202205149891, 「빅몽블랑」만 있음)
+     낱개 오븐 기록이 있는 날은 오븐 일지 자동 작성이 「K-HACCP 품목을 못 찾음」으로 보류된다. K-HACCP 기초등록에 품목이 생기면 그대로 이어진다.
+   - 이 블록을 지우면 예전처럼 낱개는 오븐 목록에 안 보인다(이미 적은 낱개 오븐 줄은 일지에 그대로 남음). */
+(function () {
+  if (!window.FIELD_APP || window.__fxEa) return;
+  const VER = 'v001', BUILT = '2026-11-23 16:20', TAG = '오븐 낱개(몽블랑·빅몽블랑 1EA) ' + VER + ' · ' + BUILT;
+  const EA = { DBA2: { box: 'DBA22', lb: '몽블랑 낱개' }, DBA_22: { box: 'DBA_29', lb: '빅몽블랑 낱개' } };
+  let WS = 0, CUR = null;
+  const wsKey = (d, c) => 'ws:' + d + ':' + c;
+  const hasWs = (d, c) => { try { const P = prodS(); return !!(P.pday && P.pday[wsKey(d, c)]); } catch (e) { return false; } };
+  const _of = ccpOf;
+  ccpOf = function (it) { const o = _of.apply(this, arguments);
+    try { const code = it && (it.code || (it.name && (prodS().items || []).find(x => x.name === it.name) || {}).code); if (!code || !EA[code]) return o;
+      const d = CUR || (typeof FLD !== 'undefined' && FLD.open ? fldD() : null);
+      if (WS || (d && hasWs(d, code))) return Object.assign({}, o, { oven: true, freeze: false, metal: false, mix: false }); } catch (e) {}
+    return o; };
+  const _ens = ccpEnsure;
+  ccpEnsure = function (date) { const sv = CUR; CUR = date; try { return _ens.apply(this, arguments); } finally { CUR = sv; } };
+  const _ws = fldWsHtml;
+  fldWsHtml = function () { WS++; try { return _ws.apply(this, arguments); } finally { WS--; } };
+  /* 생산량을 먼저 넣어 그날 목록에 이미 있어도, 낱개는 작업 시작 표시(ws)를 남겨 오븐 줄이 생기게 */
+  const addWs = code => { const D = fldD(), P = prodS(), it = prodItem(code); P.pday = P.pday || {}; const key = wsKey(D, code); if (P.pday[key]) return false;
+    const ts = new Date().toISOString(); P.pday[key] = { ts, d: D, l: [[code, 0, (it && it.name) || code, 0]] };
+    try { if (shareOn()) nbQueue({ ts, week: '', code: key, name: '작업 시작', kind: 'pday', note: JSON.stringify({ d: D, l: P.pday[key].l }) }); } catch (e) {}
+    try { const by = ccpProdByDate(); if (by[D]) ccpEnsure(D, by[D]); } catch (e) {} try { save(); } catch (e) {} return true; };
+  const _fws = fldWs;
+  fldWs = function (code) { try { if (EA[code]) { const by0 = ccpProdByDate()[fldD()] || {}; if (by0[code]) { const it = prodItem(code); if (addWs(code)) toast('▶ ' + fldShort((it && it.name) || code) + ' — 오늘 오븐 가열 일지에 넣었습니다'); FLD.step = 'home'; FLD.q = ''; fieldRender(); return; } } } catch (e) {}
+    return _fws.apply(this, arguments); };
+  const goOven = code => { const it = prodItem(code); if (!hasWs(fldD(), code)) { const by0 = ccpProdByDate()[fldD()] || {}; if (by0[code]) addWs(code); else { _fws(code); } }
+    try { const by = ccpProdByDate(); if (by[fldD()]) ccpEnsure(fldD(), by[fldD()]); } catch (e) {}
+    const p = (fldProds('oven') || []).find(x => x.code === code); if (!p) { toast('오븐 일지에 넣지 못했습니다 — ① 작업 시작에서 골라 주세요'); return; }
+    FLD.type = 'oven'; FLD.code = code; FLD.name = p.name || (it && it.name) || code; FLD.step = 'mode'; fieldRender(); };
+  window.addEventListener('click', ev => { const b = ev.target.closest && ev.target.closest('#fld [data-fxea]'); if (!b) return; ev.preventDefault(); ev.stopImmediatePropagation();
+    try { if (window.fldBeep) window.fldBeep(); } catch (e) {} goOven(b.dataset.fxea); }, true);
+  const st = document.createElement('style');
+  st.textContent = '#fld .fxea{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}#fld .fxea button{flex:1 1 200px;min-height:60px;border-radius:14px;border:2px dashed #ADB5BD;background:#F8F9FA;color:#1F2328;font-size:18px;font-weight:800;cursor:pointer}'
+    + '#fld .fxea small{display:block;font-size:13px;font-weight:600;color:#495057}#fld .fxea-t{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:8px;background:#FFF3BF;color:#7A4A00;font-size:14px;font-weight:800;vertical-align:middle}';
+  document.head.appendChild(st);
+  const _r = fieldRender;
+  fieldRender = function () { const res = _r.apply(this, arguments);
+    try { /* 낱개 표시 */ document.querySelectorAll('#fld [data-c]').forEach(b => { const c = b.dataset.c; if (!EA[c] || b.querySelector('.fxea-t')) return; const t = b.querySelector('b') || b; t.insertAdjacentHTML('beforeend', '<span class="fxea-t">낱개</span>'); });
+      if (FLD.open && FLD.type === 'oven' && (FLD.step === 'type' || FLD.step === 'mode')) { const body = document.querySelector('#fld .fld-body'); if (body && !body.querySelector('.fxea')) { const have = new Set((fldProds('oven') || []).map(p => p.code));
+          const miss = Object.keys(EA).filter(c => !have.has(c) && prodItem(c));
+          if (miss.length) { const h = '<div class="fxea">' + miss.map(c => '<button type="button" data-fxea="' + esc(c) + '">＋ ' + esc(EA[c].lb) + '<small>' + esc(fldShort(prodItem(c).name)) + ' · 1개짜리 가열 기록</small></button>').join('') + '</div>';
+            if (FLD.step === 'mode') { const rh = body.querySelector('.fxr-h'); if (rh) rh.insertAdjacentHTML('beforebegin', h); else body.insertAdjacentHTML('beforeend', h); } else { const grid = body.querySelector('.fld-grid'); if (grid) grid.insertAdjacentHTML('afterend', h); else body.insertAdjacentHTML('beforeend', h); } } } } } catch (e) {}
+    try { const sm = document.querySelector('#fld .rqbar small'); if (sm && !sm.querySelector('.fxea-ver')) { const v = document.createElement('span'); v.className = 'fxea-ver'; v.textContent = ' · ' + TAG; sm.appendChild(v); } } catch (e) {}
+    return res; };
+  window.__fxEa = { VER, BUILT, EA, goOven };
   try { if (typeof FLD !== 'undefined' && FLD.open) fieldRender(); } catch (e) {}
 })();
