@@ -2050,7 +2050,7 @@
     if (!R.length) h += '<div class="empty">제품을 넣으면 평소 쓰는 원료가 나와요.</div>';
     const dAdd = new Set(((draft(d) || {}).addM) || []);   /* v016: 「＋ 원료 넣기」로 넣은 원료도 다른 원료와 같은 줄 형식(소비기한·날짜 고르기·지우기·빼기) */
     R.forEach(r => { const u = unitOf(r.u); const mine = r.added && dAdd.has(r.c); const diff = r.usual > 0 && Math.abs(r.v - r.usual) >= Math.max(1, r.usual * 0.005);
-      const sub = (r.usual > 0 ? '평소대로면 ' + fmt(r.usual) + (u || '') : r.occ > 0 ? (r.rcp ? '배합표 값 ' : '가끔 쓰는 원료 · 평소 ') + fmt(r.occ) + (u || '') : (r.v > 0 ? '직접 넣은 원료 · 평소 값 없음' : '직접 넣은 원료 · 평소 값 없음 → 쓴 양을 넣어 주세요')) + (r.u > 1 ? ' · 이카운트 ' + fmt(toEc(r.u, r.v)) + ' (' + r.u + '개 들이)' : r.u ? '' : ' · 이카운트 수량');
+      const sub = (r.usual > 0 ? '평소대로면 ' + fmt(r.usual) + (u || '') : r.occ > 0 ? (r.rcp ? '배합표 값 ' : '가끔 쓰는 원료 · 평소 ') + fmt(r.occ) + (u || '') : '직접 넣은 원료 · 평소 값 없음 (쓴 양을 직접 넣어요)') + (r.u > 1 ? ' · 이카운트 ' + fmt(toEc(r.u, r.v)) + ' (' + r.u + '개 들이)' : r.u ? '' : ' · 이카운트 수량');
       h += '<div class="row' + (r.v || mine ? ' hx' : ' zero') + '"><div class="nm">' + esc(short(r.n)) + '<small' + (diff ? ' class="chg"' : '') + '>' + esc(sub) + (diff ? ' → ' + (r.v > r.usual ? '+' : '') + fmt(r1(r.v - r.usual, 1)) + (u || '') : '') + '</small></div>'
         + (r.occ > 0 && !r.v ? '<button type="button" class="use" data-e2="occ" data-c="' + esc(r.c) + '">평소 값 넣기</button>' : '')
         + '<input type="text" inputmode="decimal" data-e2m="' + esc(r.c) + '" value="' + esc(r.v) + '"><span class="u">' + esc(u) + '</span>'
