@@ -19,7 +19,7 @@
 (function () {
   'use strict';
   if (window.__dbCall) return; window.__dbCall = true;
-  var VER = 'v008', BUILT = '2026-11-27 20:05';
+  var VER = 'v009', BUILT = '2026-11-27 20:15';
   var STANDALONE = !!window.DBCALL_STANDALONE;
   var EMBED = STANDALONE && !!window.DBCALL_EMBED;   /* 조조 상황실 안: 카메라를 못 쓰는 틀 → 받기·걸기는 통화 창을 따로 열어서 */
   var BASE = window.DBCALL_BASE || '';                 /* 영상통화 파일(peerjs·call.html) 위치. wonryo 안에서는 빈 값 */
@@ -211,7 +211,7 @@
       Object.keys(bk).forEach(function (k) { if (k !== DEV && !S.devices[k]) devs.push({ dev: k, name: bk[k].name, on: false, seen: bk[k].seen }); });
       devs.sort(function (a, b) { return a.on !== b.on ? (a.on ? -1 : 1) : a.name < b.name ? -1 : 1; });
       var st = !S.online ? '<div class="dbc-st"><span class="dbc-lab lab-red">' + (navigator.onLine === false ? '인터넷 끊김' : '다시 연결 중') + '</span>' + (navigator.onLine === false ? '인터넷이 돌아오면 저절로 다시 연결돼요' : '잠시만 기다려 주세요' + (S.tries > 1 ? ' (' + S.tries + '번째 시도)' : '')) + '</div>'
-        : !S.rosterAt ? '<div class="dbc-st"><span class="dbc-lab lab-grn">연결됨</span>켜진 기기 확인 중… (기억한 기기는 바로 걸 수 있어요)</div>'
+        : !S.rosterAt ? '<div class="dbc-st"><span class="dbc-lab lab-grn">연결됨</span>켜진 기기 확인 중… (기억한 기기는 바로 걸 수 있어요)</div>' + waitHint()
         : '<div class="dbc-st on"><span class="dbc-lab lab-grn">연결됨</span>이 기기 「' + E(name) + '」 · 전화 받을 수 있음</div>';
       h = st + '<div class="dbc-list">' + (devs.length ? devs.map(function (d) {
         if (d.on) return '<div class="dbc-row"><b>' + E(d.name) + '<small><span class="dbc-lab lab-grn">켜짐</span>지금 받을 수 있어요</small></b><button class="dbc-go" data-a="call" data-dev="' + E(d.dev) + '">📞 영상통화</button></div>';
@@ -279,7 +279,7 @@
   }
 
   /* ───────── 연결 (PeerJS) ───────── */
-  var PEER_OPT = { debug: 0, config: { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: 'stun:stun.cloudflare.com:3478' }, { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }] } };   /* v006: PeerJS 기본 중계(TURN)를 다시 넣음 → 다른 인터넷(휴대폰 LTE·대표님 PC)끼리도 연결 */
+  var PEER_OPT = { debug: 0, config: { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: 'stun:stun.cloudflare.com:3478' }] } };   /* v009: PeerJS 기본 중계(eu-0/us-0.turn.peerjs.com)는 주소가 없어져(11/27 확인) 뺌. 중계는 call_ice.json으로 붙임 */   /* v006: PeerJS 기본 중계(TURN)를 다시 넣음 → 다른 인터넷(휴대폰 LTE·대표님 PC)끼리도 연결 */
   function loadLib() {
     if (window.Peer) return Promise.resolve();
     var srcs = [BASE + 'peerjs.min.js', 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js'], i = 0;
@@ -291,8 +291,25 @@
   function start() {
     if (S.started || !lsGet(K_CODE) || !myName()) return;
     S.started = true;
-    sha('dbcall|' + lsGet(K_CODE)).then(function (h) { S.prefix = 'dbc' + h.slice(0, 20); return loadLib(); })
+    sha('dbcall|' + lsGet(K_CODE)).then(function (h) { S.prefix = 'dbc' + h.slice(0, 20); return loadIce(); }).then(loadLib)
       .then(connectMain).catch(function () { S.started = false; toast('영상통화 준비가 안 됐어요. 인터넷을 확인해 주세요.'); });
+  }
+  /* v009: 중계(TURN) 설정을 call_ice.json에서 받음 ({iceServers:[...]} 또는 {url:'중계 자격 받는 주소'}). 없거나 3초 넘으면 그냥 진행 */
+  function loadIce() {
+    if (S.iceDone) return Promise.resolve(); S.iceDone = true;
+    var to = new Promise(function (ok) { setTimeout(ok, 3000); });
+    var get = fetch(BASE + 'call_ice.json?h=' + Math.floor(Date.now() / 36e5), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (!j) return null; if (j.iceServers) return j.iceServers; if (j.url) return fetch(j.url).then(function (r) { return r.ok ? r.json() : null; }); return null; })
+      .then(function (arr) { if (arr && arr.length) { PEER_OPT.config.iceServers = PEER_OPT.config.iceServers.concat(arr); S.relay = true; } })
+      .catch(function () {});
+    return Promise.race([get, to]);
+  }
+  function waitHint() {   /* v009: 20초 넘게 목록을 못 받으면 이유와 할 일을 보여 줌 */
+    if (S.rosterAt) { S.waitSince = 0; return ''; }
+    if (!S.waitSince) { S.waitSince = Date.now(); setTimeout(refresh, 21000); return ''; }
+    if (Date.now() - S.waitSince < 20000) return '';
+    var cell = navigator.connection && navigator.connection.type === 'cellular';
+    return '<div class="dbc-st"><span class="dbc-lab" style="background:#fde7c8;color:#8a4b00">확인 필요</span>' + (cell ? '지금 휴대폰 데이터(LTE)로 접속 중이에요. ' : '') + (S.relay ? '회사 기기와 이어지는 데 시간이 걸리고 있어요. 「다시 연결」을 눌러 보세요.' : '휴대폰 데이터(LTE)나 회사 밖 인터넷에서는 회사 기기와 이어지지 않을 수 있어요. 와이파이로 바꾼 뒤 「다시 연결」을 눌러 보세요.') + '</div>';
   }
   function teardown() {
     try { if (S.hubConn) S.hubConn.close(); } catch (e) {}
