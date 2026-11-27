@@ -20,17 +20,18 @@ body{margin:0;background:#eef1f3;font-family:Pretendard,"Pretendard Variable","M
 .wrap{padding:16px}
 .howto{max-width:860px;margin:14px auto 0;background:#fff;border-radius:18px;padding:16px 20px;font-size:17px;line-height:1.6;color:#263238;font-weight:600}
 .howto ol{margin:6px 0 0;padding-left:24px}
+.embed body{background:#fff}.embed .top,.embed .howto{display:none}.embed .wrap{padding:0}
 </style>
 </head>
 <body>
-<div class="top"><img src="brand_logo.png" alt="빵을그리다"><h1>📹 영상통화</h1><span class="ver" id="ver">v002 · 업데이트 확인 중</span><button id="inst" hidden>작업표시줄용으로 설치</button></div>
+<div class="top"><img src="brand_logo.png" alt="빵을그리다"><h1>📹 영상통화</h1><span class="ver" id="ver">v003 · 업데이트 확인 중</span><button id="inst" hidden>작업표시줄용으로 설치</button></div>
 <div class="wrap"><div id="dbcHome"></div>
 <div class="howto"><b>작업표시줄에 두는 법 (PC 한 번만)</b><ol>
 <li>위 「작업표시줄용으로 설치」를 누릅니다. (버튼이 없으면 크롬 오른쪽 위 ⋮ → 「전송, 공유」 또는 「앱」 → 「설치」)</li>
 <li>작업표시줄에 생긴 영상통화 아이콘을 오른쪽 클릭 → 「작업 표시줄에 고정」.</li>
 <li>평소에는 창을 <b>최소화</b>만 해 두세요. 창을 닫으면 전화를 받을 수 없어요.</li>
-<li>생산실 앱(생산일지)이 켜진 기기는 위쪽 빵을그리다 로고 옆 📹 버튼으로도 바로 걸고 받을 수 있어요.</li></ol></div></div>
-<script>window.DBCALL_STANDALONE = true;</script>
+<li>생산실 앱(생산일지)은 위쪽 빵을그리다 로고 옆 📹 버튼, 업무 대시보드는 머리줄 「영상통화」 버튼, 조조 상황실은 머리줄 「📹 영상통화」 버튼으로도 걸고 받을 수 있어요.</li></ol></div></div>
+<script>window.DBCALL_STANDALONE = true; window.DBCALL_EMBED = /[?&]embed=1/.test(location.search); if (window.DBCALL_EMBED) document.documentElement.className = 'embed';</script>
 <script>document.write('<script src="call.js?t=' + Date.now() + '"><\/script>');</script>
 <script>
 (function () {

@@ -1,4 +1,9 @@
-/* 빵을그리다 영상통화 v002 · 2026-11-12 00:16
+/* 빵을그리다 영상통화 v003 · 2026-11-27 12:33
+   v003: 업무 대시보드·조조 상황실에서도 주고받기
+   - 업무 대시보드(dash.html) 머리줄 「영상통화」 버튼: 페이지에 data-dbcall-btn 버튼이 있으면 그 버튼으로 열림
+   - 조조 상황실(구글 Apps Script, 카메라 사용 금지 틀) 안에서는 call.html?embed=1 이 전화만 받아 두고,
+     「받기」·「영상통화」를 누르면 통화 창(call.html)이 따로 열려 그 창에서 연결(상대는 그대로 자동 연결)
+   - 다른 저장소 페이지에서 불러도 되게 window.DBCALL_BASE(영상통화 파일 위치) 지원
    v002: 접속이 됐다 안 됐다 하던 문제 보완
    - 기기마다 고정 번호(자리 0~2)로 접속 → 「켜진 기기 목록」이 잠깐 비어도 그 기기로 바로 걸 수 있음
    - 한 번 본 기기는 이 기기에 기억(주소록) → 목록이 비어도 「걸어 보기」 가능
@@ -13,8 +18,10 @@
 (function () {
   'use strict';
   if (window.__dbCall) return; window.__dbCall = true;
-  var VER = 'v002', BUILT = '2026-11-12 00:16';
+  var VER = 'v003', BUILT = '2026-11-27 12:33';
   var STANDALONE = !!window.DBCALL_STANDALONE;
+  var EMBED = STANDALONE && !!window.DBCALL_EMBED;   /* 조조 상황실 안: 카메라를 못 쓰는 틀 → 받기·걸기는 통화 창을 따로 열어서 */
+  var BASE = window.DBCALL_BASE || '';                 /* 영상통화 파일(peerjs·call.html) 위치. wonryo 안에서는 빈 값 */
   var Q = new URLSearchParams(location.search);
   var FAKE = Q.get('callfake') === '1';            /* 시험용: 카메라 대신 그림 화면 */
   var K_CODE = 'dbcall_code_v1', K_NAME = 'dbcall_name_v1', K_DEV = 'dbcall_dev_v1', K_MISS = 'dbcall_missed_v1', K_SEEN = 'dbcall_seen_v1', K_BOOK = 'dbcall_book_v1';
@@ -28,12 +35,22 @@
   function mmss(s) { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + ('0' + s % 60).slice(-2); }
 
   /* 연결 링크(call.html#k=코드)로 열면 코드를 이 기기에 저장하고 주소에서 지움 */
-  (function () { var m = location.hash.match(/[#&]k=([A-Za-z0-9-]{6,24})/); if (m) { lsSet(K_CODE, normCode(m[1])); try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} } })();
+  /* v003: 상황실에서 연 통화 창은 #k=코드&n=이름&dial=기기 또는 &pick=상대&cid=번호 로 열림 → 저장·실행 후 주소에서 지움 */
+  var ACT = null;
+  (function () {
+    if (!STANDALONE) return;
+    var h = location.hash.replace(/^#/, ''); if (!h) return;
+    var P = new URLSearchParams(h), k = P.get('k') || '';
+    if (/^[A-Za-z0-9-]{6,24}$/.test(k)) lsSet(K_CODE, normCode(k));
+    if (!EMBED && (P.get('dial') || P.get('pick'))) ACT = { dial: (P.get('dial') || '').replace(/[^a-z0-9]/gi, '').slice(0, 12), dn: (P.get('dn') || '').slice(0, 20), pick: (P.get('pick') || '').replace(/[^A-Za-z0-9-]/g, '').slice(0, 90), cid: (P.get('cid') || '').replace(/[^a-f0-9]/g, '').slice(0, 16), pn: (P.get('pn') || '').slice(0, 20), n: (P.get('n') || '').trim().slice(0, 20) };
+    if (k || ACT) try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  })();
   var DEV = (Q.get('calldev') || '').replace(/[^a-z0-9]/gi, '').slice(0, 12) || lsGet(K_DEV);
   if (!DEV) { DEV = rand(4); lsSet(K_DEV, DEV); }
   if (Q.get('calldev')) { K_NAME += '_' + DEV; K_MISS += '_' + DEV; K_SEEN += '_' + DEV; K_BOOK += '_' + DEV; }   /* 시험용: 한 PC에서 기기 여러 대 흉내 */
   var SLOT = 0, SLOTS = 3;   /* 같은 기기의 창마다 자리 번호 0,1,2 (다른 기기가 이 번호로 바로 걸 수 있음) */
   function myName() { return lsGet(K_NAME) || ''; }
+  if (ACT && ACT.n && !myName()) lsSet(K_NAME, ACT.n);
 
   var S = { prefix: '', me: '', peer: null, hubPeer: null, isHub: false, hubConn: null, hubConns: {}, roster: {}, rosterAt: 0,
             online: false, devices: {}, call: null, ring: null, panel: false, view: '', msg: '', started: false, joining: false, lastOk: 0, downAt: 0, tries: 0 };
@@ -83,13 +100,19 @@
     '#dbc .dbc-bar{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;padding:12px;background:#000a}' +
     '#dbc .dbc-bar button{min-width:150px;min-height:64px;font-size:21px;background:#eceff1;color:#111}#dbc .dbc-bar .off{background:#ffcdd2;color:#7f0000}#dbc .dbc-bar .end{background:#c62828;color:#fff;min-width:200px}' +
     '#dbc .dbc-play{position:absolute;top:16px;left:50%;transform:translateX(-50%);background:#fff;color:#111}' +
-    '#dbc .dbc-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483647;background:#263238;color:#fff;padding:14px 22px;border-radius:14px;font-size:20px;font-weight:800;box-shadow:0 6px 20px #0007;max-width:92vw;text-align:center}';
+    '#dbc .dbc-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483647;background:#263238;color:#fff;padding:14px 22px;border-radius:14px;font-size:20px;font-weight:800;box-shadow:0 6px 20px #0007;max-width:92vw;text-align:center}' +
+    /* v003: 페이지가 직접 둔 버튼(data-dbcall-btn, 업무 대시보드 머리줄) */
+    '[data-dbcall-btn]{position:relative}[data-dbcall-btn] .dbc-hb{position:absolute;right:-7px;top:-8px;min-width:22px;height:22px;padding:0 5px;border-radius:11px;background:#d32f2f;color:#fff;font:800 14px/22px sans-serif;border:2px solid #fff}' +
+    '[data-dbcall-btn] .dbc-hdot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#9aa3ab;flex:none}[data-dbcall-btn].dbc-on .dbc-hdot{background:#22b35e}' +
+    /* v003: 상황실 안(embed) 작은 화면 */
+    '#dbc.embed .dbc-card{max-width:none;padding:14px 16px;border-radius:0}#dbc.embed .dbc-hd h2{font-size:24px}#dbc.embed .dbc-row b{font-size:21px}#dbc.embed .dbc-go{min-width:150px;font-size:19px}' +
+    '#dbc .dbc-pop{background:#e8f0fe;border:2px solid #90b4f0;border-radius:14px;padding:10px 14px;font-size:16px;font-weight:700;color:#0d2a5c;margin:6px 0 10px}';
 
   var root = null;
   function ensureRoot() {
     if (root && document.body.contains(root)) return root;
     if (!document.getElementById('dbc-css')) { var st = document.createElement('style'); st.id = 'dbc-css'; st.textContent = CSS; document.head.appendChild(st); }
-    root = document.createElement('div'); root.id = 'dbc'; if (STANDALONE) root.className = 'home';
+    root = document.createElement('div'); root.id = 'dbc'; if (STANDALONE) root.className = EMBED ? 'home embed' : 'home';
     var home = STANDALONE && document.getElementById('dbcHome');
     (home || document.body).appendChild(root);
     root.addEventListener('click', onClick);
@@ -105,6 +128,7 @@
   function iconHtml() { var n = missedUnseen(); return '<span class="dbc-i">📹</span><span class="dbc-t">영상통화</span><i class="dbc-dot"></i>' + (n ? '<b class="dbc-bd">' + n + '</b>' : ''); }
   function ensureIcon() {
     if (STANDALONE) return;
+    var hb = document.querySelectorAll('[data-dbcall-btn]'); for (var i = 0; i < hb.length; i++) paintHost(hb[i]);
     var lg = document.querySelector('.fld-tt .fhd-lg'); if (!lg) return;
     var tt = lg.parentNode, ic = tt.querySelector('.dbc-ic');
     if (!ic) {
@@ -117,10 +141,19 @@
     var sm = document.querySelector('.fld-top .rqbar small');
     if (sm && !sm.querySelector('.dbc-ver')) { var sp = document.createElement('span'); sp.className = 'dbc-ver'; sp.textContent = ' · 영상통화 ' + VER + ' · ' + BUILT; sm.appendChild(sp); }
   }
+  /* v003: 페이지가 직접 둔 버튼(업무 대시보드 머리줄 등)에 상태 점·놓친 수 표시 */
+  function paintHost(b) {
+    var n = missedUnseen(), on = !!(S.online && S.rosterAt), key = n + '|' + on + '|' + S.online + '|' + S.started;
+    if (b.__dbk === key) return; b.__dbk = key;
+    b.classList.toggle('dbc-on', on);
+    var bd = b.querySelector('.dbc-hb'); if (!bd) { bd = document.createElement('b'); bd.className = 'dbc-hb'; b.appendChild(bd); }
+    bd.textContent = n ? String(n) : ''; bd.style.display = n ? '' : 'none';
+    b.title = '영상통화 · ' + (S.online ? (on ? '연결됨 · 전화 받을 수 있음' : '연결됨 · 켜진 기기 확인 중') : S.started ? '다시 연결 중' : '처음 한 번 설정 필요') + (n ? ' · 놓친 통화 ' + n + '건' : '');
+  }
   /* 로고 자리는 누르면 「첫 화면」으로 가는 곳이라, 앱보다 먼저(창 단계) 받아서 영상통화만 열고 끝냄 */
   ['click', 'pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart', 'touchend'].forEach(function (t) {
     window.addEventListener(t, function (ev) {
-      var ic = ev.target && ev.target.closest && ev.target.closest('.dbc-ic'); if (!ic) return;
+      var ic = ev.target && ev.target.closest && ev.target.closest('.dbc-ic,[data-dbcall-btn]'); if (!ic) return;
       ev.stopPropagation(); if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
       if (t === 'click') { ev.preventDefault(); openPanel(); }
     }, true);
@@ -151,7 +184,8 @@
     if (!S.panel && !STANDALONE) return;
     var code = lsGet(K_CODE), name = myName(), h = '';
     var head = '<div class="dbc-hd"><h2>📹 영상통화</h2>' + (STANDALONE ? '' : '<button class="dbc-x" data-a="close">✕ 닫기</button>') + '</div>' +
-      (STANDALONE ? '' : '<p class="dbc-ver">영상통화 ' + VER + ' · ' + BUILT + ' 업데이트</p>');
+      (STANDALONE && !EMBED ? '' : '<p class="dbc-ver">영상통화 ' + VER + ' · ' + BUILT + ' 업데이트</p>') +
+      (EMBED ? '<div class="dbc-pop">상황실 화면 안에서는 구글 정책으로 카메라를 쓸 수 없어요. 「영상통화」나 「받기」를 누르면 <b>통화 창이 따로 열려</b> 그 창에서 얼굴을 보며 통화해요.</div>' : '');
     if (!code || S.view === 'code') {
       h = '<h3 style="font-size:22px;margin:6px 0">① 회사 통화 코드 넣기 (이 기기에서 한 번만)</h3>' +
         '<p class="dbc-note">우리 회사 기기끼리만 서로 보이게 하는 코드예요. 이혜영 이사님께 받아서 넣어 주세요. 영어·숫자 8자리입니다.</p>' +
@@ -176,17 +210,17 @@
       h = st + '<div class="dbc-list">' + (devs.length ? devs.map(function (d) {
         if (d.on) return '<div class="dbc-row"><b>' + E(d.name) + '<small><span class="dbc-lab lab-grn">켜짐</span>지금 받을 수 있어요</small></b><button class="dbc-go" data-a="call" data-dev="' + E(d.dev) + '">📞 영상통화</button></div>';
         return '<div class="dbc-row" style="background:#fff"><b>' + E(d.name) + '<small style="color:#37474f"><span class="dbc-lab lab-gry">확인 안 됨</span>마지막 확인 ' + E(md(d.seen) + ' ' + hm(d.seen)) + ' · 켜져 있으면 받아요</small></b><button class="dbc-go" data-a="call" data-dev="' + E(d.dev) + '">📞 걸어 보기</button><button class="dbc-sub" data-a="forget" data-dev="' + E(d.dev) + '" title="이 기기를 목록에서 빼기">빼기</button></div>';
-      }).join('') : '<div class="dbc-empty">지금 켜져 있는 다른 기기가 없어요.<br>상대 기기에서 <b>생산실 앱</b>이나 <b>영상통화 앱</b>이 켜져 있어야 목록에 나와요.</div>') + '</div>';
+      }).join('') : '<div class="dbc-empty">지금 켜져 있는 다른 기기가 없어요.<br>상대 기기에서 <b>생산실 앱</b>·<b>업무 대시보드</b>·<b>영상통화 앱</b>·<b>조조 상황실</b> 중 하나가 켜져 있어야 목록에 나와요.</div>') + '</div>';
       var ms = missed().slice(0, 5);
       if (ms.length) h += '<div class="dbc-sec"><h3>놓친 영상통화</h3><ul class="dbc-miss">' + ms.map(function (m) { return '<li><span class="dbc-lab lab-red">놓침</span>' + E(md(m.at) + ' ' + hm(m.at)) + ' · ' + E(m.name) + '</li>'; }).join('') + '</ul><button class="dbc-sub" data-a="clearmiss">목록 지우기</button></div>';
       h += '<div class="dbc-sec"><h3>이 기기 설정</h3><div class="dbc-btns">' +
         '<button class="dbc-sub" data-a="rename">이름 바꾸기</button>' +
-        '<button class="dbc-sub" data-a="test">🎥 카메라·마이크 시험</button>' +
+        (EMBED ? '' : '<button class="dbc-sub" data-a="test">🎥 카메라·마이크 시험</button>') +
         '<button class="dbc-sub" data-a="ringtest">🔔 벨소리 시험</button>' +
-        (window.Notification && Notification.permission !== 'granted' ? '<button class="dbc-sub" data-a="notify">🔔 창이 가려져도 알림 받기</button>' : '') +
+        (!EMBED && window.Notification && Notification.permission !== 'granted' ? '<button class="dbc-sub" data-a="notify">🔔 창이 가려져도 알림 받기</button>' : '') +
         '<button class="dbc-sub" data-a="share">다른 기기 연결하기</button>' +
         '<button class="dbc-sub" data-a="refresh">↻ 다시 연결</button></div>' +
-        '<p class="dbc-note">받는 쪽이 「받기」를 눌러야만 연결돼요. 녹화·녹음·저장은 하지 않아요. ' + (STANDALONE ? '이 창을 닫으면 전화를 못 받아요(최소화는 괜찮아요).' : '') + '</p></div>';
+        '<p class="dbc-note">받는 쪽이 「받기」를 눌러야만 연결돼요. 녹화·녹음·저장은 하지 않아요. ' + (EMBED ? '상황실을 닫으면 상황실로는 전화를 못 받아요.' : STANDALONE ? '이 창을 닫으면 전화를 못 받아요(최소화는 괜찮아요).' : '') + '</p></div>';
     }
     var html = '<div class="dbc-card">' + head + h + '</div>';
     var el = layer('panel');
@@ -215,7 +249,7 @@
     if (a === 'rename') { S.view = 'name'; return renderPanel(); }
     if (a === 'share') { S.view = 'share'; return renderPanel(); }
     if (a === 'copylink') {
-      var link = location.href.replace(/[^/]*$/, '') + 'call.html#k=' + lsGet(K_CODE);
+      var link = baseUrl() + 'call.html#k=' + lsGet(K_CODE);
       (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.reject()).then(function () { toast('복사했어요. 회사 사람에게만 보내 주세요.'); }, function () { toast('복사가 안 돼요. 코드를 직접 알려 주세요.'); });
       return;
     }
@@ -239,7 +273,7 @@
   var PEER_OPT = { debug: 0, config: { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: 'stun:stun.cloudflare.com:3478' }] } };
   function loadLib() {
     if (window.Peer) return Promise.resolve();
-    var srcs = ['peerjs.min.js', 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js'], i = 0;
+    var srcs = [BASE + 'peerjs.min.js', 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js'], i = 0;
     return new Promise(function (ok, no) {
       (function next() { if (i >= srcs.length) return no(new Error('lib')); var s = document.createElement('script'); s.src = srcs[i++]; s.onload = function () { window.Peer ? ok() : next(); }; s.onerror = next; document.head.appendChild(s); })();
     });
@@ -258,8 +292,8 @@
     S.peer = S.hubPeer = S.hubConn = null; S.isHub = false; S.hubConns = {}; S.roster = {}; S.rosterAt = 0; S.online = false; S.devices = {};
   }
   function restart() { teardown(); S.started = false; refresh(); start(); }
-  function setOnline(v) { if (v) { S.lastOk = Date.now(); S.tries = 0; S.downAt = 0; } else if (!S.downAt) S.downAt = Date.now(); if (S.online !== v) { S.online = v; refresh(); } }
-  function refresh() { queueIcon(); if (S.panel || STANDALONE) { if (!(root && root.querySelector('input') && document.activeElement && document.activeElement.tagName === 'INPUT')) renderPanel(); } }
+  function setOnline(v) { if (v && ACT && !ACT.q) { ACT.q = 1; setTimeout(runAct, 700); } if (v) { S.lastOk = Date.now(); S.tries = 0; S.downAt = 0; } else if (!S.downAt) S.downAt = Date.now(); if (S.online !== v) { S.online = v; refresh(); } }
+  function refresh() { queueIcon(); postStatus(); if (S.panel || STANDALONE) { if (!(root && root.querySelector('input') && document.activeElement && document.activeElement.tagName === 'INPUT')) renderPanel(); } }
 
   function connectMain() {
     if (S.peer && !S.peer.destroyed) try { S.peer.destroy(); } catch (e) {}
@@ -456,6 +490,7 @@
   /* ───────── 전화 받기 ───────── */
   function onIncoming(mc) {
     var m = mc.metadata || {};
+    var oc = S.call; if (m.pickup && oc && oc.role === 'out' && oc.cid === m.cid && oc.state === 'calling') return takePickup(oc, mc);   /* v003: 상대가 상황실에서 받아 통화 창으로 다시 들어옴 → 바로 연결 */
     if (S.call || S.testStream || (S.ring && S.ring.cid !== m.cid)) { sendTo(mc.peer, { t: 'busy', cid: m.cid }); setTimeout(function () { try { mc.close(); } catch (e) {} }, 400); return; }
     var r = S.ring = { mc: mc, cid: m.cid, name: String(m.from || '이름 없는 기기').slice(0, 20), from: mc.peer, at: Date.now() };
     mc.on('close', function () { if (S.ring === r) { stopRing(); addMissed(r.name); } });
@@ -463,14 +498,15 @@
     layer('ring').innerHTML = '<div class="dbc-ring"><div class="r1">📞 영상통화가 왔어요</div><div class="r2">' + E(r.name) + '</div>' +
       '<div class="r3">「받기」를 누르면 서로 얼굴과 목소리가 연결돼요 · 녹화하지 않아요</div>' +
       '<div class="rb"><button class="dbc-acc" data-a="accept">📞 받기</button><button class="dbc-rej" data-a="reject">거절</button></div></div>';
-    startSound(ringOnce, 2600); alertOn(r.name);
+    if (EMBED) post({ dbcall: 'ring', name: r.name }); else { startSound(ringOnce, 2600); alertOn(r.name); }   /* 상황실 안에서는 벨·알림을 상황실 화면이 냄 */
     try { if (navigator.vibrate) navigator.vibrate([400, 200, 400]); } catch (e) {}
   }
-  function stopRing() { var r = S.ring; S.ring = null; if (r) clearTimeout(r.timer); stopSound(); alertOff(); layer('ring').innerHTML = ''; }
+  function stopRing() { var r = S.ring; S.ring = null; if (r) clearTimeout(r.timer); stopSound(); alertOff(); layer('ring').innerHTML = ''; post({ dbcall: 'idle' }); }
   if (bc) bc.onmessage = function (ev) {   /* 같은 기기의 다른 창에서 받았거나 거절함 → 이 창의 벨도 끔 */
     var d = ev.data || {}; if (S.ring && S.ring.cid === d.cid && (d.t === 'answered' || d.t === 'rejected')) { var mc = S.ring.mc; stopRing(); try { mc.close(); } catch (e) {} }
   };
   function accept() {
+    if (EMBED) return popPick();
     var r = S.ring; if (!r) return;
     clearTimeout(r.timer); S.ring = null; stopSound(); alertOff(); layer('ring').innerHTML = '';
     if (bc) bc.postMessage({ t: 'answered', cid: r.cid });
@@ -492,6 +528,7 @@
 
   /* ───────── 전화 걸기 ───────── */
   function placeCall(dev) {
+    if (EMBED) return popDial(dev);
     var bk = book()[dev], d = S.devices[dev] || (bk ? { name: bk.name, peers: [] } : null); if (!d) return toast('상대 기기가 방금 꺼졌어요');
     if (S.call || S.ring) return;
     if (!S.peer || !S.peer.open) { kick(); return toast('아직 연결 중이에요. 몇 초 뒤 다시 눌러 주세요.'); }
@@ -527,7 +564,7 @@
     if (m.t === 'hangup') { if (S.call && S.call.cid === m.cid) endCall('상대가 통화를 끊었어요'); return; }
     var c = S.call; if (!c || c.cid !== m.cid || c.role !== 'out' || c.state !== 'calling') return;
     if (m.t === 'reject') { cancelOut(c); endCall('상대가 지금은 받을 수 없대요'); }
-    if (m.t === 'busy') { cancelOut(c); endCall('상대가 다른 통화 중이에요'); }
+    if (m.t === 'busy') { cancelOut(c); endCall(c.pick ? '바로 연결이 안 됐어요. 상대 화면이 옛 판일 수 있어요. 목록에서 다시 걸어 주세요.' : '상대가 다른 통화 중이에요'); }
   }
 
   /* ───────── 통화 화면 ───────── */
@@ -559,10 +596,10 @@
       el.innerHTML = '<div class="dbc-call"><div class="dbc-top"><span>📹</span><span class="nm"></span><span class="tm"></span><span class="nr">녹화하지 않아요</span></div>' +
         '<div class="dbc-stage"><video class="rv" autoplay playsinline></video><div class="dbc-wait"></div><video class="lv" autoplay playsinline muted></video></div><div class="dbc-bar"></div></div>';
     }
-    el.querySelector('.nm').textContent = c.name + (live ? ' 와 통화 중' : c.role === 'out' ? ' 부르는 중…' : ' 연결 중…');
+    el.querySelector('.nm').textContent = c.name + (live ? ' 와 통화 중' : c.role === 'out' && !c.pick ? ' 부르는 중…' : ' 연결 중…');
     var wait = el.querySelector('.dbc-wait');
     wait.style.display = live ? 'none' : 'flex';
-    wait.innerHTML = c.role === 'out' ? '📞 ' + E(c.name) + '<small>상대가 「받기」를 누르면 연결돼요</small>' : '연결하는 중…<small>잠시만 기다려 주세요</small>';
+    wait.innerHTML = c.role === 'out' && !c.pick ? '📞 ' + E(c.name) + '<small>상대가 「받기」를 누르면 연결돼요</small>' : '연결하는 중…<small>잠시만 기다려 주세요</small>';
     var rv = el.querySelector('.rv'), lv = el.querySelector('.lv');
     if (c.remote && rv.srcObject !== c.remote) { rv.srcObject = c.remote; rv.play().catch(function () { if (!el.querySelector('.dbc-play')) { var b = document.createElement('button'); b.className = 'dbc-play'; b.setAttribute('data-a', 'play'); b.textContent = '🔊 눌러서 소리 켜기'; el.querySelector('.dbc-stage').appendChild(b); } }); }
     if (c.local && lv.srcObject !== c.local) { lv.srcObject = c.local; lv.play().catch(function () {}); lv.style.transform = c.local.__fake ? 'none' : ''; }
@@ -587,6 +624,7 @@
     stopStream(c.local);
     layer('call').innerHTML = '';
     if (msg) toast(msg);
+    if (S.autoClose) setTimeout(function () { if (!S.call && !S.ring) try { window.close(); } catch (e) {} }, 3500);   /* 상황실에서 연 통화 창은 끝나면 저절로 닫힘 */
   }
   function selfTest() {
     if (S.call || S.ring) return;
@@ -605,6 +643,83 @@
     });
   }
 
+  /* ───────── v003: 조조 상황실 안(embed) ↔ 통화 창 ───────── */
+  function baseUrl() { return BASE || location.href.replace(/[?#].*$/, '').replace(/[^/]*$/, ''); }
+  function post(o) { if (!EMBED || window.parent === window) return; try { window.parent.postMessage(o, '*'); } catch (e) {} }
+  var lastSt = '';
+  function postStatus() {
+    if (!EMBED) return;
+    var o = { dbcall: 'status', online: !!S.online, ready: !!(S.online && S.rosterAt), n: Object.keys(S.devices).length, me: myName(), miss: missedUnseen(), setup: !(lsGet(K_CODE) && myName()), ver: VER };
+    var k = JSON.stringify(o); if (k === lastSt) return; lastSt = k; post(o);
+  }
+  function popOpen(p) {
+    var q = new URLSearchParams(p); q.set('k', lsGet(K_CODE)); if (myName()) q.set('n', myName());
+    var w = null; try { w = window.open(baseUrl() + 'call.html?' + (FAKE ? 'callfake=1&' : '') + 'go=' + Date.now() + '#' + q.toString(), 'dbcall_win', 'popup=yes,width=1100,height=780'); } catch (e) {}
+    if (!w) { toast('통화 창이 막혔어요. 주소창 오른쪽 「팝업 차단」 표시를 눌러 「항상 허용」으로 바꿔 주세요.', 9000); return false; }
+    try { w.focus(); } catch (e) {} return true;
+  }
+  function popDial(dev) {
+    var bk = book()[dev], d = S.devices[dev] || bk; if (!d) return toast('상대 기기가 방금 꺼졌어요');
+    if (popOpen({ dial: dev, dn: d.name })) toast('통화 창에서 「' + d.name + '」을(를) 부르는 중이에요', 6000);
+  }
+  function popPick() {
+    var r = S.ring; if (!r) return;
+    if (!popOpen({ pick: r.from, cid: r.cid, pn: r.name })) return;
+    clearTimeout(r.timer); S.ring = null; stopSound(); alertOff(); layer('ring').innerHTML = ''; post({ dbcall: 'idle', picked: 1 });
+    setTimeout(function () { try { r.mc.close(); } catch (e) {} }, 40000);   /* 상대는 통화 창과 연결되면 이 연결을 스스로 닫음 */
+    toast('통화 창에서 연결하는 중이에요', 6000);
+  }
+  /* 통화 창: 상황실에서 「받기」 → 건 사람에게 다시 들어가 바로 연결 */
+  function pickUp(a) {
+    if (S.call || S.ring) return;
+    var c = S.call = { cid: a.cid, name: a.pn || '상대 기기', state: 'calling', role: 'out', pick: true, mcs: {}, targets: [a.pick], failed: {} };
+    renderCall();
+    getMedia().then(function (s) {
+      if (S.call !== c) return stopStream(s);
+      c.local = s; renderCall();
+      var mc; try { mc = S.peer.call(a.pick, s, { metadata: { cid: a.cid, from: myName(), dev: DEV, pickup: 1 } }); } catch (e) {}
+      if (!mc) return endCall('연결하지 못했어요. 목록에서 다시 걸어 주세요.');
+      c.mcs[a.pick] = mc;
+      mc.on('stream', function (remote) { if (S.call !== c) return; if (!c.mc) { c.mc = mc; c.peerId = a.pick; } goLive(c, remote); });
+      mc.on('close', function () { if (S.call === c && c.mc === mc) endCall('상대가 통화를 끊었어요'); });
+      mc.on('error', function () {});
+    });
+    c.timer = setTimeout(function () { if (S.call === c && c.state === 'calling') { cancelOut(c); endCall('연결이 안 됐어요. 상대가 이미 끊었을 수 있어요. 목록에서 다시 걸어 주세요.'); } }, 25000);
+  }
+  /* 건 쪽: 상대가 상황실에서 받고 통화 창으로 다시 들어오면 그 연결로 바꿔서 바로 연결 */
+  function takePickup(c, mc) {
+    function go() {
+      if (S.call !== c || c.mc) { try { mc.close(); } catch (e) {} return; }
+      c.mc = mc; c.peerId = mc.peer; stopSound(); clearTimeout(c.timer);
+      Object.keys(c.mcs || {}).forEach(function (k) { try { c.mcs[k].close(); } catch (e) {} sendTo(k, { t: 'cancel', cid: c.cid, why: 'elsewhere' }); });
+      c.mcs = {};
+      try { mc.answer(c.local); } catch (e) { return endCall('연결하지 못했어요'); }
+      mc.on('stream', function (remote) { if (S.call === c) goLive(c, remote); });
+      mc.on('close', function () { if (S.call === c && c.mc === mc) endCall('상대가 통화를 끊었어요'); });
+      mc.on('error', function () {});
+      c.timer = setTimeout(function () { if (S.call === c && c.state !== 'live') endCall('연결이 안 돼요. 두 기기가 같은 회사 인터넷에 있는지 확인해 주세요.'); }, 20000);
+    }
+    if (c.local) go(); else { var k = 0, iv = setInterval(function () { if (c.local || ++k > 60) { clearInterval(iv); if (c.local) go(); else try { mc.close(); } catch (e) {} } }, 100); }
+  }
+  function runAct() {
+    var a = ACT; if (!a || a.done) return; a.done = true; S.autoClose = !!window.opener;
+    if (a.pick && a.cid) return pickUp(a);
+    if (a.dial) {
+      if (!S.devices[a.dial] && !book()[a.dial]) { var b = book(); b[a.dial] = { name: a.dn || '상대 기기', seen: Date.now() }; lsSet(K_BOOK, JSON.stringify(b)); }
+      placeCall(a.dial);
+    }
+  }
+  /* 상황실 화면 → 이 틀: 회사 통화 코드·기기 이름(처음 한 번), 놓친 통화 확인 */
+  window.addEventListener('message', function (ev) {
+    if (!EMBED || ev.source !== window.parent) return;
+    var d = ev.data || {}; if (!d || typeof d !== 'object') return;
+    if (d.dbcall === 'setup') {
+      var ch = false;
+      if (d.code && !lsGet(K_CODE) && normCode(d.code).length >= 6) { lsSet(K_CODE, normCode(d.code)); ch = true; }
+      if (d.name && !myName()) { lsSet(K_NAME, String(d.name).trim().slice(0, 20)); ch = true; }
+      if (ch) { renderPanel(); start(); } lastSt = ''; postStatus();
+    } else if (d.dbcall === 'seen') { lsSet(K_SEEN, String(Date.now())); lastSt = ''; refresh(); }
+  });
   /* ───────── 시작 ───────── */
   function boot() {
     ensureRoot();
@@ -614,12 +729,13 @@
     window.addEventListener('pagehide', function () { if (S.call && S.call.peerId) sendTo(S.call.peerId, { t: 'hangup', cid: S.call.cid }); teardown(); });   /* 창을 닫으면 접속 정리 → 다른 기기가 목록 담당을 바로 이어받음 */
     window.addEventListener('pageshow', function (ev) { if (ev.persisted) restart(); });
     if (STANDALONE) setInterval(checkUpdate, 20 * 60000);
+    if (EMBED) { post({ dbcall: 'hello', ver: VER }); postStatus(); }
   }
   /* 영상통화 창(call.html): 새 버전이 올라오면 통화·벨이 없을 때 저절로 새로 고침 (입력하던 글이 있으면 미룸) */
   function checkUpdate() {
     fetch('call.js', { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
       var m = t.match(/var VER = '([^']+)', BUILT = '([^']+)'/); if (!m || (m[1] === VER && m[2] === BUILT)) return;
-      var busy = S.call || S.ring || S.testStream || (document.activeElement && document.activeElement.tagName === 'INPUT');
+      var busy = S.call || S.ring || S.testStream || ACT || (document.activeElement && document.activeElement.tagName === 'INPUT');
       if (!busy) location.reload();
     }).catch(function () {});
   }
