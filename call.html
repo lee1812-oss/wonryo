@@ -20,23 +20,31 @@ body{margin:0;background:#eef1f3;font-family:Pretendard,"Pretendard Variable","M
 .wrap{padding:16px}
 .howto{max-width:860px;margin:14px auto 0;background:#fff;border-radius:18px;padding:16px 20px;font-size:17px;line-height:1.6;color:#263238;font-weight:600}
 .howto ol{margin:6px 0 0;padding-left:24px}
+.howto.mob{display:none}
+@media (max-width:640px){.top{padding:8px 12px;padding-top:max(8px,env(safe-area-inset-top));gap:8px}.top img{height:36px}.top h1{font-size:22px}.top .ver{font-size:14px;padding:4px 9px}.wrap{padding:10px}.howto.pc{display:none}.howto.mob{display:block;font-size:18px}}
+.app .howto.pc{display:none}.app .howto.mob{display:block}.app #inst{display:none!important}
 .embed body{background:#fff}.embed .top,.embed .howto{display:none}.embed .wrap{padding:0}
 </style>
 </head>
 <body>
-<div class="top"><img src="brand_logo.png" alt="빵을그리다"><h1>📹 영상통화</h1><span class="ver" id="ver">v003 · 업데이트 확인 중</span><button id="inst" hidden>작업표시줄용으로 설치</button></div>
+<div class="top"><img src="brand_logo.png" alt="빵을그리다"><h1>📹 영상통화</h1><span class="ver" id="ver">v004 · 업데이트 확인 중</span><button id="inst" hidden>작업표시줄용으로 설치</button></div>
 <div class="wrap"><div id="dbcHome"></div>
-<div class="howto"><b>작업표시줄에 두는 법 (PC 한 번만)</b><ol>
+<div class="howto mob"><b>휴대폰에서 쓰는 법</b><ol>
+<li>처음 한 번 「회사 통화 코드」와 이 휴대폰 이름(예: 이혜영 휴대폰)을 넣어요.</li>
+<li>카메라·마이크를 물어보면 「허용」을 눌러요. 통화 중 「🔄 앞/뒤 카메라」로 카메라를 바꿀 수 있어요.</li>
+<li>전화를 받으려면 <b>앱을 켜 두세요</b>. 앱을 닫거나 휴대폰이 오래 잠겨 있으면 벨이 안 울릴 수 있어요.</li></ol></div>
+<div class="howto pc"><b>작업표시줄에 두는 법 (PC 한 번만)</b><ol>
 <li>위 「작업표시줄용으로 설치」를 누릅니다. (버튼이 없으면 크롬 오른쪽 위 ⋮ → 「전송, 공유」 또는 「앱」 → 「설치」)</li>
 <li>작업표시줄에 생긴 영상통화 아이콘을 오른쪽 클릭 → 「작업 표시줄에 고정」.</li>
 <li>평소에는 창을 <b>최소화</b>만 해 두세요. 창을 닫으면 전화를 받을 수 없어요.</li>
 <li>생산실 앱(생산일지)은 위쪽 빵을그리다 로고 옆 📹 버튼, 업무 대시보드는 머리줄 「영상통화」 버튼, 조조 상황실은 머리줄 「📹 영상통화」 버튼으로도 걸고 받을 수 있어요.</li></ol></div></div>
-<script>window.DBCALL_STANDALONE = true; window.DBCALL_EMBED = /[?&]embed=1/.test(location.search); if (window.DBCALL_EMBED) document.documentElement.className = 'embed';</script>
+<script>window.DBCALL_STANDALONE = true; window.DBCALL_EMBED = /[?&]embed=1/.test(location.search); if (window.DBCALL_EMBED) document.documentElement.className = 'embed'; else if (/[?&]app=1/.test(location.search) || (window.matchMedia && matchMedia('(display-mode: standalone)').matches && /Android|iPhone|iPad/i.test(navigator.userAgent))) document.documentElement.className = 'app';   /* v004: 휴대폰 앱으로 열림 */</script>
 <script>document.write('<script src="call.js?t=' + Date.now() + '"><\/script>');</script>
 <script>
 (function () {
   var v = document.getElementById('ver'); if (window.DBCALL) v.textContent = window.DBCALL.ver + ' · ' + window.DBCALL.built + ' 업데이트';
   var dp = null, b = document.getElementById('inst');
+  if (/Android|iPhone|iPad/i.test(navigator.userAgent)) b.textContent = '휴대폰에 설치';
   window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); dp = e; b.hidden = false; });
   b.onclick = function () { if (dp) { dp.prompt(); dp.userChoice.then(function () { dp = null; b.hidden = true; }); } };
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});

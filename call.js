@@ -18,12 +18,14 @@
 (function () {
   'use strict';
   if (window.__dbCall) return; window.__dbCall = true;
-  var VER = 'v003', BUILT = '2026-11-27 12:33';
+  var VER = 'v004', BUILT = '2026-11-27 15:11';
   var STANDALONE = !!window.DBCALL_STANDALONE;
   var EMBED = STANDALONE && !!window.DBCALL_EMBED;   /* 조조 상황실 안: 카메라를 못 쓰는 틀 → 받기·걸기는 통화 창을 따로 열어서 */
   var BASE = window.DBCALL_BASE || '';                 /* 영상통화 파일(peerjs·call.html) 위치. wonryo 안에서는 빈 값 */
   var Q = new URLSearchParams(location.search);
-  var FAKE = Q.get('callfake') === '1';            /* 시험용: 카메라 대신 그림 화면 */
+  var FAKE = Q.get('callfake') === '1';
+  var MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));   /* v004: 휴대폰·태블릿 */
+  var FACE = 'user';   /* v004: 지금 쓰는 카메라 (user 앞 / environment 뒤) */            /* 시험용: 카메라 대신 그림 화면 */
   var K_CODE = 'dbcall_code_v1', K_NAME = 'dbcall_name_v1', K_DEV = 'dbcall_dev_v1', K_MISS = 'dbcall_missed_v1', K_SEEN = 'dbcall_seen_v1', K_BOOK = 'dbcall_book_v1';
   function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
   function lsSet(k, v) { try { if (v == null || v === '') localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
@@ -106,7 +108,9 @@
     '[data-dbcall-btn] .dbc-hdot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#9aa3ab;flex:none}[data-dbcall-btn].dbc-on .dbc-hdot{background:#22b35e}' +
     /* v003: 상황실 안(embed) 작은 화면 */
     '#dbc.embed .dbc-card{max-width:none;padding:14px 16px;border-radius:0}#dbc.embed .dbc-hd h2{font-size:24px}#dbc.embed .dbc-row b{font-size:21px}#dbc.embed .dbc-go{min-width:150px;font-size:19px}' +
-    '#dbc .dbc-pop{background:#e8f0fe;border:2px solid #90b4f0;border-radius:14px;padding:10px 14px;font-size:16px;font-weight:700;color:#0d2a5c;margin:6px 0 10px}';
+    '#dbc .dbc-pop{background:#e8f0fe;border:2px solid #90b4f0;border-radius:14px;padding:10px 14px;font-size:16px;font-weight:700;color:#0d2a5c;margin:6px 0 10px}' +
+    /* v004: 휴대폰 세로 화면 */
+    '@media (max-width:640px){#dbc{font-size:19px}#dbc.home .dbc-card{padding:14px 12px;border-radius:16px}#dbc .dbc-hd h2{font-size:26px}#dbc .dbc-row{flex-wrap:wrap;padding:14px}#dbc .dbc-row b{flex:1 1 100%;font-size:24px}#dbc .dbc-row .dbc-go{flex:1 1 auto;min-width:0;min-height:66px;font-size:22px}#dbc .dbc-row .dbc-sub{min-height:66px}#dbc .dbc-btns button{flex:1 1 calc(50% - 10px);min-height:60px;font-size:17px;padding:6px 8px}#dbc .dbc-code{font-size:34px}#dbc .dbc-ring .r2{font-size:42px}#dbc .dbc-ring .rb{flex-direction:column;width:100%;max-width:420px;gap:16px}#dbc .dbc-ring button{width:100%;min-width:0;min-height:96px;font-size:32px}#dbc .dbc-top{font-size:19px;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top))}#dbc .dbc-stage .lv{width:34%;min-width:110px;right:10px;bottom:10px}#dbc .dbc-bar{gap:10px;padding:10px;padding-bottom:max(12px,env(safe-area-inset-bottom))}#dbc .dbc-bar button{flex:1 1 calc(50% - 10px);min-width:0;min-height:68px;font-size:19px;padding:6px 8px}#dbc .dbc-bar .end{flex:1 1 100%;min-width:0;min-height:76px;font-size:24px}}';
 
   var root = null;
   function ensureRoot() {
@@ -189,6 +193,7 @@
     if (!code || S.view === 'code') {
       h = '<h3 style="font-size:22px;margin:6px 0">① 회사 통화 코드 넣기 (이 기기에서 한 번만)</h3>' +
         '<p class="dbc-note">우리 회사 기기끼리만 서로 보이게 하는 코드예요. 이혜영 이사님께 받아서 넣어 주세요. 영어·숫자 8자리입니다.</p>' +
+        (code ? '<p class="dbc-note">지금 이 기기에 들어 있는 코드: <b>' + E(code.slice(0, 2)) + '●●●●●●</b> · 새 코드를 넣고 「저장」을 누르면 바뀌어요.</p>' : '') +
         '<input data-in="code" data-enter="savecode" autocomplete="off" autocapitalize="characters" placeholder="예) ABCD-1234" value="">' +
         '<div class="dbc-btns" style="margin-top:12px"><button class="dbc-pri" data-a="savecode">저장</button>' + (code ? '<button class="dbc-sub" data-a="back">돌아가기</button>' : '') + '</div>';
     } else if (!name || S.view === 'name') {
@@ -215,12 +220,13 @@
       if (ms.length) h += '<div class="dbc-sec"><h3>놓친 영상통화</h3><ul class="dbc-miss">' + ms.map(function (m) { return '<li><span class="dbc-lab lab-red">놓침</span>' + E(md(m.at) + ' ' + hm(m.at)) + ' · ' + E(m.name) + '</li>'; }).join('') + '</ul><button class="dbc-sub" data-a="clearmiss">목록 지우기</button></div>';
       h += '<div class="dbc-sec"><h3>이 기기 설정</h3><div class="dbc-btns">' +
         '<button class="dbc-sub" data-a="rename">이름 바꾸기</button>' +
+        '<button class="dbc-sub" data-a="changecode">🔑 코드 바꾸기</button>' +
         (EMBED ? '' : '<button class="dbc-sub" data-a="test">🎥 카메라·마이크 시험</button>') +
         '<button class="dbc-sub" data-a="ringtest">🔔 벨소리 시험</button>' +
         (!EMBED && window.Notification && Notification.permission !== 'granted' ? '<button class="dbc-sub" data-a="notify">🔔 창이 가려져도 알림 받기</button>' : '') +
         '<button class="dbc-sub" data-a="share">다른 기기 연결하기</button>' +
         '<button class="dbc-sub" data-a="refresh">↻ 다시 연결</button></div>' +
-        '<p class="dbc-note">받는 쪽이 「받기」를 눌러야만 연결돼요. 녹화·녹음·저장은 하지 않아요. ' + (EMBED ? '상황실을 닫으면 상황실로는 전화를 못 받아요.' : STANDALONE ? '이 창을 닫으면 전화를 못 받아요(최소화는 괜찮아요).' : '') + '</p></div>';
+        '<p class="dbc-note">받는 쪽이 「받기」를 눌러야만 연결돼요. 녹화·녹음·저장은 하지 않아요. ' + (EMBED ? '상황실을 닫으면 상황실로는 전화를 못 받아요.' : STANDALONE ? (MOBILE ? '앱을 켜 두어야 전화를 받아요. 앱을 닫거나 휴대폰이 오래 잠겨 있으면 벨이 안 울릴 수 있어요.' : '이 창을 닫으면 전화를 못 받아요(최소화는 괜찮아요).') : '') + '</p></div>';
     }
     var html = '<div class="dbc-card">' + head + h + '</div>';
     var el = layer('panel');
@@ -247,6 +253,8 @@
       lsSet(K_NAME, n); S.view = ''; renderPanel(); sendHello(); start(); return;
     }
     if (a === 'rename') { S.view = 'name'; return renderPanel(); }
+    if (a === 'changecode') { S.view = 'code'; return renderPanel(); }
+    if (a === 'flip') return flipCam();
     if (a === 'share') { S.view = 'share'; return renderPanel(); }
     if (a === 'copylink') {
       var link = baseUrl() + 'call.html#k=' + lsGet(K_CODE);
@@ -434,8 +442,9 @@
     if (FAKE) return Promise.resolve(fakeStream('시험 화면'));
     var M = navigator.mediaDevices; if (!M || !M.getUserMedia) return Promise.resolve(fakeStream('카메라를 쓸 수 없는 기기'));
     var A = { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, V = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24 } };
+    if (MOBILE) { FACE = 'user'; V.facingMode = { ideal: 'user' }; }
     return M.getUserMedia({ video: V, audio: A }).catch(function (e) {
-      if (e && e.name === 'NotAllowedError') { toast('카메라·마이크가 막혀 있어요. 주소창 왼쪽 표시를 눌러 「허용」으로 바꿔 주세요.', 8000); return fakeStream('카메라 허용 안 됨'); }
+      if (e && e.name === 'NotAllowedError') { toast(MOBILE ? '카메라·마이크가 막혀 있어요. 휴대폰 설정 → 애플리케이션 → 빵을그리다 영상통화 → 권한에서 「허용」해 주세요.' : '카메라·마이크가 막혀 있어요. 주소창 왼쪽 표시를 눌러 「허용」으로 바꿔 주세요.', 8000); return fakeStream('카메라 허용 안 됨'); }
       return M.getUserMedia({ audio: A }).then(function (s) { var v = fakeVideoTrack('카메라 없음 · 소리만'); s.addTrack(v); s.__stop = v.__stop; return s; })
         .catch(function () { return M.getUserMedia({ video: V }).then(function (s) { toast('마이크가 없어 화면만 보내요'); return s; }); })
         .catch(function () { toast('카메라·마이크를 찾지 못했어요. 상대 화면만 보여요.', 7000); return fakeStream('카메라·마이크 없음'); });
@@ -466,8 +475,12 @@
   function alertOn(name) {
     var d = topDoc() || document; flash.top = d; flash.title = d.title; var on = false;
     flash.iv = setInterval(function () { on = !on; d.title = on ? '📞 영상통화 왔어요!' : flash.title; }, 900);
+    if (MOBILE && navigator.vibrate) { try { navigator.vibrate([700, 300, 700]); } catch (e) {} flash.vib = setInterval(function () { try { navigator.vibrate([700, 300, 700]); } catch (e) {} }, 2500); }   /* v004: 휴대폰 진동 */
     if (window.Notification && Notification.permission === 'granted' && (document.hidden || (topDoc() && topDoc().hidden) || frameHidden())) {
-      try { flash.note = new Notification('📞 영상통화가 왔어요', { body: name + ' 에서 영상통화가 왔어요. 눌러서 받아 주세요.', tag: 'dbcall', requireInteraction: true }); flash.note.onclick = function () { try { window.top.focus(); } catch (e) {} window.focus(); }; } catch (e) {}
+      try { flash.note = new Notification('📞 영상통화가 왔어요', { body: name + ' 에서 영상통화가 왔어요. 눌러서 받아 주세요.', tag: 'dbcall', requireInteraction: true }); flash.note.onclick = function () { try { window.top.focus(); } catch (e) {} window.focus(); }; } catch (e) {
+        /* v004: 안드로이드(앱·크롬)는 new Notification이 안 돼서 서비스워커로 알림 */
+        try { if (navigator.serviceWorker) navigator.serviceWorker.getRegistration().then(function (reg) { if (reg) reg.showNotification('📞 영상통화가 왔어요', { body: name + ' 에서 영상통화가 왔어요. 눌러서 받아 주세요.', tag: 'dbcall', requireInteraction: true, vibrate: [600, 300, 600] }); }).catch(function () {}); } catch (e2) {}
+      }
     }
     var td = topDoc();
     if (td && frameHidden()) {   /* 통합재고관리에서 생산일지 탭이 아닌 다른 화면을 보고 있을 때: 맨 위 창에 띠 표시 */
@@ -482,7 +495,7 @@
   }
   function showFrame() { var td = topDoc(); if (!td || !frameHidden()) return; var m = td.querySelector('[data-menu="prod"]'); if (m) try { m.click(); } catch (e) {} }
   function alertOff() {
-    if (flash.iv) clearInterval(flash.iv); flash.iv = null; if (flash.top) flash.top.title = flash.title; flash.top = null;
+    if (flash.iv) clearInterval(flash.iv); flash.iv = null; if (flash.vib) { clearInterval(flash.vib); flash.vib = null; try { navigator.vibrate && navigator.vibrate(0); } catch (e) {} } if (flash.top) flash.top.title = flash.title; flash.top = null;
     if (flash.note) try { flash.note.close(); } catch (e) {} flash.note = null;
     if (flash.banner) try { flash.banner.remove(); } catch (e) {} flash.banner = null;
   }
@@ -574,7 +587,7 @@
     mc.on('error', function () {});
   }
   function goLive(c, remote) {
-    c.remote = remote; if (c.state !== 'live') { c.state = 'live'; c.t0 = Date.now(); clearTimeout(c.timer); watchIce(c); }
+    c.remote = remote; if (c.state !== 'live') { c.state = 'live'; c.t0 = Date.now(); clearTimeout(c.timer); watchIce(c); try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (w) { if (S.call === c) c.wake = w; else w.release(); }).catch(function () {}); } catch (e) {} }   /* v004: 통화 중 화면 꺼짐 방지 */
     renderCall();
   }
   function watchIce(c) {
@@ -602,13 +615,34 @@
     wait.innerHTML = c.role === 'out' && !c.pick ? '📞 ' + E(c.name) + '<small>상대가 「받기」를 누르면 연결돼요</small>' : '연결하는 중…<small>잠시만 기다려 주세요</small>';
     var rv = el.querySelector('.rv'), lv = el.querySelector('.lv');
     if (c.remote && rv.srcObject !== c.remote) { rv.srcObject = c.remote; rv.play().catch(function () { if (!el.querySelector('.dbc-play')) { var b = document.createElement('button'); b.className = 'dbc-play'; b.setAttribute('data-a', 'play'); b.textContent = '🔊 눌러서 소리 켜기'; el.querySelector('.dbc-stage').appendChild(b); } }); }
-    if (c.local && lv.srcObject !== c.local) { lv.srcObject = c.local; lv.play().catch(function () {}); lv.style.transform = c.local.__fake ? 'none' : ''; }
+    if (c.local && lv.srcObject !== c.local) { lv.srcObject = c.local; lv.play().catch(function () {}); lv.style.transform = (c.local.__fake || FACE === 'environment') ? 'none' : ''; }
     lv.style.display = c.local ? '' : 'none';
     el.querySelector('.dbc-bar').innerHTML =
       (mic === null ? '' : '<button data-a="mic" class="' + (mic ? '' : 'off') + '">' + (mic ? '🎤 마이크 끄기' : '🔇 마이크 꺼짐 · 켜기') + '</button>') +
+      (cam === null || !MOBILE ? '' : '<button data-a="flip">🔄 앞/뒤 카메라</button>') +
       (cam === null ? '' : '<button data-a="cam" class="' + (cam ? '' : 'off') + '">' + (cam ? '📷 카메라 끄기' : '🚫 카메라 꺼짐 · 켜기') + '</button>') +
       '<button data-a="hang" class="end">' + (live ? '📞 끊기' : '취소') + '</button>';
     if (live) { var tm = el.querySelector('.tm'); tm.textContent = mmss((Date.now() - c.t0) / 1000); }
+  }
+  /* v004: 휴대폰 앞/뒤 카메라 바꾸기 (통화는 끊기지 않고 화면만 바뀜) */
+  function flipCam() {
+    var c = S.call, s = c && c.local, M = navigator.mediaDevices; if (!s || s.__fake || !M || flipCam.busy) return;
+    var old = s.getVideoTracks()[0], was = old ? old.enabled : true, next = FACE === 'user' ? 'environment' : 'user';
+    var V = function (f) { return { video: { facingMode: { ideal: f }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24 } } }; };
+    flipCam.busy = true; if (old) try { old.stop(); } catch (e) {}
+    M.getUserMedia(V(next)).then(function (ns) { FACE = next; return ns; }, function () { toast('다른 카메라를 열지 못했어요'); return M.getUserMedia(V(FACE)); })
+      .then(function (ns) {
+        flipCam.busy = false;
+        var nt = ns.getVideoTracks()[0]; if (!nt) return;
+        if (S.call !== c) { nt.stop(); return; }
+        nt.enabled = was; if (old) s.removeTrack(old); s.addTrack(nt);
+        var pcs = []; if (c.mc && c.mc.peerConnection) pcs.push(c.mc.peerConnection);
+        Object.keys(c.mcs || {}).forEach(function (k) { var m = c.mcs[k]; if (m && m !== c.mc && m.peerConnection) pcs.push(m.peerConnection); });
+        pcs.forEach(function (pc) { pc.getSenders().forEach(function (sd) { if (sd.track === old || (sd.track && sd.track.kind === 'video')) sd.replaceTrack(nt).catch(function () {}); }); });
+        var lv = root && root.querySelector('.dbc-call .lv'); if (lv) lv.srcObject = null;
+        renderCall(); toast(FACE === 'environment' ? '뒤 카메라로 바꿨어요' : '앞 카메라로 바꿨어요', 1800);
+      })
+      .catch(function () { flipCam.busy = false; toast('카메라를 바꾸지 못했어요. 다시 눌러 주세요.'); });
   }
   function hangUp() {
     var c = S.call; if (!c) return;
@@ -618,7 +652,7 @@
   }
   function endCall(msg) {
     var c = S.call; if (!c) return; S.call = null;
-    clearTimeout(c.timer); clearInterval(c.iv); stopSound();
+    clearTimeout(c.timer); clearInterval(c.iv); stopSound(); if (c.wake) try { c.wake.release(); } catch (e) {}
     try { if (c.mc) c.mc.close(); } catch (e) {}
     Object.keys(c.mcs || {}).forEach(function (k) { try { c.mcs[k].close(); } catch (e) {} });
     stopStream(c.local);
