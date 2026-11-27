@@ -18,7 +18,7 @@
 (function () {
   'use strict';
   if (window.__dbCall) return; window.__dbCall = true;
-  var VER = 'v004', BUILT = '2026-11-27 15:11';
+  var VER = 'v005', BUILT = '2026-11-27 15:45';
   var STANDALONE = !!window.DBCALL_STANDALONE;
   var EMBED = STANDALONE && !!window.DBCALL_EMBED;   /* 조조 상황실 안: 카메라를 못 쓰는 틀 → 받기·걸기는 통화 창을 따로 열어서 */
   var BASE = window.DBCALL_BASE || '';                 /* 영상통화 파일(peerjs·call.html) 위치. wonryo 안에서는 빈 값 */
@@ -749,9 +749,10 @@
     var d = ev.data || {}; if (!d || typeof d !== 'object') return;
     if (d.dbcall === 'setup') {
       var ch = false;
-      if (d.code && !lsGet(K_CODE) && normCode(d.code).length >= 6) { lsSet(K_CODE, normCode(d.code)); ch = true; }
+      var nc = normCode(d.code), cc = false;   /* v005: 상황실 속성(DBCALL_CODE)이 바뀌면 저장된 옛 코드도 새 코드로 바꿈 */
+      if (nc.length >= 6 && nc !== lsGet(K_CODE)) { cc = !!lsGet(K_CODE); lsSet(K_CODE, nc); ch = true; }
       if (d.name && !myName()) { lsSet(K_NAME, String(d.name).trim().slice(0, 20)); ch = true; }
-      if (ch) { renderPanel(); start(); } lastSt = ''; postStatus();
+      if (cc && S.started) { renderPanel(); restart(); } else if (ch) { renderPanel(); start(); } lastSt = ''; postStatus();
     } else if (d.dbcall === 'seen') { lsSet(K_SEEN, String(Date.now())); lastSt = ''; refresh(); }
   });
   /* ───────── 시작 ───────── */
