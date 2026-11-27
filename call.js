@@ -19,7 +19,7 @@
 (function () {
   'use strict';
   if (window.__dbCall) return; window.__dbCall = true;
-  var VER = 'v007', BUILT = '2026-11-27 17:14';
+  var VER = 'v008', BUILT = '2026-11-27 20:05';
   var STANDALONE = !!window.DBCALL_STANDALONE;
   var EMBED = STANDALONE && !!window.DBCALL_EMBED;   /* 조조 상황실 안: 카메라를 못 쓰는 틀 → 받기·걸기는 통화 창을 따로 열어서 */
   var BASE = window.DBCALL_BASE || '';                 /* 영상통화 파일(peerjs·call.html) 위치. wonryo 안에서는 빈 값 */
@@ -336,6 +336,21 @@
     if (S.isHub) { if (S.hubPeer && S.hubPeer.disconnected) try { S.hubPeer.reconnect(); } catch (e) {} hubSweep(); }
   }
   setInterval(watch, 8000);
+  /* v008: 안내 기기 자기 점검. 「연결됨」으로 보이지만 실제로는 다른 기기 연결을 못 받는 상태(11/27 사무실 PC에서 확인)를 찾아 새로 연결 */
+  function hubProbe() {
+    if (!S.started || !S.isHub || S.call || S.probing || !S.peer || !S.peer.open) return;
+    S.probing = true;
+    var ok = false, c;
+    try { c = S.peer.connect(hubId(), { reliable: true, metadata: { probe: 1 } }); } catch (e) { S.probing = false; return; }
+    c.on('open', function () { ok = true; S.probing = false; S.probeFail = 0; setTimeout(function () { try { c.close(); } catch (e) {} }, 500); });
+    c.on('error', function () {});
+    setTimeout(function () {
+      if (ok) return; S.probing = false; try { c.close(); } catch (e) {}
+      S.probeFail = (S.probeFail || 0) + 1;
+      if (S.probeFail >= 2 && S.isHub && !S.call) { S.probeFail = 0; restart(); }
+    }, 15000);
+  }
+  setInterval(hubProbe, 45000);
   var kickTm = null;
   function kick() { clearTimeout(kickTm); kickTm = setTimeout(watch, 300); }
   window.addEventListener('online', function () { S.tries = 0; kick(); });
@@ -361,6 +376,7 @@
   function becomeHub(hp) {
     S.isHub = true; S.hubPeer = hp; S.hubConns = {}; S.roster = {};
     hp.on('connection', function (c) {
+      if (c.metadata && c.metadata.probe) { c.on('open', function () { try { c.send({ t: 'pong' }); } catch (e) {} setTimeout(function () { try { c.close(); } catch (e) {} }, 1500); }); c.on('error', function () {}); return; }   /* v008: 자기 점검 연결은 목록에 넣지 않음 */
       c.on('open', function () { S.hubConns[c.peer] = c; try { c.send({ t: 'roster', r: S.roster }); } catch (e) {} });
       c.on('data', function (d) { hubData(c, d); });
       c.on('close', function () { if (S.hubConns[c.peer] === c) { delete S.hubConns[c.peer]; delete S.roster[c.peer]; hubPush(); } });
@@ -398,7 +414,7 @@
     if (!S.peer || S.peer.disconnected) return;
     closeHubClient();
     var c = S.peer.connect(hubId(), { reliable: true }), opened = false; S.hubConn = c;
-    c.on('open', function () { opened = true; try { c.send(helloMsg()); } catch (e) {} });
+    c.on('open', function () { opened = true; S.hubMiss = 0; try { c.send(helloMsg()); } catch (e) {} });
     c.on('data', function (d) {
       if (!d || S.hubConn !== c) return;
       if (d.t === 'roster') { S.roster = d.r || {}; S.rosterAt = Date.now(); applyRoster(); }
@@ -408,7 +424,7 @@
     });
     c.on('close', function () { if (S.hubConn === c) { S.hubConn = null; S.rosterAt = 0; refresh(); setTimeout(joinHub, 800 + Math.random() * 3500); } });
     c.on('error', function () {});
-    setTimeout(function () { if (!opened && S.hubConn === c) { closeHubClient(); setTimeout(joinHub, 800 + Math.random() * 3500); } }, 12000);
+    setTimeout(function () { if (!opened && S.hubConn === c) { closeHubClient(); S.hubMiss = (S.hubMiss || 0) + 1; if (S.hubMiss >= 5 && !S.call && Date.now() - (S.selfFixAt || 0) > 600000) { S.hubMiss = 0; S.selfFixAt = Date.now(); restart(); return; } setTimeout(joinHub, 800 + Math.random() * 3500); } }, 12000);   /* v008: 안내 기기에 5번 연속 못 붙으면 내 접속을 새로 만듦(10분에 한 번까지) */
   }
   function applyRoster() {
     var devs = {};
