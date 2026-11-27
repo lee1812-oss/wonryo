@@ -1819,7 +1819,9 @@
   const prodName = code => { try { const it = prodItem(code); if (it && it.name) return it.name; } catch (e) {} return (STD[code] && STD[code].n) || EXN[code] || code; };
   /* 원료 목록(추가용): 표준 자료에 나온 모든 원료 */
   const MATS = {}; Object.values(STD).forEach(p => p.m.forEach(m => { if (!MATS[m[0]]) MATS[m[0]] = { c: m[0], n: m[1], u: m[2] }; }));
-  /* v002: 원료 넣기 목록에 생산실 원재료 이름표(2026-10-29 이카운트 g 품목)와 생산 기록에 나온 g 원료를 더함 */
+  /* v002: 원료 넣기 목록에 생산실 원재료 이름표(2026-10-29 이카운트 g 품목)와 생산 기록에 나온 g 원료를 더함
+     v016: 새 원료는 [이카운트 g 품목코드(_0 등), 이름, 'g'] 한 줄만 넣으면 됨. 소비기한 후보는 공장 자료 rawbuy.lots.items[같은 코드] 입고분(선입선출)에서 자동으로 오고,
+           없으면 「날짜 고르기」로 직접 고름. 넣은 줄은 다른 원료와 같은 형식(양 수정·소비기한·지우기·✕ 빼기). */
   [["CH.A12_0","강력밀가루(코끼리)","g"],["CH.A13_0","중력밀가루(곰표)","g"],["MS24_0","박력밀가루","g"],["CH.A01_0","프랑스밀가루T65","g"],["CH.A06_0","K블레소레이유","g"],["CH.28_0","아몬드분말","g"],["CH.A10_0","하얀설탕","g"],["CH.138_0","갈색설탕","g"],["CP_01_0","코코넛슈가","g"],["GNFS69_0","벌꿀(잡화/사양)","g"],["CH.01_0","꽃소금","g"],["BK_01","게랑드 소금","g"],["CH.B2_01","탈지분유(서울)","g"],["CH.B01_0","우유(수입/건국)","g"],["LH26_0","고메버터(이즈니/엘르엔)","g"],["LH25_1","앵커버터(엔지그래스)","g"],["LH.2_0","마가린","g"],["SC02_0","냉동전란(에그앤리치)","g"],["CH.G02-1_0","드라이이스트(골드)","g"],["CH.B22_0","S500개량제","g"],["CH.25_1","몰트엑기스(액상,선인)","g"],["CH.139_0","식용유","g"],["GFS09_0","올리브유","g"],["CH.B23_0","펄솔트","g"],["AL01_0","특란","g"],["CH.95_0","양조간장","g"],["CH.247_0","검정깨","g"],["CH.202_0","파인소프트-202","g"],["IC01_0","볶은현미가루","g"],["CH.30_0","쇼트닝 4500","g"],["CH.07_0","파인소프트T","g"]].forEach(m => { if (!MATS[m[0]]) MATS[m[0]] = { c: m[0], n: m[1], u: m[2] }; });
   /* 화면 단위: g → g, 포장 들이를 알면 「개」(이카운트 수량 = 개 ÷ 들이), 모르면 이카운트 수량 그대로 */
   const unitOf = u => u === 'g' ? 'g' : (u > 1 ? '개' : '');
@@ -2046,12 +2048,13 @@
     /* 소모 */
     h += '<div class="card"><h3><span class="tag">소모</span> 실제로 쓴 원료 <small>이카운트 「소모」 칸 · 평소 값이 미리 들어 있어요</small></h3>';
     if (!R.length) h += '<div class="empty">제품을 넣으면 평소 쓰는 원료가 나와요.</div>';
-    R.forEach(r => { const u = unitOf(r.u); const diff = r.usual > 0 && Math.abs(r.v - r.usual) >= Math.max(1, r.usual * 0.005);
-      const sub = (r.usual > 0 ? '평소대로면 ' + fmt(r.usual) + (u || '') : r.occ > 0 ? (r.rcp ? '배합표 값 ' : '가끔 쓰는 원료 · 평소 ') + fmt(r.occ) + (u || '') : '직접 넣은 원료') + (r.u > 1 ? ' · 이카운트 ' + fmt(toEc(r.u, r.v)) + ' (' + r.u + '개 들이)' : r.u ? '' : ' · 이카운트 수량');
-      h += '<div class="row' + (r.v ? ' hx' : ' zero') + '"><div class="nm">' + esc(short(r.n)) + '<small' + (diff ? ' class="chg"' : '') + '>' + esc(sub) + (diff ? ' → ' + (r.v > r.usual ? '+' : '') + fmt(r1(r.v - r.usual, 1)) + (u || '') : '') + '</small></div>'
+    const dAdd = new Set(((draft(d) || {}).addM) || []);   /* v016: 「＋ 원료 넣기」로 넣은 원료도 다른 원료와 같은 줄 형식(소비기한·날짜 고르기·지우기·빼기) */
+    R.forEach(r => { const u = unitOf(r.u); const mine = r.added && dAdd.has(r.c); const diff = r.usual > 0 && Math.abs(r.v - r.usual) >= Math.max(1, r.usual * 0.005);
+      const sub = (r.usual > 0 ? '평소대로면 ' + fmt(r.usual) + (u || '') : r.occ > 0 ? (r.rcp ? '배합표 값 ' : '가끔 쓰는 원료 · 평소 ') + fmt(r.occ) + (u || '') : (r.v > 0 ? '직접 넣은 원료 · 평소 값 없음' : '직접 넣은 원료 · 평소 값 없음 → 쓴 양을 넣어 주세요')) + (r.u > 1 ? ' · 이카운트 ' + fmt(toEc(r.u, r.v)) + ' (' + r.u + '개 들이)' : r.u ? '' : ' · 이카운트 수량');
+      h += '<div class="row' + (r.v || mine ? ' hx' : ' zero') + '"><div class="nm">' + esc(short(r.n)) + '<small' + (diff ? ' class="chg"' : '') + '>' + esc(sub) + (diff ? ' → ' + (r.v > r.usual ? '+' : '') + fmt(r1(r.v - r.usual, 1)) + (u || '') : '') + '</small></div>'
         + (r.occ > 0 && !r.v ? '<button type="button" class="use" data-e2="occ" data-c="' + esc(r.c) + '">평소 값 넣기</button>' : '')
         + '<input type="text" inputmode="decimal" data-e2m="' + esc(r.c) + '" value="' + esc(r.v) + '"><span class="u">' + esc(u) + '</span>'
-        + (r.usual > 0 && diff ? '<button type="button" class="del" data-e2="usual" data-c="' + esc(r.c) + '">평소대로</button>' : '') + (r.v > 0 ? xpHtml(d, 'm', r.c) : '') + '</div>'; });
+        + (r.usual > 0 && diff ? '<button type="button" class="del" data-e2="usual" data-c="' + esc(r.c) + '">평소대로</button>' : '') + (mine ? '<button type="button" class="del" data-e2="delm" data-c="' + esc(r.c) + '">✕ 빼기</button>' : '') + (r.v > 0 || mine ? xpHtml(d, 'm', r.c) : '') + '</div>'; });
     h += '<button type="button" class="add" data-e2="pickM">＋ 원료 넣기</button>';
     if (ui.pickM) { const have = new Set(R.map(r => r.c)); h += '<div class="pick">' + Object.values(MATS).filter(m => !have.has(m.c)).sort((a, b) => String(a.n).localeCompare(String(b.n), 'ko')).map(m => '<button type="button" data-e2="addm" data-c="' + esc(m.c) + '">' + esc(short(m.n)) + '</button>').join('') + '</div>'; }
     h += '</div>';
@@ -2085,6 +2088,7 @@
       if (a === 'addp') { setDraft(d, x => { x.prod = Object.assign({}, prodOf(d)); x.prod[c] = 1; }); ui.pickP = false; paint(); const i = box.querySelector('[data-e2p="' + CSS.escape(c) + '"]'); if (i) i.focus(); return; }
       if (a === 'delp') { setDraft(d, x => { x.prod = Object.assign({}, prodOf(d)); delete x.prod[c]; }); return paint(); }
       if (a === 'addm') { setDraft(d, x => { x.addM = (x.addM || []).concat(c); x.cons[c] = 0; }); ui.pickM = false; paint(); const i = box.querySelector('[data-e2m="' + CSS.escape(c) + '"]'); if (i) i.focus(); return; }
+      if (a === 'delm') { setDraft(d, x => { x.addM = (x.addM || []).filter(z => z !== c); if (x.cons) delete x.cons[c]; if (x.cexp) { x.cexp = Object.assign({}, x.cexp); delete x.cexp[c]; } }); return paint(); }
       if (a === 'occ') { const r = rows(d).find(z => z.c === c); if (r) setDraft(d, x => { x.cons[c] = r.occ; }); return paint(); }
       if (a === 'usual') { setDraft(d, x => { delete x.cons[c]; }); return paint(); }
       if (a === 'reset') { if (!confirm('이 날 고친 값을 지우고 처음 값(이카운트로 보낸 생산량 + 평소 원료 양)으로 돌릴까요?')) return; const E = store(); E.draft[d] = { prod: null, cons: {}, addM: [], fresh: true, ts: new Date().toISOString() }; save(); return paint(); }
@@ -2848,7 +2852,7 @@
    - 윗줄: 화면 폭이 좁으면 단계적으로 줄인다(1 여백 → 2 글자 숨김(아이콘만) → 3 글자 작게 → 4 더 작게 → 5 전체 축소). 줄바꿈이 없어질 때까지.
    - 기록·버튼 동작은 건드리지 않는다. 이 블록을 지우면 예전 모양으로 돌아간다. */
 (function () { if (!window.FIELD_APP) return;
-  const FHX_VER = 'v015', FHX_BUILT = '2026-11-27 11:32';   /* v015 (2026-11-27): ECOUNT 입력 「＋ 원료 넣기」 목록에 갈색설탕(CH.138_0, g) 추가 — 굴뚝빵 이카운트 배합표에 있는데 목록에 없었음 */   /* v014 (2026-11-23): 오븐 가열에 몽블랑·빅몽블랑 낱개(1EA) 고르기 */   /* v013 (2026-11-23): 모든 공정 기록 줄 수정·삭제·삽입 + 변경 이력 */   /* v013 (2026-11-23): 모든 공정 「오늘 기록」 줄마다 수정·삭제, 줄 사이 삽입, 변경 이력(누가·언제·원래 값) */   /* v012 (2026-11-13): 오븐 2시간 측정 줄 — 종료가 2시간 지점 뒤 10분 안이어도 2시간 줄을 만듦(11/6 누락 재발 방지) */   /* v011 (2026-11-13): ECOUNT 입력 제품 목록에 굴뚝빵 생지·쌀소금빵 등 빠진 제품 추가 */
+  const FHX_VER = 'v016', FHX_BUILT = '2026-11-27 11:41';   /* v016 (2026-11-27): ECOUNT 입력 — 「＋ 원료 넣기」로 넣은 원료(갈색설탕 등)도 소비기한·날짜 고르기·지우기·✕ 빼기가 있는 같은 줄 형식 */   /* v015 (2026-11-27): ECOUNT 입력 「＋ 원료 넣기」 목록에 갈색설탕(CH.138_0, g) 추가 — 굴뚝빵 이카운트 배합표에 있는데 목록에 없었음 */   /* v014 (2026-11-23): 오븐 가열에 몽블랑·빅몽블랑 낱개(1EA) 고르기 */   /* v013 (2026-11-23): 모든 공정 기록 줄 수정·삭제·삽입 + 변경 이력 */   /* v013 (2026-11-23): 모든 공정 「오늘 기록」 줄마다 수정·삭제, 줄 사이 삽입, 변경 이력(누가·언제·원래 값) */   /* v012 (2026-11-13): 오븐 2시간 측정 줄 — 종료가 2시간 지점 뒤 10분 안이어도 2시간 줄을 만듦(11/6 누락 재발 방지) */   /* v011 (2026-11-13): ECOUNT 입력 제품 목록에 굴뚝빵 생지·쌀소금빵 등 빠진 제품 추가 */
   const st = document.createElement('style');
   st.textContent = [
     '#fld .fld-top{flex-wrap:wrap;row-gap:4px}',
