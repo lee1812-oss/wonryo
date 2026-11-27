@@ -18,7 +18,7 @@
 (function () {
   'use strict';
   if (window.__dbCall) return; window.__dbCall = true;
-  var VER = 'v005', BUILT = '2026-11-27 15:45';
+  var VER = 'v006', BUILT = '2026-11-27 16:12';
   var STANDALONE = !!window.DBCALL_STANDALONE;
   var EMBED = STANDALONE && !!window.DBCALL_EMBED;   /* 조조 상황실 안: 카메라를 못 쓰는 틀 → 받기·걸기는 통화 창을 따로 열어서 */
   var BASE = window.DBCALL_BASE || '';                 /* 영상통화 파일(peerjs·call.html) 위치. wonryo 안에서는 빈 값 */
@@ -278,7 +278,7 @@
   }
 
   /* ───────── 연결 (PeerJS) ───────── */
-  var PEER_OPT = { debug: 0, config: { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: 'stun:stun.cloudflare.com:3478' }] } };
+  var PEER_OPT = { debug: 0, config: { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }, { urls: 'stun:stun.cloudflare.com:3478' }, { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }] } };   /* v006: PeerJS 기본 중계(TURN)를 다시 넣음 → 다른 인터넷(휴대폰 LTE·대표님 PC)끼리도 연결 */
   function loadLib() {
     if (window.Peer) return Promise.resolve();
     var srcs = [BASE + 'peerjs.min.js', 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js'], i = 0;
@@ -353,7 +353,7 @@
     hp.on('error', function (e) {
       if (settled) { if (S.hubPeer === hp && e.type === 'unavailable-id') { resignHub(); connectHubClient(); } return; }
       done(); try { hp.destroy(); } catch (x) {}
-      if (e.type === 'unavailable-id') connectHubClient(); else setTimeout(joinHub, 4000 + Math.random() * 4000);
+      if (e.type === 'unavailable-id') { S.hubFail = 0; connectHubClient(); } else { S.hubFail = (S.hubFail || 0) + 1; setTimeout(joinHub, Math.min(60000, 4000 * S.hubFail) + Math.random() * 4000); }   /* v006: 안내 서버가 거절하면 점점 천천히 다시 시도 */
     });
     setTimeout(function () { if (!settled) { done(); try { hp.destroy(); } catch (e) {} connectHubClient(); } }, 8000);
   }
