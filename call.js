@@ -1,4 +1,5 @@
-/* 빵을그리다 영상통화 v003 · 2026-11-27 12:33
+/* 빵을그리다 영상통화 v007 · 2026-11-27 17:14
+   v007: 「다시 연결 중」이 1~2초마다 끝없이 반복되던 문제 고침 (다시 연결할 때 옛 접속의 닫힘 신호가 또 다시 연결을 부르던 고리)
    v003: 업무 대시보드·조조 상황실에서도 주고받기
    - 업무 대시보드(dash.html) 머리줄 「영상통화」 버튼: 페이지에 data-dbcall-btn 버튼이 있으면 그 버튼으로 열림
    - 조조 상황실(구글 Apps Script, 카메라 사용 금지 틀) 안에서는 call.html?embed=1 이 전화만 받아 두고,
@@ -18,7 +19,7 @@
 (function () {
   'use strict';
   if (window.__dbCall) return; window.__dbCall = true;
-  var VER = 'v006', BUILT = '2026-11-27 16:12';
+  var VER = 'v007', BUILT = '2026-11-27 17:14';
   var STANDALONE = !!window.DBCALL_STANDALONE;
   var EMBED = STANDALONE && !!window.DBCALL_EMBED;   /* 조조 상황실 안: 카메라를 못 쓰는 틀 → 받기·걸기는 통화 창을 따로 열어서 */
   var BASE = window.DBCALL_BASE || '';                 /* 영상통화 파일(peerjs·call.html) 위치. wonryo 안에서는 빈 값 */
@@ -304,7 +305,7 @@
   function refresh() { queueIcon(); postStatus(); if (S.panel || STANDALONE) { if (!(root && root.querySelector('input') && document.activeElement && document.activeElement.tagName === 'INPUT')) renderPanel(); } }
 
   function connectMain() {
-    if (S.peer && !S.peer.destroyed) try { S.peer.destroy(); } catch (e) {}
+    var old = S.peer; S.peer = null; if (old && !old.destroyed) try { old.destroy(); } catch (e) {}   /* v007: 옛 접속을 먼저 떼어 낸 뒤 정리 → 옛 접속의 「닫힘」이 다시 연결을 또 부르던 무한 반복 막음 */
     S.me = S.prefix + '-' + DEV + '-s' + SLOT;
     var p = new window.Peer(S.me, PEER_OPT); S.peer = p; S.tries++;
     p.on('open', function () { if (p !== S.peer) return; setOnline(true); if (!S.isHub && !(S.hubConn && S.hubConn.open)) setTimeout(joinHub, 200 + Math.random() * 1500); });
